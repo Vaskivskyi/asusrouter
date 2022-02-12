@@ -1,0 +1,14 @@
+### Python
+
+__pycache__/
+
+dist/
+*.egg-info
+
+
+### Other
+# Test
+test.py
+
+# VS Code
+.vscode
