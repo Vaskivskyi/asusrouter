@@ -25,6 +25,12 @@ _FAKE_USER_AGENT = "asusrouter--DUTUtil-"
 #Or even this - all the response will be correct, but the HTTP header will be missing 'AiHOMEAPILevel', 'Httpd_AiHome_Ver' and 'Model_Name' on connect
 #_FAKE_USER_AGENT = "asusrouter--"
 
+DEVICE_API = [
+    "Model_Name",
+    "AiHOMEAPILevel",
+    "Httpd_AiHome_Ver",
+]
+
 _MSG_ERROR_TO_CONNECT = "Cannot connect to host - aborting"
 _MSG_ERROR_TO_TOKEN = "Cannot get asus_token"
 _MSG_ERROR_TO_REQUEST = "Cannot send request"
@@ -45,6 +51,7 @@ class Connection:
         self._token = None
         self._headers = None
         self._session = None
+        self._device : dict | None = dict()
 
     async def async_run_command(self, command, endpoint = "appGet.cgi", retry = False):
         """Run command. Use the existing connection token, otherwise create new one"""
@@ -75,6 +82,11 @@ class Connection:
             async with self._session.post(url="http://{}/{}".format(self._host, endpoint), data = urllib.parse.quote(payload), headers = headers) as r:
                 json_body = await r.json()
             return json_body
+            if endpoint == "login.cgi":
+                r_headers = r.headers
+                for item in DEVICE_API:
+                    if item in r_headers:
+                        self._device[item] = r_headers[item]
         except aiohttp.ServerDisconnectedError:
             _LOGGER.error(_MSG_ERROR_DISCONNECTED)
             return {}
@@ -85,6 +97,14 @@ class Connection:
             _LOGGER.error(ex)
             _LOGGER.debug("here")
             return {}
+
+    async def async_get_device(self):
+        """Return device model and API support levels"""
+
+        if self._device is not None:
+            return self._device
+
+        return {}
 
     async def async_connect(self):
         """Start new connection to and get new auth token"""
