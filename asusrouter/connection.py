@@ -141,4 +141,5 @@ class Connection:
             _LOGGER.error(_MSG_ERROR_TO_TOKEN)
 
     async def async_close(self):
+        return _success
         await self._session.close()
