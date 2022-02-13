@@ -48,6 +48,7 @@ _MSG_ERROR_TO_CONNECT = "Cannot connect to host - aborting"
 _MSG_ERROR_TO_TOKEN = "Cannot get asus_token"
 _MSG_ERROR_TO_REQUEST = "Cannot send request"
 _MSG_ERROR_NOT_AUTHORIZED = "Currrent session is not authorized"
+_MSG_ERROR_NOT_CONNECTED = "Not connected"
 _MSG_ERROR_CREDENTIALS = "Wrong credentials"
 _MSG_ERROR_UNKNOWN_CODE = "Unknown ERROR code"
 _MSG_ERROR_TIMEOUT = "Host timeout"
@@ -106,6 +107,8 @@ class Connection:
                 self._ssl = True
         else:
             self._ssl = False
+
+        self._connected: bool = None
 
     async def async_run_command(self, command, endpoint = "appGet.cgi", retry = False) -> dict:
         """Run command. Use the existing connection token, otherwise create new one"""
@@ -192,6 +195,7 @@ class Connection:
             }
             _LOGGER.debug("{} on port {}: {}".format(_MSG_SUCCESS_LOGIN, self._port, await self.async_get_device()))
 
+            self._connected = True
             _success = True
         elif "error_status" in response:
             error_code = response['error_status']
@@ -209,6 +213,11 @@ class Connection:
 
         _success = False
 
+        if not self._connected:
+            _LOGGER.error(_MSG_ERROR_NOT_CONNECTED)
+            await self.async_cleanup()
+            return _success
+
         try:
             response = await self.async_request("", "Logout.asp", self._headers)
             if "error_status" in response:
@@ -216,6 +225,7 @@ class Connection:
                 if error_code == '8':
                     _LOGGER.debug(_MSG_SUCCESS_LOGOUT)
 
+                    self._connected = False
                     _success = True
 
                     await self.async_cleanup()
@@ -233,3 +243,8 @@ class Connection:
         self._headers = None
         await self._session.close()
         self._session = None
+
+    @property
+    def connected(self) -> bool:
+        """Connection status"""
+        return self._connected
