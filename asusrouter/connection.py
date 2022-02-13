@@ -5,6 +5,7 @@ from asyncio import IncompleteReadError
 import logging
 from asyncio import LimitOverrunError, TimeoutError
 from math import floor
+import string
 from textwrap import indent
 import aiohttp
 import base64
@@ -45,15 +46,16 @@ class Connection:
     def __init__(self, host, username, password):
         """Properties for connection"""
 
-        self._host = host
-        self._username = username
-        self._password = password
-        self._token = None
-        self._headers = None
-        self._session = None
+        self._host : string | None = host
+        self._username : string | None = username
+        self._password : string | None = password
+        self._token : string | None = None
+        self._headers : dict | None = None
+        self._session : string | None = None
+
         self._device : dict | None = dict()
 
-    async def async_run_command(self, command, endpoint = "appGet.cgi", retry = False):
+    async def async_run_command(self, command, endpoint = "appGet.cgi", retry = False) -> dict:
         """Run command. Use the existing connection token, otherwise create new one"""
 
         if self._token is None and not retry:
@@ -75,7 +77,7 @@ class Connection:
                 _LOGGER.error(_MSG_ERROR_TO_CONNECT)
                 return {}
 
-    async def async_request(self, payload, endpoint, headers):
+    async def async_request(self, payload, endpoint, headers) -> dict:
         """Send a request"""
 
         try:
@@ -98,7 +100,7 @@ class Connection:
             _LOGGER.debug("here")
             return {}
 
-    async def async_get_device(self):
+    async def async_get_device(self) -> dict:
         """Return device model and API support levels"""
 
         if self._device is not None:
@@ -106,8 +108,10 @@ class Connection:
 
         return {}
 
-    async def async_connect(self):
+    async def async_connect(self) -> bool:
         """Start new connection to and get new auth token"""
+
+        _success = False
 
         self._session = aiohttp.ClientSession()
 
@@ -126,6 +130,7 @@ class Connection:
                 'user-agent': _FAKE_USER_AGENT,
                 'cookie': 'asus_token={}'.format(self._token)
             }
+            _success = True
         elif "error_status" in response:
             error_code = response['error_status']
             if error_code == '3':
