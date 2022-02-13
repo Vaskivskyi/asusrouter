@@ -231,6 +231,10 @@ class AsusRouter:
         host,
         username = None,
         password = None,
+        port : int | None = None,
+        use_ssl : bool = False,
+        cert_check : bool = True,
+        cert_path : string = "",
         cacheNvramTime = 5,
         cacheDeviceTime = 5,
         cacheTime = 3,
@@ -265,7 +269,7 @@ class AsusRouter:
         self._cacheDeviceLast = None
         
         """Connect"""
-        self.connection = Connection(host, username, password)
+        self.connection = Connection(host = host, username = username, password = password, port = port, use_ssl = use_ssl, cert_check = cert_check, cert_path = cert_path)
 
     async def async_compile_request(self, list):
         """"Compile request into one string"""
@@ -488,6 +492,7 @@ class AsusRouter:
     
     async def async_find_interfaces(self):
         """Return available interfaces/type dictionary"""
+        
         ports = {}
 
         data = await self.async_get_nvram("INTERFACES")

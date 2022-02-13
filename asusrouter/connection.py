@@ -12,6 +12,8 @@ import base64
 import json
 import time
 import urllib.parse
+import ssl
+from pathlib import Path
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -30,8 +32,17 @@ DEVICE_API = [
     "Httpd_AiHome_Ver",
 ]
 
+DEFAULT_PORT = {
+    "http": 80,
+    "https": 8443,
+}
+
 _MSG_SUCCESS_LOGIN = "Login successful"
 _MSG_SUCCESS_LOGOUT = "Logout successful"
+_MSG_SUCCESS_CERT_FOUND = "CA certificate file found"
+_MSG_SUCCESS_CERT_CHECKED = "Certificate is valid"
+
+_MSG_NOTIFY_CERT_DEFAULT = "Certificate will be checked using known CAs"
 
 _MSG_ERROR_TO_CONNECT = "Cannot connect to host - aborting"
 _MSG_ERROR_TO_TOKEN = "Cannot get asus_token"
@@ -41,14 +52,29 @@ _MSG_ERROR_CREDENTIALS = "Wrong credentials"
 _MSG_ERROR_UNKNOWN_CODE = "Unknown ERROR code"
 _MSG_ERROR_TIMEOUT = "Host timeout"
 _MSG_ERROR_DISCONNECTED = "Host disconnected"
+_MSG_ERROR_CONNECTOR = "ERR_CONNECTION_REFUSED"
+
+_MSG_ERROR_CERT_FILE_MISSING = "Certificate file does not exist"
+_MSG_ERROR_CERT_WRONG_HOST = "ERR_CERT_COMMON_NAME_INVALID"
+_MSG_ERROR_CERT_EXPIRED = "ERR_CERT_DATE_INVALID"
 
 class Connection:
     """Create connection"""
 
-    def __init__(self, host, username, password):
+    def __init__(
+        self,
+        host : string,
+        username : string,
+        password : string,
+        port : int | None = None,
+        use_ssl: bool = False,
+        cert_check : bool = True,
+        cert_path : string = ""
+    ):
         """Properties for connection"""
 
         self._host : string | None = host
+        self._port : int | None = port
         self._username : string | None = username
         self._password : string | None = password
         self._token : string | None = None
@@ -56,6 +82,30 @@ class Connection:
         self._session : string | None = None
 
         self._device : dict | None = dict()
+
+        self._http = "http"
+
+        if use_ssl:
+            self._http = "https"
+
+        if self._port is None:
+            self._port = DEFAULT_PORT[self._http]
+
+        if cert_check:
+            if cert_path != "":
+                path = Path(cert_path)
+                if path.is_file():
+                    self._ssl = ssl.create_default_context(cafile = cert_path)
+                    _LOGGER.debug(_MSG_SUCCESS_CERT_FOUND)
+                else:
+                    _LOGGER.error(_MSG_ERROR_CERT_FILE_MISSING)
+                    _LOGGER.debug(_MSG_NOTIFY_CERT_DEFAULT)
+                    self._ssl = True
+            else:
+                _LOGGER.debug(_MSG_NOTIFY_CERT_DEFAULT)
+                self._ssl = True
+        else:
+            self._ssl = False
 
     async def async_run_command(self, command, endpoint = "appGet.cgi", retry = False) -> dict:
         """Run command. Use the existing connection token, otherwise create new one"""
@@ -85,7 +135,7 @@ class Connection:
         json_body = {}
 
         try:
-            async with self._session.post(url="http://{}/{}".format(self._host, endpoint), data = urllib.parse.quote(payload), headers = headers) as r:
+            async with self._session.post(url="{}://{}:{}/{}".format(self._http, self._host, self._port, endpoint), data = urllib.parse.quote(payload), headers = headers, ssl = self._ssl) as r:
                 json_body = await r.json()
                 if "error_status" in json_body:
                     error_code = json_body['error_status']
@@ -96,10 +146,16 @@ class Connection:
                 for item in DEVICE_API:
                     if item in r_headers:
                         self._device[item] = r_headers[item]
+        except aiohttp.ClientConnectorSSLError:
+            _LOGGER.error(_MSG_ERROR_CERT_EXPIRED)
+        except aiohttp.ClientConnectorCertificateError:
+            _LOGGER.error(_MSG_ERROR_CERT_WRONG_HOST)
         except aiohttp.ServerDisconnectedError:
             _LOGGER.error(_MSG_ERROR_DISCONNECTED)
         except aiohttp.ServerTimeoutError:
             _LOGGER.error(_MSG_ERROR_TIMEOUT)
+        except aiohttp.ClientConnectorError:
+            _LOGGER.error(_MSG_ERROR_CONNECTOR)
         except Exception as ex:
             _LOGGER.error(ex)
 
@@ -134,7 +190,7 @@ class Connection:
                 'user-agent': _FAKE_USER_AGENT,
                 'cookie': 'asus_token={}'.format(self._token)
             }
-            _LOGGER.debug("{}: {}".format(_MSG_SUCCESS_LOGIN, await self.async_get_device()))
+            _LOGGER.debug("{} on port {}: {}".format(_MSG_SUCCESS_LOGIN, self._port, await self.async_get_device()))
 
             _success = True
         elif "error_status" in response:
