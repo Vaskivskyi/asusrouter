@@ -13,9 +13,7 @@ import json
 import time
 import urllib.parse
 
-logging.basicConfig()
 _LOGGER = logging.getLogger(__name__)
-_LOGGER.setLevel(logging.DEBUG)
 
 #Use the last known working Android app user-agent, so the device will reply
 #_FAKE_USER_AGENT = "asusrouter-Android-DUTUtil-1.0.0.255"

@@ -16,9 +16,7 @@ from collections import namedtuple
 
 from asusrouter.connection import Connection
 
-logging.basicConfig()
 _LOGGER = logging.getLogger(__name__)
-_LOGGER.setLevel(logging.DEBUG)
 
 DEFAULT_CACHE_TIME = 10
 DEFAULT_SLEEP_TIME = 1
