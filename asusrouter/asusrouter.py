@@ -21,8 +21,12 @@ _LOGGER = logging.getLogger(__name__)
 DEFAULT_CACHE_TIME = 10
 DEFAULT_SLEEP_TIME = 1
 
-INTERFACE_GROUPS = {
-    
+INTERFACE_TYPE = {
+    "wan_ifnames": "wan",
+    "wl_ifnames": "wlan",
+    "wl0_vifnames": "gwlan2",
+    "wl1_vifnames": "gwlan5",
+    "lan_ifnames": "lan"
 }
 
 NVRAM_LIST = {
@@ -349,7 +353,7 @@ class AsusRouter:
             cpu_usage_0 = raw_0['cpu_usage']
             cpu_usage_1 = raw_1['cpu_usage']
             mem_usage = raw_1['memory_usage']
-            for i in range(1,8):
+            for i in self._device_cpu:
                 if (
                     "cpu{}_total".format(i) in cpu_usage_0
                     and "cpu{}_usage".format(i) in cpu_usage_0
@@ -474,6 +478,8 @@ class AsusRouter:
 
         if self._device_cpu is not None:
             return self._device_cpu
+        
+        _LOGGER.debug("Getting CPU cores for the first time")
         cores = []
 
         data = await self.async_get_health_raw(useCache = False)
@@ -488,39 +494,28 @@ class AsusRouter:
             else:
                 break
 
+        self._device_cpu = cores
         return cores
     
-    async def async_find_interfaces(self):
+    async def async_find_interfaces(self, useCache = True):
         """Return available interfaces/type dictionary"""
         
+        if (
+            self._device_interfaces is not None
+            and useCache
+        ):
+            return self._device_interfaces
+
+        _LOGGER.debug("Getting interfaces for the first time")
         ports = {}
 
         data = await self.async_get_nvram("INTERFACES")
         
-        if "wan_ifnames" in data:
-            values = data['wan_ifnames'].split(" ")
-            for item in values:
-                ports[item] = "wan"
-
-        if "wl_ifnames" in data:
-            values = data['wl_ifnames'].split(" ")
-            for item in values:
-                ports[item] = "wlan"
-
-        if "wl0_vifnames" in data:
-            values = data['wl0_vifnames'].split(" ")
-            for item in values:
-                ports[item] = "g_wlan_2"
-                
-        if "wl1_vifnames" in data:
-            values = data['wl1_vifnames'].split(" ")
-            for item in values:
-                ports[item] = "g_wlan_5"
-
-        if "lan_ifnames" in data:
-            values = data['lan_ifnames'].split(" ")
-            for item in values:
-                if not item in ports:
-                    ports[item] = "lan"
-
+        for if_type in INTERFACE_TYPE:
+            if if_type in data:
+                values = data[if_type].split(" ")
+                for item in values:
+                    ports[item] = INTERFACE_TYPE[if_type]
+                    
+        self._device_interfaces = ports
         return ports
