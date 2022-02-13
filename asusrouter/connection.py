@@ -30,9 +30,13 @@ DEVICE_API = [
     "Httpd_AiHome_Ver",
 ]
 
+_MSG_SUCCESS_LOGIN = "Login successful"
+_MSG_SUCCESS_LOGOUT = "Logout successful"
+
 _MSG_ERROR_TO_CONNECT = "Cannot connect to host - aborting"
 _MSG_ERROR_TO_TOKEN = "Cannot get asus_token"
 _MSG_ERROR_TO_REQUEST = "Cannot send request"
+_MSG_ERROR_NOT_AUTHORIZED = "Currrent session is not authorized"
 _MSG_ERROR_CREDENTIALS = "Wrong credentials"
 _MSG_ERROR_UNKNOWN_CODE = "Unknown ERROR code"
 _MSG_ERROR_TIMEOUT = "Host timeout"
@@ -138,6 +142,34 @@ class Connection:
         else:
             _LOGGER.error(_MSG_ERROR_TO_TOKEN)
 
-    async def async_close(self):
         return _success
+
+    async def async_disconnect(self) -> bool:
+        """Close the connection"""
+
+        _success = False
+
+        try:
+            response = await self.async_request("", "Logout.asp", self._headers)
+            if "error_status" in response:
+                error_code = response['error_status']
+                if error_code == '8':
+                    _LOGGER.debug(_MSG_SUCCESS_LOGOUT)
+
+                    _success = True
+
+                    await self.async_cleanup()
+                else:
+                    _LOGGER.error(_MSG_ERROR_UNKNOWN_CODE)
+        except Exception as ex:
+            _LOGGER.error(ex)
+
+        return _success
+
+    async def async_cleanup(self) -> None:
+        """Cleanup after logout"""
+
+        self._token = None
+        self._headers = None
         await self._session.close()
+        self._session = None
