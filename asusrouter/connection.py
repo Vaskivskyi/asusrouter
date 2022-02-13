@@ -164,14 +164,6 @@ class Connection:
 
         return json_body
 
-    async def async_get_device(self) -> dict:
-        """Return device model and API support levels"""
-
-        if self._device is not None:
-            return self._device
-
-        return {}
-
     async def async_connect(self) -> bool:
         """Start new connection to and get new auth token"""
 
@@ -193,7 +185,7 @@ class Connection:
                 'user-agent': _FAKE_USER_AGENT,
                 'cookie': 'asus_token={}'.format(self._token)
             }
-            _LOGGER.debug("{} on port {}: {}".format(_MSG_SUCCESS_LOGIN, self._port, await self.async_get_device()))
+            _LOGGER.debug("{} on port {}: {}".format(_MSG_SUCCESS_LOGIN, self._port, self._device))
 
             self._connected = True
             _success = True
@@ -248,3 +240,8 @@ class Connection:
     def connected(self) -> bool:
         """Connection status"""
         return self._connected
+
+    @property
+    def device(self) -> dict:
+        """Device model and API support levels"""
+        return self._device
