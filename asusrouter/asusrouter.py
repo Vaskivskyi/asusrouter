@@ -21,6 +21,10 @@ _LOGGER = logging.getLogger(__name__)
 DEFAULT_CACHE_TIME = 10
 DEFAULT_SLEEP_TIME = 1
 
+_MSG_SUCCESS_COMMAND = "Command was sent successfully"
+
+_MSG_ERROR_NO_CONTROL = "Device is connected in no-control mode. Sending commands is blocked"
+
 INTERFACE_TYPE = {
     "wan_ifnames": "wan",
     "wl_ifnames": "wlan",
@@ -246,6 +250,9 @@ class AsusRouter:
         enableControl = False):
         """Init"""
 
+        self._enableMonitor = enableMonitor
+        self._enableControl = enableControl
+
         self._device_cpu : list | None = None
         self._device_interfaces : dict | None = None
 
@@ -297,6 +304,27 @@ class AsusRouter:
                 data += "nvram_get({});".format(item)
 
         return data
+
+    async def async_command(self, service, mode = "apply"):
+        """Command device to run a service"""
+
+        if not self._enableControl:
+            _LOGGER.error(_MSG_ERROR_NO_CONTROL)
+            return {}
+
+        result = {}
+
+        try:
+            command = {
+                "rc_service": service,
+                "action_mode": mode,
+            }
+            result = await self.connection.async_run_command(str(command), "applyapp.cgi")
+            _LOGGER.debug("{}: {}".format(_MSG_SUCCESS_COMMAND, command))
+        except Exception as ex:
+            _LOGGER.error(ex)
+
+        return result
 
     async def async_hook(self, request):
         """Hook data from device"""
@@ -516,6 +544,6 @@ class AsusRouter:
                 values = data[if_type].split(" ")
                 for item in values:
                     ports[item] = INTERFACE_TYPE[if_type]
-                    
+
         self._device_interfaces = ports
         return ports
