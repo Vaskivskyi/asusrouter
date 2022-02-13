@@ -82,10 +82,15 @@ class Connection:
     async def async_request(self, payload, endpoint, headers) -> dict:
         """Send a request"""
 
+        json_body = {}
+
         try:
             async with self._session.post(url="http://{}/{}".format(self._host, endpoint), data = urllib.parse.quote(payload), headers = headers) as r:
                 json_body = await r.json()
-            return json_body
+                if "error_status" in json_body:
+                    error_code = json_body['error_status']
+                    if error_code == '2':
+                        _LOGGER.error(_MSG_ERROR_NOT_AUTHORIZED)
             if endpoint == "login.cgi":
                 r_headers = r.headers
                 for item in DEVICE_API:
@@ -93,14 +98,12 @@ class Connection:
                         self._device[item] = r_headers[item]
         except aiohttp.ServerDisconnectedError:
             _LOGGER.error(_MSG_ERROR_DISCONNECTED)
-            return {}
         except aiohttp.ServerTimeoutError:
             _LOGGER.error(_MSG_ERROR_TIMEOUT)
-            return {}
         except Exception as ex:
             _LOGGER.error(ex)
-            _LOGGER.debug("here")
-            return {}
+
+        return json_body
 
     async def async_get_device(self) -> dict:
         """Return device model and API support levels"""
@@ -125,13 +128,14 @@ class Connection:
         }
 
         response = await self.async_request(payload, "login.cgi", headers)
-
         if "asus_token" in response:
             self._token = response['asus_token']
             self._headers = {
                 'user-agent': _FAKE_USER_AGENT,
                 'cookie': 'asus_token={}'.format(self._token)
             }
+            _LOGGER.debug("{}: {}".format(_MSG_SUCCESS_LOGIN, await self.async_get_device()))
+
             _success = True
         elif "error_status" in response:
             error_code = response['error_status']
