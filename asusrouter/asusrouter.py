@@ -549,3 +549,9 @@ class AsusRouter:
 
         self._device_interfaces = ports
         return ports
+
+    async def async_initialize(self):
+        """Get all the data needed at the startup"""
+
+        await self.async_find_cpu()
+        await self.async_find_interfaces()
