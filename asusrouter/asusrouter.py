@@ -305,7 +305,7 @@ class AsusRouter:
 
         return data
 
-    async def async_command(self, service, mode = "apply"):
+    async def async_command(self, commands : dict, mode = "apply"):
         """Command device to run a service"""
 
         if not self._enableControl:
@@ -314,13 +314,15 @@ class AsusRouter:
 
         result = {}
 
+        request : dict = {
+            "action_mode": mode,
+        }
+        for command in commands:
+            request[command] = commands[command]
+
         try:
-            command = {
-                "rc_service": service,
-                "action_mode": mode,
-            }
-            result = await self.connection.async_run_command(str(command), "applyapp.cgi")
-            _LOGGER.debug("{}: {}".format(_MSG_SUCCESS_COMMAND, command))
+            result = await self.connection.async_run_command(str(request), "applyapp.cgi")
+            _LOGGER.debug("{}: {}".format(_MSG_SUCCESS_COMMAND, request))
         except Exception as ex:
             _LOGGER.error(ex)
 
