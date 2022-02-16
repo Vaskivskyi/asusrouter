@@ -15,6 +15,7 @@ import urllib.parse
 from collections import namedtuple
 
 from asusrouter.connection import Connection
+import asusrouter.helpers as helpers
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -255,11 +256,12 @@ class AsusRouter:
 
         self._device_cpu : list | None = None
         self._device_interfaces : dict | None = None
+        self._device_map: dict | None = None
+        self._device_boot_time: datetime | None = None
 
         self._cacheNvram = None
         self._cacheNvramTime = cacheNvramTime
         self._cacheNvramLast = None
-        self._cacheNvramGroups = None
 
         self._cacheHealth = None
         self._cacheHealthTime = cacheTime
@@ -327,6 +329,11 @@ class AsusRouter:
             _LOGGER.error(ex)
 
         return result
+
+    async def async_get_page(self, page):
+        """Return the data without sending any"""
+
+        return await self.connection.async_run_command(command = "", endpoint = page)
 
     async def async_hook(self, request):
         """Hook data from device"""
@@ -506,10 +513,10 @@ class AsusRouter:
     async def async_find_cpu(self):
         """Return available CPU cores"""
 
+        # This data is constant, so in case it was cached once, it will be never asked again
         if self._device_cpu is not None:
             return self._device_cpu
         
-        _LOGGER.debug("Getting CPU cores for the first time")
         cores = []
 
         data = await self.async_get_health_raw(useCache = False)
@@ -536,7 +543,6 @@ class AsusRouter:
         ):
             return self._device_interfaces
 
-        _LOGGER.debug("Getting interfaces for the first time")
         ports = {}
 
         data = await self.async_get_nvram("INTERFACES")
@@ -550,8 +556,38 @@ class AsusRouter:
         self._device_interfaces = ports
         return ports
 
+    async def async_get_device_map(self, useCache = True) -> dict:
+        """Returns device map with the main device info"""
+
+        if (
+            self._device_map is not None
+            and useCache
+        ):
+            return self._device_map
+
+        device_map = await self.async_get_page(page = "ajax_status.xml")
+        self._device_map = device_map
+
+        return device_map
+
+    async def async_get_boot_time(self, useCache = True) -> datetime:
+        """Return boot time of the device"""
+
+        if(
+            self._device_boot_time is not None
+            and useCache
+        ):
+            return self._device_boot_time
+
+        boot_time = await helpers.async_parse_uptime(self._device_map["SYS"]["uptimeStr"])
+        self._device_boot_time = boot_time
+
+        return boot_time
+
     async def async_initialize(self):
         """Get all the data needed at the startup"""
 
         await self.async_find_cpu()
         await self.async_find_interfaces()
+        await self.async_get_device_map()
+        await self.async_get_boot_time()
