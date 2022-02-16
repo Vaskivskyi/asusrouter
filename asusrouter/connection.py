@@ -15,6 +15,8 @@ import urllib.parse
 import ssl
 from pathlib import Path
 
+import asusrouter.helpers as helpers
+
 _LOGGER = logging.getLogger(__name__)
 
 #Use the last known working Android app user-agent, so the device will reply
@@ -43,6 +45,8 @@ _MSG_SUCCESS_CERT_FOUND = "CA certificate file found"
 _MSG_SUCCESS_CERT_CHECKED = "Certificate is valid"
 
 _MSG_NOTIFY_CERT_DEFAULT = "Certificate will be checked using known CAs"
+_MSG_NOTIFY_SOURCE_XML = "Data is in XML"
+_MSG_NOTIFY_FIX_JSON = "Trying to fix JSON"
 
 _MSG_ERROR_TO_CONNECT = "Cannot connect to host - aborting"
 _MSG_ERROR_TO_TOKEN = "Cannot get asus_token"
@@ -51,10 +55,11 @@ _MSG_ERROR_NOT_AUTHORIZED = "Currrent session is not authorized"
 _MSG_ERROR_NOT_CONNECTED = "Not connected"
 _MSG_ERROR_CREDENTIALS = "Wrong credentials"
 _MSG_ERROR_UNKNOWN_CODE = "Unknown ERROR code"
+_MSG_ERROR_UNKNOWN_EXCEPTION = "Unknown exception"
 _MSG_ERROR_TIMEOUT = "Host timeout"
 _MSG_ERROR_DISCONNECTED = "Host disconnected"
 _MSG_ERROR_CONNECTOR = "ERR_CONNECTION_REFUSED"
-
+_MSG_ERROR_PARSE_JSON = "Not a valid JSON"
 _MSG_ERROR_CERT_FILE_MISSING = "Certificate file does not exist"
 _MSG_ERROR_CERT_WRONG_HOST = "ERR_CERT_COMMON_NAME_INVALID"
 _MSG_ERROR_CERT_EXPIRED = "ERR_CERT_DATE_INVALID"
@@ -139,6 +144,7 @@ class Connection:
 
         try:
             async with self._session.post(url="{}://{}:{}/{}".format(self._http, self._host, self._port, endpoint), data = urllib.parse.quote(payload), headers = headers, ssl = self._ssl) as r:
+                string_body = await r.text()
                 json_body = await r.json()
                 if "error_status" in json_body:
                     error_code = json_body['error_status']
@@ -159,8 +165,16 @@ class Connection:
             _LOGGER.error(_MSG_ERROR_TIMEOUT)
         except aiohttp.ClientConnectorError:
             _LOGGER.error(_MSG_ERROR_CONNECTOR)
+        except json.JSONDecodeError:
+            _LOGGER.debug(_MSG_ERROR_PARSE_JSON)
+            if ".xml" in endpoint:
+                _LOGGER.debug(_MSG_NOTIFY_SOURCE_XML)
+                json_body = await helpers.async_convert_xml(text = string_body)
+            else:
+                _LOGGER.debug(_MSG_NOTIFY_FIX_JSON)
+                json_body = await helpers.async_convert_to_json(text = string_body)
         except Exception as ex:
-            _LOGGER.error(ex)
+            _LOGGER.error("{}: {}".format(_MSG_ERROR_UNKNOWN_EXCEPTION, ex))
 
         return json_body
 
@@ -233,7 +247,8 @@ class Connection:
 
         self._token = None
         self._headers = None
-        await self._session.close()
+        if self._session is not None:
+            await self._session.close()
         self._session = None
 
     @property
