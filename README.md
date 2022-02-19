@@ -35,9 +35,7 @@ router = AsusRouter(host = "router.my.address",         #required - both IP and 
                     cert_path = "",                     #optional
                     cache_time = 5,                     #optional
                     enable_monitor = True,              #optional
-                    enable_control = False,             #optional
-                    use_ssl = True,                     #optional
-                    cert_check = False)                 #optional
+                    enable_control = False)             #optional
 ```
 
 The module has the initialization method to load all the known data (all the monitors and methods from the next section, require `enable_monitor` to be `True`):
