@@ -32,6 +32,11 @@ DEVICEMAP_BY_INDEX = {
             "auxstatus",
         ],
     },
+    "USB": {
+        "usb": [
+            "status",
+        ]
+    }
 }
 
 #Not implemented yet
@@ -64,14 +69,6 @@ DEVICEMAP_GENERAL = {
             "data_rate_info_5g_2",
             "wan_diag_state",
             "active_wan_unit",
-            "wan0_enable",
-            "wan1_enable",
-            "wan0_realip_state",
-            "wan1_realip_state",
-            "wan0_ipaddr",
-            "wan1_ipaddr",
-            "wan0_realip_ip",
-            "wan1_realip_ip",
             "wlc0_state",
             "wlc1_state",
             "rssi_2g",
@@ -110,21 +107,25 @@ DEVICEMAP_GENERAL = {
             "qtn_state",
         ],
     },
-    # Partial yet
     "USB": {
         "usb": [
-            #<usb>'[]'</usb>
-            "modem_enabled",
+            "modem_enable",
         ],
     },
     "WAN0": {
-        "first_wan": [
-
+        "wan": [
+            "wan0_enable",
+            "wan0_realip_state",
+            "wan0_ipaddr",
+            "wan0_realip_ip",
         ],
     },
     "WAN1": {
-        "second_wan": [
-
+        "wan": [
+            "wan1_enable",
+            "wan1_realip_state",
+            "wan1_ipaddr",
+            "wan1_realip_ip",
         ],
     },
     "SIM": {
@@ -176,8 +177,8 @@ async def async_convert_to_json(text : str) -> dict:
         data = data.replace("get_wan_lan_status=", "")
         data = data[:-1]
     elif "varcpuInfo,memInfo=newObject();cpuInfo=" in data:
-        data = data.replace("varcpuInfo,memInfo=newObject();cpuInfo=", '{"cpuInfo":{')
-        data = data.replace(";memInfo=", '},"memInfo":{')
+        data = data.replace("varcpuInfo,memInfo=newObject();cpuInfo=", '{"cpu":{')
+        data = data.replace(";memInfo=", '},"memory":{')
         data = data.replace(";", "}}")
     else:
         _LOGGER.error("Unknown data. Template for this data is unknown")
@@ -195,7 +196,7 @@ async def async_convert_xml(text : str) -> dict:
     return {}
 
 async def async_parse_devicemap(devicemap : dict) -> dict:
-    """Parce devicemap"""
+    """Parse devicemap"""
 
     data = {}
 
@@ -244,3 +245,19 @@ async def async_parse_uptime(data : str) -> datetime:
     boot = when - timedelta(seconds = seconds)
 
     return boot
+
+
+async def async_transform_port_speed(value : str | None = None) -> int | None:
+    """Transform port speed from the text value to actual speed in Mb/s"""
+
+    if value is None:
+        return None
+    elif value == "X":
+        return 0
+    elif value == "M":
+        return 100
+    elif value == "G":
+        return 1000
+    else:
+        raise NotImplementedError("Conversion for this value is not implemented")
+

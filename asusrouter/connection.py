@@ -1,16 +1,9 @@
 """Connection module"""
 
-import asyncio
-from asyncio import IncompleteReadError
 import logging
-from asyncio import LimitOverrunError, TimeoutError
-from math import floor
-import string
-from textwrap import indent
 import aiohttp
 import base64
 import json
-import time
 import urllib.parse
 import ssl
 from pathlib import Path
@@ -69,23 +62,23 @@ class Connection:
 
     def __init__(
         self,
-        host : string,
-        username : string,
-        password : string,
+        host : str,
+        username : str,
+        password : str,
         port : int | None = None,
         use_ssl: bool = False,
         cert_check : bool = True,
-        cert_path : string = ""
+        cert_path : str = ""
     ):
         """Properties for connection"""
 
-        self._host : string | None = host
+        self._host : str | None = host
         self._port : int | None = port
-        self._username : string | None = username
-        self._password : string | None = password
-        self._token : string | None = None
+        self._username : str | None = username
+        self._password : str | None = password
+        self._token : str | None = None
         self._headers : dict | None = None
-        self._session : string | None = None
+        self._session : str | None = None
 
         self._device : dict | None = dict()
 
@@ -115,7 +108,7 @@ class Connection:
 
         self._connected: bool = None
 
-    async def async_run_command(self, command, endpoint = "appGet.cgi", retry = False) -> dict:
+    async def async_run_command(self, command : str, endpoint : str = "appGet.cgi", retry : bool = False) -> dict:
         """Run command. Use the existing connection token, otherwise create new one"""
 
         if self._token is None and not retry:
@@ -137,7 +130,7 @@ class Connection:
                 _LOGGER.error(_MSG_ERROR_TO_CONNECT)
                 return {}
 
-    async def async_request(self, payload, endpoint, headers) -> dict:
+    async def async_request(self, payload : str, endpoint : str, headers : dict) -> dict:
         """Send a request"""
 
         json_body = {}
@@ -260,3 +253,4 @@ class Connection:
     def device(self) -> dict:
         """Device model and API support levels"""
         return self._device
+

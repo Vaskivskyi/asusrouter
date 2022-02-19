@@ -1,18 +1,7 @@
 """AsusRouter module"""
 
-import asyncio
-from asyncio import IncompleteReadError
 import logging
-from asyncio import LimitOverrunError, TimeoutError
-from math import floor
-import string
-from textwrap import indent
-import aiohttp
-import base64
-import json
 from datetime import datetime
-import urllib.parse
-from collections import namedtuple
 
 from asusrouter.connection import Connection
 import asusrouter.helpers as helpers
@@ -23,8 +12,11 @@ DEFAULT_CACHE_TIME = 10
 DEFAULT_SLEEP_TIME = 1
 
 _MSG_SUCCESS_COMMAND = "Command was sent successfully"
+_MSG_SUCCESS_HOOK = "Hook was sent successfully"
+_MSG_SUCCESS_LOAD = "Page was loaded successfully"
 
 _MSG_ERROR_NO_CONTROL = "Device is connected in no-control mode. Sending commands is blocked"
+_MSG_ERROR_NO_MONITOR = "Device is connected in no-control mode. Sending hooks is blocked"
 
 INTERFACE_TYPE = {
     "wan_ifnames": "wan",
@@ -41,6 +33,11 @@ NVRAM_LIST = {
         "label_mac",
         "model",
         "pci/1/1/ATE_Brand",
+    ],
+    "MODE": [
+        "sw_mode",
+        "wlc_psta",
+        "wlc_express",
     ],
     "FIRMWARE": [
         "firmver",
@@ -65,7 +62,7 @@ NVRAM_LIST = {
         "reboot_schedule_enable",
         "reboot_time",
     ],
-    "WAN": [
+    "WAN0": [
         "link_wan",
         "wan0_auxstate_t",
         "wan0_dns",
@@ -112,7 +109,7 @@ NVRAM_LIST = {
         "lan_ipaddr",
         "lan_netmask",
         "lan_proto",
-        "lanports"
+        "lanports",
     ],
     "WLAN0": [
         "wl0_radio",
@@ -232,92 +229,129 @@ NVRAM_LIST = {
     ],
 }
 
+MONITOR_MAIN = {
+    "cpu_usage" : "appobj",
+    "memory_usage" : "appobj",
+    "netdev" : "appobj"
+}
+
+TRAFFIC_GROUPS = {
+    "INTERNET" : "WAN0",    # main WAN
+    "INTERNET1" : "WAN1",   # secondary WAN (USB modem / phone)
+    "WIRED" : "WIRED",      # wired connections
+    "BRIDGE" : "BRIDGE",    # bridge
+    "WIRELESS0" : "WLAN0",  # 2.4 GHz WiFi
+    "WIRELESS1" : "WLAN1",  # 5 GHz WiFi
+    "WIRELESS2" : "WLAN2",  # 5 GHz WiFi #2 (<-- check)
+}
+
+NETWORK_DATA = [
+    "rx",
+    "tx",
+]
+
+PORT_TYPE = [
+    "LAN",
+    "WAN",
+]
+
+KEY_NVRAM_GET = "nvram_get"
+
 class AsusRouter:
     """The interface class"""
 
     def __init__(
         self,
-        host,
-        username = None,
-        password = None,
+        host : str,
+        username : str | None = None,
+        password : str | None = None,
         port : int | None = None,
         use_ssl : bool = False,
         cert_check : bool = True,
-        cert_path : string = "",
-        cacheNvramTime = 5,
-        cacheDeviceTime = 5,
-        cacheTime = 3,
-        enableMonitor = True,
-        enableControl = False):
+        cert_path : str = "",
+        cache_time : int = 5,
+        enable_monitor : bool = True,
+        enable_control : bool = False):
         """Init"""
 
-        self._enableMonitor = enableMonitor
-        self._enableControl = enableControl
+        self._enable_monitor : bool = enable_monitor
+        self._enable_control : bool = enable_control
 
-        self._device_cpu : list | None = None
-        self._device_interfaces : dict | None = None
-        self._device_map: dict | None = None
-        self._device_boot_time: datetime | None = None
+        self._cache_time : int = cache_time
 
-        self._cacheNvram = None
-        self._cacheNvramTime = cacheNvramTime
-        self._cacheNvramLast = None
 
-        self._cacheHealth = None
-        self._cacheHealthTime = cacheTime
-        self._cacheHealthLast = None
-        self._cacheHealthRaw = None
-        self._cacheHealthRawTime = cacheTime
-        self._cacheHealthRawLast = None
+        self._device_cpu_cores : list | None = None
+        self._device_ports : dict | None = None
+        self._device_boottime: datetime | None = None
 
-        self._cacheNetstat = None
-        self._cacheNetstatTime = cacheTime
-        self._cacheNetstatLast = None
-        self._cacheNetstatRaw = None
-        self._cacheNetstatRawTime = cacheTime
-        self._cacheNetstatRawLast = None
 
-        self._cacheDevice = None
-        self._cacheDeviceTime = cacheDeviceTime
-        self._cacheDeviceLast = None
-        
+        self._monitor_main : dict | None = None
+        self._monitor_nvram : dict | None = None
+        self._monitor_misc : dict | None = None
+
+
         """Connect"""
         self.connection = Connection(host = host, username = username, password = password, port = port, use_ssl = use_ssl, cert_check = cert_check, cert_path = cert_path)
 
-    async def async_compile_request(self, list):
-        """"Compile request into one string"""
+
+    async def async_compile_hook(self, commands : dict[str, str] | None = None) -> str:
+        """"Compile all the components of the hook message into one string"""
 
         data = ""
-        if list is not None:
-            for item in list:
-                data += item
-                if item[-1] != ";":
-                    data += ";"
+        if commands is not None:
+            for item in commands:
+                data += "{}({});".format(item, commands[item])
 
         return data
 
-    async def async_compile_request_nvram(self, group):
-        """Compile all NVRAM requests for group"""
 
-        data = ""
+    async def async_compile_nvram(self, values : list[str] | str | None = None) -> str:
+        """Compile all the values to ask from nvram"""
 
-        if group is not None:
-            for item in NVRAM_LIST[group]:
-                data += "nvram_get({});".format(item)
+        if values is None:
+            return ""
 
-        return data
+        if type(values) == str:
+            return "{}({});".format(KEY_NVRAM_GET, values)
 
-    async def async_command(self, commands : dict, mode = "apply"):
-        """Command device to run a service"""
+        request = ""
+        for value in values:
+            request += "{}({});".format(KEY_NVRAM_GET, value)
+        return request
 
-        if not self._enableControl:
-            _LOGGER.error(_MSG_ERROR_NO_CONTROL)
-            return {}
+
+    async def async_hook(self, hook : str) -> dict:
+        """Hook data from device"""
 
         result = {}
 
+        if not self._enable_monitor:
+            _LOGGER.error(_MSG_ERROR_NO_MONITOR)
+            return result
+
+        if hook is None:
+            return result
+
+        try:
+            result = await self.connection.async_run_command("hook={}".format(hook))
+            _LOGGER.debug("{}: {}".format(_MSG_SUCCESS_HOOK, hook))
+        except Exception as ex:
+            _LOGGER.error(ex)
+
+        return result
+
+
+    async def async_command(self, commands : dict[str, str], action_mode : str = "apply") -> dict:
+        """Command device to run a service or set parameter"""
+
+        result = {}
+
+        if not self._enable_control:
+            _LOGGER.error(_MSG_ERROR_NO_CONTROL)
+            return result
+
         request : dict = {
-            "action_mode": mode,
+            "action_mode": action_mode,
         }
         for command in commands:
             request[command] = commands[command]
@@ -330,222 +364,211 @@ class AsusRouter:
 
         return result
 
-    async def async_get_page(self, page):
-        """Return the data without sending any"""
 
-        return await self.connection.async_run_command(command = "", endpoint = page)
-
-    async def async_hook(self, request):
-        """Hook data from device"""
+    async def async_load(self, page : str | None = None) -> dict:
+        """Return the data from the page"""
 
         result = {}
 
-        if request is None:
+        if page is None:
             return result
 
         try:
-            result = await self.connection.async_run_command("hook={}".format(request))
+            result = await self.connection.async_run_command(command = "", endpoint = page)
+            _LOGGER.debug(_MSG_SUCCESS_LOAD)
         except Exception as ex:
             _LOGGER.error(ex)
-        
+
         return result
 
-    async def async_get_health_raw(self, useCache = True):
-        """Get CPU, RAM data"""
+    
+    async def async_monitor_main(self) -> None:
+        """Get all the main monitor values. Non-cacheable"""
 
-        healthRaw = {}
+        monitor_main = dict()
         now = datetime.utcnow()
 
-        if (
-            useCache
-            and self._cacheHealthRawLast
-            and self._cacheHealthRawTime > (now - self._cacheHealthRawLast).total_seconds()
-        ):
-            healthRaw = self._cacheHealthRaw
-        else:
-            request = await self.async_compile_request(["cpu_usage(appobj)", "memory_usage(appobj)"])
-            healthRaw = await self.async_hook(request)
+        hook = await self.async_compile_hook(MONITOR_MAIN)
+        data = await self.async_hook(hook)
 
-            self._cacheHealthRaw = healthRaw
-            self._cacheHealthRawLast = now
+        ### CPU ###
+        ## Not yet known what exactly is type of data. But this is the correct way to calculate usage from it
 
-        return healthRaw
-
-    async def async_get_health(self, useCache = True):
-        """Get CPU, RAM data"""
-
-        health = {}
-        now = datetime.utcnow()
-
-        if (
-            useCache
-            and self._cacheHealthLast
-            and self._cacheHealthTime > (now - self._cacheHealthLast).total_seconds()
-        ):
-            health = self._cacheHealth
-        else:
-            raw_0 = await self.async_get_health_raw(useCache = False)
-            await asyncio.sleep(1)
-            raw_1 = await self.async_get_health_raw(useCache = False)
-            cpu_usage_0 = raw_0['cpu_usage']
-            cpu_usage_1 = raw_1['cpu_usage']
-            mem_usage = raw_1['memory_usage']
-            for i in self._device_cpu:
-                if (
-                    "cpu{}_total".format(i) in cpu_usage_0
-                    and "cpu{}_usage".format(i) in cpu_usage_0
-                    and "cpu{}_total".format(i) in cpu_usage_1
-                    and "cpu{}_usage".format(i) in cpu_usage_1
-                ):
-                    tmp_usage_0 = int(cpu_usage_0["cpu{}_usage".format(i)])
-                    tmp_usage_1 = int(cpu_usage_1["cpu{}_usage".format(i)])
-                    tmp_total_0 = int(cpu_usage_0["cpu{}_total".format(i)])
-                    tmp_total_1 = int(cpu_usage_1["cpu{}_total".format(i)])
-                    cpu_percent = (tmp_usage_1 - tmp_usage_0) / (tmp_total_1 - tmp_total_0) * 100
-                    cpu_usage_1["cpu{}_percent".format(i)] = round(cpu_percent, 1)
+        # Check which cores CPU has or find it out and save for later
+        if self._device_cpu_cores is None:
+            cpu_cores = []
+            for i in range(1,8):
+                if "cpu{}_total".format(i) in data["cpu_usage"]:
+                    cpu_cores.append(i)
                 else:
                     break
-            mem_percent = round(int(mem_usage['mem_used']) / int(mem_usage['mem_total']) * 100, 1)
-            mem_usage['mem_percent'] = mem_percent
+            self._device_cpu_cores = cpu_cores
 
-            health = cpu_usage_1
-            health.update(mem_usage)
+        # Create CPU dict in monitor_main and populate its total for the whole CPU data
+        monitor_main["CPU"] = dict()
+        monitor_main["CPU"]["total"] = dict()
+        monitor_main["CPU"]["total"]["total"] = 0
+        monitor_main["CPU"]["total"]["used"] = 0
+        # Store CPU data per core. "cpu{X}_total" stays "total", "cpu{X}_usage" becomes "used". This is done to free up "usage" for the actual usage in percents
+        for core in self._device_cpu_cores:
+            monitor_main["CPU"][core] = dict()
+            monitor_main["CPU"][core]["total"] = int(data["cpu_usage"]["cpu{}_total".format(core)])
+            monitor_main["CPU"][core]["used"] = int(data["cpu_usage"]["cpu{}_usage".format(core)])
+            monitor_main["CPU"]["total"]["total"] += monitor_main["CPU"][core]["total"]
+            monitor_main["CPU"]["total"]["used"] += monitor_main["CPU"][core]["used"]
+        # Calculate actual usage in percents and save it. Only if there was old data for CPU
+        if self._monitor_main is not None:
+            for item in monitor_main["CPU"]:
+                monitor_main["CPU"][item]["usage"] = round(100 * (monitor_main["CPU"][item]["used"] - self._monitor_main["CPU"][item]["used"]) / (monitor_main["CPU"][item]["total"] - self._monitor_main["CPU"][item]["total"]), 2)
 
-        return health
 
-    async def async_get_nvram(self, groupList = None, useCache = True):
+        ### RAM ###
+        ## Data is in KiB. To get MB as they are shown in the device Web-GUI, should be devided by 1024 (yes, those will be MiB)
+
+        # Populate RAM with known values
+        monitor_main["RAM"] = dict()
+        monitor_main["RAM"]["total"] = int(data["memory_usage"]["mem_total"])
+        monitor_main["RAM"]["free"] = int(data["memory_usage"]["mem_free"])
+        monitor_main["RAM"]["used"] = int(data["memory_usage"]["mem_used"])
+
+        # Calculate usage in percents
+        monitor_main["RAM"]["usage"] = round(100 * monitor_main["RAM"]["used"] / monitor_main["RAM"]["total"], 2)
+
+
+        ### NETWORK ###
+        ## Data in Bytes for traffic and bits/s for speeds
+
+        # Calculate RX and TX from the HEX values. If there is no current value, but there was one before, get it from storage. Traffic resets only on device reboot or when above the limit. Device disconnect / reconnect does NOT reset it
+        monitor_main["NETWORK"] = dict()
+        for el in TRAFFIC_GROUPS:
+            for nd in NETWORK_DATA:
+                if "{}_{}".format(el, nd) in data["netdev"]:
+                    if not TRAFFIC_GROUPS[el] in monitor_main["NETWORK"]:
+                        monitor_main["NETWORK"][TRAFFIC_GROUPS[el]] = dict()
+                    monitor_main["NETWORK"][TRAFFIC_GROUPS[el]][nd] = int(data["netdev"]["{}_{}".format(el, nd)], base = 16)
+                elif (self._monitor_main is not None
+                    and el in self._monitor_main["NETWORK"]
+                    and self._monitor_main["NETWORK"][TRAFFIC_GROUPS[el]]["nd"] is not None
+                ):
+                    monitor_main["NETWORK"][TRAFFIC_GROUPS[el]]["nd"] = self._monitor_main["NETWORK"][TRAFFIC_GROUPS[el]]["nd"]
+
+        # Calculate speeds
+        if (self._monitor_main is not None
+            and self._monitor_main["NETWORK"] is not None
+        ):
+            for el in monitor_main["NETWORK"]:
+                for nd in NETWORK_DATA:
+                    if self._monitor_main["NETWORK"][el] is not None:
+                        monitor_main["NETWORK"][el]["{}_speed".format(nd)] = (monitor_main["NETWORK"][el][nd] - self._monitor_main["NETWORK"][el][nd]) * 8
+                    else:
+                        monitor_main["NETWORK"][el]["{}_speed".format(nd)] = 0
+
+        self._monitor_main = monitor_main
+
+        return
+
+
+    async def async_monitor_nvram(self, groups : list[str] | str | None = None) -> None:
         """Get the NVRAM values for the specified group list"""
 
-        nvram = {}
-        now = datetime.utcnow()
+        monitor_nvram = {}
 
         # If none groups were sent, will return all the known NVRAM values
-        if groupList is None:
-            groupList = [*NVRAM_LIST]
+        if groups is None:
+            groups = [*NVRAM_LIST]
 
         # If only one group is sent
-        if type(groupList) is not list:
-            groupList = [groupList.upper()]
+        if type(groups) is not list:
+            groups = [groups.upper()]
 
-        if (
-            useCache
-            and self._cacheNvramLast
-            and self._cacheNvramGroups
-            and all([item in groupList for item in self._cacheNvramGroups])
-            and self._cacheNvramTime > (now - self._cacheNvramLast).total_seconds()
-        ):
-            nvram = self._cacheNvram
-        else:
-            requests = []
-            for group in groupList:
-                group = group.upper()
-                if group in NVRAM_LIST:
-                    request = await self.async_compile_request_nvram(group)
-                    requests.append(request)
-                else:
-                    _LOGGER.debug("There is no {} in known NVRAM groups".format(group))
-            
-            request = await self.async_compile_request(requests)
-            result = await self.async_hook(request)
-            for item in result:
-                nvram[item] = result[item]
-
-            self._cacheNvram = nvram
-            self._cacheNvramGroups = groupList
-            self._cacheNvramLast = now
-
-        return nvram
-
-    async def async_get_netstat_raw(self, useCache = True):
-        """Get raw network statistics"""
-
-        netstat_raw = {}
-        now = datetime.utcnow()
-        if (
-            useCache
-            and self._cacheNetstatRawLast
-            and self._cacheNetstatRawTime > (now - self._cacheNetstatRawLast).total_seconds()
-        ):
-            netstat_raw = self._cacheNetstatRaw
-        else:
-            try:
-                result = await self.async_hook("netdev(appobj);")
-                netstat_raw = result['netdev']
-
-                self._cacheNetstatRaw = netstat_raw
-                self._cacheNetstatRawLast = now
-            except KeyError:
-                _LOGGER.error("Empty response on hook")
-
-        return netstat_raw
-
-    async def async_get_netstat(self, useCache = True):
-        """Get network statistics"""
-
-        netstat = {}
-        now = datetime.utcnow()
-
-        if (
-            useCache
-            and self._cacheNetstatLast
-            and self._cacheNetstatTime > (now - self._cacheNetstatLast).total_seconds()
-        ):
-            netstat = self._cacheNetstat
-        else:
-            netstat_0 = await self.async_get_netstat_raw(useCache = False)
-            await asyncio.sleep(1)
-            netstat_1 = await self.async_get_netstat_raw(useCache = False)
-
-            for item in netstat_1:
-                # Traffic values in MB (MiB in reality, but this is how the original software does calculate and label values, so we should keep it consistent)
-                value_0 = int(netstat_0[item], base = 16) / 1024 / 1024
-                value_1 = int(netstat_1[item], base = 16) / 1024 / 1024
-                # Speed in Mb/s
-                speed = (value_1 - value_0) * 8
-                netstat[item] = round(value_1, 3)
-                netstat["{}_speed".format(item)] = round(speed, 3)
-
-            self._cacheNetstat = netstat
-            self._cacheNetstatLast = now
-
-        return netstat
-
-    async def async_find_cpu(self):
-        """Return available CPU cores"""
-
-        # This data is constant, so in case it was cached once, it will be never asked again
-        if self._device_cpu is not None:
-            return self._device_cpu
-        
-        cores = []
-
-        data = await self.async_get_health_raw(useCache = False)
-        cpu = data['cpu_usage']
-        
-        for i in range(1,8):
-            if (
-                "cpu{}_total".format(i) in cpu
-                and "cpu{}_usage".format(i) in cpu
-            ):
-                cores.append(i)
+        requests = []
+        for group in groups:
+            group = group.upper()
+            if group in NVRAM_LIST:
+                for value in NVRAM_LIST[group]:
+                    requests.append(value)
             else:
-                break
+                _LOGGER.warning("There is no {} in known NVRAM groups".format(group))
 
-        self._device_cpu = cores
-        return cores
-    
-    async def async_find_interfaces(self, useCache = True):
-        """Return available interfaces/type dictionary"""
+        message = await self.async_compile_nvram(requests)
+        result = await self.async_hook(message)
+        for item in result:
+            monitor_nvram[item] = result[item]
+
+        if self._monitor_nvram is None:
+            self._monitor_nvram = dict()
+
+        for group in monitor_nvram:
+            for element in monitor_nvram:
+                self._monitor_nvram[element] = monitor_nvram[element]
+
+
+    async def async_monitor_misc(self) -> None:
+        """Get all other useful values"""
+
+        if self._monitor_misc is None:
+            self._monitor_misc = dict()
+
+        monitor_misc = {}
+
+        ### PORTS
+
+        # Receive ports number and status (disconnected, 100 Mb/s, 1 Gb/s)
+        data = await self.async_load("ajax_ethernet_ports.asp")
+
+        if "portSpeed" in data:
+            monitor_misc["PORTS"] = dict()
+            for type in PORT_TYPE:
+                monitor_misc["PORTS"][type] = dict()
+            for value in data["portSpeed"]:
+                for type in PORT_TYPE:
+                    if type in value:
+                        number = value.replace(type, "")
+                        monitor_misc["PORTS"][type][number] = await helpers.async_transform_port_speed(data["portSpeed"][value])
+                        break
+
+        # Load devicemap
+        data = await self.async_load("ajax_status.xml")
+        monitor_misc["DEVICEMAP"] = data
+
+        # Calculate boot time. Since precision is 1 second, could be that old and new are 1 sec different. In this case, we should not change the boot time, but keep the previous value to avoid regular changes
+        if "SYS" in monitor_misc["DEVICEMAP"]:
+            if "uptimeStr" in monitor_misc["DEVICEMAP"]["SYS"]:
+                time = await helpers.async_parse_uptime(monitor_misc["DEVICEMAP"]["SYS"]["uptimeStr"])
+                timestamp = int(time.timestamp())
+                if not "BOOTTIME" in monitor_misc:
+                    monitor_misc["BOOTTIME"] = dict()
+
+                if "BOOTTIME" in self._monitor_misc:
+                    _timestamp = self._monitor_misc["BOOTTIME"]["timestamp"]
+                    _time = datetime.fromtimestamp(_timestamp)
+                    if time == _time:
+                        monitor_misc["BOOTTIME"] = self._monitor_misc["BOOTTIME"]
+                    elif abs(timestamp - _timestamp) < 2:
+                        monitor_misc["BOOTTIME"] = self._monitor_misc["BOOTTIME"]
+                    else:
+                        monitor_misc["BOOTTIME"]["timestamp"] = timestamp
+                        monitor_misc["BOOTTIME"]["ISO"] = time.isoformat()
+                else:
+                    monitor_misc["BOOTTIME"]["timestamp"] = timestamp
+                    monitor_misc["BOOTTIME"]["ISO"] = time.isoformat()
+
+                self._device_boottime = time
+
+        self._monitor_misc = monitor_misc
+
+
+    async def async_find_interfaces(self, useCache : bool = True) -> None:
+        """Find available interfaces/type dictionary"""
         
-        if (
-            self._device_interfaces is not None
-            and useCache
-        ):
-            return self._device_interfaces
+        if self._monitor_nvram is None:
+            await self.async_monitor_nvram()
+        elif useCache == False:
+            await self.async_monitor_nvram()
 
         ports = {}
 
-        data = await self.async_get_nvram("INTERFACES")
+        data = self._monitor_nvram
         
         for if_type in INTERFACE_TYPE:
             if if_type in data:
@@ -553,41 +576,23 @@ class AsusRouter:
                 for item in values:
                     ports[item] = INTERFACE_TYPE[if_type]
 
-        self._device_interfaces = ports
-        return ports
+        self._device_ports = ports
 
-    async def async_get_device_map(self, useCache = True) -> dict:
-        """Returns device map with the main device info"""
-
-        if (
-            self._device_map is not None
-            and useCache
-        ):
-            return self._device_map
-
-        device_map = await self.async_get_page(page = "ajax_status.xml")
-        self._device_map = device_map
-
-        return device_map
-
-    async def async_get_boot_time(self, useCache = True) -> datetime:
-        """Return boot time of the device"""
-
-        if(
-            self._device_boot_time is not None
-            and useCache
-        ):
-            return self._device_boot_time
-
-        boot_time = await helpers.async_parse_uptime(self._device_map["SYS"]["uptimeStr"])
-        self._device_boot_time = boot_time
-
-        return boot_time
 
     async def async_initialize(self):
         """Get all the data needed at the startup"""
 
-        await self.async_find_cpu()
+        await self.async_monitor_main()
+        await self.async_monitor_nvram()
         await self.async_find_interfaces()
-        await self.async_get_device_map()
-        await self.async_get_boot_time()
+        await self.async_monitor_misc()
+
+
+    @property
+    def connected(self) -> bool:
+        return self.connection.connected
+
+    @property
+    def boottime(self) -> datetime:
+        return self._device_boottime
+
