@@ -370,6 +370,10 @@ class AsusRouter:
 
         result = {}
 
+        if not self._enable_monitor:
+            _LOGGER.error(_MSG_ERROR_NO_MONITOR)
+            return result
+
         if page is None:
             return result
 
@@ -558,12 +562,12 @@ class AsusRouter:
         self._monitor_misc = monitor_misc
 
 
-    async def async_find_interfaces(self, useCache : bool = True) -> None:
+    async def async_find_interfaces(self, use_cache : bool = True) -> None:
         """Find available interfaces/type dictionary"""
         
         if self._monitor_nvram is None:
             await self.async_monitor_nvram()
-        elif useCache == False:
+        elif use_cache == False:
             await self.async_monitor_nvram()
 
         ports = {}
