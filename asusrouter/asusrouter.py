@@ -286,8 +286,11 @@ class AsusRouter:
 
 
         self._monitor_main : dict | None = None
+        self._monitor_main_time : datetime | None = None
         self._monitor_nvram : dict | None = None
+        self._monitor_nvram_time : datetime | None = None
         self._monitor_misc : dict | None = None
+        self._monitor_misc_time : datetime | None = None
 
 
         """Connect"""
@@ -389,8 +392,9 @@ class AsusRouter:
     async def async_monitor_main(self) -> None:
         """Get all the main monitor values. Non-cacheable"""
 
-        monitor_main = dict()
         now = datetime.utcnow()
+
+        monitor_main = dict()
 
         hook = await self.async_compile_hook(MONITOR_MAIN)
         data = await self.async_hook(hook)
@@ -468,12 +472,15 @@ class AsusRouter:
                         monitor_main["NETWORK"][el]["{}_speed".format(nd)] = 0
 
         self._monitor_main = monitor_main
+        self._monitor_misc_time = now
 
         return
 
 
     async def async_monitor_nvram(self, groups : list[str] | str | None = None) -> None:
         """Get the NVRAM values for the specified group list"""
+
+        now = datetime.utcnow()
 
         monitor_nvram = {}
 
@@ -506,9 +513,13 @@ class AsusRouter:
             for element in monitor_nvram:
                 self._monitor_nvram[element] = monitor_nvram[element]
 
+        self._monitor_nvram_time = now
+
 
     async def async_monitor_misc(self) -> None:
         """Get all other useful values"""
+
+        now = datetime.utcnow()
 
         if self._monitor_misc is None:
             self._monitor_misc = dict()
@@ -560,6 +571,7 @@ class AsusRouter:
                 self._device_boottime = time
 
         self._monitor_misc = monitor_misc
+        self._monitor_main_time = now
 
 
     async def async_find_interfaces(self, use_cache : bool = True) -> None:
@@ -590,6 +602,69 @@ class AsusRouter:
         await self.async_monitor_nvram()
         await self.async_find_interfaces()
         await self.async_monitor_misc()
+
+
+#### RETURN DATA
+
+    async def async_get_cpu(self, use_cache : bool = True) -> dict:
+        """Return CPU usage"""
+        
+        now = datetime.utcnow()
+        if (self._monitor_main is None
+            or use_cache == False
+            or (use_cache == True
+            and self._monitor_main_time
+            and self._cache_time > (now - self._monitor_main_time).total_seconds())
+        ):
+            await self.async_monitor_main()
+
+        result = {}
+        for core in self._device_cpu_cores:
+            if "usage" in self._monitor_main["CPU"][core]:
+                result["cpu_{}".format(core)] = self._monitor_main["CPU"][core]["usage"]
+        if "usage" in self._monitor_main["CPU"]["total"]:
+            result["cpu_total"] = self._monitor_main["CPU"]["total"]["usage"]
+
+        return result
+
+
+    async def async_get_ram(self, use_cache : bool = True) -> dict:
+        """Return RAM and its usage"""
+        
+        now = datetime.utcnow()
+        if (self._monitor_main is None
+            or use_cache == False
+            or (use_cache == True
+            and self._monitor_main_time
+            and self._cache_time > (now - self._monitor_main_time).total_seconds())
+        ):
+            await self.async_monitor_main()
+
+        result = {}
+        for value in self._monitor_main["RAM"]:
+            result["ram_{}".format(value)] = self._monitor_main["RAM"][value]
+
+        return result
+
+
+    async def async_get_network(self, use_cache : bool = True) -> dict:
+        """Return traffic and speed for all interfaces"""
+        
+        now = datetime.utcnow()
+        if (self._monitor_main is None
+            or use_cache == False
+            or (use_cache == True
+            and self._monitor_main_time
+            and self._cache_time > (now - self._monitor_main_time).total_seconds())
+        ):
+            await self.async_monitor_main()
+
+        result = {}
+        for interface in self._monitor_main["NETWORK"]:
+            for value in self._monitor_main["NETWORK"][interface]:
+                result["{}_{}".format(interface, value)] = self._monitor_main["NETWORK"][interface][value]
+
+        return result
 
 
     @property
