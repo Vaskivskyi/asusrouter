@@ -621,9 +621,23 @@ class AsusRouter:
         result = {}
         for core in self._device_cpu_cores:
             if "usage" in self._monitor_main["CPU"][core]:
-                result["cpu_{}".format(core)] = self._monitor_main["CPU"][core]["usage"]
+                result["core_{}".format(core)] = self._monitor_main["CPU"][core]["usage"]
         if "usage" in self._monitor_main["CPU"]["total"]:
-            result["cpu_total"] = self._monitor_main["CPU"]["total"]["usage"]
+            result["total"] = self._monitor_main["CPU"]["total"]["usage"]
+
+        return result
+
+
+    async def async_get_cpu_labels(self) -> list:
+        """Return list of CPU cores"""
+
+        if self._device_cpu_cores is None:
+            await self.async_monitor_main()
+
+        result = list()
+        result.append("total")
+        for el in self._device_cpu_cores:
+            result.append("core_{}".format(el))
 
         return result
 
@@ -642,7 +656,19 @@ class AsusRouter:
 
         result = {}
         for value in self._monitor_main["RAM"]:
-            result["ram_{}".format(value)] = self._monitor_main["RAM"][value]
+            result[value] = self._monitor_main["RAM"][value]
+        return result
+
+
+    async def async_get_ram_labels(self) -> list:
+        """Return list of CPU cores"""
+
+        if self._device_cpu_cores is None:
+            await self.async_monitor_main()
+
+        result = list()
+        for value in self._monitor_main["RAM"]:
+            result.append(value)
 
         return result
 
@@ -663,6 +689,20 @@ class AsusRouter:
         for interface in self._monitor_main["NETWORK"]:
             for value in self._monitor_main["NETWORK"][interface]:
                 result["{}_{}".format(interface, value)] = self._monitor_main["NETWORK"][interface][value]
+
+        return result
+
+    
+    async def async_get_network_labels(self) -> list:
+        """Return list of network interfaces"""
+
+        if self._monitor_main is None:
+            await self.async_monitor_main()
+
+        result = list()
+
+        for interface in self._monitor_main["NETWORK"]:
+            result.append(interface)
 
         return result
 
