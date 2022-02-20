@@ -1,6 +1,7 @@
 """AsusRouter module"""
 
 import logging
+import asyncio
 from datetime import datetime
 
 from asusrouter.connection import Connection
@@ -8,8 +9,7 @@ import asusrouter.helpers as helpers
 
 _LOGGER = logging.getLogger(__name__)
 
-DEFAULT_CACHE_TIME = 10
-DEFAULT_SLEEP_TIME = 1
+DEFAULT_SLEEP_TIME = 0.1
 
 _MSG_SUCCESS_COMMAND = "Command was sent successfully"
 _MSG_SUCCESS_HOOK = "Hook was sent successfully"
@@ -287,10 +287,13 @@ class AsusRouter:
 
         self._monitor_main : dict | None = None
         self._monitor_main_time : datetime | None = None
+        self._monitor_main_running : bool = False
         self._monitor_nvram : dict | None = None
         self._monitor_nvram_time : datetime | None = None
+        self._monitor_nvram_running : bool = False
         self._monitor_misc : dict | None = None
         self._monitor_misc_time : datetime | None = None
+        self._monitor_misc_running : bool = False
 
 
         """Connect"""
@@ -394,6 +397,12 @@ class AsusRouter:
 
         now = datetime.utcnow()
 
+        while self._monitor_main_running:
+            await asyncio.sleep(DEFAULT_SLEEP_TIME)
+            return
+
+        self._monitor_main_running = True
+
         monitor_main = dict()
 
         hook = await self.async_compile_hook(MONITOR_MAIN)
@@ -472,7 +481,9 @@ class AsusRouter:
                         monitor_main["NETWORK"][el]["{}_speed".format(nd)] = 0
 
         self._monitor_main = monitor_main
+
         self._monitor_main_time = now
+        self._monitor_main_running = False
 
         return
 
@@ -481,6 +492,12 @@ class AsusRouter:
         """Get the NVRAM values for the specified group list"""
 
         now = datetime.utcnow()
+
+        while self._monitor_nvram_running:
+            await asyncio.sleep(DEFAULT_SLEEP_TIME)
+            return
+
+        self._monitor_nvram_running = True
 
         monitor_nvram = {}
 
@@ -514,12 +531,21 @@ class AsusRouter:
                 self._monitor_nvram[element] = monitor_nvram[element]
 
         self._monitor_nvram_time = now
+        self._monitor_nvram_running = False
+
+        return
 
 
     async def async_monitor_misc(self) -> None:
         """Get all other useful values"""
 
         now = datetime.utcnow()
+
+        while self._monitor_misc_running:
+            await asyncio.sleep(DEFAULT_SLEEP_TIME)
+            return
+
+        self._monitor_misc_running = True
 
         if self._monitor_misc is None:
             self._monitor_misc = dict()
@@ -571,7 +597,11 @@ class AsusRouter:
                 self._device_boottime = time
 
         self._monitor_misc = monitor_misc
+
         self._monitor_misc_time = now
+        self._monitor_misc_running = False
+
+        return
 
 
     async def async_find_interfaces(self, use_cache : bool = True) -> None:
