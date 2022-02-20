@@ -472,7 +472,7 @@ class AsusRouter:
                         monitor_main["NETWORK"][el]["{}_speed".format(nd)] = 0
 
         self._monitor_main = monitor_main
-        self._monitor_misc_time = now
+        self._monitor_main_time = now
 
         return
 
@@ -571,7 +571,7 @@ class AsusRouter:
                 self._device_boottime = time
 
         self._monitor_misc = monitor_misc
-        self._monitor_main_time = now
+        self._monitor_misc_time = now
 
 
     async def async_find_interfaces(self, use_cache : bool = True) -> None:
@@ -611,10 +611,10 @@ class AsusRouter:
         
         now = datetime.utcnow()
         if (self._monitor_main is None
+            or self._monitor_main_time is None
             or use_cache == False
-            or (use_cache == True
-            and self._monitor_main_time
-            and self._cache_time > (now - self._monitor_main_time).total_seconds())
+            or (use_cache == True and self._monitor_main_time and self._cache_time < (now - self._monitor_main_time).total_seconds())
+            or self._device_cpu_cores is None
         ):
             await self.async_monitor_main()
 
@@ -636,7 +636,7 @@ class AsusRouter:
             or use_cache == False
             or (use_cache == True
             and self._monitor_main_time
-            and self._cache_time > (now - self._monitor_main_time).total_seconds())
+            and self._cache_time < (now - self._monitor_main_time).total_seconds())
         ):
             await self.async_monitor_main()
 
@@ -655,7 +655,7 @@ class AsusRouter:
             or use_cache == False
             or (use_cache == True
             and self._monitor_main_time
-            and self._cache_time > (now - self._monitor_main_time).total_seconds())
+            and self._cache_time < (now - self._monitor_main_time).total_seconds())
         ):
             await self.async_monitor_main()
 
