@@ -465,9 +465,9 @@ class AsusRouter:
                     monitor_main["NETWORK"][TRAFFIC_GROUPS[el]][nd] = int(data["netdev"]["{}_{}".format(el, nd)], base = 16)
                 elif (self._monitor_main is not None
                     and el in self._monitor_main["NETWORK"]
-                    and self._monitor_main["NETWORK"][TRAFFIC_GROUPS[el]]["nd"] is not None
+                    and self._monitor_main["NETWORK"][TRAFFIC_GROUPS[el]][nd] is not None
                 ):
-                    monitor_main["NETWORK"][TRAFFIC_GROUPS[el]]["nd"] = self._monitor_main["NETWORK"][TRAFFIC_GROUPS[el]]["nd"]
+                    monitor_main["NETWORK"][TRAFFIC_GROUPS[el]][nd] = self._monitor_main["NETWORK"][TRAFFIC_GROUPS[el]][nd]
 
         # Calculate speeds
         if (self._monitor_main is not None
@@ -475,7 +475,7 @@ class AsusRouter:
         ):
             for el in monitor_main["NETWORK"]:
                 for nd in NETWORK_DATA:
-                    if self._monitor_main["NETWORK"][el] is not None:
+                    if el in self._monitor_main["NETWORK"]:
                         monitor_main["NETWORK"][el]["{}_speed".format(nd)] = (monitor_main["NETWORK"][el][nd] - self._monitor_main["NETWORK"][el][nd]) * 8
                     else:
                         monitor_main["NETWORK"][el]["{}_speed".format(nd)] = 0
