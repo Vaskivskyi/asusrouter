@@ -476,7 +476,7 @@ class AsusRouter:
             for el in monitor_main["NETWORK"]:
                 for nd in NETWORK_DATA:
                     if el in self._monitor_main["NETWORK"]:
-                        monitor_main["NETWORK"][el]["{}_speed".format(nd)] = (monitor_main["NETWORK"][el][nd] - self._monitor_main["NETWORK"][el][nd]) * 8
+                        monitor_main["NETWORK"][el]["{}_speed".format(nd)] = (monitor_main["NETWORK"][el][nd] - self._monitor_main["NETWORK"][el][nd]) * 8 / (now - self._monitor_main_time).total_seconds()
                     else:
                         monitor_main["NETWORK"][el]["{}_speed".format(nd)] = 0
 
