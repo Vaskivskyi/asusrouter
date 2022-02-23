@@ -395,8 +395,6 @@ class AsusRouter:
     async def async_monitor_main(self) -> None:
         """Get all the main monitor values. Non-cacheable"""
 
-        now = datetime.utcnow()
-
         while self._monitor_main_running:
             await asyncio.sleep(DEFAULT_SLEEP_TIME)
             return
@@ -407,6 +405,8 @@ class AsusRouter:
 
         hook = await self.async_compile_hook(MONITOR_MAIN)
         data = await self.async_hook(hook)
+
+        now = datetime.utcnow()
 
         ### CPU ###
         ## Not yet known what exactly is type of data. But this is the correct way to calculate usage from it
@@ -491,8 +491,6 @@ class AsusRouter:
     async def async_monitor_nvram(self, groups : list[str] | str | None = None) -> None:
         """Get the NVRAM values for the specified group list"""
 
-        now = datetime.utcnow()
-
         while self._monitor_nvram_running:
             await asyncio.sleep(DEFAULT_SLEEP_TIME)
             return
@@ -520,6 +518,9 @@ class AsusRouter:
 
         message = await self.async_compile_nvram(requests)
         result = await self.async_hook(message)
+
+        now = datetime.utcnow()
+
         for item in result:
             monitor_nvram[item] = result[item]
 
@@ -539,8 +540,6 @@ class AsusRouter:
     async def async_monitor_misc(self) -> None:
         """Get all other useful values"""
 
-        now = datetime.utcnow()
-
         while self._monitor_misc_running:
             await asyncio.sleep(DEFAULT_SLEEP_TIME)
             return
@@ -556,6 +555,8 @@ class AsusRouter:
 
         # Receive ports number and status (disconnected, 100 Mb/s, 1 Gb/s)
         data = await self.async_load("ajax_ethernet_ports.asp")
+
+        now = datetime.utcnow()
 
         if "portSpeed" in data:
             monitor_misc["PORTS"] = dict()
