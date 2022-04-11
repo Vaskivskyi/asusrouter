@@ -476,7 +476,11 @@ class AsusRouter:
             for el in monitor_main["NETWORK"]:
                 for nd in NETWORK_DATA:
                     if el in self._monitor_main["NETWORK"]:
-                        monitor_main["NETWORK"][el]["{}_speed".format(nd)] = (monitor_main["NETWORK"][el][nd] - self._monitor_main["NETWORK"][el][nd]) * 8 / (now - self._monitor_main_time).total_seconds()
+                        traffic_diff = monitor_main["NETWORK"][el][nd] - self._monitor_main["NETWORK"][el][nd]
+                        # Handle overflow in the traffic stats, so there will not be a negative speed once per 0xFFFFFFFF + 1 bytes of data
+                        if (traffic_diff < 0):
+                            traffic_diff += 4294967296
+                        monitor_main["NETWORK"][el]["{}_speed".format(nd)] = traffic_diff * 8 / (now - self._monitor_main_time).total_seconds()
                     else:
                         monitor_main["NETWORK"][el]["{}_speed".format(nd)] = 0
 
