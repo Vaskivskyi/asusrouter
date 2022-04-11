@@ -86,10 +86,7 @@ class Connection:
 
         self._device : dict | None = dict()
 
-        self._http = "http"
-
-        if use_ssl:
-            self._http = "https"
+        self._http = "https" if use_ssl else "http"
 
         if self._port is None:
             self._port = DEFAULT_PORT[self._http]
@@ -147,18 +144,12 @@ class Connection:
                     error_code = json_body['error_status']
                     if error_code == '2':
                         _LOGGER.error(_MSG_ERROR_NOT_AUTHORIZED)
-                        # This appears when one or more connections were established to the device
-                        # Handle it with reconnect and retry
-                        _LOGGER.debug(_MSG_NOTIFY_RECONNECT)
-                        if(retry):
-                            await asyncio.sleep(DEFAULT_SLEEP_RECONNECT)
-                        await self.async_connect()
-                        await self.async_request(payload = payload, endpoint = endpoint, headers = headers, retry = True)
             if endpoint == "login.cgi":
                 r_headers = r.headers
                 for item in DEVICE_API:
                     if item in r_headers:
                         self._device[item] = r_headers[item]
+            return json_body
         except aiohttp.ClientConnectorSSLError:
             _LOGGER.error(_MSG_ERROR_CERT_EXPIRED)
         except aiohttp.ClientConnectorCertificateError:
@@ -177,10 +168,16 @@ class Connection:
             else:
                 _LOGGER.debug(_MSG_NOTIFY_FIX_JSON)
                 json_body = await helpers.async_convert_to_json(text = string_body)
+            return json_body
         except Exception as ex:
             _LOGGER.error("{}: {}".format(_MSG_ERROR_UNKNOWN_EXCEPTION, ex))
 
-        return json_body
+        # If it got here, something is wrong. Reconnect and retry
+        _LOGGER.debug(_MSG_NOTIFY_RECONNECT)
+        if(retry):
+            await asyncio.sleep(DEFAULT_SLEEP_RECONNECT)
+        await self.async_connect()
+        return await self.async_request(payload = payload, endpoint = endpoint, headers = headers, retry = True)
 
     async def async_connect(self) -> bool:
         """Start new connection to and get new auth token"""
