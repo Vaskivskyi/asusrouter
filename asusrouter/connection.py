@@ -6,6 +6,7 @@ import base64
 import json
 import urllib.parse
 import ssl
+import asyncio
 from pathlib import Path
 
 import asusrouter.helpers as helpers
@@ -32,6 +33,8 @@ DEFAULT_PORT = {
     "https": 8443,
 }
 
+DEFAULT_SLEEP_RECONNECT = 10
+
 _MSG_SUCCESS_LOGIN = "Login successful"
 _MSG_SUCCESS_LOGOUT = "Logout successful"
 _MSG_SUCCESS_CERT_FOUND = "CA certificate file found"
@@ -40,6 +43,7 @@ _MSG_SUCCESS_CERT_CHECKED = "Certificate is valid"
 _MSG_NOTIFY_CERT_DEFAULT = "Certificate will be checked using known CAs"
 _MSG_NOTIFY_SOURCE_XML = "Data is in XML"
 _MSG_NOTIFY_FIX_JSON = "Trying to fix JSON"
+_MSG_NOTIFY_RECONNECT = "Trying to reconnect"
 
 _MSG_ERROR_TO_CONNECT = "Cannot connect to host - aborting"
 _MSG_ERROR_TO_TOKEN = "Cannot get asus_token"
@@ -130,7 +134,7 @@ class Connection:
                 _LOGGER.error(_MSG_ERROR_TO_CONNECT)
                 return {}
 
-    async def async_request(self, payload : str, endpoint : str, headers : dict) -> dict:
+    async def async_request(self, payload : str, endpoint : str, headers : dict, retry : bool = False) -> dict:
         """Send a request"""
 
         json_body = {}
@@ -143,6 +147,13 @@ class Connection:
                     error_code = json_body['error_status']
                     if error_code == '2':
                         _LOGGER.error(_MSG_ERROR_NOT_AUTHORIZED)
+                        # This appears when one or more connections were established to the device
+                        # Handle it with reconnect and retry
+                        _LOGGER.debug(_MSG_NOTIFY_RECONNECT)
+                        if(retry):
+                            await asyncio.sleep(DEFAULT_SLEEP_RECONNECT)
+                        await self.async_connect()
+                        await self.async_request(payload = payload, endpoint = endpoint, headers = headers, retry = True)
             if endpoint == "login.cgi":
                 r_headers = r.headers
                 for item in DEVICE_API:
