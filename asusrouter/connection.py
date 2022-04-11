@@ -134,6 +134,9 @@ class Connection:
     async def async_request(self, payload : str, endpoint : str, headers : dict, retry : bool = False) -> dict:
         """Send a request"""
 
+        if(retry):
+            await asyncio.sleep(DEFAULT_SLEEP_RECONNECT)
+
         json_body = {}
 
         try:
@@ -174,12 +177,10 @@ class Connection:
 
         # If it got here, something is wrong. Reconnect and retry
         _LOGGER.debug(_MSG_NOTIFY_RECONNECT)
-        if(retry):
-            await asyncio.sleep(DEFAULT_SLEEP_RECONNECT)
-        await self.async_connect()
-        return await self.async_request(payload = payload, endpoint = endpoint, headers = headers, retry = True)
+        await self.async_connect(retry = True)
+        return await self.async_request(payload = payload, endpoint = endpoint, headers = headers)
 
-    async def async_connect(self) -> bool:
+    async def async_connect(self, retry : bool = False) -> bool:
         """Start new connection to and get new auth token"""
 
         _success = False
@@ -193,7 +194,7 @@ class Connection:
             'user-agent': _FAKE_USER_AGENT
         }
 
-        response = await self.async_request(payload, "login.cgi", headers)
+        response = await self.async_request(payload = payload, endpoint = "login.cgi", headers = headers, retry = retry)
         if "asus_token" in response:
             self._token = response['asus_token']
             self._headers = {
