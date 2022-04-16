@@ -9,7 +9,7 @@ import ssl
 import asyncio
 from pathlib import Path
 
-import asusrouter.helpers as helpers
+from asusrouter import helpers
 
 _LOGGER = logging.getLogger(__name__)
 

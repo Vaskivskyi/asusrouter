@@ -4,8 +4,7 @@ import logging
 import asyncio
 from datetime import datetime
 
-from asusrouter.connection import Connection
-import asusrouter.helpers as helpers
+from asusrouter import Connection, helpers
 
 _LOGGER = logging.getLogger(__name__)
 

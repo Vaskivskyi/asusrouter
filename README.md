@@ -24,7 +24,7 @@ pip install asusrouter
 Once installed, you can import the `AsusRouter` class from the module. Example shows the default parameters except for `host`, `username` and `password`.
 
 ```python
-from asusrouter.asusrouter import AsusRouter
+from asusrouter import AsusRouter
 
 router = AsusRouter(host = "router.my.address",         #required - both IP and URL supported
                     username = "admin",                 #required
