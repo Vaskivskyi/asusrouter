@@ -293,6 +293,9 @@ class AsusRouter:
         self._monitor_misc : dict | None = None
         self._monitor_misc_time : datetime | None = None
         self._monitor_misc_running : bool = False
+        self._monitor_devices : dict | None = None
+        self._monitor_devices_time : datetime | None = None
+        self._monitor_devices_running : bool = False
 
 
         """Connect"""
@@ -608,6 +611,101 @@ class AsusRouter:
         return
 
 
+    async def async_monitor_devices(self) -> None:
+        """Monitor connected devices"""
+
+        while self._monitor_devices_running:
+            await asyncio.sleep(DEFAULT_SLEEP_TIME)
+            return
+
+        self._monitor_devices_running = True
+
+        if self._monitor_devices is None:
+            self._monitor_devices = dict()
+
+        monitor_devices = {}
+
+        data = (await self.async_hook("get_clientlist()"))["get_clientlist"]
+
+        now = datetime.utcnow()
+
+        if "maclist" in data:
+            for mac in data["maclist"]:
+                monitor_devices[mac] = dict()
+
+                # Name the device properly. If user has selected nickName manualy - it is the expected value. Else - name device set by itself or MAC address
+                if (data[mac]["nickName"] is not None
+                    and data[mac]["nickName"] != ""):
+                    monitor_devices[mac]["name"] = data[mac]["nickName"]
+                elif (data[mac]["name"] is not None
+                    and data[mac]["name"] != ""):
+                    monitor_devices[mac]["name"] = data[mac]["name"]
+                else:
+                    monitor_devices[mac]["name"] = mac
+
+                # Let's still include MAC address
+                monitor_devices[mac]["MAC"] = mac
+
+                # IP address
+                monitor_devices[mac]["IP"] = data[mac]["ip"]
+                # IP type
+                monitor_devices[mac]["IPMethod"] = data[mac]["ipMethod"]
+
+                # Internet info map
+                monitor_devices[mac]["internet"] = dict()
+                # Connected
+                if data[mac]["internetState"] is not None:
+                    monitor_devices[mac]["internet"]["online"] = data[mac]["internetState"]
+                # Mode
+                if data[mac]["internetMode"] is not None:
+                    monitor_devices[mac]["internet"]["mode"] = data[mac]["internetMode"]
+
+                # Connection info map
+                monitor_devices[mac]["connection"] = dict()
+
+                # Type of the connection
+                if data[mac]["isWL"] is not None:
+                    value = int(data[mac]["isWL"])
+                    if value == 1:
+                        monitor_devices[mac]["connection"]["type"] = "WLAN0"
+                    elif value == 2:
+                        monitor_devices[mac]["connection"]["type"] = "WLAN1"
+                    else:
+                        monitor_devices[mac]["connection"]["type"] = "LAN"
+                # Connected
+                if data[mac]["isOnline"] is not None:
+                    monitor_devices[mac]["connection"]["online"] = data[mac]["isOnline"]
+                    
+                # Only for wireless
+                if monitor_devices[mac]["connection"]["type"] != "LAN":
+                    # RSSI
+                    if data[mac]["rssi"] is not None:
+                        monitor_devices[mac]["connection"]["RSSI"] = data[mac]["rssi"]
+                    # Connection time
+                    if data[mac]["wlConnectTime"] is not None:
+                        monitor_devices[mac]["connection"]["uptime"] = data[mac]["wlConnectTime"]
+                    # Connection speeds
+                    monitor_devices[mac]["connection"]["speed"] = dict()
+                    raw = data[mac]["curRx"].strip()
+                    value = float(raw) if raw != "" else 0.0
+                    monitor_devices[mac]["connection"]["speed"]["Rx"] = value
+                    raw = data[mac]["curTx"].strip()
+                    value = float(raw) if raw != "" else 0.0
+                    monitor_devices[mac]["connection"]["speed"]["Tx"] = value
+                
+                # Other info
+                if (data[mac]["vendor"] is not None
+                    and data[mac]["vendor"] != ""):
+                    monitor_devices[mac]["vendor"] = data[mac]["vendor"]
+
+        self._monitor_devices = monitor_devices
+
+        self._monitor_devices_time = now
+        self._monitor_devices_running = False
+
+        return
+
+
     async def async_find_interfaces(self, use_cache : bool = True) -> None:
         """Find available interfaces/type dictionary"""
         
@@ -636,9 +734,24 @@ class AsusRouter:
         await self.async_monitor_nvram()
         await self.async_find_interfaces()
         await self.async_monitor_misc()
+        await self.async_monitor_devices()
 
 
 #### RETURN DATA
+
+    async def async_get_devices(self, use_cache : bool = True) -> dict:
+        """Return device list"""
+        
+        now = datetime.utcnow()
+        if (self._monitor_devices is None
+            or self._monitor_devices_time is None
+            or use_cache == False
+            or (use_cache == True and self._monitor_devices_time and self._cache_time < (now - self._monitor_devices_time).total_seconds())
+        ):
+            await self.async_monitor_devices()
+
+        return self._monitor_devices
+
 
     async def async_get_cpu(self, use_cache : bool = True) -> dict:
         """Return CPU usage"""
