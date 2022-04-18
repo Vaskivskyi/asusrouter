@@ -235,8 +235,8 @@ MONITOR_MAIN = {
 }
 
 TRAFFIC_GROUPS = {
-    "INTERNET" : "WAN0",    # main WAN
-    "INTERNET1" : "WAN1",   # secondary WAN (USB modem / phone)
+    "INTERNET" : "WAN",    # main WAN
+    "INTERNET1" : "USB",   # secondary WAN (USB modem / phone)
     "WIRED" : "WIRED",      # wired connections
     "BRIDGE" : "BRIDGE",    # bridge
     "WIRELESS0" : "WLAN0",  # 2.4 GHz WiFi
@@ -859,21 +859,28 @@ class AsusRouter:
 
         return result
 
-    
+
     async def async_get_network_labels(self) -> list:
         """Return list of network interfaces"""
 
         if self._monitor_main is None:
             await self.async_monitor_main()
+        if self._monitor_nvram is None:
+            await self.async_monitor_nvram()
 
         result = list()
 
         for interface in self._monitor_main["NETWORK"]:
             result.append(interface)
 
+        if (not "USB" in result
+            and "dualwan" in self._monitor_nvram["rc_support"]
+        ):
+            result.append("USB")
+
         return result
 
-    
+
     async def async_get_ports(self, use_cache : bool = True) -> dict:
         """Return WAN/LAN ports status"""
         
