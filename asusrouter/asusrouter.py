@@ -590,9 +590,9 @@ class AsusRouter:
                 if "BOOTTIME" in self._monitor_misc:
                     _timestamp = self._monitor_misc["BOOTTIME"]["timestamp"]
                     _time = datetime.fromtimestamp(_timestamp)
-                    if time == _time:
-                        monitor_misc["BOOTTIME"] = self._monitor_misc["BOOTTIME"]
-                    elif abs(timestamp - _timestamp) < 2:
+                    if (time == _time
+                        or abs(timestamp - _timestamp) < 2
+                    ):
                         monitor_misc["BOOTTIME"] = self._monitor_misc["BOOTTIME"]
                     else:
                         monitor_misc["BOOTTIME"]["timestamp"] = timestamp
@@ -601,7 +601,7 @@ class AsusRouter:
                     monitor_misc["BOOTTIME"]["timestamp"] = timestamp
                     monitor_misc["BOOTTIME"]["ISO"] = time.isoformat()
 
-                self._device_boottime = time
+                self._device_boottime = datetime.fromtimestamp(monitor_misc["BOOTTIME"]["timestamp"])
 
         self._monitor_misc = monitor_misc
 
