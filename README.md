@@ -1,13 +1,13 @@
 ## AsusRouter
 
-**AsusRouter** is an API wrapper for communication with ASUSWRT-powered routers using HTTP or HTTPS protocols. This version is not final yet and has some issues. Please, consider them.
+**AsusRouter** is an API wrapper for communication with ASUSWRT-powered routers using HTTP(S) protocols. This version is not final yet and has some issues. Please, consider them.
 
 
-## Supported features
+## Features
 
-- **Monitoring data** when `enable_monitor` parameter of `AsusRrouter` is set to `True` (default)
-- **Sending commands** to the device when `enable_control` is set to `True` (default is `False`)
-- SSL server certificates on the device side (including certificate check on the connection from Trusted Root Certificates or your own specified certificate file)s
+- **Monitoring data**: CPU/RAM usage, Tx and Rx traffic and speed for different interfaces (WAN, USB, dual-WAN support, local interfaces), WAN/LAN ports status (speed of devices), NVRAM, connected devices (LAN/WLAN) and other.
+- **Sending commands** to the device when `enable_control` is set to `True` (default is `False`).
+- SSL server certificates on the device side (including certificate check on the connection from Trusted Root Certificates or your own specified certificate file).
 
 
 ## Installation
@@ -47,20 +47,13 @@ router.async_initialize()
 
 #### Monitors and additional methods
 
-`AsusRouter` class has 3 monitors to load a large part of useful data from the device. All of them require the `enable_monitor` parameter of `AsusRrouter` to be set to `True`. The following methods can be used:
+Most of the values, obtained from the router are grouped in several monitor methods to decrease the amount of data sent between the library and the device. All of them require the `enable_monitor` parameter of `AsusRouter` to be set to `True`.
 
 ```python
-router.async_monitor_main()
-
-router.async_monitor_nvram()
-
-router.async_monitor_misc()
-```
-
-Moreover, some additional methods are also available (that could partially rely on one of the monitors):
-
-```python
-router.async_find_interfaces()
+async_monitor_main()
+async_monitor_nvram()
+async_monitor_misc()
+async_monitor_devices()
 ```
 
 A detailed description of monitors and monitoring methods is available here (*in work*).
@@ -82,19 +75,30 @@ Commands to the method should be sent as a `dict` of `command: value`. Please, r
 
 ## Supported devices and firmware
 
-Currently, **AsusRouter** is tested on my only router model. If you wish to help me make it better, feel free to open a [Pull Request](https://github.com/Vaskivskyi/asusrouter/pulls) with your model name and firmware (if everything works well). Chances are much higher that some problems may occur on other devices, so [Issues](https://github.com/Vaskivskyi/asusrouter/issues) are waiting for a new one.
-
-
-### Devices
-
-|Model|Support level|
+|Device model|Support level|
 |---|---|
 |RT-AC66U|Complete|
 
-
-### Firmware
-
-|Version|Build|Extended|Support level|
+|Firmware version|Build|Extended|Support level|
 |-------|-----|--------|-------------|
 |3.0.0.4|382|52287-g798e87f|Complete|
+
+
+## Support the library
+
+### Issues and Pull requests
+
+If you have found an issue working with the library or just want to ask for a new feature, please fill in a new [issue](https://github.com/Vaskivskyi/asusrouter/issues).
+
+You are also welcome to submit [pull requests](https://github.com/Vaskivskyi/asusrouter/pulls) to the repository!
+
+### Check it with your device
+
+Testing the library with different devices would help a lot in the development process. Unfortunately, currently, I have only one device available, so your help would be much appreciated.
+
+### Other support
+
+This library is a free-time project. If you like it, you can support me by buying a coffee.
+
+<a href="https://www.buymeacoffee.com/vaskivskyi" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-blue.png" alt="Buy Me A Coffee" style="height: 40px !important;"></a>
 
