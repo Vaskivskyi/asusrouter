@@ -56,6 +56,7 @@ _MSG_ERROR_UNKNOWN_EXCEPTION = "Unknown exception"
 _MSG_ERROR_TIMEOUT = "Host timeout"
 _MSG_ERROR_DISCONNECTED = "Host disconnected"
 _MSG_ERROR_CONNECTOR = "ERR_CONNECTION_REFUSED"
+_MSG_ERROR_CONNECTOR_RETRY = "Cannot reconnect, repeat"
 _MSG_ERROR_PARSE_JSON = "Not a valid JSON"
 _MSG_ERROR_CERT_FILE_MISSING = "Certificate file does not exist"
 _MSG_ERROR_CERT_WRONG_HOST = "ERR_CERT_COMMON_NAME_INVALID"
@@ -134,7 +135,7 @@ class Connection:
     async def async_request(self, payload : str, endpoint : str, headers : dict, retry : bool = False) -> dict:
         """Send a request"""
 
-        if(retry):
+        if retry:
             await asyncio.sleep(DEFAULT_SLEEP_RECONNECT)
 
         json_body = {}
@@ -162,7 +163,10 @@ class Connection:
         except aiohttp.ServerTimeoutError:
             _LOGGER.error(_MSG_ERROR_TIMEOUT)
         except aiohttp.ClientConnectorError:
-            _LOGGER.error(_MSG_ERROR_CONNECTOR)
+            if retry:
+                _LOGGER.debug(_MSG_ERROR_CONNECTOR_RETRY)
+            else:
+                _LOGGER.error(_MSG_ERROR_CONNECTOR)
         except json.JSONDecodeError:
             _LOGGER.debug(_MSG_ERROR_PARSE_JSON)
             if ".xml" in endpoint:
@@ -176,9 +180,11 @@ class Connection:
             _LOGGER.error("{}: {}".format(_MSG_ERROR_UNKNOWN_EXCEPTION, ex))
 
         # If it got here, something is wrong. Reconnect and retry
-        _LOGGER.debug(_MSG_NOTIFY_RECONNECT)
-        await self.async_connect(retry = True)
-        return await self.async_request(payload = payload, endpoint = endpoint, headers = headers)
+        if not retry:
+            _LOGGER.debug(_MSG_NOTIFY_RECONNECT)
+            await self.async_cleanup()
+            await self.async_connect(retry = True)
+        return await self.async_request(payload = payload, endpoint = endpoint, headers = headers, retry = True)
 
     async def async_connect(self, retry : bool = False) -> bool:
         """Start new connection to and get new auth token"""
