@@ -683,7 +683,27 @@ class AsusRouter:
                         monitor_devices[mac]["connection"]["RSSI"] = data[mac]["rssi"]
                     # Connection time
                     if data[mac]["wlConnectTime"] is not None:
-                        monitor_devices[mac]["connection"]["uptime"] = data[mac]["wlConnectTime"]
+                        value = await helpers.async_transform_connection_time(data[mac]["wlConnectTime"])
+                        timestamp = value.timestamp()
+                        iso = value.isoformat()
+
+                        if (mac in self._monitor_devices
+                            and "connection" in self._monitor_devices[mac]
+                            and "timestamp" in self._monitor_devices[mac]["connection"]
+                        ):
+                            _timestamp = self._monitor_devices[mac]["connection"]["timestamp"]
+                            if (timestamp == _timestamp
+                                or abs(timestamp - _timestamp) < 2
+                            ):
+                                monitor_devices[mac]["connection"]["timestamp"] = self._monitor_devices[mac]["connection"]["timestamp"]
+                                monitor_devices[mac]["connection"]["ISO"] = self._monitor_devices[mac]["connection"]["ISO"]
+                            else:
+                                monitor_devices[mac]["connection"]["timestamp"] = timestamp
+                                monitor_devices[mac]["connection"]["ISO"] = iso
+                        else:
+                            monitor_devices[mac]["connection"]["timestamp"] = timestamp
+                            monitor_devices[mac]["connection"]["ISO"] = iso
+
                     # Connection speeds
                     monitor_devices[mac]["connection"]["speed"] = dict()
                     raw = data[mac]["curRx"].strip()

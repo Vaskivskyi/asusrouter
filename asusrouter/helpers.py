@@ -261,3 +261,13 @@ async def async_transform_port_speed(value : str | None = None) -> int | None:
     else:
         raise NotImplementedError("Conversion for this value is not implemented")
 
+async def async_transform_connection_time(value : str | None = None) -> datetime:
+    """Transform connection timedelta of the device to a proper datetime object when the device was connected"""
+
+    if value is None:
+        return None
+
+    part = value.split(":")
+    delta = timedelta(hours = int(part[0]), minutes = int(part[1]), seconds = int(part[2]))
+    return datetime.utcnow().replace(microsecond=0) - delta
+
