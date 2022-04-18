@@ -873,6 +873,21 @@ class AsusRouter:
 
         return result
 
+    
+    async def async_get_ports(self, use_cache : bool = True) -> dict:
+        """Return WAN/LAN ports status"""
+        
+        now = datetime.utcnow()
+        if (self._monitor_misc is None
+            or use_cache == False
+            or (use_cache == True
+            and self._monitor_misc_time
+            and self._cache_time < (now - self._monitor_misc_time).total_seconds())
+        ):
+            await self.async_monitor_misc()
+
+        return self._monitor_misc["PORTS"]
+
 
     @property
     def connected(self) -> bool:
