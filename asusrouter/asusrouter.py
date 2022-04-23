@@ -281,7 +281,7 @@ class AsusRouter:
 
         self._device_cpu_cores : list | None = None
         self._device_ports : dict | None = None
-        self._device_boottime: datetime | None = None
+        self._device_boottime : datetime | None = None
 
 
         self._monitor_main : dict | None = None
@@ -346,6 +346,11 @@ class AsusRouter:
         except Exception as ex:
             _LOGGER.error(ex)
 
+        # Check for errors during hook
+        if self.connection.error:
+            _LOGGER.debug("Error flag found")
+            await self.async_handle_error()
+
         return result
 
 
@@ -393,7 +398,7 @@ class AsusRouter:
 
         return result
 
-    
+
     async def async_monitor_main(self) -> None:
         """Get all the main monitor values. Non-cacheable"""
 
@@ -594,6 +599,10 @@ class AsusRouter:
                         or abs(timestamp - _timestamp) < 2
                     ):
                         monitor_misc["BOOTTIME"] = self._monitor_misc["BOOTTIME"]
+                    # This happens on reboots if data is checked before the device got correct time from NTP
+                    elif timestamp - _timestamp < 0:
+                        # Leave the same boot time, since we don't know the new correct time
+                        monitor_misc["BOOTTIME"] = self._monitor_misc["BOOTTIME"]
                     else:
                         monitor_misc["BOOTTIME"]["timestamp"] = timestamp
                         monitor_misc["BOOTTIME"]["ISO"] = time.isoformat()
@@ -601,7 +610,8 @@ class AsusRouter:
                     monitor_misc["BOOTTIME"]["timestamp"] = timestamp
                     monitor_misc["BOOTTIME"]["ISO"] = time.isoformat()
 
-                self._device_boottime = datetime.fromtimestamp(monitor_misc["BOOTTIME"]["timestamp"])
+                if self._device_boottime != monitor_misc["BOOTTIME"]["ISO"]:
+                    self._device_boottime = monitor_misc["BOOTTIME"]["ISO"]
 
         self._monitor_misc = monitor_misc
 
@@ -722,6 +732,29 @@ class AsusRouter:
 
         self._monitor_devices_time = now
         self._monitor_devices_running = False
+
+        return
+
+
+    async def async_handle_error(self) -> None:
+        """Actions to be taken on connection errors"""
+
+        # Most of errors come from device reboots. Handle it
+        await self.async_handle_reboot()
+
+        # Clear error
+        await self.connection.async_reset_error()
+
+        return
+
+
+    async def async_handle_reboot(self) -> None:
+        """Actions to be taken on reboot"""
+
+        # Clear main monitor to prevent calculation errors in it
+        if self._monitor_main:
+            self._monitor_main = None
+            self._monitor_main_time = None
 
         return
 

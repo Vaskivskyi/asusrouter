@@ -86,6 +86,7 @@ class Connection:
         self._session : str | None = None
 
         self._device : dict | None = dict()
+        self._error : bool = False
 
         self._http = "https" if use_ssl else "http"
 
@@ -181,6 +182,7 @@ class Connection:
 
         # If it got here, something is wrong. Reconnect and retry
         if not retry:
+            self._error = True
             _LOGGER.debug(_MSG_NOTIFY_RECONNECT)
             await self.async_cleanup()
             await self.async_connect(retry = True)
@@ -259,13 +261,27 @@ class Connection:
             await self._session.close()
         self._session = None
 
+    async def async_reset_error(self) -> None:
+        """Reset error flag"""
+
+        self._error = False
+        return
+
     @property
     def connected(self) -> bool:
         """Connection status"""
+
         return self._connected
 
     @property
     def device(self) -> dict:
         """Device model and API support levels"""
+
         return self._device
+
+    @property
+    def error(self) -> bool:
+        """Report errors"""
+
+        return self._error
 
