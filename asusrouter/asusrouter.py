@@ -4,18 +4,17 @@ import logging
 import asyncio
 from datetime import datetime
 
-from asusrouter import Connection, helpers
+from asusrouter import AsusRouterError, Connection, helpers
+from .const import(
+    AR_PATH,
+    DEFAULT_SLEEP_TIME,
+    MSG_ERROR,
+    MSG_INFO,
+    MSG_SUCCESS,
+    MSG_WARNING,
+)
 
 _LOGGER = logging.getLogger(__name__)
-
-DEFAULT_SLEEP_TIME = 0.1
-
-_MSG_SUCCESS_COMMAND = "Command was sent successfully"
-_MSG_SUCCESS_HOOK = "Hook was sent successfully"
-_MSG_SUCCESS_LOAD = "Page was loaded successfully"
-
-_MSG_ERROR_NO_CONTROL = "Device is connected in no-control mode. Sending commands is blocked"
-_MSG_ERROR_NO_MONITOR = "Device is connected in no-control mode. Sending hooks is blocked"
 
 INTERFACE_TYPE = {
     "wan_ifnames": "wan",
@@ -334,15 +333,15 @@ class AsusRouter:
         result = {}
 
         if not self._enable_monitor:
-            _LOGGER.error(_MSG_ERROR_NO_MONITOR)
+            _LOGGER.error(MSG_ERROR["disabled_monitor"])
             return result
 
         if hook is None:
             return result
 
         try:
-            result = await self.connection.async_run_command("hook={}".format(hook))
-            _LOGGER.debug("{}: {}".format(_MSG_SUCCESS_HOOK, hook))
+            result = await self.connection.async_run_command(command = "hook={}".format(hook))
+            _LOGGER.debug("{}: {}".format(MSG_SUCCESS["hook"], hook))
         except Exception as ex:
             _LOGGER.error(ex)
 
@@ -360,7 +359,7 @@ class AsusRouter:
         result = {}
 
         if not self._enable_control:
-            _LOGGER.error(_MSG_ERROR_NO_CONTROL)
+            _LOGGER.error(MSG_ERROR["disabled_control"])
             return result
 
         request : dict = {
@@ -370,8 +369,8 @@ class AsusRouter:
             request[command] = commands[command]
 
         try:
-            result = await self.connection.async_run_command(str(request), "applyapp.cgi")
-            _LOGGER.debug("{}: {}".format(_MSG_SUCCESS_COMMAND, request))
+            result = await self.connection.async_run_command(command = str(request), endpoint = AR_PATH["command"])
+            _LOGGER.debug("{}: {}".format(MSG_SUCCESS["command"], request))
         except Exception as ex:
             _LOGGER.error(ex)
 
@@ -384,7 +383,7 @@ class AsusRouter:
         result = {}
 
         if not self._enable_monitor:
-            _LOGGER.error(_MSG_ERROR_NO_MONITOR)
+            _LOGGER.error(MSG_ERROR["disabled_monitor"])
             return result
 
         if page is None:
@@ -392,7 +391,7 @@ class AsusRouter:
 
         try:
             result = await self.connection.async_run_command(command = "", endpoint = page)
-            _LOGGER.debug(_MSG_SUCCESS_LOAD)
+            _LOGGER.debug(MSG_SUCCESS["load"])
         except Exception as ex:
             _LOGGER.error(ex)
 
@@ -565,7 +564,7 @@ class AsusRouter:
         ### PORTS
 
         # Receive ports number and status (disconnected, 100 Mb/s, 1 Gb/s)
-        data = await self.async_load("ajax_ethernet_ports.asp")
+        data = await self.async_load(page = AR_PATH["ports"])
 
         now = datetime.utcnow()
 
@@ -581,7 +580,7 @@ class AsusRouter:
                         break
 
         # Load devicemap
-        data = await self.async_load("ajax_status.xml")
+        data = await self.async_load(page = AR_PATH["devicemap"])
         monitor_misc["DEVICEMAP"] = data
 
         # Calculate boot time. Since precision is 1 second, could be that old and new are 1 sec different. In this case, we should not change the boot time, but keep the previous value to avoid regular changes

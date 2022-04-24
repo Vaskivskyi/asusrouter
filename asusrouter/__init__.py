@@ -1,7 +1,19 @@
 """Library init"""
 
+from .error import(
+    AsusRouterError,
+    AsusRouterConnectionError,
+    AsusRouterConnectionTimeoutError,
+    AsusRouterServerDisconnectedError,
+    AsusRouterLoginError,
+    AsusRouterLoginBlockError,
+    AsusRouterResponseError,
+    AsusRouterValueError,
+    AsusRouterSSLError,
+)
+
 from . import(
-    helpers as helpers
+    helpers as helpers,
 )
 
 from .connection import(
