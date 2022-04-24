@@ -67,8 +67,10 @@ class Connection:
                     _LOGGER.error(MSG_ERROR["cert_missing"])
                     self._ssl = True
             else:
+                _LOGGER.debug(MSG_INFO["no_cert"])
                 self._ssl = True
         else:
+            _LOGGER.debug(MSG_INFO["no_cert_check"])
             self._ssl = False
 
         self._connected: bool = None
@@ -158,9 +160,11 @@ class Connection:
             raise AsusRouterServerDisconnectedError(str(ex)) from ex
 
         # Connection refused -> will repeat
-        except aiohttp.ClientConnectorError:
+        except aiohttp.ClientConnectorError as ex:
+            if endpoint == AR_PATH["login"]:
+                raise AsusRouterLoginError(str(ex)) from ex
             if not retry:
-                _LOGGER.warning(MSG_WARNING["refused"])
+                _LOGGER.warning("{}. Endpoint: {}. Payload: {}.\nException summary:{}".format(MSG_WARNING["refused"], endpoint, payload, str(ex)))
 
         # If it got here, something is wrong. Reconnect and retry
         if not retry:

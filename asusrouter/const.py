@@ -58,6 +58,8 @@ MSG_WARNING = {
 MSG_INFO = {
     "json_fix": "Trying to fix JSON response",
     "reconnect": "Reconnecting",
+    "no_cert": "No certificate provided. Using trusted",
+    "no_cert_check": "Certificate won't be checked",
     "xml": "Data is in XML",
 }
 
