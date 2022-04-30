@@ -1,3 +1,5 @@
+[![GitHub Release](https://img.shields.io/github/release/Vaskivskyi/asusrouter.svg?style=for-the-badge&color=blue)](https://github.com/Vaskivskyi/asusrouter/releases) [![License](https://img.shields.io/github/license/Vaskivskyi/asusrouter.svg?style=for-the-badge&color=yellow)](LICENSE)
+
 ## AsusRouter
 
 **AsusRouter** is an API wrapper for communication with ASUSWRT-powered routers using HTTP(S) protocols. This version is not final yet and has some issues. Please, consider them.
