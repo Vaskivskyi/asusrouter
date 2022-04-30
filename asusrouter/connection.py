@@ -19,6 +19,7 @@ from .const import(
     AR_PATH,
     DEFAULT_PORT,
     DEFAULT_SLEEP_RECONNECT,
+    DEFAULT_SLEEP_CONNECTING,
     MSG_ERROR,
     MSG_INFO,
     MSG_SUCCESS,
@@ -53,6 +54,8 @@ class Connection:
 
         self._device : dict | None = dict()
         self._error : bool = False
+        self._connecting : bool = False
+        self._mute_flag : bool = False
 
         self._http = "https" if use_ssl else "http"
 
@@ -104,20 +107,37 @@ class Connection:
     async def async_request(self, payload : str, endpoint : str, headers : dict, retry : bool = False) -> dict:
         """Send a request"""
 
+        # Wait a bit before just retrying
         if retry:
             await asyncio.sleep(DEFAULT_SLEEP_RECONNECT)
+
+        # Connection process
+        if endpoint == AR_PATH["login"]:
+            self._connecting = True
+        # Sleep if we got here during the connection process
+        else:
+            while self._connecting:
+                await asyncio.sleep(DEFAULT_SLEEP_CONNECTING)
 
         json_body = {}
 
         try:
-            async with self._session.post(url="{}://{}:{}/{}".format(self._http, self._host, self._port, endpoint), data = urllib.parse.quote(payload), headers = headers, ssl = self._ssl) as r:
+            async with self._session.post(
+                url="{}://{}:{}/{}".format(self._http, self._host, self._port, endpoint),
+                data = urllib.parse.quote(payload),
+                headers = headers,
+                ssl = self._ssl
+            ) as r:
                 string_body = await r.text()
                 json_body = await r.json()
 
-                # Check for errors
+                # Handle reported errors
                 if "error_status" in json_body:
-                    error_code = int(json_body['error_status'])
+                    # If got here, we are not connected properly
+                    self._connected = False
 
+                    ## ERROR CODES
+                    error_code = int(json_body['error_status'])
                     # Not authorised
                     if error_code == AR_ERROR["authorisation"]:
                         _LOGGER.error(MSG_ERROR["authorisation"])
@@ -142,6 +162,9 @@ class Connection:
                     if item in r_headers:
                         self._device[item] = r_headers[item]
 
+            # RReset mute_flag on success
+            self._mute_flag = False
+
             return json_body
 
         # Handle non-JSON replies
@@ -154,21 +177,28 @@ class Connection:
                 json_body = await helpers.async_convert_to_json(text = string_body)
             return json_body
 
+        # Raise only if mute_flag not set
         except (aiohttp.ClientConnectorSSLError, aiohttp.ClientConnectorCertificateError) as ex:
-            raise AsusRouterSSLError(str(ex)) from ex
+            if not self._mute_flag:
+                raise AsusRouterSSLError(str(ex)) from ex
         except (aiohttp.ServerTimeoutError, asyncio.TimeoutError) as ex:
-            raise AsusRouterConnectionTimeoutError(str(ex)) from ex
+            if not self._mute_flag:
+                raise AsusRouterConnectionTimeoutError(str(ex)) from ex
         except aiohttp.ServerDisconnectedError as ex:
-            raise AsusRouterServerDisconnectedError(str(ex)) from ex
+            if not self._mute_flag:
+                raise AsusRouterServerDisconnectedError(str(ex)) from ex
 
         # Connection refused -> will repeat
         except aiohttp.ClientConnectorError as ex:
-            if endpoint == AR_PATH["login"]:
+            if endpoint == AR_PATH["login"] and not self._mute_flag:
                 raise AsusRouterLoginError(str(ex)) from ex
-            if not retry:
+            # Mute warning for retries and while connecting
+            if not retry and not self._connecting:
                 _LOGGER.warning("{}. Endpoint: {}. Payload: {}.\nException summary:{}".format(MSG_WARNING["refused"], endpoint, payload, str(ex)))
 
         # If it got here, something is wrong. Reconnect and retry
+        self._mute_flag = True
+
         if not retry:
             self._error = True
             _LOGGER.info(MSG_INFO["reconnect"])
@@ -182,7 +212,8 @@ class Connection:
 
         _success = False
 
-        self._session = aiohttp.ClientSession()
+        if self._session is None:
+            self._session = aiohttp.ClientSession()
 
         auth = "{}:{}".format(self._username, self._password).encode('ascii')
         logintoken = base64.b64encode(auth).decode('ascii')
@@ -204,6 +235,8 @@ class Connection:
             _success = True
         else:
             _LOGGER.error(MSG_ERROR["token"])
+
+        self._connecting = False
 
         return _success
 
@@ -248,6 +281,13 @@ class Connection:
         """Connection status"""
 
         return self._connected
+
+    
+    @property
+    def connecting(self) -> bool:
+        """Connection progress"""
+
+        return self._connecting
 
 
     @property
