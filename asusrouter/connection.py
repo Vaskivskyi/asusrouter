@@ -10,6 +10,7 @@ import urllib.parse
 import ssl
 import asyncio
 from pathlib import Path
+from typing import Any
 
 from asusrouter import helpers, AsusRouterError, AsusRouterConnectionError, AsusRouterConnectionTimeoutError, AsusRouterServerDisconnectedError, AsusRouterLoginError, AsusRouterLoginBlockError, AsusRouterResponseError, AsusRouterValueError, AsusRouterSSLError
 from .const import(
@@ -49,10 +50,10 @@ class Connection:
         self._username : str | None = username
         self._password : str | None = password
         self._token : str | None = None
-        self._headers : dict | None = None
+        self._headers : dict[str, str] | None = None
         self._session : str | None = None
 
-        self._device : dict | None = dict()
+        self._device : dict[str, str] = dict()
         self._error : bool = False
         self._connecting : bool = False
         self._mute_flag : bool = False
@@ -81,7 +82,7 @@ class Connection:
         self._connected: bool = None
 
 
-    async def async_run_command(self, command : str, endpoint : str = AR_PATH["get"], retry : bool = False) -> dict:
+    async def async_run_command(self, command : str, endpoint : str = AR_PATH["get"], retry : bool = False) -> dict[str, Any]:
         """Run command. Use the existing connection token, otherwise create new one"""
 
         if self._token is None and not retry:
@@ -104,7 +105,7 @@ class Connection:
                 return {}
 
 
-    async def async_request(self, payload : str, endpoint : str, headers : dict, retry : bool = False) -> dict:
+    async def async_request(self, payload : str, endpoint : str, headers : dict[str, str], retry : bool = False) -> dict[str, Any]:
         """Send a request"""
 
         # Wait a bit before just retrying
@@ -291,7 +292,7 @@ class Connection:
 
 
     @property
-    def device(self) -> dict:
+    def device(self) -> dict[str, str]:
         """Device model and API support levels"""
 
         return self._device

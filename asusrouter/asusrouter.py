@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 import asyncio
 from datetime import datetime
+from typing import Any
 
 from asusrouter import AsusRouterError, Connection, helpers
 from .const import(
@@ -49,21 +50,21 @@ class AsusRouter:
         self._cache_time : int = cache_time
 
 
-        self._device_cpu_cores : list | None = None
-        self._device_ports : dict | None = None
+        self._device_cpu_cores : list[int] | None = None
+        self._device_ports : dict[str, str] | None = None
         self._device_boottime : datetime | None = None
 
 
-        self._monitor_main : dict | None = None
+        self._monitor_main : dict[str, Any] | None = None
         self._monitor_main_time : datetime | None = None
         self._monitor_main_running : bool = False
-        self._monitor_nvram : dict | None = None
+        self._monitor_nvram : dict[str, Any] | None = None
         self._monitor_nvram_time : datetime | None = None
         self._monitor_nvram_running : bool = False
-        self._monitor_misc : dict | None = None
+        self._monitor_misc : dict[str, Any] | None = None
         self._monitor_misc_time : datetime | None = None
         self._monitor_misc_running : bool = False
-        self._monitor_devices : dict | None = None
+        self._monitor_devices : dict[str, Any] | None = None
         self._monitor_devices_time : datetime | None = None
         self._monitor_devices_running : bool = False
 
@@ -98,7 +99,7 @@ class AsusRouter:
         return request
 
 
-    async def async_hook(self, hook : str) -> dict:
+    async def async_hook(self, hook : str | None = None) -> dict[str, Any]:
         """Hook data from device"""
 
         result = {}
@@ -124,7 +125,7 @@ class AsusRouter:
         return result
 
 
-    async def async_command(self, commands : dict[str, str], action_mode : str = "apply") -> dict:
+    async def async_command(self, commands : dict[str, str], action_mode : str = "apply") -> dict[str, Any]:
         """Command device to run a service or set parameter"""
 
         result = {}
@@ -148,7 +149,7 @@ class AsusRouter:
         return result
 
 
-    async def async_load(self, page : str | None = None) -> dict:
+    async def async_load(self, page : str | None = None) -> dict[str, Any]:
         """Return the data from the page"""
 
         result = {}
@@ -602,7 +603,7 @@ class AsusRouter:
 
 #### RETURN DATA
 
-    async def async_get_devices(self, use_cache : bool = True) -> dict:
+    async def async_get_devices(self, use_cache : bool = True) -> dict[str, Any]:
         """Return device list"""
         
         now = datetime.utcnow()
@@ -616,7 +617,7 @@ class AsusRouter:
         return self._monitor_devices
 
 
-    async def async_get_cpu(self, use_cache : bool = True) -> dict:
+    async def async_get_cpu(self, use_cache : bool = True) -> dict[str, float]:
         """Return CPU usage"""
         
         now = datetime.utcnow()
@@ -645,7 +646,7 @@ class AsusRouter:
         return result
 
 
-    async def async_get_cpu_labels(self) -> list:
+    async def async_get_cpu_labels(self) -> list[str]:
         """Return list of CPU cores"""
 
         if self._device_cpu_cores is None:
@@ -659,7 +660,7 @@ class AsusRouter:
         return result
 
 
-    async def async_get_ram(self, use_cache : bool = True) -> dict:
+    async def async_get_ram(self, use_cache : bool = True) -> dict[str, (int | float)]:
         """Return RAM and its usage"""
         
         now = datetime.utcnow()
@@ -684,7 +685,7 @@ class AsusRouter:
         return result
 
 
-    async def async_get_ram_labels(self) -> list:
+    async def async_get_ram_labels(self) -> list[str]:
         """Return list of CPU cores"""
 
         if self._device_cpu_cores is None:
@@ -697,7 +698,7 @@ class AsusRouter:
         return result
 
 
-    async def async_get_network(self, use_cache : bool = True) -> dict:
+    async def async_get_network(self, use_cache : bool = True) -> dict[str, (int | float)]:
         """Return traffic and speed for all interfaces"""
         
         now = datetime.utcnow()
@@ -724,7 +725,7 @@ class AsusRouter:
         return result
 
 
-    async def async_get_network_labels(self) -> list:
+    async def async_get_network_labels(self) -> list[str]:
         """Return list of network interfaces"""
 
         if self._monitor_main is None:
@@ -745,7 +746,7 @@ class AsusRouter:
         return result
 
 
-    async def async_get_ports(self, use_cache : bool = True) -> dict:
+    async def async_get_ports(self, use_cache : bool = True) -> dict[str, dict[str, int]]:
         """Return WAN/LAN ports status"""
         
         now = datetime.utcnow()

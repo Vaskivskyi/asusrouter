@@ -7,6 +7,7 @@ import logging
 import re
 import xmltodict
 from datetime import datetime, timedelta
+from typing import Any
 
 from .const import (
     DEVICEMAP_BY_INDEX,
@@ -18,7 +19,7 @@ from .const import (
 _LOGGER = logging.getLogger(__name__)
 
 
-async def async_convert_to_json(text : str) -> dict:
+async def async_convert_to_json(text : str) -> dict[str, Any]:
     """Fix JSON conversion for known pages"""
 
     data = re.sub('\s+','',text)
@@ -36,7 +37,7 @@ async def async_convert_to_json(text : str) -> dict:
     
     return json.loads(data.encode().decode('utf-8-sig') )
 
-async def async_convert_xml(text : str) -> dict:
+async def async_convert_xml(text : str) -> dict[str, Any]:
     """Obtain data from XML"""
 
     data = xmltodict.parse(text)
@@ -45,7 +46,7 @@ async def async_convert_xml(text : str) -> dict:
 
     return {}
 
-async def async_parse_devicemap(devicemap : dict) -> dict:
+async def async_parse_devicemap(devicemap : dict[str, Any]) -> dict[str, Any]:
     """Parse devicemap"""
 
     data = {}
