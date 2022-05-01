@@ -21,6 +21,7 @@ from .const import(
     NVRAM_LIST,
     PORT_TYPE,
     TRAFFIC_GROUPS,
+    TRAFFIC_GROUPS_REPLACE,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -268,10 +269,10 @@ class AsusRouter:
                     ):
                         monitor_main["NETWORK"][TRAFFIC_GROUPS[el]][nd] = self._monitor_main["NETWORK"][TRAFFIC_GROUPS[el]][nd]
 
-            # Calculate speeds
             if (self._monitor_main is not None
                 and "NETWORK" in self._monitor_main
             ):
+                # Calculate speeds
                 for el in monitor_main["NETWORK"]:
                     for nd in NETWORK_DATA:
                         if el in self._monitor_main["NETWORK"]:
@@ -282,6 +283,12 @@ class AsusRouter:
                             monitor_main["NETWORK"][el]["{}_speed".format(nd)] = traffic_diff * 8 / (now - self._monitor_main_time).total_seconds()
                         else:
                             monitor_main["NETWORK"][el]["{}_speed".format(nd)] = 0
+
+                # For devices not reporting INTERNET, only BRIDGE values
+                for group in TRAFFIC_GROUPS_REPLACE:
+                    if not group in monitor_main["NETWORK"]:
+                        monitor_main["NETWORK"][group] = monitor_main["NETWORK"][TRAFFIC_GROUPS_REPLACE[group]]
+
         # Keep last data
         elif (self._monitor_main is not None
             and "NETWORK" in self._monitor_main
