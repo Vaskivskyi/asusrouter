@@ -107,6 +107,10 @@ MONITOR_MAIN = {
     "netdev" : "appobj"
 }
 
+TRAFFIC_GROUPS_REPLACE = {
+    "WAN" : "BRIDGE",
+}
+
 TRAFFIC_GROUPS = {
     "INTERNET" : "WAN",    # main WAN
     "INTERNET1" : "USB",   # secondary WAN (USB modem / phone)
