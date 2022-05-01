@@ -14,6 +14,8 @@ AR_API = [
     "Httpd_AiHome_Ver",
 ]
 
+DEFAULT_CACHE_TIME = 5
+
 DEFAULT_SLEEP_RECONNECT = 5
 DEFAULT_SLEEP_CONNECTING = 1
 DEFAULT_SLEEP_TIME = 0.1
@@ -21,6 +23,12 @@ DEFAULT_SLEEP_TIME = 0.1
 DEFAULT_PORT = {
     "http": 80,
     "https": 8443,
+}
+
+AR_DATA_CPU = "cpu_usage"
+
+AR_KEY = {
+    "cpu_usage": "cpu_usage",
 }
 
 AR_PATH = {
@@ -57,6 +65,7 @@ MSG_WARNING = {
 }
 
 MSG_INFO = {
+    "error_flag": "Error flag found",
     "json_fix": "Trying to fix JSON response",
     "reconnect": "Reconnecting",
     "no_cert": "No certificate provided. Using trusted",
@@ -132,6 +141,9 @@ PORT_TYPE = [
 ]
 
 KEY_NVRAM_GET = "nvram_get"
+KEY_ACTION_MODE = "action_mode"
+KEY_HOOK = "hook"
+DEFAULT_ACTION_MODE = "apply"
 
 
 ### DEVICEMAP

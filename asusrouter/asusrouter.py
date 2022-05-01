@@ -10,8 +10,12 @@ from typing import Any
 from asusrouter import AsusRouterError, Connection, helpers
 from .const import(
     AR_PATH,
+    DEFAULT_ACTION_MODE,
+    DEFAULT_CACHE_TIME,
     DEFAULT_SLEEP_TIME,
     INTERFACE_TYPE,
+    KEY_ACTION_MODE,
+    KEY_HOOK,
     KEY_NVRAM_GET,
     MONITOR_MAIN,
     MSG_ERROR,
@@ -39,7 +43,7 @@ class AsusRouter:
         use_ssl : bool = False,
         cert_check : bool = True,
         cert_path : str = "",
-        cache_time : int = 5,
+        cache_time : int = DEFAULT_CACHE_TIME,
         enable_monitor : bool = True,
         enable_control : bool = False):
         """Init"""
@@ -112,20 +116,20 @@ class AsusRouter:
             return result
 
         try:
-            result = await self.connection.async_run_command(command = "hook={}".format(hook))
+            result = await self.connection.async_run_command(command = "{}={}".format(KEY_HOOK, hook))
             _LOGGER.debug("{}: {}".format(MSG_SUCCESS["hook"], hook))
         except Exception as ex:
             _LOGGER.error(ex)
 
         # Check for errors during hook
         if self.connection.error:
-            _LOGGER.debug("Error flag found")
+            _LOGGER.debug(MSG_INFO["error_flag"])
             await self.async_handle_error()
 
         return result
 
 
-    async def async_command(self, commands : dict[str, str], action_mode : str = "apply") -> dict[str, Any]:
+    async def async_command(self, commands : dict[str, str], action_mode : str = DEFAULT_ACTION_MODE) -> dict[str, Any]:
         """Command device to run a service or set parameter"""
 
         result = {}
@@ -135,7 +139,7 @@ class AsusRouter:
             return result
 
         request : dict = {
-            "action_mode": action_mode,
+            KEY_ACTION_MODE: action_mode,
         }
         for command in commands:
             request[command] = commands[command]
