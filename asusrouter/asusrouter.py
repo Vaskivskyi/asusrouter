@@ -73,9 +73,7 @@ class AsusRouter:
 
         self._monitor_main : Monitor = Monitor()
         self._monitor_nvram : Monitor = Monitor()
-        self._monitor_misc : dict[str, Any] | None = None
-        self._monitor_misc_time : datetime | None = None
-        self._monitor_misc_running : bool = False
+        self._monitor_misc : Monitor = Monitor()
         self._monitor_devices : dict[str, Any] | None = None
         self._monitor_devices_time : datetime | None = None
         self._monitor_devices_running : bool = False
@@ -321,23 +319,20 @@ class AsusRouter:
     async def async_monitor_misc(self) -> None:
         """Get all other useful values"""
 
-        while self._monitor_misc_running:
+        while self._monitor_misc.active:
             await asyncio.sleep(DEFAULT_SLEEP_TIME)
             return
 
-        self._monitor_misc_running = True
+        self._monitor_misc.start()
 
-        if self._monitor_misc is None:
-            self._monitor_misc = dict()
-
-        monitor_misc = {}
+        monitor_misc = Monitor()
 
         ### PORTS
 
         # Receive ports number and status (disconnected, 100 Mb/s, 1 Gb/s)
         data = await self.async_load(page = AR_PATH["ports"])
 
-        now = datetime.utcnow()
+        monitor_misc.reset()
 
         if "portSpeed" in data:
             monitor_misc["PORTS"] = dict()
@@ -384,9 +379,6 @@ class AsusRouter:
                     self._device_boottime = monitor_misc["BOOTTIME"]["ISO"]
 
         self._monitor_misc = monitor_misc
-
-        self._monitor_misc_time = now
-        self._monitor_misc_running = False
 
         return
 
@@ -718,8 +710,8 @@ class AsusRouter:
         if (self._monitor_misc is None
             or use_cache == False
             or (use_cache == True
-            and self._monitor_misc_time
-            and self._cache_time < (now - self._monitor_misc_time).total_seconds())
+            and self._monitor_misc.time
+            and self._cache_time < (now - self._monitor_misc.time).total_seconds())
         ):
             await self.async_monitor_misc()
 
