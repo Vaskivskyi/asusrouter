@@ -56,7 +56,7 @@ def speed(after : (int | float), before : (int | float), time_delta : (int | flo
     if time_delta is None:
         return CONST_ZERO
     elif time_delta == CONST_ZERO:
-        raise ValueError()
+        raise ZeroDivisionError("time_delta cannot be zero")
 
     diff = after - before
 
