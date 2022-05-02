@@ -46,6 +46,8 @@ class Monitor(dict):
 
     `time`: datetime object showing the last time monitor was updated
 
+    `ready`: bool flag if monitor was ever loaded
+
     Methods
     -----
     `start`: set `active` to True
@@ -53,10 +55,13 @@ class Monitor(dict):
     `stop`: set `active` to False
 
     `reset`: set `time` to utcnow()
+
+    `finish`: set `ready` to True
     """
 
     active : bool = False
     time : datetime | None = None
+    ready : bool = False
 
     def __init_subclass__(cls) -> None:
         return super().__init_subclass__()
@@ -77,5 +82,11 @@ class Monitor(dict):
         """Reset time to utcnow"""
 
         self.time = datetime.utcnow()
+
+
+    def finish(self) -> None:
+        """Set ready status to True"""
+
+        self.ready = True
 
 
