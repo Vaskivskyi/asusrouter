@@ -16,6 +16,7 @@ from asusrouter.const import(
     AR_KEY_RAM,
     AR_PATH,
     DATA_ADD_SPEED,
+    DATA_BY_CORE,
     DATA_TOTAL,
     DATA_TRAFFIC,
     DATA_USAGE,
@@ -587,17 +588,11 @@ class AsusRouter:
 
         result = dict()
 
-        # Check if CPU was monitored
-        if (not self._monitor_main.ready
-            or not "CPU" in self._monitor_main
-        ):
-            return result
-
         for core in self._device_cpu_cores:
-            if "usage" in self._monitor_main["CPU"][core]:
-                result["core_{}".format(core)] = self._monitor_main["CPU"][core]["usage"]
-        if "usage" in self._monitor_main["CPU"]["total"]:
-            result["total"] = self._monitor_main["CPU"]["total"]["usage"]
+            if DATA_USAGE in self._monitor_main[KEY_CPU][core]:
+                result[DATA_BY_CORE.format(core)] = self._monitor_main[KEY_CPU][core][DATA_USAGE]
+        if DATA_USAGE in self._monitor_main[KEY_CPU][DATA_TOTAL]:
+            result[DATA_TOTAL] = self._monitor_main[KEY_CPU][DATA_TOTAL][DATA_USAGE]
 
         return result
 
@@ -609,9 +604,9 @@ class AsusRouter:
             await self.async_monitor_main()
 
         result = list()
-        result.append("total")
-        for el in self._device_cpu_cores:
-            result.append("core_{}".format(el))
+        result.append(DATA_TOTAL)
+        for core in self._device_cpu_cores:
+            result.append(DATA_BY_CORE.format(core))
 
         return result
 
@@ -632,12 +627,12 @@ class AsusRouter:
 
         # Check if RAM was monitored
         if (not self._monitor_main.ready
-            or not "RAM" in self._monitor_main
+            or not KEY_RAM in self._monitor_main
         ):
             return result
 
-        for value in self._monitor_main["RAM"]:
-            result[value] = self._monitor_main["RAM"][value]
+        for value in self._monitor_main[KEY_RAM]:
+            result[value] = self._monitor_main[KEY_RAM][value]
 
         return result
 
@@ -645,11 +640,11 @@ class AsusRouter:
     async def async_get_ram_labels(self) -> list[str]:
         """Return list of CPU cores"""
 
-        if self._device_cpu_cores is None:
+        if not self._monitor_main.ready:
             await self.async_monitor_main()
 
         result = list()
-        for value in self._monitor_main["RAM"]:
+        for value in self._monitor_main[KEY_RAM]:
             result.append(value)
 
         return result
@@ -671,13 +666,13 @@ class AsusRouter:
 
         # Check if network was monitored
         if (not self._monitor_main.ready
-            or not "NETWORK" in self._monitor_main
+            or not KEY_NETWORK in self._monitor_main
         ):
             return result
 
-        for interface in self._monitor_main["NETWORK"]:
-            for value in self._monitor_main["NETWORK"][interface]:
-                result["{}_{}".format(interface, value)] = self._monitor_main["NETWORK"][interface][value]
+        for interface in self._monitor_main[KEY_NETWORK]:
+            for value in self._monitor_main[KEY_NETWORK][interface]:
+                result["{}_{}".format(interface, value)] = self._monitor_main[KEY_NETWORK][interface][value]
 
         return result
 
@@ -692,7 +687,7 @@ class AsusRouter:
 
         result = list()
 
-        for interface in self._monitor_main["NETWORK"]:
+        for interface in self._monitor_main[KEY_NETWORK]:
             result.append(interface)
 
         if (not "USB" in result
