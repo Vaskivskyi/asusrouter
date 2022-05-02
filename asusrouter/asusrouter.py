@@ -72,9 +72,7 @@ class AsusRouter:
         self._device_boottime : datetime | None = None
 
         self._monitor_main : Monitor = Monitor()
-        self._monitor_nvram : dict[str, Any] | None = None
-        self._monitor_nvram_time : datetime | None = None
-        self._monitor_nvram_running : bool = False
+        self._monitor_nvram : Monitor = Monitor()
         self._monitor_misc : dict[str, Any] | None = None
         self._monitor_misc_time : datetime | None = None
         self._monitor_misc_running : bool = False
@@ -282,13 +280,13 @@ class AsusRouter:
     async def async_monitor_nvram(self, groups : list[str] | str | None = None) -> None:
         """Get the NVRAM values for the specified group list"""
 
-        while self._monitor_nvram_running:
+        while self._monitor_nvram.active:
             await asyncio.sleep(DEFAULT_SLEEP_TIME)
             return
 
-        self._monitor_nvram_running = True
+        self._monitor_nvram.start()
 
-        monitor_nvram = {}
+        monitor_nvram = Monitor()
 
         # If none groups were sent, will return all the known NVRAM values
         if groups is None:
@@ -310,20 +308,12 @@ class AsusRouter:
         message = await self.async_compile_nvram(requests)
         result = await self.async_hook(message)
 
-        now = datetime.utcnow()
+        monitor_nvram.reset()
 
         for item in result:
             monitor_nvram[item] = result[item]
-
-        if self._monitor_nvram is None:
-            self._monitor_nvram = dict()
-
-        for group in monitor_nvram:
-            for element in monitor_nvram:
-                self._monitor_nvram[element] = monitor_nvram[element]
-
-        self._monitor_nvram_time = now
-        self._monitor_nvram_running = False
+        
+        self._monitor_nvram = monitor_nvram
 
         return
 
