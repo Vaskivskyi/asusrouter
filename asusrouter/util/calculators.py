@@ -25,6 +25,17 @@ def usage(current_used : (int | float), current_total : (int | float), previous_
 
     if current_total == previous_total:
         raise ZeroDivisionError()
+    
+    used = current_used - previous_used
+    total = current_total - previous_total
+
+    if used < 0:
+        raise ValueError("Usage cannot be negative, used = {}".format(used))
+    if total < 0:
+        raise ValueError("Usage cannot be negative, total = {}".format(total))
+
+    if used > total:
+        raise ValueError("Usage cannot be above 100%, used = {}, total = {}".format(used, total))
 
     return round(
         CONST_PERCENTS * (current_used - previous_used) / (current_total - previous_total)
