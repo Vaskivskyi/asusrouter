@@ -8,8 +8,20 @@ from datetime import datetime
 from typing import Any
 
 from asusrouter import AsusRouterError, Connection, helpers
-from .const import(
+from asusrouter.util import calculators, parsers
+from asusrouter.const import(
+    AR_KEY_CPU,
+    AR_KEY_NETWORK,
+    AR_KEY_RAM,
     AR_PATH,
+    DATA_ADD_SPEED,
+    DATA_TOTAL,
+    DATA_TRAFFIC,
+    DATA_USAGE,
+    DATA_USED,
+    KEY_CPU,
+    KEY_NETWORK,
+    KEY_RAM,
     DEFAULT_ACTION_MODE,
     DEFAULT_CACHE_TIME,
     DEFAULT_SLEEP_TIME,
@@ -194,114 +206,77 @@ class AsusRouter:
         ## Not yet known what exactly is type of data. But this is the correct way to calculate usage from it
 
         # Keep safe
-        if "cpu_usage" in data:
+        if AR_KEY_CPU in data:
+
+            raw_cpu = data[AR_KEY_CPU]
+
             # Check which cores CPU has or find it out and save for later
             if self._device_cpu_cores is None:
-                cpu_cores = []
-                for i in range(1,8):
-                    if "cpu{}_total".format(i) in data["cpu_usage"]:
-                        cpu_cores.append(i)
-                    else:
-                        break
-                self._device_cpu_cores = cpu_cores
+                self._device_cpu_cores = parsers.cpu_cores(raw = raw_cpu)
 
-            # Create CPU dict in monitor_main and populate its total for the whole CPU data
-            monitor_main["CPU"] = dict()
-            monitor_main["CPU"]["total"] = dict()
-            monitor_main["CPU"]["total"]["total"] = 0
-            monitor_main["CPU"]["total"]["used"] = 0
-            # Store CPU data per core. "cpu{X}_total" stays "total", "cpu{X}_usage" becomes "used". This is done to free up "usage" for the actual usage in percents
-            for core in self._device_cpu_cores:
-                monitor_main["CPU"][core] = dict()
-                if "cpu{}_total".format(core) in data["cpu_usage"]:
-                    monitor_main["CPU"][core]["total"] = int(data["cpu_usage"]["cpu{}_total".format(core)])
-                    monitor_main["CPU"]["total"]["total"] += monitor_main["CPU"][core]["total"]
-                if "cpu{}_usage".format(core) in data["cpu_usage"]:
-                    monitor_main["CPU"][core]["used"] = int(data["cpu_usage"]["cpu{}_usage".format(core)])
-                    monitor_main["CPU"]["total"]["used"] += monitor_main["CPU"][core]["used"]
+            # Traffic data from the device
+            monitor_main[KEY_CPU] = parsers.cpu_usage(raw = raw_cpu, cores = self._device_cpu_cores)
+
             # Calculate actual usage in percents and save it. Only if there was old data for CPU
             if (self._monitor_main is not None
-                and "CPU" in self._monitor_main
+                and KEY_CPU in self._monitor_main
             ):
-                for item in monitor_main["CPU"]:
-                    monitor_main["CPU"][item]["usage"] = round(100 * (monitor_main["CPU"][item]["used"] - self._monitor_main["CPU"][item]["used"]) / (monitor_main["CPU"][item]["total"] - self._monitor_main["CPU"][item]["total"]), 2)
+                for item in monitor_main[KEY_CPU]:
+                    if item in self._monitor_main[KEY_CPU]:
+                        monitor_main[KEY_CPU][item] = calculators.usage_in_dict(after = monitor_main[KEY_CPU][item], before = self._monitor_main[KEY_CPU][item])
+
         # Keep last data
         elif (self._monitor_main is not None
-            and "CPU" in self._monitor_main
+            and KEY_CPU in self._monitor_main
         ):
-            monitor_main["CPU"] = self._monitor_main["CPU"]
+            monitor_main[KEY_CPU] = self._monitor_main[KEY_CPU]
 
 
         ### RAM ###
         ## Data is in KiB. To get MB as they are shown in the device Web-GUI, should be devided by 1024 (yes, those will be MiB)
 
-        if "memory_usage" in data:
+        if AR_KEY_RAM in data:
             # Populate RAM with known values
-            monitor_main["RAM"] = dict()
-            if "mem_total" in data["memory_usage"]:
-                monitor_main["RAM"]["total"] = int(data["memory_usage"]["mem_total"])
-            if "mem_free" in data["memory_usage"]:
-                monitor_main["RAM"]["free"] = int(data["memory_usage"]["mem_free"])
-            if "mem_used" in data["memory_usage"]:
-                monitor_main["RAM"]["used"] = int(data["memory_usage"]["mem_used"])
+            monitor_main[KEY_RAM] = parsers.ram_usage(raw = data[AR_KEY_RAM])
 
             # Calculate usage in percents
-            if "used" in monitor_main["RAM"] and "total" in monitor_main["RAM"]:
-                monitor_main["RAM"]["usage"] = round(100 * monitor_main["RAM"]["used"] / monitor_main["RAM"]["total"], 2)
+            if (DATA_USED in monitor_main[KEY_RAM]
+                and DATA_TOTAL in monitor_main[KEY_RAM]
+            ):
+                monitor_main[KEY_RAM] = calculators.usage_in_dict(after = monitor_main[KEY_RAM])
         # Keep last data
         elif (self._monitor_main is not None
-            and "RAM" in self._monitor_main
+            and KEY_RAM in self._monitor_main
         ):
-            monitor_main["RAM"] = self._monitor_main["RAM"]
+            monitor_main[KEY_RAM] = self._monitor_main[KEY_RAM]
 
 
         ### NETWORK ###
         ## Data in Bytes for traffic and bits/s for speeds
 
-        if "netdev" in data:
+        if AR_KEY_NETWORK in data:
             # Calculate RX and TX from the HEX values. If there is no current value, but there was one before, get it from storage. Traffic resets only on device reboot or when above the limit. Device disconnect / reconnect does NOT reset it
-            monitor_main["NETWORK"] = dict()
-            for el in TRAFFIC_GROUPS:
-                for nd in NETWORK_DATA:
-                    if "{}_{}".format(el, nd) in data["netdev"]:
-                        if not TRAFFIC_GROUPS[el] in monitor_main["NETWORK"]:
-                            monitor_main["NETWORK"][TRAFFIC_GROUPS[el]] = dict()
-                        monitor_main["NETWORK"][TRAFFIC_GROUPS[el]][nd] = int(data["netdev"]["{}_{}".format(el, nd)], base = 16)
-                    elif (self._monitor_main is not None
-                        and "NETWORK" in self._monitor_main
-                        and el in self._monitor_main["NETWORK"]
-                        and self._monitor_main["NETWORK"][TRAFFIC_GROUPS[el]][nd] is not None
-                    ):
-                        monitor_main["NETWORK"][TRAFFIC_GROUPS[el]][nd] = self._monitor_main["NETWORK"][TRAFFIC_GROUPS[el]][nd]
+            monitor_main[KEY_NETWORK] = parsers.network_usage(raw = data[AR_KEY_NETWORK])
 
             if (self._monitor_main is not None
-                and "NETWORK" in self._monitor_main
+                and KEY_NETWORK in self._monitor_main
             ):
                 # Calculate speeds
-                for el in monitor_main["NETWORK"]:
-                    for nd in NETWORK_DATA:
-                        if el in self._monitor_main["NETWORK"]:
-                            traffic_diff = monitor_main["NETWORK"][el][nd] - self._monitor_main["NETWORK"][el][nd]
-                            # Handle overflow in the traffic stats, so there will not be a negative speed once per 0xFFFFFFFF + 1 bytes of data
-                            if (traffic_diff < 0):
-                                traffic_diff += 4294967296
-                            monitor_main["NETWORK"][el]["{}_speed".format(nd)] = traffic_diff * 8 / (now - self._monitor_main_time).total_seconds()
-                        else:
-                            monitor_main["NETWORK"][el]["{}_speed".format(nd)] = 0
+                time_delta = (now - self._monitor_main_time).total_seconds()
+                monitor_main[KEY_NETWORK] = parsers.network_speed(after = monitor_main[KEY_NETWORK], before = self._monitor_main[KEY_NETWORK], time_delta = time_delta)
 
                 # For devices not reporting INTERNET, only BRIDGE values
                 for group in TRAFFIC_GROUPS_REPLACE:
-                    if not group in monitor_main["NETWORK"]:
-                        monitor_main["NETWORK"][group] = monitor_main["NETWORK"][TRAFFIC_GROUPS_REPLACE[group]]
+                    if not group in monitor_main[KEY_NETWORK]:
+                        monitor_main[KEY_NETWORK][group] = monitor_main[KEY_NETWORK][TRAFFIC_GROUPS_REPLACE[group]]
 
         # Keep last data
         elif (self._monitor_main is not None
-            and "NETWORK" in self._monitor_main
+            and KEY_NETWORK in self._monitor_main
         ):
-            monitor_main["NETWORK"] = self._monitor_main["NETWORK"]
+            monitor_main[KEY_NETWORK] = self._monitor_main[KEY_NETWORK]
 
         self._monitor_main = monitor_main
-
         self._monitor_main_time = now
         self._monitor_main_running = False
 
