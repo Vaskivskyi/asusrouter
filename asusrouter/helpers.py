@@ -9,7 +9,7 @@ import xmltodict
 from datetime import datetime, timedelta
 from typing import Any
 
-from .const import (
+from asusrouter.const import (
     DEVICEMAP_BY_INDEX,
     DEVICEMAP_CLEAR,
     DEVICEMAP_GENERAL,

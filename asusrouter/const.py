@@ -1,5 +1,7 @@
 """AsusRouter constants module"""
 
+from asusrouter.dataclass import Key
+
 #Use the last known working Android app user-agent, so the device will reply
 #AR_USER_AGENT = "asusrouter-Android-DUTUtil-1.0.0.255"
 #Or use just "asusrouter--DUTUtil-", since only this is needed for a correct replies
@@ -14,6 +16,68 @@ AR_API = [
     "Httpd_AiHome_Ver",
 ]
 
+CONST_BITSINBYTE = 8
+CONST_PERCENTS = 100
+CONST_ZERO = 0.0
+
+DATA_FREE = "free"
+DATA_TOTAL = "total"
+DATA_USAGE = "usage"
+DATA_USED = "used"
+DATA_RX = "rx"
+DATA_TX = "tx"
+DATA_TRAFFIC = [DATA_RX, DATA_TX]
+
+DATA_BY_CORE = "core_{}"
+DATA_ADD_SPEED = "{}_speed"
+
+DEFAULT_TRAFFIC_OVERFLOW = 4294967296
+
+KEY_CPU = "CPU"
+KEY_RAM = "RAM"
+KEY_NETWORK = "NETWORK"
+
+AR_KEY_CPU = "cpu_usage"
+AR_KEY_CPU_ITEM = "cpu{}_{}"
+AR_KEY_CPU_LIST = [Key(DATA_TOTAL), Key(DATA_USAGE, DATA_USED)]
+AR_KEY_NETWORK = "netdev"
+AR_KEY_NETWORK_ITEM = "{}_{}"
+AR_KEY_RAM = "memory_usage"
+AR_KEY_RAM_ITEM = "mem_{}"
+AR_KEY_RAM_LIST = [DATA_FREE, DATA_TOTAL, DATA_USED]
+
+AR_KEY_NETWORK_GROUPS = {
+    "INTERNET" : "WAN",     # main WAN
+    "INTERNET1" : "USB",    # secondary WAN (USB modem / phone)
+    "WIRED" : "WIRED",      # wired connections
+    "BRIDGE" : "BRIDGE",    # bridge
+    "WIRELESS0" : "WLAN0",  # 2.4 GHz WiFi
+    "WIRELESS1" : "WLAN1",  # 5 GHz WiFi
+    "WIRELESS2" : "WLAN2",  # 5 GHz WiFi #2 (<-- check)
+}
+
+AR_DEFAULT_CORES_RANGE = range(1, 8)
+AR_DEFAULT_CORES = [ 1 ]
+
+DEFAULT_USAGE_DIGITS = 2
+
+
+TRAFFIC_GROUPS = {
+    "INTERNET" : "WAN",    # main WAN
+    "INTERNET1" : "USB",   # secondary WAN (USB modem / phone)
+    "WIRED" : "WIRED",      # wired connections
+    "BRIDGE" : "BRIDGE",    # bridge
+    "WIRELESS0" : "WLAN0",  # 2.4 GHz WiFi
+    "WIRELESS1" : "WLAN1",  # 5 GHz WiFi
+    "WIRELESS2" : "WLAN2",  # 5 GHz WiFi #2 (<-- check)
+}
+
+NETWORK_DATA = [
+    "rx",
+    "tx",
+]
+
+
 DEFAULT_CACHE_TIME = 5
 
 DEFAULT_SLEEP_RECONNECT = 5
@@ -24,8 +88,6 @@ DEFAULT_PORT = {
     "http": 80,
     "https": 8443,
 }
-
-AR_DATA_CPU = "cpu_usage"
 
 AR_KEY = {
     "cpu_usage": "cpu_usage",
@@ -119,21 +181,6 @@ MONITOR_MAIN = {
 TRAFFIC_GROUPS_REPLACE = {
     "WAN" : "BRIDGE",
 }
-
-TRAFFIC_GROUPS = {
-    "INTERNET" : "WAN",    # main WAN
-    "INTERNET1" : "USB",   # secondary WAN (USB modem / phone)
-    "WIRED" : "WIRED",      # wired connections
-    "BRIDGE" : "BRIDGE",    # bridge
-    "WIRELESS0" : "WLAN0",  # 2.4 GHz WiFi
-    "WIRELESS1" : "WLAN1",  # 5 GHz WiFi
-    "WIRELESS2" : "WLAN2",  # 5 GHz WiFi #2 (<-- check)
-}
-
-NETWORK_DATA = [
-    "rx",
-    "tx",
-]
 
 PORT_TYPE = [
     "LAN",

@@ -8,8 +8,22 @@ from datetime import datetime
 from typing import Any
 
 from asusrouter import AsusRouterError, Connection, helpers
-from .const import(
+from asusrouter.dataclass import Monitor
+from asusrouter.util import calculators, parsers
+from asusrouter.const import(
+    AR_KEY_CPU,
+    AR_KEY_NETWORK,
+    AR_KEY_RAM,
     AR_PATH,
+    DATA_ADD_SPEED,
+    DATA_BY_CORE,
+    DATA_TOTAL,
+    DATA_TRAFFIC,
+    DATA_USAGE,
+    DATA_USED,
+    KEY_CPU,
+    KEY_NETWORK,
+    KEY_RAM,
     DEFAULT_ACTION_MODE,
     DEFAULT_CACHE_TIME,
     DEFAULT_SLEEP_TIME,
@@ -58,19 +72,10 @@ class AsusRouter:
         self._device_ports : dict[str, str] | None = None
         self._device_boottime : datetime | None = None
 
-
-        self._monitor_main : dict[str, Any] | None = None
-        self._monitor_main_time : datetime | None = None
-        self._monitor_main_running : bool = False
-        self._monitor_nvram : dict[str, Any] | None = None
-        self._monitor_nvram_time : datetime | None = None
-        self._monitor_nvram_running : bool = False
-        self._monitor_misc : dict[str, Any] | None = None
-        self._monitor_misc_time : datetime | None = None
-        self._monitor_misc_running : bool = False
-        self._monitor_devices : dict[str, Any] | None = None
-        self._monitor_devices_time : datetime | None = None
-        self._monitor_devices_running : bool = False
+        self._monitor_main : Monitor = Monitor()
+        self._monitor_nvram : Monitor = Monitor()
+        self._monitor_misc : Monitor = Monitor()
+        self._monitor_devices : Monitor = Monitor()
 
 
         """Connect"""
@@ -177,133 +182,95 @@ class AsusRouter:
     async def async_monitor_main(self) -> None:
         """Get all the main monitor values. Non-cacheable"""
 
-        while self._monitor_main_running:
+        while self._monitor_main.active:
             await asyncio.sleep(DEFAULT_SLEEP_TIME)
             return
 
-        self._monitor_main_running = True
+        self._monitor_main.start()
 
-        monitor_main = dict()
+        monitor_main = Monitor()
 
         hook = await self.async_compile_hook(MONITOR_MAIN)
         data = await self.async_hook(hook)
 
-        now = datetime.utcnow()
+        monitor_main.reset()
 
         ### CPU ###
         ## Not yet known what exactly is type of data. But this is the correct way to calculate usage from it
 
         # Keep safe
-        if "cpu_usage" in data:
+        if AR_KEY_CPU in data:
+
+            raw_cpu = data[AR_KEY_CPU]
+
             # Check which cores CPU has or find it out and save for later
             if self._device_cpu_cores is None:
-                cpu_cores = []
-                for i in range(1,8):
-                    if "cpu{}_total".format(i) in data["cpu_usage"]:
-                        cpu_cores.append(i)
-                    else:
-                        break
-                self._device_cpu_cores = cpu_cores
+                self._device_cpu_cores = parsers.cpu_cores(raw = raw_cpu)
 
-            # Create CPU dict in monitor_main and populate its total for the whole CPU data
-            monitor_main["CPU"] = dict()
-            monitor_main["CPU"]["total"] = dict()
-            monitor_main["CPU"]["total"]["total"] = 0
-            monitor_main["CPU"]["total"]["used"] = 0
-            # Store CPU data per core. "cpu{X}_total" stays "total", "cpu{X}_usage" becomes "used". This is done to free up "usage" for the actual usage in percents
-            for core in self._device_cpu_cores:
-                monitor_main["CPU"][core] = dict()
-                if "cpu{}_total".format(core) in data["cpu_usage"]:
-                    monitor_main["CPU"][core]["total"] = int(data["cpu_usage"]["cpu{}_total".format(core)])
-                    monitor_main["CPU"]["total"]["total"] += monitor_main["CPU"][core]["total"]
-                if "cpu{}_usage".format(core) in data["cpu_usage"]:
-                    monitor_main["CPU"][core]["used"] = int(data["cpu_usage"]["cpu{}_usage".format(core)])
-                    monitor_main["CPU"]["total"]["used"] += monitor_main["CPU"][core]["used"]
+            # Traffic data from the device
+            monitor_main[KEY_CPU] = parsers.cpu_usage(raw = raw_cpu, cores = self._device_cpu_cores)
+
             # Calculate actual usage in percents and save it. Only if there was old data for CPU
-            if (self._monitor_main is not None
-                and "CPU" in self._monitor_main
+            if (self._monitor_main.ready
+                and KEY_CPU in self._monitor_main
             ):
-                for item in monitor_main["CPU"]:
-                    monitor_main["CPU"][item]["usage"] = round(100 * (monitor_main["CPU"][item]["used"] - self._monitor_main["CPU"][item]["used"]) / (monitor_main["CPU"][item]["total"] - self._monitor_main["CPU"][item]["total"]), 2)
+                for item in monitor_main[KEY_CPU]:
+                    if item in self._monitor_main[KEY_CPU]:
+                        monitor_main[KEY_CPU][item] = calculators.usage_in_dict(after = monitor_main[KEY_CPU][item], before = self._monitor_main[KEY_CPU][item])
+
         # Keep last data
-        elif (self._monitor_main is not None
-            and "CPU" in self._monitor_main
+        elif (self._monitor_main.ready
+            and KEY_CPU in self._monitor_main
         ):
-            monitor_main["CPU"] = self._monitor_main["CPU"]
+            monitor_main[KEY_CPU] = self._monitor_main[KEY_CPU]
 
 
         ### RAM ###
         ## Data is in KiB. To get MB as they are shown in the device Web-GUI, should be devided by 1024 (yes, those will be MiB)
 
-        if "memory_usage" in data:
+        if AR_KEY_RAM in data:
             # Populate RAM with known values
-            monitor_main["RAM"] = dict()
-            if "mem_total" in data["memory_usage"]:
-                monitor_main["RAM"]["total"] = int(data["memory_usage"]["mem_total"])
-            if "mem_free" in data["memory_usage"]:
-                monitor_main["RAM"]["free"] = int(data["memory_usage"]["mem_free"])
-            if "mem_used" in data["memory_usage"]:
-                monitor_main["RAM"]["used"] = int(data["memory_usage"]["mem_used"])
+            monitor_main[KEY_RAM] = parsers.ram_usage(raw = data[AR_KEY_RAM])
 
             # Calculate usage in percents
-            if "used" in monitor_main["RAM"] and "total" in monitor_main["RAM"]:
-                monitor_main["RAM"]["usage"] = round(100 * monitor_main["RAM"]["used"] / monitor_main["RAM"]["total"], 2)
+            if (DATA_USED in monitor_main[KEY_RAM]
+                and DATA_TOTAL in monitor_main[KEY_RAM]
+            ):
+                monitor_main[KEY_RAM] = calculators.usage_in_dict(after = monitor_main[KEY_RAM])
         # Keep last data
-        elif (self._monitor_main is not None
-            and "RAM" in self._monitor_main
+        elif (self._monitor_main.ready
+            and KEY_RAM in self._monitor_main
         ):
-            monitor_main["RAM"] = self._monitor_main["RAM"]
+            monitor_main[KEY_RAM] = self._monitor_main[KEY_RAM]
 
 
         ### NETWORK ###
         ## Data in Bytes for traffic and bits/s for speeds
 
-        if "netdev" in data:
+        if AR_KEY_NETWORK in data:
             # Calculate RX and TX from the HEX values. If there is no current value, but there was one before, get it from storage. Traffic resets only on device reboot or when above the limit. Device disconnect / reconnect does NOT reset it
-            monitor_main["NETWORK"] = dict()
-            for el in TRAFFIC_GROUPS:
-                for nd in NETWORK_DATA:
-                    if "{}_{}".format(el, nd) in data["netdev"]:
-                        if not TRAFFIC_GROUPS[el] in monitor_main["NETWORK"]:
-                            monitor_main["NETWORK"][TRAFFIC_GROUPS[el]] = dict()
-                        monitor_main["NETWORK"][TRAFFIC_GROUPS[el]][nd] = int(data["netdev"]["{}_{}".format(el, nd)], base = 16)
-                    elif (self._monitor_main is not None
-                        and "NETWORK" in self._monitor_main
-                        and el in self._monitor_main["NETWORK"]
-                        and self._monitor_main["NETWORK"][TRAFFIC_GROUPS[el]][nd] is not None
-                    ):
-                        monitor_main["NETWORK"][TRAFFIC_GROUPS[el]][nd] = self._monitor_main["NETWORK"][TRAFFIC_GROUPS[el]][nd]
+            monitor_main[KEY_NETWORK] = parsers.network_usage(raw = data[AR_KEY_NETWORK])
 
-            if (self._monitor_main is not None
-                and "NETWORK" in self._monitor_main
+            if (self._monitor_main.ready
+                and KEY_NETWORK in self._monitor_main
             ):
                 # Calculate speeds
-                for el in monitor_main["NETWORK"]:
-                    for nd in NETWORK_DATA:
-                        if el in self._monitor_main["NETWORK"]:
-                            traffic_diff = monitor_main["NETWORK"][el][nd] - self._monitor_main["NETWORK"][el][nd]
-                            # Handle overflow in the traffic stats, so there will not be a negative speed once per 0xFFFFFFFF + 1 bytes of data
-                            if (traffic_diff < 0):
-                                traffic_diff += 4294967296
-                            monitor_main["NETWORK"][el]["{}_speed".format(nd)] = traffic_diff * 8 / (now - self._monitor_main_time).total_seconds()
-                        else:
-                            monitor_main["NETWORK"][el]["{}_speed".format(nd)] = 0
+                time_delta = (monitor_main.time - self._monitor_main.time).total_seconds()
+                monitor_main[KEY_NETWORK] = parsers.network_speed(after = monitor_main[KEY_NETWORK], before = self._monitor_main[KEY_NETWORK], time_delta = time_delta)
 
                 # For devices not reporting INTERNET, only BRIDGE values
                 for group in TRAFFIC_GROUPS_REPLACE:
-                    if not group in monitor_main["NETWORK"]:
-                        monitor_main["NETWORK"][group] = monitor_main["NETWORK"][TRAFFIC_GROUPS_REPLACE[group]]
+                    if not group in monitor_main[KEY_NETWORK]:
+                        monitor_main[KEY_NETWORK][group] = monitor_main[KEY_NETWORK][TRAFFIC_GROUPS_REPLACE[group]]
 
         # Keep last data
-        elif (self._monitor_main is not None
-            and "NETWORK" in self._monitor_main
+        elif (self._monitor_main.ready
+            and KEY_NETWORK in self._monitor_main
         ):
-            monitor_main["NETWORK"] = self._monitor_main["NETWORK"]
+            monitor_main[KEY_NETWORK] = self._monitor_main[KEY_NETWORK]
 
+        monitor_main.finish()
         self._monitor_main = monitor_main
-
-        self._monitor_main_time = now
-        self._monitor_main_running = False
 
         return
 
@@ -311,13 +278,13 @@ class AsusRouter:
     async def async_monitor_nvram(self, groups : list[str] | str | None = None) -> None:
         """Get the NVRAM values for the specified group list"""
 
-        while self._monitor_nvram_running:
+        while self._monitor_nvram.active:
             await asyncio.sleep(DEFAULT_SLEEP_TIME)
             return
 
-        self._monitor_nvram_running = True
+        self._monitor_nvram.start()
 
-        monitor_nvram = {}
+        monitor_nvram = Monitor()
 
         # If none groups were sent, will return all the known NVRAM values
         if groups is None:
@@ -339,20 +306,13 @@ class AsusRouter:
         message = await self.async_compile_nvram(requests)
         result = await self.async_hook(message)
 
-        now = datetime.utcnow()
+        monitor_nvram.reset()
 
         for item in result:
             monitor_nvram[item] = result[item]
-
-        if self._monitor_nvram is None:
-            self._monitor_nvram = dict()
-
-        for group in monitor_nvram:
-            for element in monitor_nvram:
-                self._monitor_nvram[element] = monitor_nvram[element]
-
-        self._monitor_nvram_time = now
-        self._monitor_nvram_running = False
+        
+        monitor_nvram.finish()
+        self._monitor_nvram = monitor_nvram
 
         return
 
@@ -360,23 +320,20 @@ class AsusRouter:
     async def async_monitor_misc(self) -> None:
         """Get all other useful values"""
 
-        while self._monitor_misc_running:
+        while self._monitor_misc.active:
             await asyncio.sleep(DEFAULT_SLEEP_TIME)
             return
 
-        self._monitor_misc_running = True
+        self._monitor_misc.start()
 
-        if self._monitor_misc is None:
-            self._monitor_misc = dict()
-
-        monitor_misc = {}
+        monitor_misc = Monitor()
 
         ### PORTS
 
         # Receive ports number and status (disconnected, 100 Mb/s, 1 Gb/s)
         data = await self.async_load(page = AR_PATH["ports"])
 
-        now = datetime.utcnow()
+        monitor_misc.reset()
 
         if "portSpeed" in data:
             monitor_misc["PORTS"] = dict()
@@ -422,10 +379,8 @@ class AsusRouter:
                 if self._device_boottime != monitor_misc["BOOTTIME"]["ISO"]:
                     self._device_boottime = monitor_misc["BOOTTIME"]["ISO"]
 
+        monitor_misc.finish()
         self._monitor_misc = monitor_misc
-
-        self._monitor_misc_time = now
-        self._monitor_misc_running = False
 
         return
 
@@ -433,20 +388,17 @@ class AsusRouter:
     async def async_monitor_devices(self) -> None:
         """Monitor connected devices"""
 
-        while self._monitor_devices_running:
+        while self._monitor_devices.active:
             await asyncio.sleep(DEFAULT_SLEEP_TIME)
             return
 
-        self._monitor_devices_running = True
+        self._monitor_devices.start()
 
-        if self._monitor_devices is None:
-            self._monitor_devices = dict()
-
-        monitor_devices = {}
+        monitor_devices = Monitor()
 
         data = await self.async_hook("get_clientlist()")
 
-        now = datetime.utcnow()
+        monitor_devices.reset()
 
         if "get_clientlist" in data:
             data = data["get_clientlist"]
@@ -540,13 +492,11 @@ class AsusRouter:
                         and data[mac]["vendor"] != ""):
                         monitor_devices[mac]["vendor"] = data[mac]["vendor"]
         # Keep last data
-        elif self._monitor_devices is not None:
+        elif self._monitor_devices.ready:
             monitor_devices = self._monitor_devices
 
+        monitor_devices.finish()
         self._monitor_devices = monitor_devices
-
-        self._monitor_devices_time = now
-        self._monitor_devices_running = False
 
         return
 
@@ -567,9 +517,8 @@ class AsusRouter:
         """Actions to be taken on reboot"""
 
         # Clear main monitor to prevent calculation errors in it
-        if self._monitor_main:
-            self._monitor_main = None
-            self._monitor_main_time = None
+        if self._monitor_main.ready:
+            self._monitor_main = Monitor()
 
         return
 
@@ -577,9 +526,9 @@ class AsusRouter:
     async def async_find_interfaces(self, use_cache : bool = True) -> None:
         """Find available interfaces/type dictionary"""
         
-        if self._monitor_nvram is None:
-            await self.async_monitor_nvram()
-        elif use_cache == False:
+        if (not self._monitor_nvram.ready
+            or use_cache == False
+        ):
             await self.async_monitor_nvram()
 
         ports = {}
@@ -593,6 +542,8 @@ class AsusRouter:
                     ports[item] = INTERFACE_TYPE[if_type]
 
         self._device_ports = ports
+
+        return
 
 
     async def async_initialize(self):
@@ -611,10 +562,11 @@ class AsusRouter:
         """Return device list"""
         
         now = datetime.utcnow()
-        if (self._monitor_devices is None
-            or self._monitor_devices_time is None
+        if (not self._monitor_devices.ready
             or use_cache == False
-            or (use_cache == True and self._monitor_devices_time and self._cache_time < (now - self._monitor_devices_time).total_seconds())
+            or (use_cache == True
+                and self._cache_time < (now - self._monitor_devices.time).total_seconds()
+            )
         ):
             await self.async_monitor_devices()
 
@@ -625,27 +577,22 @@ class AsusRouter:
         """Return CPU usage"""
         
         now = datetime.utcnow()
-        if (self._monitor_main is None
-            or self._monitor_main_time is None
+        if (not self._monitor_main.ready
             or use_cache == False
-            or (use_cache == True and self._monitor_main_time and self._cache_time < (now - self._monitor_main_time).total_seconds())
+            or (use_cache == True
+                and self._cache_time < (now - self._monitor_main.time).total_seconds()
+            )
             or self._device_cpu_cores is None
         ):
             await self.async_monitor_main()
 
-        result = {}
-
-        # Check if CPU was monitored
-        if (self._monitor_main is None
-            or not "CPU" in self._monitor_main
-        ):
-            return result
+        result = dict()
 
         for core in self._device_cpu_cores:
-            if "usage" in self._monitor_main["CPU"][core]:
-                result["core_{}".format(core)] = self._monitor_main["CPU"][core]["usage"]
-        if "usage" in self._monitor_main["CPU"]["total"]:
-            result["total"] = self._monitor_main["CPU"]["total"]["usage"]
+            if DATA_USAGE in self._monitor_main[KEY_CPU][core]:
+                result[DATA_BY_CORE.format(core)] = self._monitor_main[KEY_CPU][core][DATA_USAGE]
+        if DATA_USAGE in self._monitor_main[KEY_CPU][DATA_TOTAL]:
+            result[DATA_TOTAL] = self._monitor_main[KEY_CPU][DATA_TOTAL][DATA_USAGE]
 
         return result
 
@@ -657,9 +604,9 @@ class AsusRouter:
             await self.async_monitor_main()
 
         result = list()
-        result.append("total")
-        for el in self._device_cpu_cores:
-            result.append("core_{}".format(el))
+        result.append(DATA_TOTAL)
+        for core in self._device_cpu_cores:
+            result.append(DATA_BY_CORE.format(core))
 
         return result
 
@@ -668,35 +615,36 @@ class AsusRouter:
         """Return RAM and its usage"""
         
         now = datetime.utcnow()
-        if (self._monitor_main is None
+        if (not self._monitor_main.ready
             or use_cache == False
             or (use_cache == True
-            and self._monitor_main_time
-            and self._cache_time < (now - self._monitor_main_time).total_seconds())
+                and self._cache_time < (now - self._monitor_main.time).total_seconds()
+            )
         ):
             await self.async_monitor_main()
 
-        result = {}
+        result = dict()
 
         # Check if RAM was monitored
-        if (self._monitor_main is None
-            or not "RAM" in self._monitor_main
+        if (not self._monitor_main.ready
+            or not KEY_RAM in self._monitor_main
         ):
             return result
 
-        for value in self._monitor_main["RAM"]:
-            result[value] = self._monitor_main["RAM"][value]
+        for value in self._monitor_main[KEY_RAM]:
+            result[value] = self._monitor_main[KEY_RAM][value]
+
         return result
 
 
     async def async_get_ram_labels(self) -> list[str]:
         """Return list of CPU cores"""
 
-        if self._device_cpu_cores is None:
+        if not self._monitor_main.ready:
             await self.async_monitor_main()
 
         result = list()
-        for value in self._monitor_main["RAM"]:
+        for value in self._monitor_main[KEY_RAM]:
             result.append(value)
 
         return result
@@ -706,25 +654,25 @@ class AsusRouter:
         """Return traffic and speed for all interfaces"""
         
         now = datetime.utcnow()
-        if (self._monitor_main is None
+        if (not self._monitor_main.ready
             or use_cache == False
             or (use_cache == True
-            and self._monitor_main_time
-            and self._cache_time < (now - self._monitor_main_time).total_seconds())
+                and self._cache_time < (now - self._monitor_main.time).total_seconds()
+            )
         ):
             await self.async_monitor_main()
 
-        result = {}
+        result = dict()
 
         # Check if network was monitored
-        if (self._monitor_main is None
-            or not "NETWORK" in self._monitor_main
+        if (not self._monitor_main.ready
+            or not KEY_NETWORK in self._monitor_main
         ):
             return result
 
-        for interface in self._monitor_main["NETWORK"]:
-            for value in self._monitor_main["NETWORK"][interface]:
-                result["{}_{}".format(interface, value)] = self._monitor_main["NETWORK"][interface][value]
+        for interface in self._monitor_main[KEY_NETWORK]:
+            for value in self._monitor_main[KEY_NETWORK][interface]:
+                result["{}_{}".format(interface, value)] = self._monitor_main[KEY_NETWORK][interface][value]
 
         return result
 
@@ -732,14 +680,14 @@ class AsusRouter:
     async def async_get_network_labels(self) -> list[str]:
         """Return list of network interfaces"""
 
-        if self._monitor_main is None:
+        if not self._monitor_main.ready:
             await self.async_monitor_main()
-        if self._monitor_nvram is None:
+        if not self._monitor_nvram.ready:
             await self.async_monitor_nvram()
 
         result = list()
 
-        for interface in self._monitor_main["NETWORK"]:
+        for interface in self._monitor_main[KEY_NETWORK]:
             result.append(interface)
 
         if (not "USB" in result
@@ -754,11 +702,11 @@ class AsusRouter:
         """Return WAN/LAN ports status"""
         
         now = datetime.utcnow()
-        if (self._monitor_misc is None
+        if (not self._monitor_misc.ready
             or use_cache == False
             or (use_cache == True
-            and self._monitor_misc_time
-            and self._cache_time < (now - self._monitor_misc_time).total_seconds())
+                and self._cache_time < (now - self._monitor_misc.time).total_seconds()
+            )
         ):
             await self.async_monitor_misc()
 
