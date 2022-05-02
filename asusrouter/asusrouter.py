@@ -8,6 +8,7 @@ from datetime import datetime
 from typing import Any
 
 from asusrouter import AsusRouterError, Connection, helpers
+from asusrouter.dataclass import Monitor
 from asusrouter.util import calculators, parsers
 from asusrouter.const import(
     AR_KEY_CPU,
@@ -70,10 +71,7 @@ class AsusRouter:
         self._device_ports : dict[str, str] | None = None
         self._device_boottime : datetime | None = None
 
-
-        self._monitor_main : dict[str, Any] | None = None
-        self._monitor_main_time : datetime | None = None
-        self._monitor_main_running : bool = False
+        self._monitor_main : Monitor = Monitor()
         self._monitor_nvram : dict[str, Any] | None = None
         self._monitor_nvram_time : datetime | None = None
         self._monitor_nvram_running : bool = False
@@ -189,18 +187,18 @@ class AsusRouter:
     async def async_monitor_main(self) -> None:
         """Get all the main monitor values. Non-cacheable"""
 
-        while self._monitor_main_running:
+        while self._monitor_main.active:
             await asyncio.sleep(DEFAULT_SLEEP_TIME)
             return
 
-        self._monitor_main_running = True
+        self._monitor_main.start()
 
-        monitor_main = dict()
+        monitor_main = Monitor()
 
         hook = await self.async_compile_hook(MONITOR_MAIN)
         data = await self.async_hook(hook)
 
-        now = datetime.utcnow()
+        monitor_main.reset()
 
         ### CPU ###
         ## Not yet known what exactly is type of data. But this is the correct way to calculate usage from it
@@ -262,7 +260,7 @@ class AsusRouter:
                 and KEY_NETWORK in self._monitor_main
             ):
                 # Calculate speeds
-                time_delta = (now - self._monitor_main_time).total_seconds()
+                time_delta = (monitor_main.time - self._monitor_main.time).total_seconds()
                 monitor_main[KEY_NETWORK] = parsers.network_speed(after = monitor_main[KEY_NETWORK], before = self._monitor_main[KEY_NETWORK], time_delta = time_delta)
 
                 # For devices not reporting INTERNET, only BRIDGE values
@@ -277,8 +275,6 @@ class AsusRouter:
             monitor_main[KEY_NETWORK] = self._monitor_main[KEY_NETWORK]
 
         self._monitor_main = monitor_main
-        self._monitor_main_time = now
-        self._monitor_main_running = False
 
         return
 
@@ -601,9 +597,9 @@ class AsusRouter:
         
         now = datetime.utcnow()
         if (self._monitor_main is None
-            or self._monitor_main_time is None
+            or self._monitor_main.time is None
             or use_cache == False
-            or (use_cache == True and self._monitor_main_time and self._cache_time < (now - self._monitor_main_time).total_seconds())
+            or (use_cache == True and self._monitor_main.time and self._cache_time < (now - self._monitor_main.time).total_seconds())
             or self._device_cpu_cores is None
         ):
             await self.async_monitor_main()

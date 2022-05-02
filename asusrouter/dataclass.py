@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any
+from datetime import datetime
 
 @dataclass
 class Key:
@@ -29,5 +31,51 @@ class Key:
             return self.value_to_use
 
         return self.value
+
+
+@dataclass
+class Monitor(dict):
+    """
+    Monitor class
+
+    In general this is dict with additions
+
+    Properties
+    -----
+    `active`: bool flag of monitor being active
+
+    `time`: datetime object showing the last time monitor was updated
+
+    Methods
+    -----
+    `start`: set `active` to True
+
+    `stop`: set `active` to False
+
+    `reset`: set `time` to utcnow()
+    """
+
+    active : bool = False
+    time : datetime | None = None
+
+    def __init_subclass__(cls) -> None:
+        return super().__init_subclass__()
+
+    def start(self) -> None:
+        """Set to active"""
+
+        self.active = True
+
+
+    def stop(self) -> None:
+        """Set to not-active"""
+
+        self.active = False
+
+
+    def reset(self) -> None:
+        """Reset time to utcnow"""
+
+        self.time = datetime.utcnow()
 
 
