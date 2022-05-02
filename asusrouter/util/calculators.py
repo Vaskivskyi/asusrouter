@@ -20,6 +20,12 @@ DEFAULT_USAGE_NONE = {
 def usage(current_used : (int | float), current_total : (int | float), previous_used : (int | float) = CONST_ZERO, previous_total : (int | float) = CONST_ZERO) -> float:
     """Calculate usage in percents"""
 
+    if current_used == previous_used:
+        return CONST_ZERO
+
+    if current_total == previous_total:
+        raise ZeroDivisionError()
+
     return round(
         CONST_PERCENTS * (current_used - previous_used) / (current_total - previous_total)
     , DEFAULT_USAGE_DIGITS)
