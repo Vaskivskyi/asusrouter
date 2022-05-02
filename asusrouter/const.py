@@ -1,6 +1,7 @@
 """AsusRouter constants module"""
 
 from asusrouter.dataclass import Key
+from asusrouter.util.converters import bool_from_any, int_from_str, float_from_str, time_long
 
 #Use the last known working Android app user-agent, so the device will reply
 #AR_USER_AGENT = "asusrouter-Android-DUTUtil-1.0.0.255"
@@ -37,14 +38,37 @@ KEY_CPU = "CPU"
 KEY_RAM = "RAM"
 KEY_NETWORK = "NETWORK"
 
+AR_DEVICE_ATTRIBUTES_LIST : tuple[Key, ...] = (
+    Key("mac", "name"),
+    Key("name", "name"),
+    Key("nickName", "name"),
+    Key("mac"),
+    Key("ip"),
+    Key("ipMethod", "ip_method"),
+    Key("internetState", "internet_state", method = bool_from_any),
+    Key("internetMode", "internet_mode", method = bool_from_any),
+    Key("isWL", "connection_type", method = int_from_str),
+    Key("isOnline", "online", method = bool_from_any),
+    Key("rssi", method = int_from_str),
+    Key("wlConnectTime", "connected_since", time_long),
+    Key("curRx", "rx_speed", method = float_from_str),
+    Key("curTx", "tx_speed", method = float_from_str),
+)
 AR_KEY_CPU = "cpu_usage"
 AR_KEY_CPU_ITEM = "cpu{}_{}"
-AR_KEY_CPU_LIST = [Key(DATA_TOTAL), Key(DATA_USAGE, DATA_USED)]
+AR_KEY_CPU_LIST : tuple[Key, ...] = (
+    Key(DATA_TOTAL),
+    Key(DATA_USAGE, DATA_USED)
+)
+AR_KEY_DEVICE_NAME_LIST = ["nickName", "name", "mac"]
+AR_KEY_DEVICES = "get_clientlist"
+AR_KEY_DEVICES_LIST = "maclist"
 AR_KEY_NETWORK = "netdev"
 AR_KEY_NETWORK_ITEM = "{}_{}"
 AR_KEY_RAM = "memory_usage"
 AR_KEY_RAM_ITEM = "mem_{}"
 AR_KEY_RAM_LIST = [DATA_FREE, DATA_TOTAL, DATA_USED]
+
 
 AR_KEY_NETWORK_GROUPS = {
     "INTERNET" : "WAN",     # main WAN
@@ -55,6 +79,8 @@ AR_KEY_NETWORK_GROUPS = {
     "WIRELESS1" : "WLAN1",  # 5 GHz WiFi
     "WIRELESS2" : "WLAN2",  # 5 GHz WiFi #2 (<-- check)
 }
+
+AR_HOOK_DEVICES = "{}()".format(AR_KEY_DEVICES)
 
 AR_DEFAULT_CORES_RANGE = range(1, 8)
 AR_DEFAULT_CORES = [ 1 ]
