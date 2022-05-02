@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Any
 
 from asusrouter import helpers, AsusRouterError, AsusRouterConnectionError, AsusRouterConnectionTimeoutError, AsusRouterServerDisconnectedError, AsusRouterLoginError, AsusRouterLoginBlockError, AsusRouterResponseError, AsusRouterValueError, AsusRouterSSLError
-from .const import(
+from asusrouter.const import(
     AR_API,
     AR_ERROR,
     AR_USER_AGENT,

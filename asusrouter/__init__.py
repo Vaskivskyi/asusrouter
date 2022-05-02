@@ -1,6 +1,6 @@
 """Library init"""
 
-from .error import(
+from .error import (
     AsusRouterError,
     AsusRouterConnectionError,
     AsusRouterConnectionTimeoutError,
@@ -16,10 +16,10 @@ from . import(
     helpers as helpers,
 )
 
-from .connection import(
+from .connection import (
     Connection as Connection,
 )
 
-from .asusrouter import(
+from .asusrouter import (
     AsusRouter as AsusRouter,
 )
