@@ -11,7 +11,10 @@ from asusrouter import AsusRouterError, Connection, helpers
 from asusrouter.dataclass import Monitor
 from asusrouter.util import calculators, parsers
 from asusrouter.const import(
+    AR_HOOK_DEVICES,
     AR_KEY_CPU,
+    AR_KEY_DEVICES,
+    AR_KEY_DEVICES_LIST,
     AR_KEY_NETWORK,
     AR_KEY_RAM,
     AR_PATH,
@@ -393,105 +396,17 @@ class AsusRouter:
             return
 
         self._monitor_devices.start()
-
         monitor_devices = Monitor()
 
-        data = await self.async_hook("get_clientlist()")
-
+        data = await self.async_hook(AR_HOOK_DEVICES)
         monitor_devices.reset()
 
-        if "get_clientlist" in data:
-            data = data["get_clientlist"]
-
-            if "maclist" in data:
-                for mac in data["maclist"]:
-                    monitor_devices[mac] = dict()
-
-                    # Name the device properly. If user has selected nickName manualy - it is the expected value. Else - name device set by itself or MAC address
-                    if (data[mac]["nickName"] is not None
-                        and data[mac]["nickName"] != ""):
-                        monitor_devices[mac]["name"] = data[mac]["nickName"]
-                    elif (data[mac]["name"] is not None
-                        and data[mac]["name"] != ""):
-                        monitor_devices[mac]["name"] = data[mac]["name"]
-                    else:
-                        monitor_devices[mac]["name"] = mac
-
-                    # Let's still include MAC address
-                    monitor_devices[mac]["MAC"] = mac
-
-                    # IP address
-                    monitor_devices[mac]["IP"] = data[mac]["ip"]
-                    # IP type
-                    monitor_devices[mac]["IPMethod"] = data[mac]["ipMethod"]
-
-                    # Internet info map
-                    monitor_devices[mac]["internet"] = dict()
-                    # Connected
-                    if data[mac]["internetState"] is not None:
-                        monitor_devices[mac]["internet"]["online"] = data[mac]["internetState"]
-                    # Mode
-                    if data[mac]["internetMode"] is not None:
-                        monitor_devices[mac]["internet"]["mode"] = data[mac]["internetMode"]
-
-                    # Connection info map
-                    monitor_devices[mac]["connection"] = dict()
-
-                    # Type of the connection
-                    if data[mac]["isWL"] is not None:
-                        value = int(data[mac]["isWL"])
-                        if value == 1:
-                            monitor_devices[mac]["connection"]["type"] = "WLAN0"
-                        elif value == 2:
-                            monitor_devices[mac]["connection"]["type"] = "WLAN1"
-                        else:
-                            monitor_devices[mac]["connection"]["type"] = "LAN"
-                    # Connected
-                    if data[mac]["isOnline"] is not None:
-                        monitor_devices[mac]["connection"]["online"] = data[mac]["isOnline"]
-                        
-                    # Only for wireless
-                    if monitor_devices[mac]["connection"]["type"] != "LAN":
-                        # RSSI
-                        if data[mac]["rssi"] is not None:
-                            monitor_devices[mac]["connection"]["RSSI"] = data[mac]["rssi"]
-                        # Connection time
-                        if data[mac]["wlConnectTime"] is not None:
-                            value = await helpers.async_transform_connection_time(data[mac]["wlConnectTime"])
-                            timestamp = value.timestamp()
-                            iso = value.isoformat()
-
-                            if (mac in self._monitor_devices
-                                and "connection" in self._monitor_devices[mac]
-                                and "timestamp" in self._monitor_devices[mac]["connection"]
-                            ):
-                                _timestamp = self._monitor_devices[mac]["connection"]["timestamp"]
-                                if (timestamp == _timestamp
-                                    or abs(timestamp - _timestamp) < 2
-                                ):
-                                    monitor_devices[mac]["connection"]["timestamp"] = self._monitor_devices[mac]["connection"]["timestamp"]
-                                    monitor_devices[mac]["connection"]["ISO"] = self._monitor_devices[mac]["connection"]["ISO"]
-                                else:
-                                    monitor_devices[mac]["connection"]["timestamp"] = timestamp
-                                    monitor_devices[mac]["connection"]["ISO"] = iso
-                            else:
-                                monitor_devices[mac]["connection"]["timestamp"] = timestamp
-                                monitor_devices[mac]["connection"]["ISO"] = iso
-
-                        # Connection speeds
-                        monitor_devices[mac]["connection"]["speed"] = dict()
-                        raw = data[mac]["curRx"].strip()
-                        value = float(raw) if raw != "" else 0.0
-                        monitor_devices[mac]["connection"]["speed"]["Rx"] = value
-                        raw = data[mac]["curTx"].strip()
-                        value = float(raw) if raw != "" else 0.0
-                        monitor_devices[mac]["connection"]["speed"]["Tx"] = value
-                    
-                    # Other info
-                    if (data[mac]["vendor"] is not None
-                        and data[mac]["vendor"] != ""):
-                        monitor_devices[mac]["vendor"] = data[mac]["vendor"]
-        # Keep last data
+        # Search for new data
+        if AR_KEY_DEVICES in data:
+            data = data[AR_KEY_DEVICES]
+            for mac in data:
+                monitor_devices[mac] = parsers.connected_device(data[mac])
+        # Or keep last data
         elif self._monitor_devices.ready:
             monitor_devices = self._monitor_devices
 
@@ -570,7 +485,7 @@ class AsusRouter:
         ):
             await self.async_monitor_devices()
 
-        return self._monitor_devices
+        return self._monitor_devices.copy()
 
 
     async def async_get_cpu(self, use_cache : bool = True) -> dict[str, float]:

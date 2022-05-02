@@ -6,22 +6,51 @@ from dataclasses import dataclass
 from typing import Any
 from datetime import datetime
 
+from asusrouter.util.converters import none_or_str
+
+
 @dataclass
+class ConnectedDevice:
+    """Connected device class"""
+
+    name : str | None = None
+    mac : str | None = None
+
+    ip : str | None = None
+    ip_method : str | None = None
+
+    internet_state : bool | None = None
+    internet_mode : bool | None = None
+
+    connection_type : str | None = None
+
+    # WLAN only values
+    online : bool | None = None
+    rssi : int | None = None
+    connected_since : int | None = None
+    rx_speed : float | None = None
+    tx_speed : float | None = None
+
+
+@dataclass()
 class Key:
     """Key class"""
 
     value : str
     value_to_use : str = ""
+    method : function = none_or_str
+
 
     def __str__(self) -> str:
-        """Return only `value` as default string"""
+        """Return only `value` as default"""
 
         return self.value
+
 
     def get(self) -> str:
         """
         Get the proper value
-        
+
         Returns
         -----
         `value_to_use` if exists, `value` otherwise
@@ -63,8 +92,6 @@ class Monitor(dict):
     time : datetime | None = None
     ready : bool = False
 
-    def __init_subclass__(cls) -> None:
-        return super().__init_subclass__()
 
     def start(self) -> None:
         """Set to active"""

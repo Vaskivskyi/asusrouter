@@ -5,13 +5,15 @@ from __future__ import annotations
 from typing import Any
 
 from asusrouter.util import calculators
-from asusrouter.dataclass import Key
+from asusrouter.dataclass import Key, ConnectedDevice
 
 from asusrouter.const import(
     AR_DEFAULT_CORES,
     AR_DEFAULT_CORES_RANGE,
+    AR_DEVICE_ATTRIBUTES_LIST,
     AR_KEY_CPU_ITEM,
     AR_KEY_CPU_LIST,
+    AR_KEY_DEVICE_NAME_LIST,
     AR_KEY_RAM_ITEM,
     AR_KEY_RAM_LIST,
     AR_KEY_NETWORK_ITEM,
@@ -130,4 +132,17 @@ def network_speed(after : dict[str, dict[str, float]], before : dict[str, dict[s
 
     return after
 
+
+def connected_device(raw : dict[str, Any]) -> ConnectedDevice:
+    """Device parser"""
+
+    values = dict()
+
+    for key in AR_DEVICE_ATTRIBUTES_LIST:
+        if key.value in raw:
+            values[key.get()] = key.method(raw[key.value]) if key.method else raw[key.value]
+
+    device = ConnectedDevice(**values)
+
+    return device
 
