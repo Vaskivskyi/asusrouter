@@ -50,9 +50,9 @@ def bool_from_any(raw : str | int | float) -> bool:
             return True
 
     elif _type == str:
-        if raw.lower() in BOOL_FALSE:
+        if raw.lower().strip() in BOOL_FALSE:
             return False
-        elif raw.lower() in BOOL_TRUE:
+        elif raw.lower().strip() in BOOL_TRUE:
             return True
         else:
             raise ValueError("Wrong value {} of type {}".format(raw, type(raw)))
@@ -67,13 +67,13 @@ def none_or_str(raw : str) -> str | None:
     if type(raw) != str:
         raise ValueError("Wrong value {} of type {}".format(raw, type(raw)))
 
-    if raw == str():
+    if raw.strip() == str():
         return None
 
-    return raw
+    return raw.strip()
 
 
-def time_long(raw : str) -> datetime:
+def timedelta_long(raw : str) -> timedelta:
     """Transform connection timedelta of the device to a proper datetime object when the device was connected"""
 
     if type(raw) != str:
@@ -82,11 +82,15 @@ def time_long(raw : str) -> datetime:
     raw = raw.strip()
 
     if raw == str():
-        return datetime.utcnow()
+        return timedelta()
 
     part = raw.split(":")
-    delta = timedelta(hours = int(part[0]), minutes = int(part[1]), seconds = int(part[2]))
+    return timedelta(hours = int(part[0]), minutes = int(part[1]), seconds = int(part[2]))
 
-    return datetime.utcnow().replace(microsecond=0) - delta
+
+def time_from_delta(raw : str) -> datetime:
+    """Transform time delta to the date in the past"""
+
+    return datetime.utcnow().replace(microsecond=0) - timedelta_long(raw)
 
 
