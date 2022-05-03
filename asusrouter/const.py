@@ -1,7 +1,7 @@
 """AsusRouter constants module"""
 
 from asusrouter.dataclass import Key
-from asusrouter.util.converters import bool_from_any, int_from_str, float_from_str, time_long
+from asusrouter.util.converters import bool_from_any, int_from_str, float_from_str, time_from_delta
 
 #Use the last known working Android app user-agent, so the device will reply
 #AR_USER_AGENT = "asusrouter-Android-DUTUtil-1.0.0.255"
@@ -50,7 +50,7 @@ AR_DEVICE_ATTRIBUTES_LIST : tuple[Key, ...] = (
     Key("isWL", "connection_type", method = int_from_str),
     Key("isOnline", "online", method = bool_from_any),
     Key("rssi", method = int_from_str),
-    Key("wlConnectTime", "connected_since", time_long),
+    Key("wlConnectTime", "connected_since", time_from_delta),
     Key("curRx", "rx_speed", method = float_from_str),
     Key("curTx", "tx_speed", method = float_from_str),
 )
