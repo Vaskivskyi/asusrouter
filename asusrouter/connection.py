@@ -12,7 +12,8 @@ import asyncio
 from pathlib import Path
 from typing import Any
 
-from asusrouter import helpers, AsusRouterError, AsusRouterConnectionError, AsusRouterConnectionTimeoutError, AsusRouterServerDisconnectedError, AsusRouterLoginError, AsusRouterLoginBlockError, AsusRouterResponseError, AsusRouterValueError, AsusRouterSSLError
+from asusrouter import AsusRouterError, AsusRouterConnectionError, AsusRouterConnectionTimeoutError, AsusRouterServerDisconnectedError, AsusRouterLoginError, AsusRouterLoginBlockError, AsusRouterResponseError, AsusRouterValueError, AsusRouterSSLError
+from asusrouter.util import parsers
 from asusrouter.const import(
     AR_API,
     AR_ERROR,
@@ -172,10 +173,10 @@ class Connection:
         except json.JSONDecodeError:
             if ".xml" in endpoint:
                 _LOGGER.debug(MSG_INFO["xml"])
-                json_body = await helpers.async_convert_xml(text = string_body)
+                json_body = parsers.xml(text = string_body)
             else:
                 _LOGGER.debug(MSG_INFO["json_fix"])
-                json_body = await helpers.async_convert_to_json(text = string_body)
+                json_body = parsers.json(text = string_body)
             return json_body
 
         # Raise only if mute_flag not set
