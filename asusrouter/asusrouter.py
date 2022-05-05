@@ -346,7 +346,7 @@ class AsusRouter:
                 for type in PORT_TYPE:
                     if type in value:
                         number = value.replace(type, "")
-                        monitor_misc["PORTS"][type][number] = await helpers.async_transform_port_speed(data["portSpeed"][value])
+                        monitor_misc["PORTS"][type][number] = parsers.port_speed(data["portSpeed"][value])
                         break
 
         # Load devicemap
@@ -356,7 +356,7 @@ class AsusRouter:
         # Calculate boot time. Since precision is 1 second, could be that old and new are 1 sec different. In this case, we should not change the boot time, but keep the previous value to avoid regular changes
         if "SYS" in monitor_misc["DEVICEMAP"]:
             if "uptimeStr" in monitor_misc["DEVICEMAP"]["SYS"]:
-                time = await helpers.async_parse_uptime(monitor_misc["DEVICEMAP"]["SYS"]["uptimeStr"])
+                time = parsers.uptime(monitor_misc["DEVICEMAP"]["SYS"]["uptimeStr"])
                 timestamp = int(time.timestamp())
                 if not "BOOTTIME" in monitor_misc:
                     monitor_misc["BOOTTIME"] = dict()
