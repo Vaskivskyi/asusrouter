@@ -1,7 +1,7 @@
 """Test AsusRouter converters module"""
 
 import pytest
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from asusrouter.util import converters
 
@@ -84,5 +84,19 @@ def test_none_or_str():
         converters.none_or_str(5356295141)
     with pytest.raises(ValueError):
         converters.none_or_str(datetime.utcnow())
+
+
+def test_timedelta_long():
+    """Test long timedelta convertion"""
+
+    # Normal strings
+    assert converters.timedelta_long("32:15:07") == timedelta(hours = 32, minutes = 15, seconds = 7)
+    # Strings with spaces
+    assert converters.timedelta_long("  6:32:13 ") == timedelta(hours = 6, minutes = 32, seconds = 13)
+
+    # Not strings
+    with pytest.raises(ValueError):
+        converters.timedelta_long(10)
+
 
 
