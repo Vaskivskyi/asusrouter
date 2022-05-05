@@ -61,6 +61,7 @@ AR_KEY_CPU_LIST : tuple[Key, ...] = (
     Key(DATA_USAGE, DATA_USED)
 )
 AR_KEY_DEVICE_NAME_LIST = ["nickName", "name", "mac"]
+AR_KEY_DEVICEMAP = "devicemap"
 AR_KEY_DEVICES = "get_clientlist"
 AR_KEY_DEVICES_LIST = "maclist"
 AR_KEY_NETWORK = "netdev"
@@ -80,6 +81,7 @@ AR_KEY_NETWORK_GROUPS = {
     "WIRELESS2" : "WLAN2",  # 5 GHz WiFi #2 (<-- check)
 }
 
+AR_HOOK_TEMPLATE = "{}({});"
 AR_HOOK_DEVICES = "{}()".format(AR_KEY_DEVICES)
 
 AR_DEFAULT_CORES_RANGE = range(1, 8)
@@ -134,6 +136,8 @@ AR_ERROR = {
     "try_again": 7,
     "logout": 8,
 }
+
+ERROR_VALUE_TYPE = "Wrong value {} of type {}"
 
 MSG_ERROR = {
     "authorisation": "Session is not authorised",
