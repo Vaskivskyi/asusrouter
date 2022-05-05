@@ -18,6 +18,7 @@ from asusrouter.const import(
     AR_KEY_CPU_ITEM,
     AR_KEY_CPU_LIST,
     AR_KEY_DEVICE_NAME_LIST,
+    AR_KEY_DEVICEMAP,
     AR_KEY_RAM_ITEM,
     AR_KEY_RAM_LIST,
     AR_KEY_NETWORK_ITEM,
@@ -181,7 +182,7 @@ def port_speed(value : str | None = None) -> int | None:
     elif value == "G":
         return 1000
     else:
-        raise NotImplementedError("Conversion for this value is not implemented")
+        raise NotImplementedError("Conversion for this value {} is not implemented".format(value))
 
 
 def devicemap(devicemap : dict[str, Any]) -> dict[str, Any]:
@@ -248,8 +249,8 @@ def xml(text : str) -> dict[str, Any]:
     """XML parser"""
 
     data = xmltodict.parse(text)
-    if 'devicemap' in data:
-        return devicemap(data['devicemap'])
+    if AR_KEY_DEVICEMAP in data:
+        return devicemap(data[AR_KEY_DEVICEMAP])
 
     return {}
 

@@ -6,13 +6,14 @@ from datetime import datetime, timedelta
 
 BOOL_FALSE : tuple[str, ...] = ("false", "block", "0", )
 BOOL_TRUE : tuple[str, ...] = ("true", "allow", "1", )
+ERROR_VALUE_TYPE = "Wrong value {} of type {}"
 
 
 def int_from_str(raw : str, base : int = 10) -> int:
     """Convert string to integer"""
 
     if type(raw) != str:
-        raise ValueError("Wrong value {} of type {}".format(raw, type(raw)))
+        raise ValueError(ERROR_VALUE_TYPE.format(raw, type(raw)))
 
     raw = raw.strip()
 
@@ -26,7 +27,7 @@ def float_from_str(raw : str) -> float:
     """Convert striing to float"""
 
     if type(raw) != str:
-        raise ValueError("Wrong value {} of type {}".format(raw, type(raw)))
+        raise ValueError(ERROR_VALUE_TYPE.format(raw, type(raw)))
         
     raw = raw.strip()
 
@@ -55,17 +56,17 @@ def bool_from_any(raw : str | int | float) -> bool:
         elif raw.lower().strip() in BOOL_TRUE:
             return True
         else:
-            raise ValueError("Wrong value {} of type {}".format(raw, type(raw)))
+            raise ValueError(ERROR_VALUE_TYPE.format(raw, type(raw)))
 
     else:
-        raise ValueError("Wrong value {} of type {}".format(raw, type(raw)))
+        raise ValueError(ERROR_VALUE_TYPE.format(raw, type(raw)))
 
 
 def none_or_str(raw : str) -> str | None:
     """Returns either string or None if string is empty"""
 
     if type(raw) != str:
-        raise ValueError("Wrong value {} of type {}".format(raw, type(raw)))
+        raise ValueError(ERROR_VALUE_TYPE.format(raw, type(raw)))
 
     if raw.strip() == str():
         return None
@@ -77,7 +78,7 @@ def timedelta_long(raw : str) -> timedelta:
     """Transform connection timedelta of the device to a proper datetime object when the device was connected"""
 
     if type(raw) != str:
-        raise ValueError("Wrong value {} of type {}".format(raw, type(raw)))
+        raise ValueError(ERROR_VALUE_TYPE.format(raw, type(raw)))
         
     raw = raw.strip()
 
@@ -85,7 +86,7 @@ def timedelta_long(raw : str) -> timedelta:
         return timedelta()
 
     part = raw.split(":")
-    return timedelta(hours = int(part[0]), minutes = int(part[1]), seconds = int(part[2]))
+    return timedelta(hours = int(part[-3]), minutes = int(part[-2]), seconds = int(part[-1]))
 
 
 def time_from_delta(raw : str) -> datetime:
