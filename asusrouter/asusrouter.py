@@ -9,7 +9,7 @@ from typing import Any
 
 from asusrouter import AsusRouterError, Connection, helpers
 from asusrouter.dataclass import Monitor
-from asusrouter.util import calculators, parsers
+from asusrouter.util import calculators, parsers, compilers
 from asusrouter.const import(
     AR_HOOK_DEVICES,
     AR_KEY_CPU,
@@ -83,32 +83,6 @@ class AsusRouter:
 
         """Connect"""
         self.connection = Connection(host = host, username = username, password = password, port = port, use_ssl = use_ssl, cert_check = cert_check, cert_path = cert_path)
-
-
-    async def async_compile_hook(self, commands : dict[str, str] | None = None) -> str:
-        """"Compile all the components of the hook message into one string"""
-
-        data = ""
-        if commands is not None:
-            for item in commands:
-                data += "{}({});".format(item, commands[item])
-
-        return data
-
-
-    async def async_compile_nvram(self, values : list[str] | str | None = None) -> str:
-        """Compile all the values to ask from nvram"""
-
-        if values is None:
-            return ""
-
-        if type(values) == str:
-            return "{}({});".format(KEY_NVRAM_GET, values)
-
-        request = ""
-        for value in values:
-            request += "{}({});".format(KEY_NVRAM_GET, value)
-        return request
 
 
     async def async_hook(self, hook : str | None = None) -> dict[str, Any]:
@@ -193,7 +167,7 @@ class AsusRouter:
 
         monitor_main = Monitor()
 
-        hook = await self.async_compile_hook(MONITOR_MAIN)
+        hook = compilers.hook(MONITOR_MAIN)
         data = await self.async_hook(hook)
 
         monitor_main.reset()
@@ -306,7 +280,7 @@ class AsusRouter:
             else:
                 _LOGGER.warning("There is no {} in known NVRAM groups".format(group))
 
-        message = await self.async_compile_nvram(requests)
+        message = compilers.nvram(requests)
         result = await self.async_hook(message)
 
         monitor_nvram.reset()
