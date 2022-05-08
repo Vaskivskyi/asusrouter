@@ -137,12 +137,14 @@ AR_ERROR = {
     "logout": 8,
 }
 
+ERROR_VALUE = "Wrong value: {} with original exception: {}"
 ERROR_VALUE_TYPE = "Wrong value {} of type {}"
+ERROR_ZERO_DIVISION = "Zero division allert: {}"
 
 MSG_ERROR = {
     "authorisation": "Session is not authorised",
     "cert_missing": "CA certificate is missing",
-    "command": "Error sending a command",
+    "command": "Error sending a command {} to {}",
     "credentials": "Wrong credentials",
     "disabled_control": "Device is connected in no-control mode. Sending commands is blocked",
     "disabled_monitor": "Device is connected in no-monitor mode. Sending hooks is blocked",
@@ -158,10 +160,13 @@ MSG_WARNING = {
 
 MSG_INFO = {
     "error_flag": "Error flag found",
+    "empty_reqquest": "This request is empty",
     "json_fix": "Trying to fix JSON response",
-    "reconnect": "Reconnecting",
+    "monitor_sleep": "Monitor {} is already active -> sleep",
+    "monitor_wakeup": "Monitor {} woke up -> closing",
     "no_cert": "No certificate provided. Using trusted",
     "no_cert_check": "Certificate won't be checked",
+    "reconnect": "Reconnecting",
     "xml": "Data is in XML",
 }
 
@@ -169,7 +174,7 @@ MSG_SUCCESS = {
     "cert_found": "CA certificate found",
     "command": "Command was sent successfully",
     "hook": "Hook was sent successfully",
-    "load": "Page was loaded successfully",
+    "load": "Page {} was loaded successfully",
     "login": "Login successful",
     "logout": "Logout successful",
 }
