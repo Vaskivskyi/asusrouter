@@ -11,7 +11,7 @@ from typing import Any
 
 from asusrouter import Connection
 from asusrouter.dataclass import Monitor
-from asusrouter.util import calculators, parsers, compilers
+from asusrouter.util import calculators, parsers, compilers, converters
 from asusrouter.const import(
     AR_HOOK_DEVICES,
     AR_KEY_CPU,
@@ -377,7 +377,8 @@ class AsusRouter:
         if AR_KEY_DEVICES in data:
             data = data[AR_KEY_DEVICES]
             for mac in data:
-                monitor_devices[mac] = parsers.connected_device(data[mac])
+                if converters.is_mac_address(mac):
+                    monitor_devices[mac] = parsers.connected_device(data[mac])
         # Or keep last data
         elif self._monitor_devices.ready:
             monitor_devices = self._monitor_devices
