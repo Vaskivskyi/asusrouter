@@ -12,10 +12,6 @@ from .error import (
     AsusRouterSSLError,
 )
 
-from . import(
-    helpers as helpers,
-)
-
 from .connection import (
     Connection as Connection,
 )
