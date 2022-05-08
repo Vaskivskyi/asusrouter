@@ -240,11 +240,6 @@ class AsusRouter:
                 time_delta = (monitor_main.time - self._monitor_main.time).total_seconds()
                 monitor_main[KEY_NETWORK] = parsers.network_speed(after = monitor_main[KEY_NETWORK], before = self._monitor_main[KEY_NETWORK], time_delta = time_delta)
 
-                # For devices not reporting INTERNET, only BRIDGE values
-                for group in TRAFFIC_GROUPS_REPLACE:
-                    if not group in monitor_main[KEY_NETWORK]:
-                        monitor_main[KEY_NETWORK][group] = monitor_main[KEY_NETWORK][TRAFFIC_GROUPS_REPLACE[group]]
-
         # Keep last data
         elif (self._monitor_main.ready
             and KEY_NETWORK in self._monitor_main
