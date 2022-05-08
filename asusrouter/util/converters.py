@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from asusrouter.const import ERROR_VALUE
 
 from asusrouter.error import AsusRouterValueError
 
 BOOL_FALSE : tuple[str, ...] = ("false", "block", "0", )
 BOOL_TRUE : tuple[str, ...] = ("true", "allow", "1", )
+ERROR_VALUE = "Wrong value: {} with original exception: {}"
 ERROR_VALUE_TYPE = "Wrong value {} of type {}"
 
 
