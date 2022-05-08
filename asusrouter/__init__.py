@@ -19,3 +19,9 @@ from .connection import (
 from .asusrouter import (
     AsusRouter as AsusRouter,
 )
+
+from .dataclass import (
+    ConnectedDevice,
+    Key,
+    Monitor,
+)
