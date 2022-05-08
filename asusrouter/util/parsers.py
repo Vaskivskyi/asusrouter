@@ -7,6 +7,7 @@ import re
 from datetime import datetime, timedelta
 import xmltodict
 import logging
+import json
 
 from asusrouter.util import calculators
 from asusrouter.dataclass import ConnectedDevice
@@ -226,7 +227,7 @@ def devicemap(devicemap : dict[str, Any]) -> dict[str, Any]:
     return data
 
 
-def json(text : str) -> dict[str, Any]:
+def pseudo_json(text : str) -> dict[str, Any]:
     """JSON parser"""
 
     data = re.sub('\s+','',text)

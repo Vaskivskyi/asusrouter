@@ -176,7 +176,7 @@ class Connection:
                 json_body = parsers.xml(text = string_body)
             else:
                 _LOGGER.debug(MSG_INFO["json_fix"])
-                json_body = parsers.json(text = string_body)
+                json_body = parsers.pseudo_json(text = string_body)
             return json_body
 
         # Raise only if mute_flag not set
