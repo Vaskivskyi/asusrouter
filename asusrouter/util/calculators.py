@@ -9,7 +9,6 @@ from asusrouter.const import(
     DATA_USAGE,
     DATA_USED,
     DEFAULT_USAGE_DIGITS,
-    ERROR_VALUE,
     ERROR_ZERO_DIVISION,
 )
 from asusrouter.error import AsusRouterValueError

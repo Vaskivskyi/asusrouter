@@ -17,7 +17,6 @@ from asusrouter.const import(
     AR_DEVICE_ATTRIBUTES_LIST,
     AR_KEY_CPU_ITEM,
     AR_KEY_CPU_LIST,
-    AR_KEY_DEVICE_NAME_LIST,
     AR_KEY_DEVICEMAP,
     AR_KEY_RAM_ITEM,
     AR_KEY_RAM_LIST,
@@ -32,7 +31,6 @@ from asusrouter.const import(
     DEVICEMAP_BY_INDEX,
     DEVICEMAP_CLEAR,
     DEVICEMAP_GENERAL,
-    DEVICEMAP_SPECIAL,
     ERROR_VALUE,
     KEY_NETWORK,
 )
