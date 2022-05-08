@@ -9,21 +9,18 @@ import asyncio
 from datetime import datetime
 from typing import Any
 
-from asusrouter import AsusRouterError, Connection, helpers
+from asusrouter import Connection
 from asusrouter.dataclass import Monitor
 from asusrouter.util import calculators, parsers, compilers
 from asusrouter.const import(
     AR_HOOK_DEVICES,
     AR_KEY_CPU,
     AR_KEY_DEVICES,
-    AR_KEY_DEVICES_LIST,
     AR_KEY_NETWORK,
     AR_KEY_RAM,
     AR_PATH,
-    DATA_ADD_SPEED,
     DATA_BY_CORE,
     DATA_TOTAL,
-    DATA_TRAFFIC,
     DATA_USAGE,
     DATA_USED,
     KEY_CPU,
@@ -35,17 +32,12 @@ from asusrouter.const import(
     INTERFACE_TYPE,
     KEY_ACTION_MODE,
     KEY_HOOK,
-    KEY_NVRAM_GET,
     MONITOR_MAIN,
     MSG_ERROR,
     MSG_INFO,
     MSG_SUCCESS,
-    MSG_WARNING,
-    NETWORK_DATA,
     NVRAM_LIST,
     PORT_TYPE,
-    TRAFFIC_GROUPS,
-    TRAFFIC_GROUPS_REPLACE,
 )
 
 
