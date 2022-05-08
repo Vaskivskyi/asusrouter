@@ -9,7 +9,10 @@ from asusrouter.const import(
     DATA_USAGE,
     DATA_USED,
     DEFAULT_USAGE_DIGITS,
+    ERROR_VALUE,
+    ERROR_ZERO_DIVISION,
 )
+from asusrouter.error import AsusRouterValueError
 
 DEFAULT_USAGE_NONE = {
     DATA_TOTAL: 0,
@@ -24,18 +27,18 @@ def usage(current_used : (int | float), current_total : (int | float), previous_
         return CONST_ZERO
 
     if current_total == previous_total:
-        raise ZeroDivisionError()
-    
+        raise AsusRouterValueError(ERROR_ZERO_DIVISION.format("current_total == previous_total"))
+
     used = current_used - previous_used
     total = current_total - previous_total
 
     if used < 0:
-        raise ValueError("Usage cannot be negative, used = {}".format(used))
+        raise AsusRouterValueError("Usage cannot be negative, used = {}".format(used))
     if total < 0:
-        raise ValueError("Usage cannot be negative, total = {}".format(total))
+        raise AsusRouterValueError("Usage cannot be negative, total = {}".format(total))
 
     if used > total:
-        raise ValueError("Usage cannot be above 100%, used = {}, total = {}".format(used, total))
+        raise AsusRouterValueError("Usage cannot be above 100%, used = {}, total = {}".format(used, total))
 
     return round(
         CONST_PERCENTS * (current_used - previous_used) / (current_total - previous_total)
@@ -56,7 +59,7 @@ def speed(after : (int | float), before : (int | float), time_delta : (int | flo
     if time_delta is None:
         return CONST_ZERO
     elif time_delta == CONST_ZERO:
-        raise ZeroDivisionError("time_delta cannot be zero")
+        raise AsusRouterValueError(ERROR_ZERO_DIVISION.format("time_delta"))
 
     diff = after - before
 

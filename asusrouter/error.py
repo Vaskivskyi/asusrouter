@@ -46,3 +46,7 @@ class AsusRouterValueError(AsusRouterError, ValueError):
     """Invalid value received"""
 
 
+class AsusRouterNotImplementedError(AsusRouterError, NotImplementedError):
+    """Not implemented error"""
+
+

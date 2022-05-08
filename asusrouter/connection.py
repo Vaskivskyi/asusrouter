@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import logging
+_LOGGER = logging.getLogger(__name__)
+
 import aiohttp
 import base64
 import json
@@ -27,8 +29,6 @@ from asusrouter.const import(
     MSG_SUCCESS,
     MSG_WARNING,
 )
-
-_LOGGER = logging.getLogger(__name__)
 
 
 class Connection:
@@ -99,10 +99,10 @@ class Connection:
                         await self.async_connect()
                         return await self.async_run_command(command, endpoint, retry = True)
                     else:
-                        _LOGGER.error(MSG_ERROR["command"])
+                        _LOGGER.error(MSG_ERROR["command"].format(command, endpoint))
                         return {}
             else:
-                _LOGGER.error(MSG_ERROR["command"])
+                _LOGGER.error(MSG_ERROR["command"].format(command, endpoint))
                 return {}
 
 
@@ -148,6 +148,7 @@ class Connection:
                         raise AsusRouterLoginError(MSG_ERROR["credentials"])
                     # Too many attempts
                     elif error_code == AR_ERROR["try_again"]:
+                        _LOGGER.debug(json_body)
                         raise AsusRouterLoginBlockError(MSG_ERROR["try_again"])
                     # Loged out
                     elif error_code == AR_ERROR["logout"]:

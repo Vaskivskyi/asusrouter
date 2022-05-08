@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import logging
+_LOGGER = logging.getLogger(__name__)
+
 import asyncio
 from datetime import datetime
 from typing import Any
@@ -46,7 +48,6 @@ from asusrouter.const import(
     TRAFFIC_GROUPS_REPLACE,
 )
 
-_LOGGER = logging.getLogger(__name__)
 
 class AsusRouter:
     """The interface class"""
@@ -95,6 +96,7 @@ class AsusRouter:
             return result
 
         if hook is None:
+            _LOGGER.debug(MSG_INFO["empty_request"])
             return result
 
         try:
@@ -145,11 +147,12 @@ class AsusRouter:
             return result
 
         if page is None:
+            _LOGGER.debug(MSG_INFO["empty_request"])
             return result
 
         try:
             result = await self.connection.async_run_command(command = "", endpoint = page)
-            _LOGGER.debug(MSG_SUCCESS["load"])
+            _LOGGER.debug(MSG_SUCCESS["load"].format(page))
         except Exception as ex:
             _LOGGER.error(ex)
 
@@ -160,7 +163,9 @@ class AsusRouter:
         """Get all the main monitor values. Non-cacheable"""
 
         while self._monitor_main.active:
+            _LOGGER.debug(MSG_INFO["monitor_sleep"].format("main"))
             await asyncio.sleep(DEFAULT_SLEEP_TIME)
+            _LOGGER.debug(MSG_INFO["monitor_wakeup"].format("main"))
             return
 
         self._monitor_main.start()
@@ -256,7 +261,9 @@ class AsusRouter:
         """Get the NVRAM values for the specified group list"""
 
         while self._monitor_nvram.active:
+            _LOGGER.debug(MSG_INFO["monitor_sleep"].format("nvram"))
             await asyncio.sleep(DEFAULT_SLEEP_TIME)
+            _LOGGER.debug(MSG_INFO["monitor_wakeup"].format("nvram"))
             return
 
         self._monitor_nvram.start()
@@ -298,7 +305,9 @@ class AsusRouter:
         """Get all other useful values"""
 
         while self._monitor_misc.active:
+            _LOGGER.debug(MSG_INFO["monitor_sleep"].format("misc"))
             await asyncio.sleep(DEFAULT_SLEEP_TIME)
+            _LOGGER.debug(MSG_INFO["monitor_wakeup"].format("misc"))
             return
 
         self._monitor_misc.start()
@@ -366,7 +375,9 @@ class AsusRouter:
         """Monitor connected devices"""
 
         while self._monitor_devices.active:
+            _LOGGER.debug(MSG_INFO["monitor_sleep"].format("devices"))
             await asyncio.sleep(DEFAULT_SLEEP_TIME)
+            _LOGGER.debug(MSG_INFO["monitor_wakeup"].format("devices"))
             return
 
         self._monitor_devices.start()

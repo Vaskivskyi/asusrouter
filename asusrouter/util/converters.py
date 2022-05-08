@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
+from asusrouter.const import ERROR_VALUE
+
+from asusrouter.error import AsusRouterValueError
 
 BOOL_FALSE : tuple[str, ...] = ("false", "block", "0", )
 BOOL_TRUE : tuple[str, ...] = ("true", "allow", "1", )
@@ -13,7 +16,7 @@ def int_from_str(raw : str, base : int = 10) -> int:
     """Convert string to integer"""
 
     if type(raw) != str:
-        raise ValueError(ERROR_VALUE_TYPE.format(raw, type(raw)))
+        raise AsusRouterValueError(ERROR_VALUE_TYPE.format(raw, type(raw)))
 
     raw = raw.strip()
 
@@ -27,7 +30,7 @@ def float_from_str(raw : str) -> float:
     """Convert striing to float"""
 
     if type(raw) != str:
-        raise ValueError(ERROR_VALUE_TYPE.format(raw, type(raw)))
+        raise AsusRouterValueError(ERROR_VALUE_TYPE.format(raw, type(raw)))
         
     raw = raw.strip()
 
@@ -56,7 +59,7 @@ def bool_from_any(raw : str | int | float) -> bool:
         elif raw.lower().strip() in BOOL_TRUE:
             return True
         else:
-            raise ValueError(ERROR_VALUE_TYPE.format(raw, type(raw)))
+            raise AsusRouterValueError(ERROR_VALUE_TYPE.format(raw, type(raw)))
 
     else:
         raise ValueError(ERROR_VALUE_TYPE.format(raw, type(raw)))
@@ -66,7 +69,7 @@ def none_or_str(raw : str) -> str | None:
     """Returns either string or None if string is empty"""
 
     if type(raw) != str:
-        raise ValueError(ERROR_VALUE_TYPE.format(raw, type(raw)))
+        raise AsusRouterValueError(ERROR_VALUE_TYPE.format(raw, type(raw)))
 
     if raw.strip() == str():
         return None
@@ -78,7 +81,7 @@ def timedelta_long(raw : str) -> timedelta:
     """Transform connection timedelta of the device to a proper datetime object when the device was connected"""
 
     if type(raw) != str:
-        raise ValueError(ERROR_VALUE_TYPE.format(raw, type(raw)))
+        raise AsusRouterValueError(ERROR_VALUE_TYPE.format(raw, type(raw)))
         
     raw = raw.strip()
 
@@ -86,7 +89,10 @@ def timedelta_long(raw : str) -> timedelta:
         return timedelta()
 
     part = raw.split(":")
-    return timedelta(hours = int(part[-3]), minutes = int(part[-2]), seconds = int(part[-1]))
+    try:
+        return timedelta(hours = int(part[-3]), minutes = int(part[-2]), seconds = int(part[-1]))
+    except ValueError as ex:
+        raise(AsusRouterValueError(ERROR_VALUE.format(raw, str(ex))))
 
 
 def time_from_delta(raw : str) -> datetime:

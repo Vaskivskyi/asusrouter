@@ -2,15 +2,14 @@
 
 from __future__ import annotations
 
+import logging
+_LOGGER = logging.getLogger(__name__)
+
 from typing import Any
 import re
 from datetime import datetime, timedelta
 import xmltodict
-import logging
 import json
-
-from asusrouter.util import calculators
-from asusrouter.dataclass import ConnectedDevice
 
 from asusrouter.const import(
     AR_DEFAULT_CORES,
@@ -34,10 +33,13 @@ from asusrouter.const import(
     DEVICEMAP_CLEAR,
     DEVICEMAP_GENERAL,
     DEVICEMAP_SPECIAL,
+    ERROR_VALUE,
     KEY_NETWORK,
 )
+from asusrouter.dataclass import ConnectedDevice
+from asusrouter.error import AsusRouterNotImplementedError, AsusRouterValueError
+from asusrouter.util import calculators
 
-_LOGGER = logging.getLogger(__name__)
 
 
 def cpu_cores(raw : dict[str, Any] | None = None) -> list[int]:
@@ -75,7 +77,10 @@ def cpu_usage(raw : dict[str, Any], cores : list[int] = AR_DEFAULT_CORES) -> dic
             key = AR_KEY_CPU_ITEM.format(core, item)
             new_key = item.get()
             if key in raw:
-                cpu[core][new_key] = int(raw[key])
+                try:
+                    cpu[core][new_key] = int(raw[key])
+                except ValueError as ex:
+                    raise(AsusRouterValueError(ERROR_VALUE.format(raw[key], str(ex))))
                 # Add this to total as well
                 cpu[DATA_TOTAL][new_key] += cpu[core][new_key]
 
@@ -89,7 +94,10 @@ def ram_usage(raw : dict[str, Any]) -> dict[str, Any]:
 
     for item in AR_KEY_RAM_LIST:
         if AR_KEY_RAM_ITEM.format(item) in raw:
-            ram[item] = int(raw[AR_KEY_RAM_ITEM.format(item)])
+            try:
+                ram[item] = int(raw[AR_KEY_RAM_ITEM.format(item)])
+            except ValueError as ex:
+                raise(AsusRouterValueError(ERROR_VALUE.format(raw[AR_KEY_RAM_ITEM.format(item)], str(ex))))
 
     return ram
 
@@ -103,7 +111,10 @@ def network_usage(raw : dict[str, Any], cache : dict[str, Any] | None = None) ->
             if AR_KEY_NETWORK_ITEM.format(group, type) in raw:
                 if not AR_KEY_NETWORK_GROUPS[group] in network:
                     network[AR_KEY_NETWORK_GROUPS[group]] = dict()
-                network[AR_KEY_NETWORK_GROUPS[group]][type] = int(raw[AR_KEY_NETWORK_ITEM.format(group, type)], base = 16)
+                try:
+                    network[AR_KEY_NETWORK_GROUPS[group]][type] = int(raw[AR_KEY_NETWORK_ITEM.format(group, type)], base = 16)
+                except ValueError as ex:
+                    raise(AsusRouterValueError(ERROR_VALUE.format(raw[AR_KEY_NETWORK_ITEM.format(group, type)], str(ex))))
 
             elif (cache is not None
                 and KEY_NETWORK in cache
@@ -162,11 +173,13 @@ def connected_device(raw : dict[str, Any]) -> ConnectedDevice:
 def uptime(data : str) -> datetime:
     """Uptime -> boot time parser"""
 
-    part = data.split("(")
-    seconds = int(re.search("([0-9]+)", part[1]).group())
-    when = datetime.strptime(part[0], "%a, %d %b %Y %H:%M:%S %z")
-
-    boot = when - timedelta(seconds = seconds)
+    try:
+        part = data.split("(")
+        seconds = int(re.search("([0-9]+)", part[1]).group())
+        when = datetime.strptime(part[0], "%a, %d %b %Y %H:%M:%S %z")
+        boot = when - timedelta(seconds = seconds)
+    except ValueError as ex:
+        raise(AsusRouterValueError(ERROR_VALUE.format(data, str(ex))))
 
     return boot
 
@@ -185,7 +198,7 @@ def port_speed(value : str | None = None) -> int | None:
     elif value == "Q":
         return 2500
     else:
-        raise NotImplementedError("Conversion for this value {} is not implemented".format(value))
+        raise(AsusRouterNotImplementedError(value))
 
 
 def devicemap(devicemap : dict[str, Any]) -> dict[str, Any]:
