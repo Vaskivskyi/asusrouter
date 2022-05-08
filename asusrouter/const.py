@@ -213,10 +213,6 @@ MONITOR_MAIN = {
     "netdev" : "appobj"
 }
 
-TRAFFIC_GROUPS_REPLACE = {
-    "WAN" : "BRIDGE",
-}
-
 PORT_TYPE = [
     "LAN",
     "WAN",
