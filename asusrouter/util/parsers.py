@@ -182,6 +182,8 @@ def port_speed(value : str | None = None) -> int | None:
         return 100
     elif value == "G":
         return 1000
+    elif value == "Q":
+        return 2500
     else:
         raise NotImplementedError("Conversion for this value {} is not implemented".format(value))
 
