@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
+import re
 
 from asusrouter.error import AsusRouterValueError
 
@@ -10,6 +11,7 @@ BOOL_FALSE : tuple[str, ...] = ("false", "block", "0", )
 BOOL_TRUE : tuple[str, ...] = ("true", "allow", "1", )
 ERROR_VALUE = "Wrong value: {} with original exception: {}"
 ERROR_VALUE_TYPE = "Wrong value {} of type {}"
+REGEX_MAC = re.compile("^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})")
 
 
 def int_from_str(raw : str, base : int = 10) -> int:
@@ -99,5 +101,22 @@ def time_from_delta(raw : str) -> datetime:
     """Transform time delta to the date in the past"""
 
     return datetime.utcnow().replace(microsecond=0) - timedelta_long(raw)
+
+
+def is_mac_address(raw : str) -> bool:
+    """Checks if string is MAC address"""
+
+    if type(raw) != str:
+        raise AsusRouterValueError(ERROR_VALUE_TYPE.format(raw, type(raw)))
+
+    raw = raw.strip()
+
+    if raw == str():
+        return False
+
+    if re.search(REGEX_MAC, raw):
+        return True
+
+    return False
 
 
