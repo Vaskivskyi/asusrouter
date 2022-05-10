@@ -64,7 +64,7 @@ def bool_from_any(raw : str | int | float) -> bool:
             raise AsusRouterValueError(ERROR_VALUE_TYPE.format(raw, type(raw)))
 
     else:
-        raise ValueError(ERROR_VALUE_TYPE.format(raw, type(raw)))
+        raise AsusRouterValueError(ERROR_VALUE_TYPE.format(raw, type(raw)))
 
 
 def none_or_str(raw : str) -> str | None:

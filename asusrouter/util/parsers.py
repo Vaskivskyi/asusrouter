@@ -31,6 +31,7 @@ from asusrouter.const import(
     DEVICEMAP_BY_INDEX,
     DEVICEMAP_CLEAR,
     DEVICEMAP_GENERAL,
+    ERROR_PARSING,
     ERROR_VALUE,
     KEY_NETWORK,
 )
@@ -161,7 +162,10 @@ def connected_device(raw : dict[str, Any]) -> ConnectedDevice:
 
     for key in AR_DEVICE_ATTRIBUTES_LIST:
         if key.value in raw:
-            values[key.get()] = key.method(raw[key.value]) if key.method else raw[key.value]
+            try:
+                values[key.get()] = key.method(raw[key.value]) if key.method else raw[key.value]
+            except AsusRouterValueError as ex:
+                _LOGGER.warning(ERROR_PARSING.format(key.value, str(ex)))
 
     device = ConnectedDevice(**values)
 
