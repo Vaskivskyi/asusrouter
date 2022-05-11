@@ -33,13 +33,21 @@ def float_from_str(raw : str) -> float:
 
     if type(raw) != str:
         raise AsusRouterValueError(ERROR_VALUE_TYPE.format(raw, type(raw)))
-        
+
     raw = raw.strip()
 
     if raw == str():
         return float(0)
+    # For devices reporrting speeds with M at the end for mega
+    if raw[-1] == "M":
+        raw = raw[:-1]
 
-    return float(raw)
+    try:
+        value = float(raw)
+    except ValueError as ex:
+        raise(AsusRouterValueError(ERROR_VALUE.format(raw, str(ex))))
+
+    return value
 
 
 def bool_from_any(raw : str | int | float) -> bool:
