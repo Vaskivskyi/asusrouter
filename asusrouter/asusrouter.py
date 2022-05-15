@@ -308,8 +308,8 @@ class AsusRouter:
 
         monitor_misc.reset()
 
+        monitor_misc["PORTS"] = dict()
         if "portSpeed" in data:
-            monitor_misc["PORTS"] = dict()
             for type in PORT_TYPE:
                 monitor_misc["PORTS"][type] = dict()
             for value in data["portSpeed"]:
