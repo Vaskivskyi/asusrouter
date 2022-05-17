@@ -38,6 +38,15 @@ KEY_CPU = "CPU"
 KEY_RAM = "RAM"
 KEY_NETWORK = "NETWORK"
 
+AR_DEVICE_IDENTITY : tuple[Key, ...] = (
+    Key("serial_no", "serial"),
+    Key("label_mac", "mac"),
+    Key("model", "model"),
+    Key("firmver", "fw_major"),
+    Key("buildno", "fw_minor"),
+    Key("extendno", "fw_build"),
+)
+
 AR_DEVICE_ATTRIBUTES_LIST : tuple[Key, ...] = (
     Key("mac", "name"),
     Key("name", "name"),
@@ -162,6 +171,7 @@ MSG_WARNING = {
 MSG_INFO = {
     "error_flag": "Error flag found",
     "empty_reqquest": "This request is empty",
+    "identifying": "Identifying the device",
     "json_fix": "Trying to fix JSON response",
     "monitor_sleep": "Monitor {} is already active -> sleep",
     "monitor_wakeup": "Monitor {} woke up -> closing",
@@ -175,6 +185,7 @@ MSG_SUCCESS = {
     "cert_found": "CA certificate found",
     "command": "Command was sent successfully",
     "hook": "Hook was sent successfully",
+    "identity": "Identity collected",
     "load": "Page {} was loaded successfully",
     "login": "Login successful",
     "logout": "Logout successful",

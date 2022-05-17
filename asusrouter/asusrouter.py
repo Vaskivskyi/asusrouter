@@ -10,9 +10,10 @@ from datetime import datetime
 from typing import Any
 
 from asusrouter import Connection
-from asusrouter.dataclass import Monitor
+from asusrouter.dataclass import AsusDevice, Monitor
 from asusrouter.util import calculators, parsers, compilers, converters
 from asusrouter.const import(
+    AR_DEVICE_IDENTITY,
     AR_HOOK_DEVICES,
     AR_KEY_CPU,
     AR_KEY_DEVICES,
@@ -73,9 +74,53 @@ class AsusRouter:
         self._monitor_misc : Monitor = Monitor()
         self._monitor_devices : Monitor = Monitor()
 
+        self._identity : AsusDevice | None = None
+
 
         """Connect"""
         self.connection = Connection(host = host, username = username, password = password, port = port, use_ssl = use_ssl, cert_check = cert_check, cert_path = cert_path)
+
+
+    async def async_identify(self) -> None:
+        """Identify the device"""
+
+        _LOGGER.debug(MSG_INFO["identifying"])
+
+        # Compile
+        query = list()
+        for item in AR_DEVICE_IDENTITY:
+            query.append(item)
+
+
+        # Collect data
+        message = compilers.nvram(query)
+        try:
+            raw = await self.async_hook(message)
+        except Exception as ex:
+            raise ex
+
+        # Parse
+        identity = dict()
+        for item in AR_DEVICE_IDENTITY:
+            try:
+                identity[item.get()] = raw[item.value]
+            except Exception as ex:
+                raise ex
+
+        self._identity = AsusDevice(**identity)
+
+        _LOGGER.debug(MSG_SUCCESS["identity"])
+
+
+    async def async_get_identity(self, force : bool = False) -> AsusDevice:
+        """Return device identity"""
+
+        if (not self._identity
+            or force
+        ):
+            await self.async_identify()
+
+        return self._identity
 
 
     async def async_hook(self, hook : str | None = None) -> dict[str, Any]:
