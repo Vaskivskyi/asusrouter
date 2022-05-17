@@ -31,6 +31,22 @@ class ConnectedDevice:
     tx_speed : float | None = None
 
 
+@dataclass
+class AsusDevice:
+    """Asus device class"""
+
+    serial : str | None = None
+    mac : str | None = None
+    model : str | None = None
+    brand : str = "ASUSTek"
+    fw_major : str | None = None
+    fw_minor : str | None = None
+    fw_build : str | None = None
+
+
+    def firmware(self) -> str:
+        return "{}.{}_{}".format(self.fw_major, self.fw_minor, self.fw_build)
+
 @dataclass()
 class Key:
     """Key class"""
