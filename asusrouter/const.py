@@ -146,6 +146,7 @@ AR_ERROR = {
     "logout": 8,
 }
 
+ERROR_IDENTITY = "Cannot obtain identity from the device {}. Exception summary{}"
 ERROR_PARSING = "Failed parsing value '{}'. Please report this issue. Exception summary: {}"
 ERROR_VALUE = "Wrong value '{}' with original exception: {}"
 ERROR_VALUE_TYPE = "Wrong value '{}' of type {}"

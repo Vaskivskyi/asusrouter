@@ -11,6 +11,7 @@ from typing import Any
 
 from asusrouter import Connection
 from asusrouter.dataclass import AsusDevice, Monitor
+from asusrouter.error import AsusRouterIdentityError
 from asusrouter.util import calculators, parsers, compilers, converters
 from asusrouter.const import(
     AR_DEVICE_IDENTITY,
@@ -24,6 +25,7 @@ from asusrouter.const import(
     DATA_TOTAL,
     DATA_USAGE,
     DATA_USED,
+    ERROR_IDENTITY,
     KEY_CPU,
     KEY_NETWORK,
     KEY_RAM,
@@ -59,6 +61,8 @@ class AsusRouter:
         enable_control : bool = False):
         """Init"""
 
+        self._host = host
+
         self._enable_monitor : bool = enable_monitor
         self._enable_control : bool = enable_control
 
@@ -78,7 +82,7 @@ class AsusRouter:
 
 
         """Connect"""
-        self.connection = Connection(host = host, username = username, password = password, port = port, use_ssl = use_ssl, cert_check = cert_check, cert_path = cert_path)
+        self.connection = Connection(host = self._host, username = username, password = password, port = port, use_ssl = use_ssl, cert_check = cert_check, cert_path = cert_path)
 
 
     async def async_identify(self) -> None:
@@ -97,7 +101,7 @@ class AsusRouter:
         try:
             raw = await self.async_hook(message)
         except Exception as ex:
-            raise ex
+            AsusRouterIdentityError(ERROR_IDENTITY.format(self._host, str(ex)))
 
         # Parse
         identity = dict()
@@ -105,7 +109,7 @@ class AsusRouter:
             try:
                 identity[item.get()] = raw[item.value]
             except Exception as ex:
-                raise ex
+                AsusRouterIdentityError(ERROR_IDENTITY.format(self._host, str(ex)))
 
         self._identity = AsusDevice(**identity)
 

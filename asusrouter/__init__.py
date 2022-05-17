@@ -10,6 +10,7 @@ from .error import (
     AsusRouterResponseError,
     AsusRouterValueError,
     AsusRouterSSLError,
+    AsusRouterIdentityError,
 )
 
 from .connection import (
