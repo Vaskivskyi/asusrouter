@@ -50,3 +50,7 @@ class AsusRouterNotImplementedError(AsusRouterError, NotImplementedError):
     """Not implemented error"""
 
 
+class AsusRouterIdentityError(AsusRouterError):
+    """Error of collecting device identity"""
+
+
