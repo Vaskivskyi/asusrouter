@@ -123,6 +123,30 @@ class AsusRouter:
         return self._identity
 
 
+    async def async_connect(self) -> bool:
+        """Connect to the device"""
+
+        try:
+            await self.connection.async_connect()
+        except Exception as ex:
+            raise ex
+
+        await self.async_identify()
+
+        return True
+
+
+    async def async_disconnect(self) -> bool:
+        """Disconnect from the device"""
+
+        try:
+            await self.connection.async_disconnect()
+        except Exception as ex:
+            raise ex
+
+        return True
+
+
     async def async_hook(self, hook : str | None = None) -> dict[str, Any]:
         """Hook data from device"""
 
