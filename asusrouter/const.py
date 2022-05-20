@@ -161,7 +161,7 @@ MSG_ERROR = {
     "disabled_monitor": "Device is connected in no-monitor mode. Sending hooks is blocked",
     "token": "Cannot recieve a token from device",
     "try_again": "Too many attempts",
-    "unknown": "Unknown error",
+    "unknown": "Unknown error code {}",
 }
 
 MSG_WARNING = {
