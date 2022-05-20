@@ -14,7 +14,7 @@ import asyncio
 from pathlib import Path
 from typing import Any
 
-from asusrouter import AsusRouterConnectionTimeoutError, AsusRouterServerDisconnectedError, AsusRouterLoginError, AsusRouterLoginBlockError, AsusRouterSSLError
+from asusrouter import AsusRouterConnectionTimeoutError, AsusRouterServerDisconnectedError, AsusRouterLoginError, AsusRouterLoginBlockError, AsusRouterSSLError, AsusRouterResponseError
 from asusrouter.util import parsers, converters
 from asusrouter.const import(
     AR_API,
@@ -142,7 +142,7 @@ class Connection:
                     error_code = int(json_body['error_status'])
                     # Not authorised
                     if error_code == AR_ERROR["authorisation"]:
-                        _LOGGER.error(MSG_ERROR["authorisation"])
+                        raise AsusRouterResponseError(MSG_ERROR["authorisation"])
                     # Wrong crerdentials
                     elif error_code == AR_ERROR["credentials"]:
                         raise AsusRouterLoginError(MSG_ERROR["credentials"])
@@ -156,7 +156,7 @@ class Connection:
                         return {"success": True}
                     # Unknown error code
                     else:
-                        _LOGGER.error("{}: {}".format(MSG_ERROR["unknown"], error_code))
+                        raise AsusRouterResponseError(MSG_ERROR["unknown"].format(error_code))
 
             # If loged in, save the device API data
             if endpoint == AR_PATH["login"]:
