@@ -161,7 +161,9 @@ def connected_device(raw : dict[str, Any]) -> ConnectedDevice:
     values = dict()
 
     for key in AR_DEVICE_ATTRIBUTES_LIST:
-        if key.value in raw:
+        if (key.value in raw
+            and raw[key.value] != str()
+        ):
             try:
                 values[key.get()] = key.method(raw[key.value]) if key.method else raw[key.value]
             except AsusRouterValueError as ex:
