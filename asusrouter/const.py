@@ -1,7 +1,7 @@
 """AsusRouter constants module"""
 
 from asusrouter.dataclass import Key
-from asusrouter.util.converters import bool_from_any, int_from_str, float_from_str, time_from_delta
+from asusrouter.util.converters import bool_from_any, int_from_str, float_from_str, time_from_delta, service_support
 
 #Use the last known working Android app user-agent, so the device will reply
 #AR_USER_AGENT = "asusrouter-Android-DUTUtil-1.0.0.255"
@@ -45,6 +45,8 @@ AR_DEVICE_IDENTITY : tuple[Key, ...] = (
     Key("firmver", "fw_major"),
     Key("buildno", "fw_minor"),
     Key("extendno", "fw_build"),
+    Key("rc_support", "services", method = service_support),
+    Key("ss_support", "services", method = service_support),
 )
 
 AR_DEVICE_ATTRIBUTES_LIST : tuple[Key, ...] = (

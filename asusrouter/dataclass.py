@@ -42,6 +42,7 @@ class AsusDevice:
     fw_major : str | None = None
     fw_minor : str | None = None
     fw_build : str | None = None
+    services : str | None = None
 
 
     def firmware(self) -> str:
