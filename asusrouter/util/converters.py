@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import re
 
 from asusrouter.error import AsusRouterValueError
@@ -108,7 +108,7 @@ def timedelta_long(raw : str) -> timedelta:
 def time_from_delta(raw : str) -> datetime:
     """Transform time delta to the date in the past"""
 
-    return datetime.utcnow().replace(microsecond=0) - timedelta_long(raw)
+    return datetime.utcnow().replace(microsecond = 0, tzinfo = timezone.utc) - timedelta_long(raw)
 
 
 def is_mac_address(raw : str) -> bool:
