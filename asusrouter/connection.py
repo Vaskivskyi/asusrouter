@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import Any
 
 from asusrouter import AsusRouterConnectionTimeoutError, AsusRouterServerDisconnectedError, AsusRouterLoginError, AsusRouterLoginBlockError, AsusRouterSSLError
-from asusrouter.util import parsers
+from asusrouter.util import parsers, converters
 from asusrouter.const import(
     AR_API,
     AR_ERROR,
@@ -149,7 +149,7 @@ class Connection:
                     # Too many attempts
                     elif error_code == AR_ERROR["try_again"]:
                         _LOGGER.debug(json_body)
-                        raise AsusRouterLoginBlockError(MSG_ERROR["try_again"])
+                        raise AsusRouterLoginBlockError(MSG_ERROR["try_again"], timeout = converters.int_from_str(json_body["remaining_lock_time"]))
                     # Loged out
                     elif error_code == AR_ERROR["logout"]:
                         _LOGGER.info(MSG_SUCCESS["logout"])
