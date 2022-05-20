@@ -128,3 +128,20 @@ def is_mac_address(raw : str) -> bool:
     return False
 
 
+def service_support(raw : str) -> list[str]:
+    """Get the list of the supported services"""
+
+    if type(raw) != str:
+        raise AsusRouterValueError(ERROR_VALUE_TYPE.format(raw, type(raw)))
+
+    services = list()
+
+    if raw == str():
+        return services
+
+    services = raw.split(" ")
+    services = [i for i in services if i]
+
+    return services
+
+

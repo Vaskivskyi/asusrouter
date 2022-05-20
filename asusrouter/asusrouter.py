@@ -106,8 +106,16 @@ class AsusRouter:
         # Parse
         identity = dict()
         for item in AR_DEVICE_IDENTITY:
+            key = item.get()
             try:
-                identity[item.get()] = raw[item.value]
+                data = item.method(raw[item.value]) if item.method else raw[item.value]
+                if key in identity:
+                    if type(identity[key]) is list:
+                        identity[key].extend(data)
+                    else:
+                        identity[key] = data
+                else:
+                    identity[key] = data
             except Exception as ex:
                 AsusRouterIdentityError(ERROR_IDENTITY.format(self._host, str(ex)))
 
@@ -652,7 +660,7 @@ class AsusRouter:
             result.append(interface)
 
         if (not "USB" in result
-            and "dualwan" in self._monitor_nvram["rc_support"]
+            and "dualwan" in self._identity.services
         ):
             result.append("USB")
 
