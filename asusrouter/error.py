@@ -37,6 +37,20 @@ class AsusRouterLoginError(AsusRouterError):
 class AsusRouterLoginBlockError(AsusRouterError):
     """Too many attempts error on device side"""
 
+    def __init__(self, *args : Any, message : Optional[str] = None, timeout : Optional[int] = None, **_kwargs : Any) -> None:
+        """Initialise base error"""
+
+        self._timeout = timeout
+
+        super().__init__(*args, message)
+
+    
+    @property
+    def timeout(self) -> int | None:
+        """Return timeout"""
+
+        return self._timeout
+
 
 class AsusRouterResponseError(AsusRouterError, aiohttp.ClientResponseError):
     """Error on communication"""
