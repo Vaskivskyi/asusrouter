@@ -65,6 +65,7 @@ class Connection:
         self._error : bool = False
         self._connecting : bool = False
         self._mute_flag : bool = False
+        self._drop : bool = False
 
         self._http = "https" if use_ssl else "http"
 
@@ -93,6 +94,9 @@ class Connection:
     async def async_run_command(self, command : str, endpoint : str = AR_PATH["get"], retry : bool = False) -> dict[str, Any]:
         """Run command. Use the existing connection token, otherwise create new one"""
 
+        if self._drop:
+            return {}
+
         if self._token is None and not retry:
             await self.async_connect()
             return await self.async_run_command(command, endpoint, retry = True)
@@ -101,6 +105,8 @@ class Connection:
                 try:
                     result = await self.async_request(command, endpoint, self._headers)
                     return result
+                except AsusRouterServerDisconnectedError as ex:
+                    raise ex
                 except Exception as ex:
                     if not retry:
                         await self.async_connect()
@@ -115,6 +121,9 @@ class Connection:
 
     async def async_request(self, payload : str, endpoint : str, headers : dict[str, str], retry : bool = False) -> dict[str, Any]:
         """Send a request"""
+
+        if self._drop:
+            return {}
 
         # Wait a bit before just retrying
         if retry:
@@ -190,13 +199,13 @@ class Connection:
         # Raise only if mute_flag not set
         except (aiohttp.ClientConnectorSSLError, aiohttp.ClientConnectorCertificateError) as ex:
             if not self._mute_flag:
-                raise AsusRouterSSLError(str(ex)) from ex
+                raise AsusRouterSSLError()
         except (aiohttp.ServerTimeoutError, asyncio.TimeoutError) as ex:
             if not self._mute_flag:
-                raise AsusRouterConnectionTimeoutError(str(ex)) from ex
+                raise AsusRouterConnectionTimeoutError()
         except aiohttp.ServerDisconnectedError as ex:
             if not self._mute_flag:
-                raise AsusRouterServerDisconnectedError(str(ex)) from ex
+                raise AsusRouterServerDisconnectedError()
 
         # Connection refused -> will repeat
         except aiohttp.ClientConnectorError as ex:
@@ -221,6 +230,7 @@ class Connection:
         """Start new connection to and get new auth token"""
 
         _success = False
+        self._drop = False
 
         if self._session is None:
             self._session = aiohttp.ClientSession()
@@ -256,7 +266,7 @@ class Connection:
 
         # Not connected
         if not self._connected:
-            _LOGGER.warning(MSG_WARNING["not_connected"])
+            _LOGGER.debug(MSG_WARNING["not_connected"])
         # Connected
         else:
             result = await self.async_request("", AR_PATH["logout"], self._headers)
@@ -269,9 +279,17 @@ class Connection:
         return True
 
 
+    async def async_drop_connection(self) -> None:
+        """Drop connection"""
+
+        self._drop = True
+        await self.async_cleanup()
+
+
     async def async_cleanup(self) -> None:
         """Cleanup after logout"""
 
+        self._connected = False
         self._token = None
         self._headers = None
         if self._session is not None:

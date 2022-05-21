@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import logging
+
+from asusrouter.error import AsusRouterServerDisconnectedError
 _LOGGER = logging.getLogger(__name__)
 
 import asyncio
@@ -31,6 +33,7 @@ from asusrouter.const import (
     AR_PATH,
     AR_SERVICE_COMMAND,
     AR_SERVICE_CONTROL,
+    AR_SERVICE_DROP_CONNECTION,
     DATA_BY_CORE,
     DATA_TOTAL,
     DATA_USAGE,
@@ -161,6 +164,17 @@ class AsusRouter:
         return True
 
 
+    async def async_drop_connection(self) -> bool:
+        """Drop connection when device will not reply because of our actions"""
+
+        try:
+            await self.connection.async_drop_connection()
+        except Exception as ex:
+            raise ex
+
+        return True
+
+
     async def async_disconnect(self) -> bool:
         """Disconnect from the device"""
 
@@ -189,7 +203,7 @@ class AsusRouter:
             result = await self.connection.async_run_command(command = "{}={}".format(KEY_HOOK, hook))
             _LOGGER.debug("{}: {}".format(MSG_SUCCESS["hook"], hook))
         except Exception as ex:
-            _LOGGER.error(ex)
+            raise ex
 
         # Check for errors during hook
         if self.connection.error:
@@ -218,7 +232,7 @@ class AsusRouter:
             result = await self.connection.async_run_command(command = str(request), endpoint = AR_PATH["command"])
             _LOGGER.debug("{}: {}".format(MSG_SUCCESS["command"], request))
         except Exception as ex:
-            _LOGGER.error(ex)
+            raise ex
 
         return result
 
@@ -747,7 +761,7 @@ class AsusRouter:
     ### SERVICES -->
 
 
-    async def async_service_run(self, service : str, arguments : dict[str, Any] | None = None) -> bool:
+    async def async_service_run(self, service : str, arguments : dict[str, Any] | None = None, drop_connection : bool = False) -> bool:
         """Generic service to run"""
 
         commands = {
@@ -757,7 +771,16 @@ class AsusRouter:
         if arguments:
             commands.update(arguments)
 
-        result = await self.async_command(commands = commands)
+        try:
+            result = await self.async_command(commands = commands)
+        except AsusRouterServerDisconnectedError as ex:
+            # For services, that will block any further connections
+            if drop_connection:
+                _LOGGER.debug(MSG_INFO["drop_connection_service"].format(service))
+                await self.async_drop_connection()
+                return True
+            else:
+                raise ex
 
         if (not AR_KEY_SERVICE_REPLY in result
             or result[AR_KEY_SERVICE_REPLY] != service
@@ -794,7 +817,7 @@ class AsusRouter:
         """Reboot the device"""
 
         service = "reboot"
-        await self.async_service_run(service = service)
+        await self.async_service_run(service = service, drop_connection = True)
         return True
 
 
@@ -808,7 +831,11 @@ class AsusRouter:
 
         service = AR_SERVICE_COMMAND[mode].format(target)
 
-        return await self.async_service_run(service = service)
+        drop_connection = False
+        if target in AR_SERVICE_DROP_CONNECTION:
+            drop_connection = True
+
+        return await self.async_service_run(service = service, drop_connection = drop_connection)
 
 
     ### <-- SERVICES

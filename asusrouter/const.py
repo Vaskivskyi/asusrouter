@@ -149,6 +149,10 @@ AR_SERVICE_COMMAND : dict[str, str] = {
     "restart": "restart_{}",
 }
 
+AR_SERVICE_DROP_CONNECTION : list[str] = {
+    "httpd",
+}
+
 AR_DEFAULT_CORES = [ 1 ]
 AR_DEFAULT_CORES_RANGE = range(1, 8)
 
@@ -212,6 +216,7 @@ MSG_WARNING = {
 }
 
 MSG_INFO = {
+    "drop_connection_service": "Connection will be dropped on behalf of '{}' service",
     "error_flag": "Error flag found",
     "empty_reqquest": "This request is empty",
     "identifying": "Identifying the device",
