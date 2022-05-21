@@ -20,6 +20,9 @@ from asusrouter.const import(
     AR_KEY_DEVICES,
     AR_KEY_NETWORK,
     AR_KEY_RAM,
+    AR_KEY_SERVICE_COMMAND,
+    AR_KEY_SERVICE_MODIFY,
+    AR_KEY_SERVICE_REPLY,
     AR_PATH,
     DATA_BY_CORE,
     DATA_TOTAL,
@@ -688,21 +691,35 @@ class AsusRouter:
     ### SERVICES -->
 
 
+    async def async_service_run(self, service : str, arguments : dict[str, Any] | None = None) -> bool:
+        """Generic service to run"""
+
+        commands = {
+            AR_KEY_SERVICE_COMMAND: service,
+        }
+
+        if arguments:
+            commands.update(arguments)
+
+        result = await self.async_command(commands = commands)
+
+        if (not AR_KEY_SERVICE_REPLY in result
+            or result[AR_KEY_SERVICE_REPLY] != service
+            or not AR_KEY_SERVICE_MODIFY in result
+        ):
+            raise AsusRouterServiceError(ERROR_SERVICE.format(service, result))
+
+        return converters.bool_from_any(result[AR_KEY_SERVICE_MODIFY])
+
+
     async def async_service_led_set(self, value : bool | int | str) -> bool:
         """Set status of the LEDs"""
 
         service = "start_ctrl_led"
-
-        request = {
-            "rc_service": service,
+        arguments = {
             "led_val": converters.int_from_bool(converters.bool_from_any(value)),
         }
-
-        result = await self.async_command(commands = request)
-        if "modify" in result:
-            return converters.bool_from_any(result["modify"])
-        else:
-            raise AsusRouterServiceError(ERROR_SERVICE.format(service, result))
+        return await self.async_service_run(service = service, arguments = arguments)
 
 
     async def async_service_led_get(self) -> bool | None:
@@ -716,21 +733,11 @@ class AsusRouter:
 
 
     async def async_service_reboot(self) -> bool:
+        """Reboot the device"""
 
         service = "reboot"
-
-        request = {
-            "rc_service": service,
-        }
-
-        result = await self.async_command(commands = request)
-        print(result)
-        if ("run_service" in result
-            and result["run_service"] == service
-        ):
-            return True
-        else:
-            raise AsusRouterServiceError(ERROR_SERVICE.format(service, result))
+        await self.async_service_run(service = service)
+        return True
 
 
     ### <-- SERVICES
