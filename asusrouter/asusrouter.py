@@ -715,6 +715,24 @@ class AsusRouter:
         return converters.bool_from_any(raw[key])
 
 
+    async def async_service_reboot(self) -> bool:
+
+        service = "reboot"
+
+        request = {
+            "rc_service": service,
+        }
+
+        result = await self.async_command(commands = request)
+        print(result)
+        if ("run_service" in result
+            and result["run_service"] == service
+        ):
+            return True
+        else:
+            raise AsusRouterServiceError(ERROR_SERVICE.format(service, result))
+
+
     ### <-- SERVICES
 
 
