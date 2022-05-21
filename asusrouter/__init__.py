@@ -1,17 +1,25 @@
 """Library init"""
 
 from .error import (
-    AsusRouterError,
     AsusRouterConnectionError,
     AsusRouterConnectionTimeoutError,
-    AsusRouterServerDisconnectedError,
-    AsusRouterLoginError,
-    AsusRouterLoginBlockError,
-    AsusRouterResponseError,
-    AsusRouterServiceError,
-    AsusRouterValueError,
-    AsusRouterSSLError,
+    AsusRouterError,
     AsusRouterIdentityError,
+    AsusRouterLoginBlockError,
+    AsusRouterLoginError,
+    AsusRouterNotImplementedError,
+    AsusRouterResponseError,
+    AsusRouterServerDisconnectedError,
+    AsusRouterServiceError,
+    AsusRouterSSLError,
+    AsusRouterValueError,
+)
+
+from .dataclass import (
+    AsusDevice as AsusDevice,
+    ConnectedDevice as ConnectedDevice,
+    Key as Key,
+    Monitor as Monitor,
 )
 
 from .connection import (
@@ -20,10 +28,4 @@ from .connection import (
 
 from .asusrouter import (
     AsusRouter as AsusRouter,
-)
-
-from .dataclass import (
-    ConnectedDevice,
-    Key,
-    Monitor,
 )
