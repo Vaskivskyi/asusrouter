@@ -149,26 +149,10 @@ AR_SERVICE_COMMAND : dict[str, str] = {
     "restart": "restart_{}",
 }
 
-AR_DEFAULT_CORES_RANGE = range(1, 8)
 AR_DEFAULT_CORES = [ 1 ]
+AR_DEFAULT_CORES_RANGE = range(1, 8)
 
 DEFAULT_USAGE_DIGITS = 2
-
-
-TRAFFIC_GROUPS = {
-    "INTERNET" : "WAN",    # main WAN
-    "INTERNET1" : "USB",   # secondary WAN (USB modem / phone)
-    "WIRED" : "WIRED",      # wired connections
-    "BRIDGE" : "BRIDGE",    # bridge
-    "WIRELESS0" : "WLAN0",  # 2.4 GHz WiFi
-    "WIRELESS1" : "WLAN1",  # 5 GHz WiFi
-    "WIRELESS2" : "WLAN2",  # 5 GHz WiFi #2 (<-- check)
-}
-
-NETWORK_DATA = [
-    "rx",
-    "tx",
-]
 
 
 DEFAULT_CACHE_TIME = 5

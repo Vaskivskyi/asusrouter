@@ -9,11 +9,15 @@ import asyncio
 from datetime import datetime
 from typing import Any
 
-from asusrouter import Connection
-from asusrouter.dataclass import AsusDevice, Monitor
-from asusrouter.error import AsusRouterIdentityError, AsusRouterServiceError, AsusRouterValueError
-from asusrouter.util import calculators, parsers, compilers, converters
-from asusrouter.const import(
+from asusrouter import (
+    AsusDevice,
+    Connection,
+    Monitor,
+    AsusRouterIdentityError,
+    AsusRouterServiceError,
+)
+from asusrouter.util import calculators, compilers, converters, parsers
+from asusrouter.const import (
     AR_DEVICE_IDENTITY,
     AR_HOOK_DEVICES,
     AR_KEY_CPU,
@@ -31,18 +35,18 @@ from asusrouter.const import(
     DATA_TOTAL,
     DATA_USAGE,
     DATA_USED,
-    ERROR_IDENTITY,
-    ERROR_SERVICE,
-    ERROR_SERVICE_UNKNOWN,
-    KEY_CPU,
-    KEY_NETWORK,
-    KEY_RAM,
     DEFAULT_ACTION_MODE,
     DEFAULT_CACHE_TIME,
     DEFAULT_SLEEP_TIME,
+    ERROR_IDENTITY,
+    ERROR_SERVICE,
+    ERROR_SERVICE_UNKNOWN,
     INTERFACE_TYPE,
     KEY_ACTION_MODE,
+    KEY_CPU,
     KEY_HOOK,
+    KEY_NETWORK,
+    KEY_RAM,
     KEY_WAN,
     MONITOR_MAIN,
     MSG_ERROR,
@@ -239,6 +243,9 @@ class AsusRouter:
             _LOGGER.error(ex)
 
         return result
+
+
+    ### MONITORS -->
 
 
     async def async_monitor_main(self) -> None:
@@ -492,6 +499,9 @@ class AsusRouter:
         return
 
 
+    ### <-- MONITORS
+
+
     async def async_handle_error(self) -> None:
         """Actions to be taken on connection errors"""
 
@@ -547,7 +557,8 @@ class AsusRouter:
         await self.async_monitor_devices()
 
 
-#### RETURN DATA
+    ### RETURN DATA -->
+
 
     async def async_get_devices(self, use_cache : bool = True) -> dict[str, Any]:
         """Return device list"""
@@ -728,6 +739,9 @@ class AsusRouter:
             result[value] = self._monitor_main[KEY_WAN][value]
 
         return result
+
+
+    ### <-- RETURN DATA
 
 
     ### SERVICES -->
