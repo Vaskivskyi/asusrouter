@@ -23,6 +23,7 @@ from asusrouter.const import(
     AR_KEY_SERVICE_COMMAND,
     AR_KEY_SERVICE_MODIFY,
     AR_KEY_SERVICE_REPLY,
+    AR_KEY_WAN,
     AR_PATH,
     DATA_BY_CORE,
     DATA_TOTAL,
@@ -41,6 +42,7 @@ from asusrouter.const import(
     INTERFACE_TYPE,
     KEY_ACTION_MODE,
     KEY_HOOK,
+    KEY_WAN,
     MONITOR_MAIN,
     MSG_ERROR,
     MSG_INFO,
@@ -324,6 +326,19 @@ class AsusRouter:
             and KEY_NETWORK in self._monitor_main
         ):
             monitor_main[KEY_NETWORK] = self._monitor_main[KEY_NETWORK]
+
+        
+        ### WAN STATE ###
+
+        if AR_KEY_WAN in data:
+            # Populate WAN with known values
+            monitor_main[KEY_WAN] = parsers.wan_state(raw = data[AR_KEY_WAN])
+
+        # Keep last data
+        elif (self._monitor_main.ready
+            and KEY_WAN in self._monitor_main
+        ):
+            monitor_main[KEY_WAN] = self._monitor_main[KEY_WAN]
 
         monitor_main.finish()
         self._monitor_main = monitor_main
@@ -686,6 +701,32 @@ class AsusRouter:
             await self.async_monitor_misc()
 
         return self._monitor_misc["PORTS"]
+
+
+    async def async_get_wan(self, use_cache : bool = True) -> dict[str, str]:
+        """Return WAN and its usage"""
+        
+        now = datetime.utcnow()
+        if (not self._monitor_main.ready
+            or use_cache == False
+            or (use_cache == True
+                and self._cache_time < (now - self._monitor_main.time).total_seconds()
+            )
+        ):
+            await self.async_monitor_main()
+
+        result = dict()
+
+        # Check if WAN was monitored
+        if (not self._monitor_main.ready
+            or not KEY_WAN in self._monitor_main
+        ):
+            return result
+
+        for value in self._monitor_main[KEY_WAN]:
+            result[value] = self._monitor_main[KEY_WAN][value]
+
+        return result
 
 
     ### SERVICES -->

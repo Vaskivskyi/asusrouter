@@ -37,6 +37,7 @@ DEFAULT_TRAFFIC_OVERFLOW = 4294967296
 KEY_CPU = "CPU"
 KEY_RAM = "RAM"
 KEY_NETWORK = "NETWORK"
+KEY_WAN = "WAN"
 
 AR_DEVICE_IDENTITY : tuple[Key, ...] = (
     Key("serial_no", "serial"),
@@ -95,6 +96,30 @@ AR_KEY_NETWORK_GROUPS = {
     "WIRELESS1" : "WLAN1",  # 5 GHz WiFi
     "WIRELESS2" : "WLAN2",  # 5 GHz WiFi #2 (<-- check)
 }
+AR_KEY_WAN = "wanlink_state"
+AR_KEY_WAN_STATE = (
+    Key("wanstate", "state"),
+    Key("wansbstate", "bstate"),
+    Key("wanauxstate", "aux",),
+    Key("autodet_state"),
+    Key("autodet_auxstate",),
+    Key("wanlink_status", "status"),
+    Key("wanlink_type", "ip_type"),
+    Key("wanlink_ipaddr", "ip"),
+    Key("wanlink_netmask", "mask"),
+    Key("wanlink_gateway", "gagteway"),
+    Key("wanlink_dns", "dns"),
+    Key("wanlink_lease", "lease"),
+    Key("wanlink_expires", "expires"),
+    Key("is_private_subnet", "private_subnet"),
+    Key("wanlink_xtype", "xtype"),
+    Key("wanlink_xipaddr", "xip"),
+    Key("wanlink_xnetmask", "xmask"),
+    Key("wanlink_xgateway", "xgateway"),
+    Key("wanlink_xdns", "xdns"),
+    Key("wanlink_xlease", "xlease",),
+    Key("wanlink_xexpires", "xexpires"),
+)
 
 AR_HOOK_TEMPLATE = "{}({});"
 AR_HOOK_DEVICES = "{}()".format(AR_KEY_DEVICES)
@@ -230,7 +255,8 @@ NVRAM_LIST = {
 MONITOR_MAIN = {
     "cpu_usage" : "appobj",
     "memory_usage" : "appobj",
-    "netdev" : "appobj"
+    "netdev" : "appobj",
+    "wanlink_state" : "appobj",
 }
 
 PORT_TYPE = [

@@ -22,6 +22,7 @@ from asusrouter.const import(
     AR_KEY_RAM_LIST,
     AR_KEY_NETWORK_ITEM,
     AR_KEY_NETWORK_GROUPS,
+    AR_KEY_WAN_STATE,
     CONST_BITSINBYTE,
     CONST_ZERO,
     DATA_ADD_SPEED,
@@ -153,6 +154,23 @@ def network_speed(after : dict[str, dict[str, float]], before : dict[str, dict[s
             after[group] |= speed
 
     return after
+
+
+def wan_state(raw : dict[str, Any]) -> dict[str, Any]:
+    """WAN status parser"""
+
+    values = dict()
+
+    for key in AR_KEY_WAN_STATE:
+        if (key.value in raw
+            and raw[key.value] != str()
+        ):
+            try:
+                values[key.get()] = key.method(raw[key.value]) if key.method else raw[key.value]
+            except AsusRouterValueError as ex:
+                _LOGGER.warning(ERROR_PARSING.format(key.value, str(ex)))
+
+    return values
 
 
 def connected_device(raw : dict[str, Any]) -> ConnectedDevice:
