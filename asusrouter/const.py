@@ -124,6 +124,31 @@ AR_KEY_WAN_STATE = (
 AR_HOOK_TEMPLATE = "{}({});"
 AR_HOOK_DEVICES = "{}()".format(AR_KEY_DEVICES)
 
+AR_SERVICE_CONTROL : dict[str, list[str]] = {
+    "firewall": [
+        "restart",
+    ],
+    "ftpd": [
+        "force_restart",
+        "start",
+        "stop",
+        "restart",
+    ],
+    "httpd": [
+        "restart",
+    ],
+    "wireless": [
+        "restart",
+    ],
+}
+
+AR_SERVICE_COMMAND : dict[str, str] = {
+    "force_restart": "restart_{}_force",
+    "start": "start_{}",
+    "stop": "stop_{}",
+    "restart": "restart_{}",
+}
+
 AR_DEFAULT_CORES_RANGE = range(1, 8)
 AR_DEFAULT_CORES = [ 1 ]
 
@@ -180,6 +205,7 @@ AR_ERROR = {
 ERROR_IDENTITY = "Cannot obtain identity from the device {}. Exception summary{}"
 ERROR_PARSING = "Failed parsing value '{}'. Please report this issue. Exception summary: {}"
 ERROR_SERVICE = "Error calling service '{}'. Service did not return any expected value in the reply: {}"
+ERROR_SERVICE_UNKNOWN = "Unknown service '{}' with mode '{}'"
 ERROR_VALUE = "Wrong value '{}' with original exception: {}"
 ERROR_VALUE_TYPE = "Wrong value '{}' of type {}"
 ERROR_ZERO_DIVISION = "Zero division allert: {}"
@@ -211,6 +237,7 @@ MSG_INFO = {
     "no_cert": "No certificate provided. Using trusted",
     "no_cert_check": "Certificate won't be checked",
     "reconnect": "Reconnecting",
+    "service": "Service '{}' was called with arguments '{}' successfully. Reply: {}",
     "xml": "Data is in XML",
 }
 

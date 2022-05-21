@@ -25,14 +25,15 @@ from asusrouter.const import(
     AR_KEY_SERVICE_REPLY,
     AR_KEY_WAN,
     AR_PATH,
+    AR_SERVICE_COMMAND,
+    AR_SERVICE_CONTROL,
     DATA_BY_CORE,
     DATA_TOTAL,
     DATA_USAGE,
     DATA_USED,
     ERROR_IDENTITY,
     ERROR_SERVICE,
-    ERROR_VALUE,
-    ERROR_VALUE_TYPE,
+    ERROR_SERVICE_UNKNOWN,
     KEY_CPU,
     KEY_NETWORK,
     KEY_RAM,
@@ -750,6 +751,8 @@ class AsusRouter:
         ):
             raise AsusRouterServiceError(ERROR_SERVICE.format(service, result))
 
+        _LOGGER.debug(MSG_INFO["service"].format(service, arguments, result))
+
         return converters.bool_from_any(result[AR_KEY_SERVICE_MODIFY])
 
 
@@ -779,6 +782,19 @@ class AsusRouter:
         service = "reboot"
         await self.async_service_run(service = service)
         return True
+
+
+    async def async_service_control(self, target : str, mode : str) -> bool:
+        """Start / stop / (force) restart service"""
+
+        if (not target in AR_SERVICE_CONTROL
+            or not mode in AR_SERVICE_CONTROL[target]
+        ):
+            raise AsusRouterServiceError(ERROR_SERVICE_UNKNOWN.format(target, mode))
+
+        service = AR_SERVICE_COMMAND[mode].format(target)
+
+        return await self.async_service_run(service = service)
 
 
     ### <-- SERVICES

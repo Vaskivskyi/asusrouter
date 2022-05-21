@@ -49,7 +49,8 @@ class AsusDevice:
     def firmware(self) -> str:
         return "{}.{}_{}".format(self.fw_major, self.fw_minor, self.fw_build)
 
-@dataclass()
+
+@dataclass
 class Key:
     """Key class"""
 
