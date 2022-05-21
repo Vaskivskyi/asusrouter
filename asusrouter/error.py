@@ -56,6 +56,10 @@ class AsusRouterResponseError(AsusRouterError, aiohttp.ClientResponseError):
     """Error on communication"""
 
 
+class AsusRouterServiceError(AsusRouterError):
+    """Error on calling a service"""
+
+
 class AsusRouterValueError(AsusRouterError, ValueError):
     """Invalid value received"""
 

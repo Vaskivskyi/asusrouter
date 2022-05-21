@@ -8,6 +8,7 @@ from .error import (
     AsusRouterLoginError,
     AsusRouterLoginBlockError,
     AsusRouterResponseError,
+    AsusRouterServiceError,
     AsusRouterValueError,
     AsusRouterSSLError,
     AsusRouterIdentityError,
