@@ -1,7 +1,7 @@
 """AsusRouter constants module"""
 
 from asusrouter.dataclass import Key
-from asusrouter.util.converters import bool_from_any, int_from_str, float_from_str, time_from_delta, service_support
+from asusrouter.util.converters import bool_from_any, exists_or_not, int_from_str, float_from_str, time_from_delta, service_support
 
 #Use the last known working Android app user-agent, so the device will reply
 #AR_USER_AGENT = "asusrouter-Android-DUTUtil-1.0.0.255"
@@ -47,6 +47,7 @@ AR_DEVICE_IDENTITY : tuple[Key, ...] = (
     Key("extendno", "fw_build"),
     Key("rc_support", "services", method = service_support),
     Key("ss_support", "services", method = service_support),
+    Key("led_val", "led", method = exists_or_not)
 )
 
 AR_DEVICE_ATTRIBUTES_LIST : tuple[Key, ...] = (
@@ -150,6 +151,7 @@ AR_ERROR = {
 
 ERROR_IDENTITY = "Cannot obtain identity from the device {}. Exception summary{}"
 ERROR_PARSING = "Failed parsing value '{}'. Please report this issue. Exception summary: {}"
+ERROR_SERVICE = "Error calling service '{}'. Service did not return any expected value in the reply: {}"
 ERROR_VALUE = "Wrong value '{}' with original exception: {}"
 ERROR_VALUE_TYPE = "Wrong value '{}' of type {}"
 ERROR_ZERO_DIVISION = "Zero division allert: {}"

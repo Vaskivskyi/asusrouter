@@ -7,8 +7,8 @@ import re
 
 from asusrouter.error import AsusRouterValueError
 
-BOOL_FALSE : tuple[str, ...] = ("false", "block", "0", )
-BOOL_TRUE : tuple[str, ...] = ("true", "allow", "1", )
+BOOL_FALSE : tuple[str, ...] = ("false", "block", "0", "off", )
+BOOL_TRUE : tuple[str, ...] = ("true", "allow", "1", "on", )
 ERROR_VALUE = "Wrong value: {} with original exception: {}"
 ERROR_VALUE_TYPE = "Wrong value {} of type {}"
 REGEX_MAC = re.compile("^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})")
@@ -75,6 +75,15 @@ def bool_from_any(raw : str | int | float) -> bool:
         raise AsusRouterValueError(ERROR_VALUE_TYPE.format(raw, type(raw)))
 
 
+def int_from_bool(raw : bool) -> int:
+    """Convert boolean value to 0 or 1"""
+
+    if type(raw) != bool:
+        raise AsusRouterValueError(ERROR_VALUE_TYPE.format(raw, type(raw)))
+
+    return 1 if raw else 0
+
+
 def none_or_str(raw : str) -> str | None:
     """Returns either string or None if string is empty"""
 
@@ -85,6 +94,18 @@ def none_or_str(raw : str) -> str | None:
         return None
 
     return raw.strip()
+
+
+def exists_or_not(raw : str) -> bool:
+    """Returns whether value exists or is empty"""
+
+    if type(raw) != str:
+        raise AsusRouterValueError(ERROR_VALUE_TYPE.format(raw, type(raw)))
+
+    if raw.strip() == str():
+        return False
+
+    return True
 
 
 def timedelta_long(raw : str) -> timedelta:

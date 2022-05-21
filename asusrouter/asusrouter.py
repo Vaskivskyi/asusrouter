@@ -11,7 +11,7 @@ from typing import Any
 
 from asusrouter import Connection
 from asusrouter.dataclass import AsusDevice, Monitor
-from asusrouter.error import AsusRouterIdentityError
+from asusrouter.error import AsusRouterIdentityError, AsusRouterServiceError, AsusRouterValueError
 from asusrouter.util import calculators, parsers, compilers, converters
 from asusrouter.const import(
     AR_DEVICE_IDENTITY,
@@ -26,6 +26,9 @@ from asusrouter.const import(
     DATA_USAGE,
     DATA_USED,
     ERROR_IDENTITY,
+    ERROR_SERVICE,
+    ERROR_VALUE,
+    ERROR_VALUE_TYPE,
     KEY_CPU,
     KEY_NETWORK,
     KEY_RAM,
@@ -680,6 +683,39 @@ class AsusRouter:
             await self.async_monitor_misc()
 
         return self._monitor_misc["PORTS"]
+
+
+    ### SERVICES -->
+
+
+    async def async_service_led_set(self, value : bool | int | str) -> bool:
+        """Set status of the LEDs"""
+
+        service = "start_ctrl_led"
+
+        request = {
+            "rc_service": service,
+            "led_val": converters.int_from_bool(converters.bool_from_any(value)),
+        }
+
+        result = await self.async_command(commands = request)
+        if "modify" in result:
+            return converters.bool_from_any(result["modify"])
+        else:
+            raise AsusRouterServiceError(ERROR_SERVICE.format(service, result))
+
+
+    async def async_service_led_get(self) -> bool | None:
+        """Return status of the LEDs"""
+
+        key = "led_val"
+        raw = await self.async_hook(compilers.nvram(key))
+        if not converters.none_or_str(raw[key]):
+            return None
+        return converters.bool_from_any(raw[key])
+
+
+    ### <-- SERVICES
 
 
     @property
