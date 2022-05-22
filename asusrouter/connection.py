@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any
 
 from asusrouter import (
+    AsusRouterConnectionError,
     AsusRouterConnectionTimeoutError,
     AsusRouterLoginBlockError,
     AsusRouterLoginError,
@@ -210,7 +211,7 @@ class Connection:
         # Connection refused -> will repeat
         except aiohttp.ClientConnectorError as ex:
             if endpoint == AR_PATH["login"] and not self._mute_flag:
-                raise AsusRouterLoginError(str(ex)) from ex
+                raise AsusRouterConnectionError(str(ex)) from ex
             # Mute warning for retries and while connecting
             if not retry and not self._connecting:
                 _LOGGER.warning("{}. Endpoint: {}. Payload: {}.\nException summary:{}".format(MSG_WARNING["refused"], endpoint, payload, str(ex)))
