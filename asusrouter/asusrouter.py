@@ -115,7 +115,7 @@ class AsusRouter:
         # Collect data
         message = compilers.nvram(query)
         try:
-            raw = await self.async_hook(message)
+            raw = await self.async_hook(message, force = True)
         except Exception as ex:
             AsusRouterIdentityError(ERROR_IDENTITY.format(self._host, str(ex)))
 
@@ -186,12 +186,14 @@ class AsusRouter:
         return True
 
 
-    async def async_hook(self, hook : str | None = None) -> dict[str, Any]:
+    async def async_hook(self, hook : str | None = None, force : bool = False) -> dict[str, Any]:
         """Hook data from device"""
 
         result = {}
 
-        if not self._enable_monitor:
+        if (not self._enable_monitor
+            and not force
+        ):
             _LOGGER.error(MSG_ERROR["disabled_monitor"])
             return result
 
