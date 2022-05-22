@@ -698,8 +698,8 @@ class AsusRouter:
 
         if not self._monitor_main.ready:
             await self.async_monitor_main()
-        if not self._monitor_nvram.ready:
-            await self.async_monitor_nvram()
+        if not self._identity:
+            await self.async_identify()
 
         result = list()
 
