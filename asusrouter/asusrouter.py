@@ -3,8 +3,6 @@
 from __future__ import annotations
 
 import logging
-
-from asusrouter.error import AsusRouterServerDisconnectedError
 _LOGGER = logging.getLogger(__name__)
 
 import asyncio
@@ -16,6 +14,7 @@ from asusrouter import (
     Connection,
     Monitor,
     AsusRouterIdentityError,
+    AsusRouterServerDisconnectedError,
     AsusRouterServiceError,
 )
 from asusrouter.util import calculators, compilers, converters, parsers
@@ -24,6 +23,7 @@ from asusrouter.const import (
     AR_HOOK_DEVICES,
     AR_KEY_CPU,
     AR_KEY_DEVICES,
+    AR_KEY_LED,
     AR_KEY_NETWORK,
     AR_KEY_RAM,
     AR_KEY_SERVICE_COMMAND,
@@ -95,6 +95,7 @@ class AsusRouter:
         self._monitor_devices : Monitor = Monitor()
 
         self._identity : AsusDevice | None = None
+        self._status_led : bool = False
 
 
         """Connect"""
@@ -134,6 +135,9 @@ class AsusRouter:
                     identity[key] = data
             except Exception as ex:
                 AsusRouterIdentityError(ERROR_IDENTITY.format(self._host, str(ex)))
+
+        # Save static values
+        self._status_led = raw[AR_KEY_LED]
 
         self._identity = AsusDevice(**identity)
 
@@ -351,12 +355,13 @@ class AsusRouter:
         ):
             monitor_main[KEY_NETWORK] = self._monitor_main[KEY_NETWORK]
 
-        
+
         ### WAN STATE ###
 
         if AR_KEY_WAN in data:
             # Populate WAN with known values
             monitor_main[KEY_WAN] = parsers.wan_state(raw = data[AR_KEY_WAN])
+
 
         # Keep last data
         elif (self._monitor_main.ready
@@ -798,21 +803,28 @@ class AsusRouter:
     async def async_service_led_set(self, value : bool | int | str) -> bool:
         """Set status of the LEDs"""
 
+        value_to_set = converters.bool_from_any(value)
+
         service = "start_ctrl_led"
         arguments = {
-            "led_val": converters.int_from_bool(converters.bool_from_any(value)),
+            AR_KEY_LED: converters.int_from_bool(value_to_set),
         }
-        return await self.async_service_run(service = service, arguments = arguments)
+        result = await self.async_service_run(service = service, arguments = arguments)
+        if result:
+            self._status_led = value_to_set
+        return result
 
 
     async def async_service_led_get(self) -> bool | None:
         """Return status of the LEDs"""
 
-        key = "led_val"
+        key = AR_KEY_LED
         raw = await self.async_hook(compilers.nvram(key))
         if not converters.none_or_str(raw[key]):
             return None
-        return converters.bool_from_any(raw[key])
+        value = converters.bool_from_any(raw[key])
+        self._status_led = value
+        return value
 
 
     async def async_service_reboot(self) -> bool:
@@ -847,7 +859,14 @@ class AsusRouter:
     def connected(self) -> bool:
         return self.connection.connected
 
+
     @property
     def boottime(self) -> datetime:
         return self._device_boottime
+
+
+    @property
+    def led(self) -> bool:
+        return self._status_led
+
 
