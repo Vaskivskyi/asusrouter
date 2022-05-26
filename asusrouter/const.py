@@ -107,7 +107,7 @@ AR_KEY_WAN_STATE = (
     Key("wanlink_type", "ip_type"),
     Key("wanlink_ipaddr", "ip"),
     Key("wanlink_netmask", "mask"),
-    Key("wanlink_gateway", "gagteway"),
+    Key("wanlink_gateway", "gateway"),
     Key("wanlink_dns", "dns"),
     Key("wanlink_lease", "lease"),
     Key("wanlink_expires", "expires"),
