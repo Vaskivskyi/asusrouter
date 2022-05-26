@@ -77,6 +77,7 @@ AR_KEY_DEVICE_NAME_LIST = ["nickName", "name", "mac"]
 AR_KEY_DEVICEMAP = "devicemap"
 AR_KEY_DEVICES = "get_clientlist"
 AR_KEY_DEVICES_LIST = "maclist"
+AR_KEY_LED = "led_val"
 AR_KEY_NETWORK = "netdev"
 AR_KEY_NETWORK_ITEM = "{}_{}"
 AR_KEY_RAM = "memory_usage"
