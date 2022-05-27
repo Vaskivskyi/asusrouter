@@ -601,6 +601,7 @@ class AsusRouter:
         
         now = datetime.utcnow()
         if (not self._monitor_main.ready
+            or not KEY_CPU in self._monitor_main
             or use_cache == False
             or (use_cache == True
                 and self._cache_time < (now - self._monitor_main.time).total_seconds()
