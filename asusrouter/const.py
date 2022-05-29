@@ -112,7 +112,7 @@ AR_KEY_WAN_STATE = (
     Key("wanlink_dns", "dns"),
     Key("wanlink_lease", "lease"),
     Key("wanlink_expires", "expires"),
-    Key("is_private_subnet", "private_subnet", method = bool_from_any),
+    Key("is_private_subnet", "private_subnet", method = int_from_str),
     Key("wanlink_xtype", "xtype"),
     Key("wanlink_xipaddr", "xip"),
     Key("wanlink_xnetmask", "xmask"),
