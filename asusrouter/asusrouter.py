@@ -50,6 +50,7 @@ from asusrouter.const import (
     KEY_HOOK,
     KEY_NETWORK,
     KEY_RAM,
+    KEY_TEMPERATURE,
     KEY_WAN,
     MONITOR_MAIN,
     MSG_ERROR,
@@ -432,6 +433,7 @@ class AsusRouter:
 
         monitor_misc = Monitor()
 
+
         ### PORTS
 
         # Receive ports number and status (disconnected, 100 Mb/s, 1 Gb/s)
@@ -449,6 +451,11 @@ class AsusRouter:
                         number = value.replace(type, "")
                         monitor_misc["PORTS"][type][number] = parsers.port_speed(data["portSpeed"][value])
                         break
+
+
+        ### TEMPERATURES ###
+        monitor_misc[KEY_TEMPERATURE] = await self.async_load(page = AR_PATH["temperature"])
+
 
         # Load devicemap
         data = await self.async_load(page = AR_PATH["devicemap"])
@@ -724,7 +731,7 @@ class AsusRouter:
 
     async def async_get_ports(self, use_cache : bool = True) -> dict[str, dict[str, int]]:
         """Return WAN/LAN ports status"""
-        
+
         now = datetime.utcnow()
         if (not self._monitor_misc.ready
             or use_cache == False
@@ -735,6 +742,21 @@ class AsusRouter:
             await self.async_monitor_misc()
 
         return self._monitor_misc["PORTS"]
+
+
+    async def async_get_temperature(self, use_cache : bool = True) -> dict[str, Any]:
+        """Raturn temperature status"""
+
+        now = datetime.utcnow()
+        if (not self._monitor_misc.ready
+            or use_cache == False
+            or (use_cache == True
+                and self._cache_time < (now - self._monitor_misc.time).total_seconds()
+            )
+        ):
+            await self.async_monitor_misc()
+
+        return self._monitor_misc[KEY_TEMPERATURE]
 
 
     async def async_get_wan(self, use_cache : bool = True) -> dict[str, str]:

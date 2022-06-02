@@ -35,8 +35,9 @@ DATA_ADD_SPEED = "{}_speed"
 DEFAULT_TRAFFIC_OVERFLOW = 4294967296
 
 KEY_CPU = "CPU"
-KEY_RAM = "RAM"
 KEY_NETWORK = "NETWORK"
+KEY_RAM = "RAM"
+KEY_TEMPERATURE = "TEMPERATURE"
 KEY_WAN = "WAN"
 
 AR_DEVICE_IDENTITY : tuple[Key, ...] = (
@@ -175,6 +176,12 @@ AR_KEY = {
     "cpu_usage": "cpu_usage",
 }
 
+AR_MAP_TEMPERATURE: dict[str, list[str]] = {
+    "2ghz": ["curr_coreTmp_2_raw=\"([0-9.]+)&deg;C"],
+    "5ghz": ["curr_coreTmp_5_raw=\"([0-9.]+)&deg;C"],
+    "cpu": ["curr_cpuTemp=\"([0-9.]+)\""]
+}
+
 AR_PATH = {
     "command": "applyapp.cgi",
     "devicemap": "ajax_status.xml",
@@ -182,6 +189,7 @@ AR_PATH = {
     "login": "login.cgi",
     "logout": "Logout.asp",
     "ports": "ajax_ethernet_ports.asp",
+    "temperature": "ajax_coretmp.asp",
 }
 
 AR_ERROR = {
