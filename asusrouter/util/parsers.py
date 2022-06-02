@@ -23,6 +23,7 @@ from asusrouter.const import(
     AR_KEY_NETWORK_ITEM,
     AR_KEY_NETWORK_GROUPS,
     AR_KEY_WAN_STATE,
+    AR_MAP_TEMPERATURE,
     CONST_BITSINBYTE,
     CONST_ZERO,
     DATA_ADD_SPEED,
@@ -34,6 +35,7 @@ from asusrouter.const import(
     DEVICEMAP_GENERAL,
     ERROR_PARSING,
     ERROR_VALUE,
+    ERROR_VALUE_TYPE,
     KEY_NETWORK,
 )
 from asusrouter.dataclass import ConnectedDevice
@@ -264,10 +266,32 @@ def devicemap(devicemap : dict[str, Any]) -> dict[str, Any]:
     return data
 
 
+def temperatures(raw : str) -> dict[str, Any]:
+    """Temperature parser"""
+
+    if type(raw) != str:
+        raise AsusRouterValueError(ERROR_VALUE_TYPE.format(raw, type(raw)))
+    if raw.strip() == str():
+        return {}
+
+    temp = dict()
+
+    for sensor in AR_MAP_TEMPERATURE:
+        for reg in AR_MAP_TEMPERATURE[sensor]:
+            value = re.search(reg, raw)
+            if value:
+                temp[sensor] = float(value[1])
+
+    return temp
+
+
 def pseudo_json(text : str) -> dict[str, Any]:
     """JSON parser"""
 
     data = re.sub('\s+','',text)
+
+    if "curr_coreTmp" in data:
+        return temperatures(data)
 
     if "get_wan_lan_status=" in data:
         data = data.replace("get_wan_lan_status=", "")
