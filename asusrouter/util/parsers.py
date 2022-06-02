@@ -3,25 +3,27 @@
 from __future__ import annotations
 
 import logging
+
 _LOGGER = logging.getLogger(__name__)
 
-from typing import Any
+import json
 import re
 from datetime import datetime, timedelta
-import xmltodict
-import json
+from typing import Any
 
-from asusrouter.const import(
+import xmltodict
+
+from asusrouter.const import (
     AR_DEFAULT_CORES,
     AR_DEFAULT_CORES_RANGE,
     AR_DEVICE_ATTRIBUTES_LIST,
     AR_KEY_CPU_ITEM,
     AR_KEY_CPU_LIST,
     AR_KEY_DEVICEMAP,
+    AR_KEY_NETWORK_GROUPS,
+    AR_KEY_NETWORK_ITEM,
     AR_KEY_RAM_ITEM,
     AR_KEY_RAM_LIST,
-    AR_KEY_NETWORK_ITEM,
-    AR_KEY_NETWORK_GROUPS,
     AR_KEY_WAN_STATE,
     AR_MAP_TEMPERATURE,
     CONST_BITSINBYTE,
@@ -43,8 +45,7 @@ from asusrouter.error import AsusRouterNotImplementedError, AsusRouterValueError
 from asusrouter.util import calculators
 
 
-
-def cpu_cores(raw : dict[str, Any] | None = None) -> list[int]:
+def cpu_cores(raw: dict[str, Any] | None = None) -> list[int]:
     """CPU cores parser"""
 
     cores = list()
@@ -53,7 +54,9 @@ def cpu_cores(raw : dict[str, Any] | None = None) -> list[int]:
         return cores
 
     for i in AR_DEFAULT_CORES_RANGE:
-        if any(AR_KEY_CPU_ITEM.format(i, data_type) in raw for data_type in AR_KEY_CPU_LIST):
+        if any(
+            AR_KEY_CPU_ITEM.format(i, data_type) in raw for data_type in AR_KEY_CPU_LIST
+        ):
             cores.append(i)
         else:
             break
@@ -61,7 +64,9 @@ def cpu_cores(raw : dict[str, Any] | None = None) -> list[int]:
     return cores
 
 
-def cpu_usage(raw : dict[str, Any], cores : list[int] = AR_DEFAULT_CORES) -> dict[str, Any]:
+def cpu_usage(
+    raw: dict[str, Any], cores: list[int] = AR_DEFAULT_CORES
+) -> dict[str, Any]:
     """CPU usage parser"""
 
     cpu = dict()
@@ -82,14 +87,14 @@ def cpu_usage(raw : dict[str, Any], cores : list[int] = AR_DEFAULT_CORES) -> dic
                 try:
                     cpu[core][new_key] = int(raw[key])
                 except ValueError as ex:
-                    raise(AsusRouterValueError(ERROR_VALUE.format(raw[key], str(ex))))
+                    raise (AsusRouterValueError(ERROR_VALUE.format(raw[key], str(ex))))
                 # Add this to total as well
                 cpu[DATA_TOTAL][new_key] += cpu[core][new_key]
 
     return cpu
 
 
-def ram_usage(raw : dict[str, Any]) -> dict[str, Any]:
+def ram_usage(raw: dict[str, Any]) -> dict[str, Any]:
     """RAM usage parser"""
 
     ram = dict()
@@ -99,12 +104,18 @@ def ram_usage(raw : dict[str, Any]) -> dict[str, Any]:
             try:
                 ram[item] = int(raw[AR_KEY_RAM_ITEM.format(item)])
             except ValueError as ex:
-                raise(AsusRouterValueError(ERROR_VALUE.format(raw[AR_KEY_RAM_ITEM.format(item)], str(ex))))
+                raise (
+                    AsusRouterValueError(
+                        ERROR_VALUE.format(raw[AR_KEY_RAM_ITEM.format(item)], str(ex))
+                    )
+                )
 
     return ram
 
 
-def network_usage(raw : dict[str, Any], cache : dict[str, Any] | None = None) -> dict[str, Any]:
+def network_usage(
+    raw: dict[str, Any], cache: dict[str, Any] | None = None
+) -> dict[str, Any]:
     """Network usage parser"""
 
     network = dict()
@@ -114,21 +125,36 @@ def network_usage(raw : dict[str, Any], cache : dict[str, Any] | None = None) ->
                 if not AR_KEY_NETWORK_GROUPS[group] in network:
                     network[AR_KEY_NETWORK_GROUPS[group]] = dict()
                 try:
-                    network[AR_KEY_NETWORK_GROUPS[group]][type] = int(raw[AR_KEY_NETWORK_ITEM.format(group, type)], base = 16)
+                    network[AR_KEY_NETWORK_GROUPS[group]][type] = int(
+                        raw[AR_KEY_NETWORK_ITEM.format(group, type)], base=16
+                    )
                 except ValueError as ex:
-                    raise(AsusRouterValueError(ERROR_VALUE.format(raw[AR_KEY_NETWORK_ITEM.format(group, type)], str(ex))))
+                    raise (
+                        AsusRouterValueError(
+                            ERROR_VALUE.format(
+                                raw[AR_KEY_NETWORK_ITEM.format(group, type)], str(ex)
+                            )
+                        )
+                    )
 
-            elif (cache is not None
+            elif (
+                cache is not None
                 and KEY_NETWORK in cache
                 and AR_KEY_NETWORK_GROUPS[group] in cache[DATA_TRAFFIC]
                 and type in cache[DATA_TRAFFIC][AR_KEY_NETWORK_GROUPS[group]]
             ):
-                network[AR_KEY_NETWORK_GROUPS[group]][type] = cache[DATA_TRAFFIC][AR_KEY_NETWORK_GROUPS[group]][type]
+                network[AR_KEY_NETWORK_GROUPS[group]][type] = cache[DATA_TRAFFIC][
+                    AR_KEY_NETWORK_GROUPS[group]
+                ][type]
 
     return network
 
 
-def network_speed(after : dict[str, dict[str, float]], before : dict[str, dict[str, float]], time_delta : float) -> dict[str, dict[str, float]]:
+def network_speed(
+    after: dict[str, dict[str, float]],
+    before: dict[str, dict[str, float]],
+    time_delta: float,
+) -> dict[str, dict[str, float]]:
     """
     Network speed calculator
 
@@ -150,7 +176,14 @@ def network_speed(after : dict[str, dict[str, float]], before : dict[str, dict[s
             speed = dict()
             for type in after[group]:
                 if type in before[group]:
-                    speed[DATA_ADD_SPEED.format(type)] = CONST_BITSINBYTE * calculators.speed(after = after[group][type], before = before[group][type], time_delta = time_delta, overflow = DEFAULT_TRAFFIC_OVERFLOW)
+                    speed[
+                        DATA_ADD_SPEED.format(type)
+                    ] = CONST_BITSINBYTE * calculators.speed(
+                        after=after[group][type],
+                        before=before[group][type],
+                        time_delta=time_delta,
+                        overflow=DEFAULT_TRAFFIC_OVERFLOW,
+                    )
                 else:
                     speed[DATA_ADD_SPEED.format(type)] = CONST_ZERO
             after[group] |= speed
@@ -158,34 +191,34 @@ def network_speed(after : dict[str, dict[str, float]], before : dict[str, dict[s
     return after
 
 
-def wan_state(raw : dict[str, Any]) -> dict[str, Any]:
+def wan_state(raw: dict[str, Any]) -> dict[str, Any]:
     """WAN status parser"""
 
     values = dict()
 
     for key in AR_KEY_WAN_STATE:
-        if (key.value in raw
-            and raw[key.value] != str()
-        ):
+        if key.value in raw and raw[key.value] != str():
             try:
-                values[key.get()] = key.method(raw[key.value]) if key.method else raw[key.value]
+                values[key.get()] = (
+                    key.method(raw[key.value]) if key.method else raw[key.value]
+                )
             except AsusRouterValueError as ex:
                 _LOGGER.warning(ERROR_PARSING.format(key.value, str(ex)))
 
     return values
 
 
-def connected_device(raw : dict[str, Any]) -> ConnectedDevice:
+def connected_device(raw: dict[str, Any]) -> ConnectedDevice:
     """Device parser"""
 
     values = dict()
 
     for key in AR_DEVICE_ATTRIBUTES_LIST:
-        if (key.value in raw
-            and raw[key.value] != str()
-        ):
+        if key.value in raw and raw[key.value] != str():
             try:
-                values[key.get()] = key.method(raw[key.value]) if key.method else raw[key.value]
+                values[key.get()] = (
+                    key.method(raw[key.value]) if key.method else raw[key.value]
+                )
             except AsusRouterValueError as ex:
                 _LOGGER.warning(ERROR_PARSING.format(key.value, str(ex)))
 
@@ -194,21 +227,21 @@ def connected_device(raw : dict[str, Any]) -> ConnectedDevice:
     return device
 
 
-def uptime(data : str) -> datetime:
+def uptime(data: str) -> datetime:
     """Uptime -> boot time parser"""
 
     try:
         part = data.split("(")
         seconds = int(re.search("([0-9]+)", part[1]).group())
         when = datetime.strptime(part[0], "%a, %d %b %Y %H:%M:%S %z")
-        boot = when - timedelta(seconds = seconds)
+        boot = when - timedelta(seconds=seconds)
     except ValueError as ex:
-        raise(AsusRouterValueError(ERROR_VALUE.format(data, str(ex))))
+        raise (AsusRouterValueError(ERROR_VALUE.format(data, str(ex))))
 
     return boot
 
 
-def port_speed(value : str | None = None) -> int | None:
+def port_speed(value: str | None = None) -> int | None:
     """Port speed -> Mb/s parcer"""
 
     if value is None:
@@ -222,10 +255,10 @@ def port_speed(value : str | None = None) -> int | None:
     elif value == "Q":
         return 2500
     else:
-        raise(AsusRouterNotImplementedError(value))
+        raise (AsusRouterNotImplementedError(value))
 
 
-def devicemap(devicemap : dict[str, Any]) -> dict[str, Any]:
+def devicemap(devicemap: dict[str, Any]) -> dict[str, Any]:
     """Devicemap parser"""
 
     data = {}
@@ -261,12 +294,14 @@ def devicemap(devicemap : dict[str, Any]) -> dict[str, Any]:
     # Clear values from useless symbols
     for node in DEVICEMAP_CLEAR:
         for value in DEVICEMAP_CLEAR[node]:
-            data[node][value] = data[node][value].replace(DEVICEMAP_CLEAR[node][value], "")
+            data[node][value] = data[node][value].replace(
+                DEVICEMAP_CLEAR[node][value], ""
+            )
 
     return data
 
 
-def temperatures(raw : str) -> dict[str, Any]:
+def temperatures(raw: str) -> dict[str, Any]:
     """Temperature parser"""
 
     if type(raw) != str:
@@ -285,10 +320,10 @@ def temperatures(raw : str) -> dict[str, Any]:
     return temp
 
 
-def pseudo_json(text : str) -> dict[str, Any]:
+def pseudo_json(text: str) -> dict[str, Any]:
     """JSON parser"""
 
-    data = re.sub('\s+','',text)
+    data = re.sub("\s+", "", text)
 
     if "curr_coreTmp" in data:
         return temperatures(data)
@@ -303,11 +338,11 @@ def pseudo_json(text : str) -> dict[str, Any]:
     else:
         _LOGGER.error("Unknown data. Template for this data is unknown")
         return {}
-    
-    return json.loads(data.encode().decode('utf-8-sig') )
+
+    return json.loads(data.encode().decode("utf-8-sig"))
 
 
-def xml(text : str) -> dict[str, Any]:
+def xml(text: str) -> dict[str, Any]:
     """XML parser"""
 
     data = xmltodict.parse(text)
@@ -315,5 +350,3 @@ def xml(text : str) -> dict[str, Any]:
         return devicemap(data[AR_KEY_DEVICEMAP])
 
     return {}
-
-

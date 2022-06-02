@@ -2,16 +2,20 @@
 
 import pytest
 
+from asusrouter.const import DATA_TOTAL, DATA_USAGE, DATA_USED
 from asusrouter.util import calculators
 
-from asusrouter.const import DATA_USAGE, DATA_USED, DATA_TOTAL
-
-
-TEST_USAGE_IN_DICT = {DATA_TOTAL: 54, DATA_USED: 2, }
-TEST_USAGE_IN_DICT_RESULT = { DATA_TOTAL: 54, DATA_USED: 2, DATA_USAGE: 3.70 }
-TEST_USAGE_IN_DICT_2 = {DATA_TOTAL: 77, DATA_USED: 5, }
-TEST_USAGE_IN_DICT_RESULT_2 = { DATA_TOTAL: 77, DATA_USED: 5, DATA_USAGE: 6.49 }
-TEST_USAGE_IN_DICT_RESULT_3 = { DATA_TOTAL: 77, DATA_USED: 5, DATA_USAGE: 13.04 }
+TEST_USAGE_IN_DICT = {
+    DATA_TOTAL: 54,
+    DATA_USED: 2,
+}
+TEST_USAGE_IN_DICT_RESULT = {DATA_TOTAL: 54, DATA_USED: 2, DATA_USAGE: 3.70}
+TEST_USAGE_IN_DICT_2 = {
+    DATA_TOTAL: 77,
+    DATA_USED: 5,
+}
+TEST_USAGE_IN_DICT_RESULT_2 = {DATA_TOTAL: 77, DATA_USED: 5, DATA_USAGE: 6.49}
+TEST_USAGE_IN_DICT_RESULT_3 = {DATA_TOTAL: 77, DATA_USED: 5, DATA_USAGE: 13.04}
 
 
 def test_usage():
@@ -42,10 +46,15 @@ def test_usage_in_dict():
 
     # Tests with absolute moment data
     assert calculators.usage_in_dict(TEST_USAGE_IN_DICT) == TEST_USAGE_IN_DICT_RESULT
-    assert calculators.usage_in_dict(TEST_USAGE_IN_DICT_2) == TEST_USAGE_IN_DICT_RESULT_2
+    assert (
+        calculators.usage_in_dict(TEST_USAGE_IN_DICT_2) == TEST_USAGE_IN_DICT_RESULT_2
+    )
 
     # Tests with relative data
-    assert calculators.usage_in_dict(TEST_USAGE_IN_DICT_2, TEST_USAGE_IN_DICT) == TEST_USAGE_IN_DICT_RESULT_3
+    assert (
+        calculators.usage_in_dict(TEST_USAGE_IN_DICT_2, TEST_USAGE_IN_DICT)
+        == TEST_USAGE_IN_DICT_RESULT_3
+    )
 
 
 def test_speed():
@@ -58,9 +67,7 @@ def test_speed():
     # Overflow test
     assert calculators.speed(6, 14, 2, 16) == 4
     assert calculators.speed(19, 2, 17, 32) == 1
-    
+
     # Zero time_delta
     with pytest.raises(ZeroDivisionError):
         calculators.speed(174, 162, 0)
-
-

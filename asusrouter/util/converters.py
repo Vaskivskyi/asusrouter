@@ -2,19 +2,29 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
 import re
+from datetime import datetime, timedelta, timezone
 
 from asusrouter.error import AsusRouterValueError
 
-BOOL_FALSE : tuple[str, ...] = ("false", "block", "0", "off", )
-BOOL_TRUE : tuple[str, ...] = ("true", "allow", "1", "on", )
+BOOL_FALSE: tuple[str, ...] = (
+    "false",
+    "block",
+    "0",
+    "off",
+)
+BOOL_TRUE: tuple[str, ...] = (
+    "true",
+    "allow",
+    "1",
+    "on",
+)
 ERROR_VALUE = "Wrong value: {} with original exception: {}"
 ERROR_VALUE_TYPE = "Wrong value {} of type {}"
 REGEX_MAC = re.compile("^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})")
 
 
-def int_from_str(raw : str, base : int = 10) -> int:
+def int_from_str(raw: str, base: int = 10) -> int:
     """Convert string to integer"""
 
     if type(raw) != str:
@@ -25,10 +35,10 @@ def int_from_str(raw : str, base : int = 10) -> int:
     if raw == str():
         return int(0)
 
-    return int(raw, base = base)
+    return int(raw, base=base)
 
 
-def float_from_str(raw : str) -> float:
+def float_from_str(raw: str) -> float:
     """Convert striing to float"""
 
     if type(raw) != str:
@@ -45,19 +55,17 @@ def float_from_str(raw : str) -> float:
     try:
         value = float(raw)
     except ValueError as ex:
-        raise(AsusRouterValueError(ERROR_VALUE.format(raw, str(ex))))
+        raise (AsusRouterValueError(ERROR_VALUE.format(raw, str(ex))))
 
     return value
 
 
-def bool_from_any(raw : str | int | float) -> bool:
+def bool_from_any(raw: str | int | float) -> bool:
     """Converts string or number to bool"""
 
     _type = type(raw)
 
-    if (_type == int
-        or _type == float
-    ):
+    if _type == int or _type == float:
         if raw == 0:
             return False
         else:
@@ -75,7 +83,7 @@ def bool_from_any(raw : str | int | float) -> bool:
         raise AsusRouterValueError(ERROR_VALUE_TYPE.format(raw, type(raw)))
 
 
-def int_from_bool(raw : bool) -> int:
+def int_from_bool(raw: bool) -> int:
     """Convert boolean value to 0 or 1"""
 
     if type(raw) != bool:
@@ -84,7 +92,7 @@ def int_from_bool(raw : bool) -> int:
     return 1 if raw else 0
 
 
-def none_or_str(raw : str) -> str | None:
+def none_or_str(raw: str) -> str | None:
     """Returns either string or None if string is empty"""
 
     if type(raw) != str:
@@ -96,7 +104,7 @@ def none_or_str(raw : str) -> str | None:
     return raw.strip()
 
 
-def exists_or_not(raw : str) -> bool:
+def exists_or_not(raw: str) -> bool:
     """Returns whether value exists or is empty"""
 
     if type(raw) != str:
@@ -108,12 +116,12 @@ def exists_or_not(raw : str) -> bool:
     return True
 
 
-def timedelta_long(raw : str) -> timedelta:
+def timedelta_long(raw: str) -> timedelta:
     """Transform connection timedelta of the device to a proper datetime object when the device was connected"""
 
     if type(raw) != str:
         raise AsusRouterValueError(ERROR_VALUE_TYPE.format(raw, type(raw)))
-        
+
     raw = raw.strip()
 
     if raw == str():
@@ -121,18 +129,22 @@ def timedelta_long(raw : str) -> timedelta:
 
     part = raw.split(":")
     try:
-        return timedelta(hours = int(part[-3]), minutes = int(part[-2]), seconds = int(part[-1]))
+        return timedelta(
+            hours=int(part[-3]), minutes=int(part[-2]), seconds=int(part[-1])
+        )
     except ValueError as ex:
-        raise(AsusRouterValueError(ERROR_VALUE.format(raw, str(ex))))
+        raise (AsusRouterValueError(ERROR_VALUE.format(raw, str(ex))))
 
 
-def time_from_delta(raw : str) -> datetime:
+def time_from_delta(raw: str) -> datetime:
     """Transform time delta to the date in the past"""
 
-    return datetime.utcnow().replace(microsecond = 0, tzinfo = timezone.utc) - timedelta_long(raw)
+    return datetime.utcnow().replace(
+        microsecond=0, tzinfo=timezone.utc
+    ) - timedelta_long(raw)
 
 
-def is_mac_address(raw : str) -> bool:
+def is_mac_address(raw: str) -> bool:
     """Checks if string is MAC address"""
 
     if type(raw) != str:
@@ -149,7 +161,7 @@ def is_mac_address(raw : str) -> bool:
     return False
 
 
-def service_support(raw : str) -> list[str]:
+def service_support(raw: str) -> list[str]:
     """Get the list of the supported services"""
 
     if type(raw) != str:
@@ -164,5 +176,3 @@ def service_support(raw : str) -> list[str]:
     services = [i for i in services if i]
 
     return services
-
-
