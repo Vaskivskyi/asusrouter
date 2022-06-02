@@ -43,6 +43,7 @@ class AsusDevice:
     fw_minor: str | None = None
     fw_build: str | None = None
     services: str | None = None
+    sysinfo: bool = False
     led: bool = False
 
     def firmware(self) -> str:
@@ -53,14 +54,14 @@ class AsusDevice:
 class Key:
     """Key class"""
 
-    value: str
+    value: str | int
     value_to_use: str = ""
     method: function = none_or_str
 
     def __str__(self) -> str:
         """Return only `value` as default"""
 
-        return self.value
+        return str(self.value)
 
     def get(self) -> str:
         """
