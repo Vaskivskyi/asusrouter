@@ -25,7 +25,9 @@ from asusrouter.const import (
     AR_KEY_RAM_ITEM,
     AR_KEY_RAM_LIST,
     AR_KEY_WAN_STATE,
+    AR_MAP_SYSINFO,
     AR_MAP_TEMPERATURE,
+    AR_PATH,
     CONST_BITSINBYTE,
     CONST_ZERO,
     DATA_ADD_SPEED,
@@ -321,6 +323,33 @@ def temperatures(raw: str) -> dict[str, Any]:
     return temp
 
 
+def sysinfo(raw: str) -> dict[str, Any]:
+    """Sysinfo parser"""
+
+    raw = raw.replace("=", ":")
+    raw = raw.replace(":\"", "\":\"")
+    raw = raw.replace(":[", "\":[")
+    raw = raw.replace("\";", "\",\"")
+    raw = raw.replace("];", "],\"")
+    raw = "{\"" + raw[:-2] + "}"
+    print(raw)
+    data = json.loads(raw)
+
+    result = dict()
+                
+    for set in AR_MAP_SYSINFO:
+        if set in data:
+            for key in AR_MAP_SYSINFO[set]:
+                try:
+                    result[key.get()] = (
+                        key.method(data[set][key.value]) if key.method else data[set][key.value]
+                    )
+                except AsusRouterValueError as ex:
+                    _LOGGER.warning(ERROR_PARSING.format(key.value, str(ex)))
+
+    return result
+
+
 def pseudo_json(text: str, page: str) -> dict[str, Any]:
     """JSON parser"""
 
@@ -329,6 +358,8 @@ def pseudo_json(text: str, page: str) -> dict[str, Any]:
     if "curr_coreTmp" in data:
         return temperatures(data)
     # Merlin v380
+    elif page == AR_PATH["sysinfo"]:
+        return sysinfo(data)
     elif "get_clientlist" in data:
         data = data.replace("\"get_clientlist\":", "\"get_clientlist\":{")
         data += "}"

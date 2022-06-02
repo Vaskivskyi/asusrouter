@@ -50,6 +50,7 @@ from asusrouter.const import (
     KEY_HOOK,
     KEY_NETWORK,
     KEY_RAM,
+    KEY_SYSINFO,
     KEY_TEMPERATURE,
     KEY_WAN,
     MONITOR_MAIN,
@@ -184,6 +185,11 @@ class AsusRouter:
                     identity[key] = data
             except Exception as ex:
                 AsusRouterIdentityError(ERROR_IDENTITY.format(self._host, str(ex)))
+
+        # Check by page
+        data = await self.async_load(page=AR_PATH["sysinfo"])
+        if data != dict():
+            identity["sysinfo"] = True
 
         # Save static values
         self._status_led = raw[AR_KEY_LED]
@@ -376,6 +382,11 @@ class AsusRouter:
         # Keep last data
         elif self._monitor_main.ready and KEY_WAN in self._monitor_main:
             monitor_main[KEY_WAN] = self._monitor_main[KEY_WAN]
+
+        ### SYSINFO ###
+        
+        if self._identity.sysinfo:
+            monitor_main[KEY_SYSINFO] = await self.async_load(page=AR_PATH["sysinfo"])
 
         monitor_main.finish()
         self._monitor_main = monitor_main
@@ -742,6 +753,28 @@ class AsusRouter:
             result.append(value)
 
         return result
+
+    async def async_get_sysinfo(self, use_cache: bool = True) -> dict[str, Any]:
+        """Return sysinfo status"""
+
+        if not self._identity.sysinfo:
+            return {}
+
+        now = datetime.utcnow()
+        if (
+            not self._monitor_main.ready
+            or use_cache == False
+            or (
+                use_cache == True
+                and self._cache_time < (now - self._monitor_main.time).total_seconds()
+            )
+        ):
+            await self.async_monitor_main()
+
+        if not KEY_SYSINFO in self._monitor_main:
+            return {}
+
+        return self._monitor_main[KEY_SYSINFO]
 
     async def async_get_temperature(self, use_cache: bool = True) -> dict[str, Any]:
         """Raturn temperature status"""

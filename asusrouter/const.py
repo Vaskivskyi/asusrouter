@@ -44,6 +44,7 @@ DEFAULT_TRAFFIC_OVERFLOW = 4294967296
 KEY_CPU = "CPU"
 KEY_NETWORK = "NETWORK"
 KEY_RAM = "RAM"
+KEY_SYSINFO = "SYSINFO"
 KEY_TEMPERATURE = "TEMPERATURE"
 KEY_WAN = "WAN"
 
@@ -194,6 +195,28 @@ AR_MAP_TEMPERATURE: dict[str, list[str]] = {
     "cpu": ['curr_cpuTemp="([0-9.]+)"'],
 }
 
+AR_MAP_SYSINFO: dict[str, list[Key]] = {
+    "conn_stats_arr": [
+        Key(0, "conn_total", method=int_from_str),
+        Key(1, "conn_active", method=int_from_str),
+    ],
+    "cpu_stats_arr": [
+        Key(0, "load_avg_1", method=float_from_str),
+        Key(1, "load_avg_5", method=float_from_str),
+        Key(2, "load_avg_15", method=float_from_str),
+    ],
+    "mem_stats_arr": [
+        Key(0, "ram_total", method=float_from_str),
+        Key(1, "ram_free", method=float_from_str),
+        Key(2, "buffers", method=float_from_str),
+        Key(3, "cache", method=float_from_str),
+        Key(4, "swap_size", method=float_from_str),
+        Key(5, "swap_total", method=float_from_str),
+        Key(6, "nvram_used", method=int_from_str),
+        Key(7, "jffs"),
+    ],
+}
+
 AR_PATH = {
     "command": "applyapp.cgi",
     "devicemap": "ajax_status.xml",
@@ -201,6 +224,7 @@ AR_PATH = {
     "login": "login.cgi",
     "logout": "Logout.asp",
     "ports": "ajax_ethernet_ports.asp",
+    "sysinfo": "ajax_sysinfo.asp",
     "temperature": "ajax_coretmp.asp",
 }
 
