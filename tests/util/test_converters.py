@@ -1,7 +1,8 @@
 """Test AsusRouter converters module"""
 
-import pytest
 from datetime import datetime, timedelta
+
+import pytest
 
 from asusrouter.util import converters
 
@@ -75,7 +76,9 @@ def test_none_or_str():
     assert converters.none_or_str("     ") == None
     # Usual strings
     assert converters.none_or_str("The Machine") == "The Machine"
-    assert converters.none_or_str("  You are being watched  ") == "You are being watched"
+    assert (
+        converters.none_or_str("  You are being watched  ") == "You are being watched"
+    )
 
     # Not strings
     with pytest.raises(ValueError):
@@ -90,13 +93,14 @@ def test_timedelta_long():
     """Test long timedelta convertion"""
 
     # Normal strings
-    assert converters.timedelta_long("32:15:07") == timedelta(hours = 32, minutes = 15, seconds = 7)
+    assert converters.timedelta_long("32:15:07") == timedelta(
+        hours=32, minutes=15, seconds=7
+    )
     # Strings with spaces
-    assert converters.timedelta_long("  6:32:13 ") == timedelta(hours = 6, minutes = 32, seconds = 13)
+    assert converters.timedelta_long("  6:32:13 ") == timedelta(
+        hours=6, minutes=32, seconds=13
+    )
 
     # Not strings
     with pytest.raises(ValueError):
         converters.timedelta_long(10)
-
-
-

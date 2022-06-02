@@ -2,14 +2,11 @@
 
 from __future__ import annotations
 
-from asusrouter.const import(
-    AR_HOOK_TEMPLATE,
-    KEY_NVRAM_GET,
-)
+from asusrouter.const import AR_HOOK_TEMPLATE, KEY_NVRAM_GET
 
 
-def hook(commands : dict[str, str] | None = None) -> str:
-    """"Hook compiler"""
+def hook(commands: dict[str, str] | None = None) -> str:
+    """ "Hook compiler"""
 
     data = str()
     if commands is not None:
@@ -19,7 +16,7 @@ def hook(commands : dict[str, str] | None = None) -> str:
     return data
 
 
-def nvram(values : list[str] | str | None = None) -> str:
+def nvram(values: list[str] | str | None = None) -> str:
     """NVRAM request compiler"""
 
     if values is None:
@@ -33,5 +30,3 @@ def nvram(values : list[str] | str | None = None) -> str:
         request += AR_HOOK_TEMPLATE.format(KEY_NVRAM_GET, value)
 
     return request
-
-

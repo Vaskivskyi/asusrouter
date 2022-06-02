@@ -12,39 +12,38 @@ from asusrouter.util.converters import none_or_str
 class ConnectedDevice:
     """Connected device class"""
 
-    name : str | None = None
-    mac : str | None = None
+    name: str | None = None
+    mac: str | None = None
 
-    ip : str | None = None
-    ip_method : str | None = None
+    ip: str | None = None
+    ip_method: str | None = None
 
-    internet_state : bool | None = None
-    internet_mode : bool | None = None
+    internet_state: bool | None = None
+    internet_mode: bool | None = None
 
-    connection_type : str | None = None
+    connection_type: str | None = None
 
     # WLAN only values
-    online : bool | None = None
-    rssi : int | None = None
-    connected_since : int | None = None
-    rx_speed : float | None = None
-    tx_speed : float | None = None
+    online: bool | None = None
+    rssi: int | None = None
+    connected_since: int | None = None
+    rx_speed: float | None = None
+    tx_speed: float | None = None
 
 
 @dataclass
 class AsusDevice:
     """Asus device class"""
 
-    serial : str | None = None
-    mac : str | None = None
-    model : str | None = None
-    brand : str = "ASUSTek"
-    fw_major : str | None = None
-    fw_minor : str | None = None
-    fw_build : str | None = None
-    services : str | None = None
-    led : bool = False
-
+    serial: str | None = None
+    mac: str | None = None
+    model: str | None = None
+    brand: str = "ASUSTek"
+    fw_major: str | None = None
+    fw_minor: str | None = None
+    fw_build: str | None = None
+    services: str | None = None
+    led: bool = False
 
     def firmware(self) -> str:
         return "{}.{}_{}".format(self.fw_major, self.fw_minor, self.fw_build)
@@ -54,16 +53,14 @@ class AsusDevice:
 class Key:
     """Key class"""
 
-    value : str
-    value_to_use : str = ""
-    method : function = none_or_str
-
+    value: str
+    value_to_use: str = ""
+    method: function = none_or_str
 
     def __str__(self) -> str:
         """Return only `value` as default"""
 
         return self.value
-
 
     def get(self) -> str:
         """
@@ -106,32 +103,26 @@ class Monitor(dict):
     `finish`: set `ready` to True
     """
 
-    active : bool = False
-    time : datetime | None = None
-    ready : bool = False
-
+    active: bool = False
+    time: datetime | None = None
+    ready: bool = False
 
     def start(self) -> None:
         """Set to active"""
 
         self.active = True
 
-
     def stop(self) -> None:
         """Set to not-active"""
 
         self.active = False
-
 
     def reset(self) -> None:
         """Reset time to utcnow"""
 
         self.time = datetime.utcnow()
 
-
     def finish(self) -> None:
         """Set ready status to True"""
 
         self.ready = True
-
-
