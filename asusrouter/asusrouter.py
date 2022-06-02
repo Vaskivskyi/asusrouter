@@ -110,6 +110,48 @@ class AsusRouter:
             cert_path=cert_path,
         )
 
+    ### MAIN CONTROL -->
+
+    async def async_connect(self) -> bool:
+        """Connect to the device"""
+
+        try:
+            await self.connection.async_connect()
+        except Exception as ex:
+            raise ex
+
+        await self.async_identify()
+
+        return True
+
+    async def async_disconnect(self) -> bool:
+        """Disconnect from the device"""
+
+        try:
+            await self.connection.async_disconnect()
+        except Exception as ex:
+            raise ex
+
+        return True
+
+    async def async_drop_connection(self) -> bool:
+        """Drop connection when device will not reply because of our actions"""
+
+        try:
+            await self.connection.async_drop_connection()
+        except Exception as ex:
+            raise ex
+
+        return True
+
+    async def async_get_identity(self, force: bool = False) -> AsusDevice:
+        """Return device identity"""
+
+        if not self._identity or force:
+            await self.async_identify()
+
+        return self._identity
+
     async def async_identify(self) -> None:
         """Identify the device"""
 
@@ -150,45 +192,36 @@ class AsusRouter:
 
         _LOGGER.debug(MSG_SUCCESS["identity"])
 
-    async def async_get_identity(self, force: bool = False) -> AsusDevice:
-        """Return device identity"""
+    ### <-- MAIN CONTROL
 
-        if not self._identity or force:
-            await self.async_identify()
+    ### DATA PROCESSING -->
 
-        return self._identity
+    async def async_command(
+        self, commands: dict[str, str], action_mode: str = DEFAULT_ACTION_MODE
+    ) -> dict[str, Any]:
+        """Command device to run a service or set parameter"""
 
-    async def async_connect(self) -> bool:
-        """Connect to the device"""
+        result = {}
+
+        if not self._enable_control:
+            _LOGGER.error(MSG_ERROR["disabled_control"])
+            return result
+
+        request: dict = {
+            KEY_ACTION_MODE: action_mode,
+        }
+        for command in commands:
+            request[command] = commands[command]
 
         try:
-            await self.connection.async_connect()
+            result = await self.connection.async_run_command(
+                command=str(request), endpoint=AR_PATH["command"]
+            )
+            _LOGGER.debug("{}: {}".format(MSG_SUCCESS["command"], request))
         except Exception as ex:
             raise ex
 
-        await self.async_identify()
-
-        return True
-
-    async def async_drop_connection(self) -> bool:
-        """Drop connection when device will not reply because of our actions"""
-
-        try:
-            await self.connection.async_drop_connection()
-        except Exception as ex:
-            raise ex
-
-        return True
-
-    async def async_disconnect(self) -> bool:
-        """Disconnect from the device"""
-
-        try:
-            await self.connection.async_disconnect()
-        except Exception as ex:
-            raise ex
-
-        return True
+        return result
 
     async def async_hook(
         self, hook: str | None = None, force: bool = False
@@ -220,33 +253,6 @@ class AsusRouter:
 
         return result
 
-    async def async_command(
-        self, commands: dict[str, str], action_mode: str = DEFAULT_ACTION_MODE
-    ) -> dict[str, Any]:
-        """Command device to run a service or set parameter"""
-
-        result = {}
-
-        if not self._enable_control:
-            _LOGGER.error(MSG_ERROR["disabled_control"])
-            return result
-
-        request: dict = {
-            KEY_ACTION_MODE: action_mode,
-        }
-        for command in commands:
-            request[command] = commands[command]
-
-        try:
-            result = await self.connection.async_run_command(
-                command=str(request), endpoint=AR_PATH["command"]
-            )
-            _LOGGER.debug("{}: {}".format(MSG_SUCCESS["command"], request))
-        except Exception as ex:
-            raise ex
-
-        return result
-
     async def async_load(self, page: str | None = None) -> dict[str, Any]:
         """Return the data from the page"""
 
@@ -267,6 +273,8 @@ class AsusRouter:
             _LOGGER.error(ex)
 
         return result
+
+    ### <-- DATA PROCESSING
 
     ### MONITORS -->
 
@@ -574,23 +582,6 @@ class AsusRouter:
 
     ### RETURN DATA -->
 
-    async def async_get_devices(self, use_cache: bool = True) -> dict[str, Any]:
-        """Return device list"""
-
-        now = datetime.utcnow()
-        if (
-            not self._monitor_devices.ready
-            or use_cache == False
-            or (
-                use_cache == True
-                and self._cache_time
-                < (now - self._monitor_devices.time).total_seconds()
-            )
-        ):
-            await self.async_monitor_devices()
-
-        return self._monitor_devices.copy()
-
     async def async_get_cpu(self, use_cache: bool = True) -> dict[str, float]:
         """Return CPU usage"""
 
@@ -632,42 +623,22 @@ class AsusRouter:
 
         return result
 
-    async def async_get_ram(self, use_cache: bool = True) -> dict[str, (int | float)]:
-        """Return RAM and its usage"""
+    async def async_get_devices(self, use_cache: bool = True) -> dict[str, Any]:
+        """Return device list"""
 
         now = datetime.utcnow()
         if (
-            not self._monitor_main.ready
+            not self._monitor_devices.ready
             or use_cache == False
             or (
                 use_cache == True
-                and self._cache_time < (now - self._monitor_main.time).total_seconds()
+                and self._cache_time
+                < (now - self._monitor_devices.time).total_seconds()
             )
         ):
-            await self.async_monitor_main()
+            await self.async_monitor_devices()
 
-        result = dict()
-
-        # Check if RAM was monitored
-        if not self._monitor_main.ready or not KEY_RAM in self._monitor_main:
-            return result
-
-        for value in self._monitor_main[KEY_RAM]:
-            result[value] = self._monitor_main[KEY_RAM][value]
-
-        return result
-
-    async def async_get_ram_labels(self) -> list[str]:
-        """Return list of CPU cores"""
-
-        if not self._monitor_main.ready:
-            await self.async_monitor_main()
-
-        result = list()
-        for value in self._monitor_main[KEY_RAM]:
-            result.append(value)
-
-        return result
+        return self._monitor_devices.copy()
 
     async def async_get_network(
         self, use_cache: bool = True
@@ -735,6 +706,43 @@ class AsusRouter:
 
         return self._monitor_misc["PORTS"]
 
+    async def async_get_ram(self, use_cache: bool = True) -> dict[str, (int | float)]:
+        """Return RAM and its usage"""
+
+        now = datetime.utcnow()
+        if (
+            not self._monitor_main.ready
+            or use_cache == False
+            or (
+                use_cache == True
+                and self._cache_time < (now - self._monitor_main.time).total_seconds()
+            )
+        ):
+            await self.async_monitor_main()
+
+        result = dict()
+
+        # Check if RAM was monitored
+        if not self._monitor_main.ready or not KEY_RAM in self._monitor_main:
+            return result
+
+        for value in self._monitor_main[KEY_RAM]:
+            result[value] = self._monitor_main[KEY_RAM][value]
+
+        return result
+
+    async def async_get_ram_labels(self) -> list[str]:
+        """Return list of CPU cores"""
+
+        if not self._monitor_main.ready:
+            await self.async_monitor_main()
+
+        result = list()
+        for value in self._monitor_main[KEY_RAM]:
+            result.append(value)
+
+        return result
+
     async def async_get_temperature(self, use_cache: bool = True) -> dict[str, Any]:
         """Raturn temperature status"""
 
@@ -778,7 +786,7 @@ class AsusRouter:
 
     ### <-- RETURN DATA
 
-    ### SERVICES -->
+    ### SERVICE RUN -->
 
     async def async_service_run(
         self,
@@ -817,37 +825,7 @@ class AsusRouter:
 
         return converters.bool_from_any(result[AR_KEY_SERVICE_MODIFY])
 
-    async def async_service_led_set(self, value: bool | int | str) -> bool:
-        """Set status of the LEDs"""
-
-        value_to_set = converters.bool_from_any(value)
-
-        service = "start_ctrl_led"
-        arguments = {
-            AR_KEY_LED: converters.int_from_bool(value_to_set),
-        }
-        result = await self.async_service_run(service=service, arguments=arguments)
-        if result:
-            self._status_led = value_to_set
-        return result
-
-    async def async_service_led_get(self) -> bool | None:
-        """Return status of the LEDs"""
-
-        key = AR_KEY_LED
-        raw = await self.async_hook(compilers.nvram(key))
-        if not converters.none_or_str(raw[key]):
-            return None
-        value = converters.bool_from_any(raw[key])
-        self._status_led = value
-        return value
-
-    async def async_service_reboot(self) -> bool:
-        """Reboot the device"""
-
-        service = "reboot"
-        await self.async_service_run(service=service, drop_connection=True)
-        return True
+    ### SERVICES -->
 
     async def async_service_control(self, target: str, mode: str) -> bool:
         """Start / stop / (force) restart service"""
@@ -864,6 +842,38 @@ class AsusRouter:
         return await self.async_service_run(
             service=service, drop_connection=drop_connection
         )
+
+    async def async_service_led_get(self) -> bool | None:
+        """Return status of the LEDs"""
+
+        key = AR_KEY_LED
+        raw = await self.async_hook(compilers.nvram(key))
+        if not converters.none_or_str(raw[key]):
+            return None
+        value = converters.bool_from_any(raw[key])
+        self._status_led = value
+        return value
+
+    async def async_service_led_set(self, value: bool | int | str) -> bool:
+        """Set status of the LEDs"""
+
+        value_to_set = converters.bool_from_any(value)
+
+        service = "start_ctrl_led"
+        arguments = {
+            AR_KEY_LED: converters.int_from_bool(value_to_set),
+        }
+        result = await self.async_service_run(service=service, arguments=arguments)
+        if result:
+            self._status_led = value_to_set
+        return result
+
+    async def async_service_reboot(self) -> bool:
+        """Reboot the device"""
+
+        service = "reboot"
+        await self.async_service_run(service=service, drop_connection=True)
+        return True
 
     ### <-- SERVICES
 
