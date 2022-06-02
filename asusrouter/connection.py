@@ -206,10 +206,10 @@ class Connection:
         except json.JSONDecodeError:
             if ".xml" in endpoint:
                 _LOGGER.debug(MSG_INFO["xml"])
-                json_body = parsers.xml(text=string_body)
+                json_body = parsers.xml(text=string_body, page=endpoint)
             else:
                 _LOGGER.debug(MSG_INFO["json_fix"])
-                json_body = parsers.pseudo_json(text=string_body)
+                json_body = parsers.pseudo_json(text=string_body, page=endpoint)
             return json_body
 
         # Raise only if mute_flag not set
