@@ -384,7 +384,7 @@ class AsusRouter:
             monitor_main[KEY_WAN] = self._monitor_main[KEY_WAN]
 
         ### SYSINFO ###
-        
+
         if self._identity.sysinfo:
             monitor_main[KEY_SYSINFO] = await self.async_load(page=AR_PATH["sysinfo"])
 

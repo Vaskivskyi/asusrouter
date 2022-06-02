@@ -327,22 +327,24 @@ def sysinfo(raw: str) -> dict[str, Any]:
     """Sysinfo parser"""
 
     raw = raw.replace("=", ":")
-    raw = raw.replace(":\"", "\":\"")
-    raw = raw.replace(":[", "\":[")
-    raw = raw.replace("\";", "\",\"")
-    raw = raw.replace("];", "],\"")
-    raw = "{\"" + raw[:-2] + "}"
+    raw = raw.replace(':"', '":"')
+    raw = raw.replace(":[", '":[')
+    raw = raw.replace('";', '","')
+    raw = raw.replace("];", '],"')
+    raw = '{"' + raw[:-2] + "}"
     print(raw)
     data = json.loads(raw)
 
     result = dict()
-                
+
     for set in AR_MAP_SYSINFO:
         if set in data:
             for key in AR_MAP_SYSINFO[set]:
                 try:
                     result[key.get()] = (
-                        key.method(data[set][key.value]) if key.method else data[set][key.value]
+                        key.method(data[set][key.value])
+                        if key.method
+                        else data[set][key.value]
                     )
                 except AsusRouterValueError as ex:
                     _LOGGER.warning(ERROR_PARSING.format(key.value, str(ex)))
@@ -361,7 +363,7 @@ def pseudo_json(text: str, page: str) -> dict[str, Any]:
     elif page == AR_PATH["sysinfo"]:
         return sysinfo(data)
     elif "get_clientlist" in data:
-        data = data.replace("\"get_clientlist\":", "\"get_clientlist\":{")
+        data = data.replace('"get_clientlist":', '"get_clientlist":{')
         data += "}"
     elif "get_wan_lan_status=" in data:
         data = data.replace("get_wan_lan_status=", "")
