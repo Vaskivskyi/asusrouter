@@ -277,15 +277,16 @@ def devicemap(devicemap: dict[str, Any]) -> dict[str, Any]:
         _node = {}
         for key in DEVICEMAP_GENERAL[node]:
             for el in DEVICEMAP_GENERAL[node][key]:
-                if type(devicemap[key]) == str:
-                    if el in devicemap[key]:
-                        _node[el] = devicemap[key].replace("{}=".format(el), "")
-                        break
-                else:
-                    for value in devicemap[key]:
-                        if el in value:
-                            _node[el] = value.replace("{}=".format(el), "")
+                if key in devicemap:
+                    if type(devicemap[key]) == str:
+                        if el in devicemap[key]:
+                            _node[el] = devicemap[key].replace("{}=".format(el), "")
                             break
+                    else:
+                        for value in devicemap[key]:
+                            if el in value:
+                                _node[el] = value.replace("{}=".format(el), "")
+                                break
         if node in data:
             data[node].update(_node)
         else:
@@ -320,15 +321,18 @@ def temperatures(raw: str) -> dict[str, Any]:
     return temp
 
 
-def pseudo_json(text: str) -> dict[str, Any]:
+def pseudo_json(text: str, page: str) -> dict[str, Any]:
     """JSON parser"""
 
     data = re.sub("\s+", "", text)
 
     if "curr_coreTmp" in data:
         return temperatures(data)
-
-    if "get_wan_lan_status=" in data:
+    # Merlin v380
+    elif "get_clientlist" in data:
+        data = data.replace("\"get_clientlist\":", "\"get_clientlist\":{")
+        data += "}"
+    elif "get_wan_lan_status=" in data:
         data = data.replace("get_wan_lan_status=", "")
         data = data[:-1]
     elif "varcpuInfo,memInfo=newObject();cpuInfo=" in data:
@@ -342,7 +346,7 @@ def pseudo_json(text: str) -> dict[str, Any]:
     return json.loads(data.encode().decode("utf-8-sig"))
 
 
-def xml(text: str) -> dict[str, Any]:
+def xml(text: str, page: str) -> dict[str, Any]:
     """XML parser"""
 
     data = xmltodict.parse(text)
