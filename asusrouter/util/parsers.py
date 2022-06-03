@@ -326,11 +326,8 @@ def temperatures(raw: str) -> dict[str, Any]:
 def sysinfo(raw: str) -> dict[str, Any]:
     """Sysinfo parser"""
 
-    raw = raw.replace("=", ":")
-    raw = raw.replace(':"', '":"')
-    raw = raw.replace(":[", '":[')
-    raw = raw.replace('";', '","')
-    raw = raw.replace("];", '],"')
+    raw = raw.replace('=', '":')
+    raw = raw.replace(';', ',"')
     raw = '{"' + raw[:-2] + "}"
     data = json.loads(raw)
 
