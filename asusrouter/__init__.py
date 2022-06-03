@@ -1,6 +1,7 @@
 """Library init"""
 
 from .error import (
+    AsusRouter404,
     AsusRouterConnectionError,
     AsusRouterConnectionTimeoutError,
     AsusRouterError,

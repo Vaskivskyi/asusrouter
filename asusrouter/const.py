@@ -248,7 +248,7 @@ ERROR_ZERO_DIVISION = "Zero division allert: {}"
 MSG_ERROR = {
     "authorisation": "Session is not authorised",
     "cert_missing": "CA certificate is missing",
-    "command": "Error sending a command {} to {}",
+    "command": "Error sending a command {} to {}. Exception: {}",
     "credentials": "Wrong credentials",
     "disabled_control": "Device is connected in no-control mode. Sending commands is blocked",
     "disabled_monitor": "Device is connected in no-monitor mode. Sending hooks is blocked",

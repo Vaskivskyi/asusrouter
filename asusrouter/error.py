@@ -88,3 +88,7 @@ class AsusRouterNotImplementedError(AsusRouterError, NotImplementedError):
 
 class AsusRouterIdentityError(AsusRouterError):
     """Error of collecting device identity"""
+
+
+class AsusRouter404(AsusRouterError):
+    """Error on page not found"""

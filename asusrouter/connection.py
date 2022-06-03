@@ -17,6 +17,7 @@ from typing import Any
 import aiohttp
 
 from asusrouter import (
+    AsusRouter404,
     AsusRouterConnectionError,
     AsusRouterConnectionTimeoutError,
     AsusRouterLoginBlockError,
@@ -109,7 +110,7 @@ class Connection:
                 try:
                     result = await self.async_request(command, endpoint, self._headers)
                     return result
-                except AsusRouterServerDisconnectedError as ex:
+                except (AsusRouter404, AsusRouterServerDisconnectedError) as ex:
                     raise ex
                 except Exception as ex:
                     if not retry:
@@ -118,7 +119,9 @@ class Connection:
                             command, endpoint, retry=True
                         )
                     else:
-                        _LOGGER.error(MSG_ERROR["command"].format(command, endpoint))
+                        _LOGGER.error(
+                            MSG_ERROR["command"].format(command, endpoint, ex)
+                        )
                         return {}
             else:
                 _LOGGER.error(MSG_ERROR["command"].format(command, endpoint))
@@ -156,6 +159,8 @@ class Connection:
                 ssl=self._ssl,
             ) as r:
                 string_body = await r.text()
+                if "404 Not Found" in string_body:
+                    raise AsusRouter404()
                 json_body = await r.json()
 
                 # Handle reported errors
