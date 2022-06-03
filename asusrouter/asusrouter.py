@@ -611,6 +611,10 @@ class AsusRouter:
 
         result = dict()
 
+        # Check if CPU was monitored
+        if not self._monitor_main.ready or not KEY_CPU in self._monitor_main:
+            return result
+
         for core in self._device_cpu_cores:
             if DATA_USAGE in self._monitor_main[KEY_CPU][core]:
                 result[DATA_BY_CORE.format(core)] = self._monitor_main[KEY_CPU][core][
