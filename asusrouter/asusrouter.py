@@ -796,6 +796,18 @@ class AsusRouter:
 
         return self._monitor_misc[KEY_TEMPERATURE]
 
+    async def async_get_temperature_labels(self) -> list[str]:
+        """Return list of temperature sensors"""
+
+        if not self._monitor_misc.ready:
+            await self.async_monitor_misc()
+
+        result = list()
+        for value in self._monitor_misc[KEY_TEMPERATURE]:
+            result.append(value)
+
+        return result
+
     async def async_get_wan(self, use_cache: bool = True) -> dict[str, str]:
         """Return WAN and its usage"""
 
