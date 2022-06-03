@@ -12,6 +12,7 @@ from typing import Any
 
 from asusrouter import (
     AsusDevice,
+    AsusRouter404,
     AsusRouterIdentityError,
     AsusRouterServerDisconnectedError,
     AsusRouterServiceError,
@@ -113,6 +114,15 @@ class AsusRouter:
 
     ### MAIN CONTROL -->
 
+    async def async_check_endpoint(self, endpoint: str) -> bool:
+        """Check if endpoint exists"""
+
+        try:
+            result = await self.async_load(page=endpoint)
+            return True
+        except AsusRouter404:
+            return False
+
     async def async_connect(self) -> bool:
         """Connect to the device"""
 
@@ -187,9 +197,9 @@ class AsusRouter:
                 AsusRouterIdentityError(ERROR_IDENTITY.format(self._host, str(ex)))
 
         # Check by page
-        data = await self.async_load(page=AR_PATH["sysinfo"])
-        if data != dict():
-            identity["sysinfo"] = True
+        identity["sysinfo"] = await self.async_check_endpoint(
+            endpoint=AR_PATH["sysinfo"]
+        )
 
         # Save static values
         self._status_led = raw[AR_KEY_LED]
@@ -275,6 +285,8 @@ class AsusRouter:
         try:
             result = await self.connection.async_run_command(command="", endpoint=page)
             _LOGGER.debug(MSG_SUCCESS["load"].format(page))
+        except AsusRouter404 as ex:
+            raise ex
         except Exception as ex:
             _LOGGER.error(ex)
 

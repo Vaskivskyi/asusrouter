@@ -332,7 +332,6 @@ def sysinfo(raw: str) -> dict[str, Any]:
     raw = raw.replace('";', '","')
     raw = raw.replace("];", '],"')
     raw = '{"' + raw[:-2] + "}"
-    print(raw)
     data = json.loads(raw)
 
     result = dict()
