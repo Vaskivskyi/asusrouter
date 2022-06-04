@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from asusrouter.const import AR_HOOK_TEMPLATE, KEY_NVRAM_GET
+from asusrouter.const import AR_HOOK_TEMPLATE, AR_MAP_RGB, KEY_NVRAM_GET
 
 
 def hook(commands: dict[str, str] | None = None) -> str:
@@ -30,3 +30,22 @@ def nvram(values: list[str] | str | None = None) -> str:
         request += AR_HOOK_TEMPLATE.format(KEY_NVRAM_GET, value)
 
     return request
+
+
+def rgb(raw: dict[int, dict[str, int]]) -> str:
+    """RGB value compiler for LEDG scheme"""
+
+    value = str()
+
+    raw = dict(sorted(raw.items()))
+
+    for led in raw:
+        for channel in AR_MAP_RGB:
+            if AR_MAP_RGB[channel] in raw[led]:
+                value += f"{raw[led][AR_MAP_RGB[channel]]},"
+            else:
+                value += "0,"
+
+    value = value[:-1]
+
+    return value
