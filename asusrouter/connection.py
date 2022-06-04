@@ -127,6 +127,34 @@ class Connection:
                 _LOGGER.error(MSG_ERROR["command"].format(command, endpoint))
                 return {}
 
+    async def async_load(self, endpoint: str, retry: bool = False) -> str:
+        """Load the page"""
+
+        if self._drop:
+            return {}
+
+        if self._token is None and not retry:
+            await self.async_connect()
+            return await self.async_load(endpoint, retry=True)
+
+        string_body = str()
+
+        try:
+            async with self._session.post(
+                url="{}://{}:{}/{}".format(
+                    self._http, self._host, self._port, endpoint
+                ),
+                headers=self._headers,
+                ssl=self._ssl,
+            ) as r:
+                string_body = await r.text()
+                if "404 Not Found" in string_body:
+                    raise AsusRouter404()
+        except Exception as ex:
+            raise ex
+
+        return string_body
+
     async def async_request(
         self, payload: str, endpoint: str, headers: dict[str, str], retry: bool = False
     ) -> dict[str, Any]:
