@@ -418,8 +418,9 @@ class AsusRouter:
 
         ### SYSINFO ###
 
-        if self._identity.sysinfo:
-            monitor_main[KEY_SYSINFO] = await self.async_load(page=AR_PATH["sysinfo"])
+        if self._identity:
+            if self._identity.sysinfo:
+                monitor_main[KEY_SYSINFO] = await self.async_load(page=AR_PATH["sysinfo"])
 
         monitor_main.finish()
         self._monitor_main = monitor_main
