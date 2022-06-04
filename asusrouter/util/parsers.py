@@ -16,15 +16,18 @@ import xmltodict
 from asusrouter.const import (
     AR_DEFAULT_CORES,
     AR_DEFAULT_CORES_RANGE,
+    AR_DEFAULT_LEDG,
     AR_DEVICE_ATTRIBUTES_LIST,
     AR_KEY_CPU_ITEM,
     AR_KEY_CPU_LIST,
     AR_KEY_DEVICEMAP,
+    AR_KEY_LEDG_RGB,
     AR_KEY_NETWORK_GROUPS,
     AR_KEY_NETWORK_ITEM,
     AR_KEY_RAM_ITEM,
     AR_KEY_RAM_LIST,
     AR_KEY_WAN_STATE,
+    AR_MAP_RGB,
     AR_MAP_SYSINFO,
     AR_MAP_TEMPERATURE,
     AR_PATH,
@@ -304,6 +307,23 @@ def devicemap(devicemap: dict[str, Any]) -> dict[str, Any]:
     return data
 
 
+def ledg_count(raw: str) -> int:
+    """LEDG count parser"""
+
+    if type(raw) != str:
+        raise AsusRouterValueError(ERROR_VALUE_TYPE.format(raw, type(raw)))
+    if raw.strip() == str():
+        return {}
+
+    value = re.search("ledg_count: ([0-9]+)", raw)
+    if value:
+        count = int(value[1])
+    else:
+        count = 0
+
+    return count
+
+
 def temperatures(raw: str) -> dict[str, Any]:
     """Temperature parser"""
 
@@ -323,11 +343,36 @@ def temperatures(raw: str) -> dict[str, Any]:
     return temp
 
 
+def rgb(raw: str, num: int = AR_DEFAULT_LEDG) -> dict[int, dict[str, int]]:
+    """RGB to channels parser"""
+
+    if type(raw) != str:
+        raise AsusRouterValueError(ERROR_VALUE_TYPE.format(raw, type(raw)))
+    if raw.strip() == str():
+        return {}
+
+    leds = dict()
+
+    color = re.findall("([0-9]+)", raw)
+    length = len(color)
+
+    for led in range(1, num):
+        ind = (led - 1) * 3
+        if ind + 2 > length:
+            break
+        if not led in leds:
+            leds[led] = dict()
+        for channel in AR_MAP_RGB:
+            leds[led][AR_MAP_RGB[channel]] = color[ind + channel]
+
+    return leds
+
+
 def sysinfo(raw: str) -> dict[str, Any]:
     """Sysinfo parser"""
 
-    raw = raw.replace('=', '":')
-    raw = raw.replace(';', ',"')
+    raw = raw.replace("=", '":')
+    raw = raw.replace(";", ',"')
     raw = '{"' + raw[:-2] + "}"
     data = json.loads(raw)
 

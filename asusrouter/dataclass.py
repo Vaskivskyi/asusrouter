@@ -45,6 +45,8 @@ class AsusDevice:
     services: str | None = None
     sysinfo: bool = False
     led: bool = False
+    ledg: bool = False
+    aura: bool = False
 
     def firmware(self) -> str:
         return "{}.{}_{}".format(self.fw_major, self.fw_minor, self.fw_build)

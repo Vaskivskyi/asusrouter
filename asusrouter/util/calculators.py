@@ -90,3 +90,22 @@ def speed(
             diff += overflow
 
     return diff / time_delta
+
+
+def rgb(raw: dict[int, dict[str, int]]) -> dict[int, dict[str, int]]:
+    """Calculate RGB values from input"""
+
+    output = dict()
+
+    for led in raw:
+        output[led] = dict()
+        for channel in raw[led]:
+            value = raw[led][channel]
+            if value < 0:
+                output[led][channel] = 0
+            elif value > 128:
+                output[led][channel] = 128
+            else:
+                output[led][channel] = value
+
+    return output

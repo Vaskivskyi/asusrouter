@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import logging
 
+from asusrouter.error import AsusRouterValueError
+
 _LOGGER = logging.getLogger(__name__)
 
 import asyncio
@@ -25,12 +27,16 @@ from asusrouter.const import (
     AR_KEY_CPU,
     AR_KEY_DEVICES,
     AR_KEY_LED,
+    AR_KEY_LEDG_RGB,
+    AR_KEY_LEDG_SCHEME,
+    AR_KEY_LEDG_SCHEME_OLD,
     AR_KEY_NETWORK,
     AR_KEY_RAM,
     AR_KEY_SERVICE_COMMAND,
     AR_KEY_SERVICE_MODIFY,
     AR_KEY_SERVICE_REPLY,
     AR_KEY_WAN,
+    AR_LEDG_MODE,
     AR_PATH,
     AR_SERVICE_COMMAND,
     AR_SERVICE_CONTROL,
@@ -45,6 +51,7 @@ from asusrouter.const import (
     ERROR_IDENTITY,
     ERROR_SERVICE,
     ERROR_SERVICE_UNKNOWN,
+    ERROR_VALUE,
     INTERFACE_TYPE,
     KEY_ACTION_MODE,
     KEY_CPU,
@@ -99,6 +106,9 @@ class AsusRouter:
         self._monitor_devices: Monitor = Monitor()
 
         self._identity: AsusDevice | None = None
+        self._ledg_color: dict[int, dict[str, int]] | None = None
+        self._ledg_count: int = 0
+        self._ledg_mode: int | None = None
         self._status_led: bool = False
 
         """Connect"""
@@ -200,6 +210,17 @@ class AsusRouter:
         identity["sysinfo"] = await self.async_check_endpoint(
             endpoint=AR_PATH["sysinfo"]
         )
+
+        # Check RGBG / AURA
+        try:
+            data = await self.connection.async_load(AR_PATH["rgb"])
+            if "aurargb" in data:
+                identity["aura"] = True
+            elif "ledg_count" in data:
+                identity["ledg"] = True
+                self._ledg_count = parsers.ledg_count(data)
+        except AsusRouter404 as ex:
+            """Do nothing"""
 
         # Save static values
         self._status_led = raw[AR_KEY_LED]
@@ -929,6 +950,68 @@ class AsusRouter:
             self._status_led = value_to_set
         return result
 
+    async def async_service_ledg_get(self) -> dict[str, Any] | None:
+        """Return status of RGB LEDs in LEDG scheme"""
+
+        nvram = list()
+        for mode in AR_LEDG_MODE:
+            nvram.append(AR_KEY_LEDG_RGB.format(mode))
+        nvram.append(AR_KEY_LEDG_SCHEME)
+        nvram.append(AR_KEY_LEDG_SCHEME_OLD)
+
+        data = await self.async_hook(compilers.nvram(nvram))
+
+        ledg = dict()
+        if AR_KEY_LEDG_SCHEME in data and data[AR_KEY_LEDG_SCHEME] != str():
+            self._ledg_mode = data[AR_KEY_LEDG_SCHEME]
+            ledg[AR_KEY_LEDG_SCHEME] = self._ledg_mode
+        else:
+            return None
+
+        if AR_KEY_LEDG_RGB.format(self._ledg_mode) in data:
+            self._ledg_color = parsers.rgb(data[AR_KEY_LEDG_RGB])
+
+        return {
+            "color": self._ledg_color,
+            "mode": self._ledg_mode,
+            "count": self._ledg_count,
+        }
+
+    async def async_service_ledg_set(
+        self, mode: int, color: dict[int, dict[str, int]]
+    ) -> bool:
+        """Set state of RGB LEDs in LEDG scheme"""
+
+        # If none LEDs
+        if self._ledg_count == 0:
+            return False
+
+        if not mode in AR_LEDG_MODE:
+            raise (AsusRouterValueError(ERROR_VALUE.format(mode)))
+
+        # Check for the known state
+        if not self._ledg_mode or not self._ledg_color:
+            await self.async_service_ledg_get()
+
+        colors = calculators.rgb(color)
+        for num in range(1, self._ledg_count + 1):
+            if not num in colors:
+                if self._ledg_color and num in self._ledg_color:
+                    colors[num] = self._ledg_color[num]
+                else:
+                    colors[num] = dict()
+
+        color_to_set = compilers.rgb(colors)
+
+        result = await self.async_load(
+            f"{AR_PATH['ledg']}?ledg_scheme={mode}&ledg_rgb={color_to_set}"
+        )
+
+        if "statusCode" in result and int(result["statusCode"]) == 200:
+            return True
+
+        return False
+
     async def async_service_reboot(self) -> bool:
         """Reboot the device"""
 
@@ -949,3 +1032,7 @@ class AsusRouter:
     @property
     def led(self) -> bool:
         return self._status_led
+
+    @property
+    def ledg_count(self) -> int:
+        return self._ledg_count

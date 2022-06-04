@@ -84,6 +84,9 @@ AR_KEY_DEVICEMAP = "devicemap"
 AR_KEY_DEVICES = "get_clientlist"
 AR_KEY_DEVICES_LIST = "maclist"
 AR_KEY_LED = "led_val"
+AR_KEY_LEDG_SCHEME = "ledg_scheme"
+AR_KEY_LEDG_SCHEME_OLD = "ledg_scheme_old"
+AR_KEY_LEDG_RGB = "ledg_rgb{}"
 AR_KEY_NETWORK = "netdev"
 AR_KEY_NETWORK_ITEM = "{}_{}"
 AR_KEY_RAM = "memory_usage"
@@ -170,6 +173,7 @@ AR_SERVICE_DROP_CONNECTION: list[str] = {
 
 AR_DEFAULT_CORES = [1]
 AR_DEFAULT_CORES_RANGE = range(1, 8)
+AR_DEFAULT_LEDG = 8
 
 DEFAULT_USAGE_DIGITS = 2
 
@@ -187,6 +191,22 @@ DEFAULT_PORT = {
 
 AR_KEY = {
     "cpu_usage": "cpu_usage",
+}
+
+AR_LEDG_MODE: dict[int, str] = {
+    1: "Gradient",
+    2: "Static",
+    3: "Breathing",
+    4: "Evolution",
+    5: "Rainbow",
+    6: "Wave",
+    7: "Marquee",
+}
+
+AR_MAP_RGB: dict[int, str] = {
+    0: "r",
+    1: "g",
+    2: "b",
 }
 
 AR_MAP_TEMPERATURE: dict[str, list[str]] = {
@@ -237,9 +257,12 @@ AR_PATH = {
     "command": "applyapp.cgi",
     "devicemap": "ajax_status.xml",
     "get": "appGet.cgi",
+    "ledg": "set_ledg.cgi",
     "login": "login.cgi",
     "logout": "Logout.asp",
     "ports": "ajax_ethernet_ports.asp",
+    "rgb": "light_effect.html",
+    "state": "state.js",
     "sysinfo": "ajax_sysinfo.asp",
     "temperature": "ajax_coretmp.asp",
 }
