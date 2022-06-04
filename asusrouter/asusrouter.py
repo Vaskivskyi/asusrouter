@@ -118,7 +118,7 @@ class AsusRouter:
         """Check if endpoint exists"""
 
         try:
-            result = await self.async_load(page=endpoint)
+            result = await self.connection.async_load(endpoint)
             return True
         except AsusRouter404:
             return False
