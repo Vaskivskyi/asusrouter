@@ -81,7 +81,7 @@ AR_DEVICE_ATTRIBUTES_LIST: tuple[Key, ...] = (
 AR_DEVICE_IDENTITY: tuple[Key, ...] = (
     Key("serial_no", "serial"),
     Key("label_mac", "mac"),
-    Key("model", "model"),
+    Key("productid", "model"),
     Key("firmver", "fw_major"),
     Key("buildno", "fw_minor"),
     Key("extendno", "fw_build"),
