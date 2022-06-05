@@ -21,7 +21,6 @@ from asusrouter.const import (
     AR_KEY_CPU_ITEM,
     AR_KEY_CPU_LIST,
     AR_KEY_DEVICEMAP,
-    AR_KEY_LEDG_RGB,
     AR_KEY_NETWORK_GROUPS,
     AR_KEY_NETWORK_ITEM,
     AR_KEY_RAM_ITEM,

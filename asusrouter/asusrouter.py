@@ -4,8 +4,6 @@ from __future__ import annotations
 
 import logging
 
-from asusrouter.error import AsusRouterValueError
-
 _LOGGER = logging.getLogger(__name__)
 
 import asyncio
@@ -18,15 +16,18 @@ from asusrouter import (
     AsusRouterIdentityError,
     AsusRouterServerDisconnectedError,
     AsusRouterServiceError,
+    AsusRouterValueError,
     Connection,
     Monitor,
 )
 from asusrouter.const import (
     AR_DEVICE_IDENTITY,
     AR_HOOK_DEVICES,
+    AR_KEY_AURARGB,
     AR_KEY_CPU,
     AR_KEY_DEVICES,
     AR_KEY_LED,
+    AR_KEY_LEDG_COUNT,
     AR_KEY_LEDG_RGB,
     AR_KEY_LEDG_SCHEME,
     AR_KEY_LEDG_SCHEME_OLD,
@@ -66,6 +67,9 @@ from asusrouter.const import (
     MSG_INFO,
     MSG_SUCCESS,
     NVRAM_LIST,
+    PARAM_COLOR,
+    PARAM_COUNT,
+    PARAM_MODE,
     PORT_TYPE,
 )
 from asusrouter.util import calculators, compilers, converters, parsers
@@ -89,12 +93,11 @@ class AsusRouter:
     ):
         """Init"""
 
-        self._host = host
-
-        self._enable_monitor: bool = enable_monitor
-        self._enable_control: bool = enable_control
+        self._host: str = host
 
         self._cache_time: int = cache_time
+        self._enable_monitor: bool = enable_monitor
+        self._enable_control: bool = enable_control
 
         self._device_cpu_cores: list[int] | None = None
         self._device_ports: dict[str, str] | None = None
@@ -214,9 +217,9 @@ class AsusRouter:
         # Check RGBG / AURA
         try:
             data = await self.connection.async_load(AR_PATH["rgb"])
-            if "aurargb" in data:
+            if AR_KEY_AURARGB in data:
                 identity["aura"] = True
-            elif "ledg_count" in data:
+            elif AR_KEY_LEDG_COUNT in data:
                 identity["ledg"] = True
                 self._ledg_count = parsers.ledg_count(data)
         except AsusRouter404 as ex:
@@ -420,7 +423,9 @@ class AsusRouter:
 
         if self._identity:
             if self._identity.sysinfo:
-                monitor_main[KEY_SYSINFO] = await self.async_load(page=AR_PATH["sysinfo"])
+                monitor_main[KEY_SYSINFO] = await self.async_load(
+                    page=AR_PATH["sysinfo"]
+                )
 
         monitor_main.finish()
         self._monitor_main = monitor_main
@@ -973,9 +978,9 @@ class AsusRouter:
             self._ledg_color = parsers.rgb(data[AR_KEY_LEDG_RGB])
 
         return {
-            "color": self._ledg_color,
-            "mode": self._ledg_mode,
-            "count": self._ledg_count,
+            PARAM_COLOR: self._ledg_color,
+            PARAM_COUNT: self._ledg_count,
+            PARAM_MODE: self._ledg_mode,
         }
 
     async def async_service_ledg_set(
@@ -1005,7 +1010,7 @@ class AsusRouter:
         color_to_set = compilers.rgb(colors)
 
         result = await self.async_load(
-            f"{AR_PATH['ledg']}?ledg_scheme={mode}&ledg_rgb={color_to_set}"
+            f"{AR_PATH['ledg']}?{AR_KEY_LEDG_SCHEME}={mode}&ledg_rgb={color_to_set}"
         )
 
         if "statusCode" in result and int(result["statusCode"]) == 200:

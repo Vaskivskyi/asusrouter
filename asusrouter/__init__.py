@@ -15,18 +15,6 @@ from .error import (
     AsusRouterSSLError,
     AsusRouterValueError,
 )
-
-from .dataclass import (
-    AsusDevice as AsusDevice,
-    ConnectedDevice as ConnectedDevice,
-    Key as Key,
-    Monitor as Monitor,
-)
-
-from .connection import (
-    Connection as Connection,
-)
-
-from .asusrouter import (
-    AsusRouter as AsusRouter,
-)
+from .dataclass import AsusDevice, ConnectedDevice, Key, Monitor
+from .connection import Connection
+from .asusrouter import AsusRouter

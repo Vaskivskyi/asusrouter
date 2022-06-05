@@ -10,20 +10,15 @@ from asusrouter.util.converters import (
     time_from_delta,
 )
 
-# Use the last known working Android app user-agent, so the device will reply
-# AR_USER_AGENT = "asusrouter-Android-DUTUtil-1.0.0.255"
-# Or use just "asusrouter--DUTUtil-", since only this is needed for a correct replies
+### API VALUES
 AR_USER_AGENT = "asusrouter--DUTUtil-"
-# Or even this - all the response will be correct, but the HTTP header will be missing 'AiHOMEAPILevel', 'Httpd_AiHome_Ver' and 'Model_Name' on connect
-# AR_USER_AGENT = "asusrouter--"
-
-
 AR_API = [
     "Model_Name",
     "AiHOMEAPILevel",
     "Httpd_AiHome_Ver",
 ]
 
+### CONSTANTS, DATA TYPES AND COMMON PARAMETERS
 CONST_BITSINBYTE = 8
 CONST_PERCENTS = 100
 CONST_ZERO = 0.0
@@ -35,12 +30,25 @@ DATA_USED = "used"
 DATA_RX = "rx"
 DATA_TX = "tx"
 DATA_TRAFFIC = [DATA_RX, DATA_TX]
-
 DATA_BY_CORE = "core_{}"
 DATA_ADD_SPEED = "{}_speed"
 
+DEFAULT_CACHE_TIME = 5
+DEFAULT_PORT = {
+    "http": 80,
+    "https": 8443,
+}
+DEFAULT_SLEEP_RECONNECT = 5
+DEFAULT_SLEEP_CONNECTING = 1
+DEFAULT_SLEEP_TIME = 0.1
 DEFAULT_TRAFFIC_OVERFLOW = 4294967296
+DEFAULT_USAGE_DIGITS = 2
 
+PARAM_COLOR = "color"
+PARAM_COUNT = "count"
+PARAM_MODE = "mode"
+
+### OUR KEYS
 KEY_CPU = "CPU"
 KEY_NETWORK = "NETWORK"
 KEY_RAM = "RAM"
@@ -48,17 +56,11 @@ KEY_SYSINFO = "SYSINFO"
 KEY_TEMPERATURE = "TEMPERATURE"
 KEY_WAN = "WAN"
 
-AR_DEVICE_IDENTITY: tuple[Key, ...] = (
-    Key("serial_no", "serial"),
-    Key("label_mac", "mac"),
-    Key("model", "model"),
-    Key("firmver", "fw_major"),
-    Key("buildno", "fw_minor"),
-    Key("extendno", "fw_build"),
-    Key("rc_support", "services", method=service_support),
-    Key("ss_support", "services", method=service_support),
-    Key("led_val", "led", method=exists_or_not),
-)
+
+### ASUSWRT KEYS, MAPS AND VALUES
+AR_DEFAULT_CORES = [1]
+AR_DEFAULT_CORES_RANGE = range(1, 8)
+AR_DEFAULT_LEDG = 8
 
 AR_DEVICE_ATTRIBUTES_LIST: tuple[Key, ...] = (
     Key("mac", "name"),
@@ -76,6 +78,25 @@ AR_DEVICE_ATTRIBUTES_LIST: tuple[Key, ...] = (
     Key("curRx", "rx_speed", method=float_from_str),
     Key("curTx", "tx_speed", method=float_from_str),
 )
+AR_DEVICE_IDENTITY: tuple[Key, ...] = (
+    Key("serial_no", "serial"),
+    Key("label_mac", "mac"),
+    Key("model", "model"),
+    Key("firmver", "fw_major"),
+    Key("buildno", "fw_minor"),
+    Key("extendno", "fw_build"),
+    Key("rc_support", "services", method=service_support),
+    Key("ss_support", "services", method=service_support),
+    Key("led_val", "led", method=exists_or_not),
+)
+
+AR_ERROR = {
+    "authorisation": 2,
+    "credentials": 3,
+    "try_again": 7,
+    "logout": 8,
+}
+
 AR_KEY_CPU = "cpu_usage"
 AR_KEY_CPU_ITEM = "cpu{}_{}"
 AR_KEY_CPU_LIST: tuple[Key, ...] = (Key(DATA_TOTAL), Key(DATA_USAGE, DATA_USED))
@@ -88,15 +109,6 @@ AR_KEY_LEDG_SCHEME = "ledg_scheme"
 AR_KEY_LEDG_SCHEME_OLD = "ledg_scheme_old"
 AR_KEY_LEDG_RGB = "ledg_rgb{}"
 AR_KEY_NETWORK = "netdev"
-AR_KEY_NETWORK_ITEM = "{}_{}"
-AR_KEY_RAM = "memory_usage"
-AR_KEY_RAM_ITEM = "mem_{}"
-AR_KEY_RAM_LIST = [DATA_FREE, DATA_TOTAL, DATA_USED]
-AR_KEY_SERVICE_COMMAND = "rc_service"
-AR_KEY_SERVICE_MODIFY = "modify"
-AR_KEY_SERVICE_REPLY = "run_service"
-
-
 AR_KEY_NETWORK_GROUPS = {
     "INTERNET": "WAN",  # main WAN
     "INTERNET1": "USB",  # secondary WAN (USB modem / phone)
@@ -106,18 +118,20 @@ AR_KEY_NETWORK_GROUPS = {
     "WIRELESS1": "WLAN1",  # 5 GHz WiFi
     "WIRELESS2": "WLAN2",  # 5 GHz WiFi #2 (<-- check)
 }
+AR_KEY_NETWORK_ITEM = "{}_{}"
+AR_KEY_RAM = "memory_usage"
+AR_KEY_RAM_ITEM = "mem_{}"
+AR_KEY_RAM_LIST = [DATA_FREE, DATA_TOTAL, DATA_USED]
+AR_KEY_SERVICE_COMMAND = "rc_service"
+AR_KEY_SERVICE_MODIFY = "modify"
+AR_KEY_SERVICE_REPLY = "run_service"
 AR_KEY_WAN = "wanlink_state"
 AR_KEY_WAN_STATE = (
     Key("wanstate", "state"),
     Key("wansbstate", "bstate"),
-    Key(
-        "wanauxstate",
-        "aux",
-    ),
+    Key("wanauxstate", "aux"),
     Key("autodet_state"),
-    Key(
-        "autodet_auxstate",
-    ),
+    Key("autodet_auxstate"),
     Key("wanlink_status", "status", method=bool_from_any),
     Key("wanlink_type", "ip_type"),
     Key("wanlink_ipaddr", "ip"),
@@ -132,66 +146,9 @@ AR_KEY_WAN_STATE = (
     Key("wanlink_xnetmask", "xmask"),
     Key("wanlink_xgateway", "xgateway"),
     Key("wanlink_xdns", "xdns"),
-    Key(
-        "wanlink_xlease",
-        "xlease",
-    ),
+    Key("wanlink_xlease", "xlease"),
     Key("wanlink_xexpires", "xexpires"),
 )
-
-AR_HOOK_TEMPLATE = "{}({});"
-AR_HOOK_DEVICES = "{}()".format(AR_KEY_DEVICES)
-
-AR_SERVICE_CONTROL: dict[str, list[str]] = {
-    "firewall": [
-        "restart",
-    ],
-    "ftpd": [
-        "force_restart",
-        "start",
-        "stop",
-        "restart",
-    ],
-    "httpd": [
-        "restart",
-    ],
-    "wireless": [
-        "restart",
-    ],
-}
-
-AR_SERVICE_COMMAND: dict[str, str] = {
-    "force_restart": "restart_{}_force",
-    "start": "start_{}",
-    "stop": "stop_{}",
-    "restart": "restart_{}",
-}
-
-AR_SERVICE_DROP_CONNECTION: list[str] = {
-    "httpd",
-}
-
-AR_DEFAULT_CORES = [1]
-AR_DEFAULT_CORES_RANGE = range(1, 8)
-AR_DEFAULT_LEDG = 8
-
-DEFAULT_USAGE_DIGITS = 2
-
-
-DEFAULT_CACHE_TIME = 5
-
-DEFAULT_SLEEP_RECONNECT = 5
-DEFAULT_SLEEP_CONNECTING = 1
-DEFAULT_SLEEP_TIME = 0.1
-
-DEFAULT_PORT = {
-    "http": 80,
-    "https": 8443,
-}
-
-AR_KEY = {
-    "cpu_usage": "cpu_usage",
-}
 
 AR_LEDG_MODE: dict[int, str] = {
     1: "Gradient",
@@ -208,14 +165,6 @@ AR_MAP_RGB: dict[int, str] = {
     1: "g",
     2: "b",
 }
-
-AR_MAP_TEMPERATURE: dict[str, list[str]] = {
-    "2ghz": ['curr_coreTmp_2_raw="([0-9.]+)&deg;C'],
-    "5ghz": ['curr_coreTmp_5_raw="([0-9.]+)&deg;C'],
-    "5ghz2": ['curr_coreTmp_52_raw="([0-9.]+)&deg;C'],
-    "cpu": ['curr_cpuTemp="([0-9.]+)"'],
-}
-
 AR_MAP_SYSINFO: dict[str, list[Key]] = {
     "conn_stats_arr": [
         Key(0, "conn_total", method=int_from_str),
@@ -252,6 +201,12 @@ AR_MAP_SYSINFO: dict[str, list[Key]] = {
         Key(2, "5ghz2_clients_authenticated", method=int_from_str),
     ],
 }
+AR_MAP_TEMPERATURE: dict[str, list[str]] = {
+    "2ghz": ['curr_coreTmp_2_raw="([0-9.]+)&deg;C'],
+    "5ghz": ['curr_coreTmp_5_raw="([0-9.]+)&deg;C'],
+    "5ghz2": ['curr_coreTmp_52_raw="([0-9.]+)&deg;C'],
+    "cpu": ['curr_cpuTemp="([0-9.]+)"'],
+}
 
 AR_PATH = {
     "command": "applyapp.cgi",
@@ -267,13 +222,38 @@ AR_PATH = {
     "temperature": "ajax_coretmp.asp",
 }
 
-AR_ERROR = {
-    "authorisation": 2,
-    "credentials": 3,
-    "try_again": 7,
-    "logout": 8,
+### ASUSWRT SERVICES
+AR_HOOK_TEMPLATE = "{}({});"
+AR_HOOK_DEVICES = "{}()".format(AR_KEY_DEVICES)
+
+AR_SERVICE_COMMAND: dict[str, str] = {
+    "force_restart": "restart_{}_force",
+    "start": "start_{}",
+    "stop": "stop_{}",
+    "restart": "restart_{}",
+}
+AR_SERVICE_CONTROL: dict[str, list[str]] = {
+    "firewall": [
+        "restart",
+    ],
+    "ftpd": [
+        "force_restart",
+        "start",
+        "stop",
+        "restart",
+    ],
+    "httpd": [
+        "restart",
+    ],
+    "wireless": [
+        "restart",
+    ],
+}
+AR_SERVICE_DROP_CONNECTION: list[str] = {
+    "httpd",
 }
 
+### ERRORS AND MESSAGES
 ERROR_IDENTITY = "Cannot obtain identity from the device {}. Exception summary{}"
 ERROR_PARSING = (
     "Failed parsing value '{}'. Please report this issue. Exception summary: {}"
@@ -295,12 +275,6 @@ MSG_ERROR = {
     "try_again": "Too many attempts",
     "unknown": "Unknown error code {}",
 }
-
-MSG_WARNING = {
-    "not_connected": "Not connected",
-    "refused": "Connection refused",
-}
-
 MSG_INFO = {
     "drop_connection_service": "Connection will be dropped on behalf of '{}' service",
     "error_flag": "Error flag found",
@@ -315,7 +289,6 @@ MSG_INFO = {
     "service": "Service '{}' was called with arguments '{}' successfully. Reply: {}",
     "xml": "Data is in XML",
 }
-
 MSG_SUCCESS = {
     "cert_found": "CA certificate found",
     "command": "Command was sent successfully",
@@ -325,6 +298,11 @@ MSG_SUCCESS = {
     "login": "Login successful",
     "logout": "Logout successful",
 }
+MSG_WARNING = {
+    "not_connected": "Not connected",
+    "refused": "Connection refused",
+}
+
 
 INTERFACE_TYPE = {
     "wan_ifnames": "wan",

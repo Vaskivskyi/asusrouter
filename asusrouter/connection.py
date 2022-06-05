@@ -63,7 +63,7 @@ class Connection:
         self._password: str | None = password
         self._token: str | None = None
         self._headers: dict[str, str] | None = None
-        self._session: str | None = None
+        self._session: aiohttp.ClientSession | None = None
 
         self._device: dict[str, str] = dict()
         self._error: bool = False
