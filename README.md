@@ -2,15 +2,9 @@
 
 ## AsusRouter
 
-**AsusRouter** is an API wrapper for communication with ASUSWRT-powered routers using HTTP(S) protocols. This version is not final yet and has some issues. Please, consider them.
+**AsusRouter** is an API wrapper for communication with ASUSWRT-powered routers using HTTP(S) protocols. The library supports both the stock AsusWRT firmware and AsusWRT-Merlin.
 
-
-## Features
-
-- **Monitoring data**: CPU/RAM usage, Tx and Rx traffic and speed for different interfaces (WAN, USB, dual-WAN support, local interfaces), WAN/LAN ports status (speed of devices), NVRAM, connected devices (LAN/WLAN) and other.
-- **Sending commands** to the device when `enable_control` is set to `True` (default is `False`).
-- SSL server certificates on the device side (including certificate check on the connection from Trusted Root Certificates or your own specified certificate file).
-
+Up till now, it is only used for the [custom AsusRouter Home Assistant integrartion](https://github.com/Vaskivskyi/ha-asusrouter). But I am always open to making it suitable for any other use.
 
 ## Installation
 
@@ -19,7 +13,6 @@ Installation of the latest release is available from PyPI:
 ```
 pip install asusrouter
 ```
-
 
 ## Usage
 
@@ -46,7 +39,6 @@ The module has the initialization method to load all the known data (all the mon
 router.async_initialize()
 ```
 
-
 #### Monitors and additional methods
 
 Most of the values, obtained from the router are grouped in several monitor methods to decrease the amount of data sent between the library and the device. All of them require the `enable_monitor` parameter of `AsusRouter` to be set to `True`.
@@ -59,7 +51,6 @@ async_monitor_devices()
 ```
 
 A detailed description of monitors and monitoring methods is available here (*in work*).
-
 
 #### Commands
 
@@ -74,17 +65,13 @@ router.async_command(commands = {"rc_service": "reboot"}, action_mode = "apply")
 
 Commands to the method should be sent as a `dict` of `command: value`. Please, refer to the Command List (*in work*) for a detailed explanation of the available commands.
 
+## Supported devices
 
-## Supported devices and firmware
+802.11 AC models:
+`RT-AC66U`, `RT-AC86U`, `RT-ACRH13`
 
-|Device model|Support level|
-|---|---|
-|RT-AC66U|Complete|
-
-|Firmware version|Build|Extended|Support level|
-|-------|-----|--------|-------------|
-|3.0.0.4|382|52287-g798e87f|Complete|
-
+802.11 AX models:
+`RT-AX55`,`RT-AX58U`, `RT-AX68U`, `RT-AX86U`, `RT-AX88U`, `RT-AX89X`, `RT-AX92U`, `ZenWiFi AX (XT8)`
 
 ## Support the library
 
@@ -103,4 +90,5 @@ Testing the library with different devices would help a lot in the development p
 This library is a free-time project. If you like it, you can support me by buying a coffee.
 
 <a href="https://www.buymeacoffee.com/vaskivskyi" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-blue.png" alt="Buy Me A Coffee" style="height: 40px !important;"></a>
+
 
