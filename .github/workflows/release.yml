@@ -9,6 +9,7 @@ env:
 
 jobs:
   deploy:
+    name: Build & Publish PyPI package
     runs-on: ubuntu-latest
 
     steps:
