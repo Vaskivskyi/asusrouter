@@ -1,0 +1,35 @@
+name: Release
+
+on:
+  release:
+    types: [published]
+
+env:
+  DEFAULT_PYTHON: 3.9
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout the repository
+      uses: actions/checkout@v3.0.2
+
+    - name: Setup Python ${{ env.DEFAULT_PYTHON }}
+      uses: actions/setup-python@v3.1.2
+      with:
+        python-version: ${{ env.DEFAULT_PYTHON }}
+
+    - name: Build package
+      shell: bash
+      run: |
+        pip install build twine
+        python -m build
+
+    - name: Publish package
+      shell: bash
+      run: |
+        export TWINE_USERNAME="__token__"
+        export TWINE_PASSWORD="${{ secrets.TWINE_TOKEN }}"
+
+        twine upload dist/* --skip-existing
