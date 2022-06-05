@@ -97,6 +97,7 @@ AR_ERROR = {
     "logout": 8,
 }
 
+AR_KEY_AURARGB = "aurargb"
 AR_KEY_CPU = "cpu_usage"
 AR_KEY_CPU_ITEM = "cpu{}_{}"
 AR_KEY_CPU_LIST: tuple[Key, ...] = (Key(DATA_TOTAL), Key(DATA_USAGE, DATA_USED))
@@ -105,6 +106,7 @@ AR_KEY_DEVICEMAP = "devicemap"
 AR_KEY_DEVICES = "get_clientlist"
 AR_KEY_DEVICES_LIST = "maclist"
 AR_KEY_LED = "led_val"
+AR_KEY_LEDG_COUNT = "ledg_count"
 AR_KEY_LEDG_SCHEME = "ledg_scheme"
 AR_KEY_LEDG_SCHEME_OLD = "ledg_scheme_old"
 AR_KEY_LEDG_RGB = "ledg_rgb{}"
