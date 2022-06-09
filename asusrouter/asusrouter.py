@@ -975,7 +975,9 @@ class AsusRouter:
             return None
 
         if AR_KEY_LEDG_RGB.format(self._ledg_mode) in data:
-            self._ledg_color = parsers.rgb(data[AR_KEY_LEDG_RGB])
+            self._ledg_color = parsers.rgb(
+                data[AR_KEY_LEDG_RGB.format(self._ledg_mode)]
+            )
 
         return {
             PARAM_COLOR: self._ledg_color,
