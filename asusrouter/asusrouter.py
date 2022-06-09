@@ -880,6 +880,7 @@ class AsusRouter:
         self,
         service: str,
         arguments: dict[str, Any] | None = None,
+        expect_modify: bool = True,
         drop_connection: bool = False,
     ) -> bool:
         """Generic service to run"""
@@ -911,7 +912,9 @@ class AsusRouter:
 
         _LOGGER.debug(MSG_INFO["service"].format(service, arguments, result))
 
-        return converters.bool_from_any(result[AR_KEY_SERVICE_MODIFY])
+        if expect_modify:
+            return converters.bool_from_any(result[AR_KEY_SERVICE_MODIFY])
+        return True
 
     ### SERVICES -->
 
