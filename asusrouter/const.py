@@ -3,9 +3,11 @@
 from asusrouter.dataclass import Key
 from asusrouter.util.converters import (
     bool_from_any,
+    datetime_from_str,
     exists_or_not,
     float_from_str,
     int_from_str,
+    ovpn_remote_fom_str,
     service_support,
     time_from_delta,
 )
@@ -46,7 +48,13 @@ DEFAULT_USAGE_DIGITS = 2
 
 PARAM_COLOR = "color"
 PARAM_COUNT = "count"
+PARAM_ERRNO = "errno"
+PARAM_IP = "ip"
 PARAM_MODE = "mode"
+PARAM_RIP = "rip"
+PARAM_STATE = "state"
+PARAM_STATUS = "status"
+PARAM_UNKNOWN = "unknown"
 
 ### OUR KEYS
 KEY_CPU = "CPU"
@@ -54,13 +62,22 @@ KEY_NETWORK = "NETWORK"
 KEY_RAM = "RAM"
 KEY_SYSINFO = "SYSINFO"
 KEY_TEMPERATURE = "TEMPERATURE"
+KEY_VPN = "VPN"
 KEY_WAN = "WAN"
+
+# OUR REGEX
+REGEX_VARIABLES = '([a-zA-Z0-9\_-]+)\s*=\s*"(.*?)"(?=;)'
+
+# VALUES TO IGNORE
+VALUES_TO_IGNORE = [str(), "None", "0.0.0.0"]
 
 
 ### ASUSWRT KEYS, MAPS AND VALUES
 AR_DEFAULT_CORES = [1]
 AR_DEFAULT_CORES_RANGE = range(1, 8)
 AR_DEFAULT_LEDG = 8
+AR_DEFAULT_OVPN_CLIENTS = 5
+AR_DEFAULT_OVPN_SERVERS = 2
 
 AR_DEVICE_ATTRIBUTES_LIST: tuple[Key, ...] = (
     Key("mac", "name"),
@@ -121,12 +138,28 @@ AR_KEY_NETWORK_GROUPS = {
     "WIRELESS2": "WLAN2",  # 5 GHz WiFi #2 (<-- check)
 }
 AR_KEY_NETWORK_ITEM = "{}_{}"
+AR_KEY_OVPN = "{}{}_{}"  # client/server, id, type
+AR_KEY_OVPN_STATUS = (
+    Key("REMOTE", "remote", method=ovpn_remote_fom_str),
+    Key("Updated", "datetime", method=datetime_from_str),
+    Key("TUN/TAP read bytes", "tun_tap_read", method=int_from_str),
+    Key("TUN/TAP write bytes", "tun_tap_write", method=int_from_str),
+    Key("TCP/UDP read bytes", "tcp_udp_read", method=int_from_str),
+    Key("TCP/UDP write bytes", "tcp_udp_write", method=int_from_str),
+    Key("Auth read bytes", "auth_read", method=int_from_str),
+    Key("pre-compress bytes", "pre_compress", method=int_from_str),
+    Key("post-compress bytes", "post_compress", method=int_from_str),
+    Key("pre-decompress bytes", "pre_decompress", method=int_from_str),
+    Key("post-decompress bytes", "post_decompress", method=int_from_str),
+)
 AR_KEY_RAM = "memory_usage"
 AR_KEY_RAM_ITEM = "mem_{}"
 AR_KEY_RAM_LIST = [DATA_FREE, DATA_TOTAL, DATA_USED]
 AR_KEY_SERVICE_COMMAND = "rc_service"
 AR_KEY_SERVICE_MODIFY = "modify"
 AR_KEY_SERVICE_REPLY = "run_service"
+AR_KEY_VPN_CLIENT = "vpn_client"
+AR_KEY_VPN_SERVER = "vpn_server"
 AR_KEY_WAN = "wanlink_state"
 AR_KEY_WAN_STATE = (
     Key("wanstate", "state"),
@@ -222,6 +255,14 @@ AR_PATH = {
     "state": "state.js",
     "sysinfo": "ajax_sysinfo.asp",
     "temperature": "ajax_coretmp.asp",
+    "vpn": "ajax_vpn_status.asp",
+}
+
+AR_VPN_STATUS = {
+    -1: "error",
+    0: "disconnected",
+    1: "connecting",
+    2: "connected",
 }
 
 ### ASUSWRT SERVICES
