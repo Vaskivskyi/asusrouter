@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from time import sleep
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -17,14 +18,18 @@ from asusrouter.const import (
     AR_DEFAULT_CORES,
     AR_DEFAULT_CORES_RANGE,
     AR_DEFAULT_LEDG,
+    AR_DEFAULT_OVPN_CLIENTS,
     AR_DEVICE_ATTRIBUTES_LIST,
     AR_KEY_CPU_ITEM,
     AR_KEY_CPU_LIST,
     AR_KEY_DEVICEMAP,
     AR_KEY_NETWORK_GROUPS,
     AR_KEY_NETWORK_ITEM,
+    AR_KEY_OVPN,
+    AR_KEY_OVPN_STATUS,
     AR_KEY_RAM_ITEM,
     AR_KEY_RAM_LIST,
+    AR_KEY_VPN_CLIENT,
     AR_KEY_WAN_STATE,
     AR_MAP_RGB,
     AR_MAP_SYSINFO,
@@ -43,6 +48,12 @@ from asusrouter.const import (
     ERROR_VALUE,
     ERROR_VALUE_TYPE,
     KEY_NETWORK,
+    PARAM_IP,
+    PARAM_RIP,
+    PARAM_STATE,
+    PARAM_STATUS,
+    REGEX_VARIABLES,
+    VALUES_TO_IGNORE,
 )
 from asusrouter.dataclass import ConnectedDevice
 from asusrouter.error import AsusRouterNotImplementedError, AsusRouterValueError
@@ -395,6 +406,9 @@ def sysinfo(raw: str) -> dict[str, Any]:
 def pseudo_json(text: str, page: str) -> dict[str, Any]:
     """JSON parser"""
 
+    if page == AR_PATH["vpn"]:
+        return vpn_status(text)
+
     data = re.sub("\s+", "", text)
 
     if "curr_coreTmp" in data:
@@ -427,3 +441,81 @@ def xml(text: str, page: str) -> dict[str, Any]:
         return devicemap(data[AR_KEY_DEVICEMAP])
 
     return {}
+
+
+def ovpn_client_status(raw: str) -> dict[str, Any]:
+    """OpenVPN client status parser"""
+
+    if type(raw) != str:
+        raise AsusRouterValueError(ERROR_VALUE_TYPE.format(raw, type(raw)))
+    raw = raw.strip()
+    if raw == str() or raw == "None":
+        return {}
+
+    values = dict()
+
+    for key in AR_KEY_OVPN_STATUS:
+        if key.value in raw:
+            value = re.search(f"{key.value},(.*?)(?=>)", raw)
+            if value:
+                values[key.get()] = key.method(value[1]) if key.method else value[1]
+
+    return values
+
+
+# var = "value";
+def variables(raw: str) -> dict[str, Any]:
+    """Variables parser"""
+
+    if type(raw) != str:
+        raise AsusRouterValueError(ERROR_VALUE_TYPE.format(raw, type(raw)))
+    if raw.strip() == str():
+        return {}
+
+    values = dict()
+    temp = raw
+    while len(temp) > 0:
+        value = re.search(REGEX_VARIABLES, temp)
+        if not value:
+            break
+        values[value[1]] = value[2]
+        temp = temp.replace(f"{value[0]};", "")
+
+    return values
+
+
+def vpn_status(raw: str) -> dict[str, Any]:
+    """VPN status parser"""
+
+    if type(raw) != str:
+        raise AsusRouterValueError(ERROR_VALUE_TYPE.format(raw, type(raw)))
+    if raw.strip() == str():
+        return {}
+
+    vpns = dict()
+
+    values = variables(raw)
+
+    for num in range(1, AR_DEFAULT_OVPN_CLIENTS + 1):
+        key = AR_KEY_OVPN.format(AR_KEY_VPN_CLIENT, num, PARAM_STATUS)
+        if not key in values:
+            break
+
+        vpn_id = AR_KEY_VPN_CLIENT + str(num)
+
+        if values[key] not in VALUES_TO_IGNORE:
+            vpns[vpn_id] = ovpn_client_status(values[key])
+            vpns[vpn_id][PARAM_STATE] = True
+        else:
+            vpns[vpn_id] = dict()
+            vpns[vpn_id][PARAM_STATE] = False
+
+        key = AR_KEY_OVPN.format(AR_KEY_VPN_CLIENT, num, PARAM_IP)
+        if key in values and values[key] not in VALUES_TO_IGNORE:
+            vpns[vpn_id][PARAM_IP] = values[key]
+
+        key = AR_KEY_OVPN.format(AR_KEY_VPN_CLIENT, num, PARAM_RIP)
+        if key in values and values[key] not in VALUES_TO_IGNORE:
+            vpns[vpn_id][PARAM_RIP] = values[key]
+
+    return vpns

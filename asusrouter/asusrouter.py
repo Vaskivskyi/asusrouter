@@ -36,6 +36,7 @@ from asusrouter.const import (
     AR_KEY_SERVICE_COMMAND,
     AR_KEY_SERVICE_MODIFY,
     AR_KEY_SERVICE_REPLY,
+    AR_KEY_VPN_CLIENT,
     AR_KEY_WAN,
     AR_LEDG_MODE,
     AR_PATH,
@@ -61,6 +62,7 @@ from asusrouter.const import (
     KEY_RAM,
     KEY_SYSINFO,
     KEY_TEMPERATURE,
+    KEY_VPN,
     KEY_WAN,
     MONITOR_MAIN,
     MSG_ERROR,
@@ -517,6 +519,13 @@ class AsusRouter:
         data = await self.async_load(page=AR_PATH["devicemap"])
         monitor_misc["DEVICEMAP"] = data
 
+        ### VPN ###
+        monitor_misc[KEY_VPN] = await self.async_load(page=AR_PATH["vpn"])
+        if monitor_misc["DEVICEMAP"] and monitor_misc[KEY_VPN]:
+            monitor_misc[KEY_VPN] = compilers.vpn_from_devicemap(
+                monitor_misc[KEY_VPN], monitor_misc["DEVICEMAP"]
+            )
+
         # Calculate boot time. Since precision is 1 second, could be that old and new are 1 sec different. In this case, we should not change the boot time, but keep the previous value to avoid regular changes
         if "SYS" in monitor_misc["DEVICEMAP"]:
             if "uptimeStr" in monitor_misc["DEVICEMAP"]["SYS"]:
@@ -676,6 +685,23 @@ class AsusRouter:
             result.append(DATA_BY_CORE.format(core))
 
         return result
+
+    async def async_get_devicemap(self, use_cache: bool = True) -> dict[str, Any]:
+        """Return devicemap"""
+
+        now = datetime.utcnow()
+        if (
+            not self._monitor_devices.ready
+            or use_cache == False
+            or (
+                use_cache == True
+                and self._cache_time
+                < (now - self._monitor_devices.time).total_seconds()
+            )
+        ):
+            await self.async_monitor_misc()
+
+        return self._monitor_misc["DEVICEMAP"]
 
     async def async_get_devices(self, use_cache: bool = True) -> dict[str, Any]:
         """Return device list"""
@@ -846,6 +872,22 @@ class AsusRouter:
             result.append(value)
 
         return result
+
+    async def async_get_vpn(self, use_cache: bool = True) -> dict[str, Any]:
+        """Return VPN status"""
+
+        now = datetime.utcnow()
+        if (
+            not self._monitor_misc.ready
+            or use_cache == False
+            or (
+                use_cache == True
+                and self._cache_time < (now - self._monitor_misc.time).total_seconds()
+            )
+        ):
+            await self.async_monitor_misc()
+
+        return self._monitor_misc[KEY_VPN]
 
     async def async_get_wan(self, use_cache: bool = True) -> dict[str, str]:
         """Return WAN and its usage"""

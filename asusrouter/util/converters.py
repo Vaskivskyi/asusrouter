@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 from datetime import datetime, timedelta, timezone
+from typing import Any
 
 from asusrouter.error import AsusRouterValueError
 
@@ -144,6 +145,21 @@ def time_from_delta(raw: str) -> datetime:
     ) - timedelta_long(raw)
 
 
+def datetime_from_str(raw: str) -> datetime:
+    """Transform string to datetime"""
+
+    if type(raw) != str:
+        raise AsusRouterValueError(ERROR_VALUE_TYPE.format(raw, type(raw)))
+    raw = raw.strip()
+    if raw == str():
+        return {}
+
+    try:
+        return datetime.strptime(raw, "%Y-%m-%d %H:%M:%S")
+    except Exception as ex:
+        raise ex
+
+
 def is_mac_address(raw: str) -> bool:
     """Checks if string is MAC address"""
 
@@ -176,3 +192,25 @@ def service_support(raw: str) -> list[str]:
     services = [i for i in services if i]
 
     return services
+
+
+def ovpn_remote_fom_str(raw: str) -> dict[str, Any]:
+    """Get OpenVPN remote data"""
+
+    if type(raw) != str:
+        raise AsusRouterValueError(ERROR_VALUE_TYPE.format(raw, type(raw)))
+
+    try:
+        temp = raw.split(",")
+        auth = temp[1]
+        temp = temp[0].split(":")
+        ip = temp[0]
+        port = int_from_str(temp[1])
+
+        return {
+            "ip": ip,
+            "port": port,
+            "auth": auth,
+        }
+    except Exception as ex:
+        raise ex
