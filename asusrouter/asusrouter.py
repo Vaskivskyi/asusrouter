@@ -527,7 +527,7 @@ class AsusRouter:
         monitor_misc["DEVICEMAP"] = data
 
         ### VPN ###
-        if self._identity["vpn_status"]:
+        if self._identity.vpn_status:
             monitor_misc[KEY_VPN] = await self.async_load(page=AR_PATH["vpn"])
             if monitor_misc["DEVICEMAP"] and monitor_misc[KEY_VPN]:
                 monitor_misc[KEY_VPN] = compilers.vpn_from_devicemap(
@@ -883,6 +883,9 @@ class AsusRouter:
 
     async def async_get_vpn(self, use_cache: bool = True) -> dict[str, Any]:
         """Return VPN status"""
+
+        if not self._identity.vpn_status:
+            return {}
 
         now = datetime.utcnow()
         if (
