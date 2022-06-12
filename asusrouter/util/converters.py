@@ -36,7 +36,39 @@ def int_from_str(raw: str, base: int = 10) -> int:
     if raw == str():
         return int(0)
 
-    return int(raw, base=base)
+    try:
+        return int(raw, base=base)
+    except ValueError as ex:
+        raise AsusRouterValueError(ERROR_VALUE.format(raw, str(ex)))
+
+
+def clean_html(raw: str) -> str:
+    """Clean html tags"""
+
+    if type(raw) != str:
+        raise AsusRouterValueError(ERROR_VALUE_TYPE.format(raw, type(raw)))
+
+    return re.sub("<([\/ibu]+)>", "", raw)
+
+
+def bool_or_int(raw: str, base: int = 10) -> bool | int:
+    """Convert to bool or to int"""
+
+    if type(raw) != str:
+        raise AsusRouterValueError(ERROR_VALUE_TYPE.format(raw, type(raw)))
+
+    raw = clean_html(raw)
+
+    try:
+        return int_from_str(raw, base)
+    except AsusRouterValueError:
+        """Do nothing"""
+    try:
+        return bool_from_any(raw)
+    except AsusRouterValueError:
+        """Do nothing"""
+
+    raise AsusRouterValueError(ERROR_VALUE.format(raw))
 
 
 def float_from_str(raw: str) -> float:
@@ -56,7 +88,7 @@ def float_from_str(raw: str) -> float:
     try:
         value = float(raw)
     except ValueError as ex:
-        raise (AsusRouterValueError(ERROR_VALUE.format(raw, str(ex))))
+        raise AsusRouterValueError(ERROR_VALUE.format(raw, str(ex)))
 
     return value
 

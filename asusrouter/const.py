@@ -3,6 +3,7 @@
 from asusrouter.dataclass import Key
 from asusrouter.util.converters import (
     bool_from_any,
+    bool_or_int,
     datetime_from_str,
     exists_or_not,
     float_from_str,
@@ -221,19 +222,19 @@ AR_MAP_SYSINFO: dict[str, list[Key]] = {
         Key(7, "jffs"),
     ],
     "wlc_24_arr": [
-        Key(0, "2ghz_clients_associated", method=int_from_str),
-        Key(1, "2ghz_clients_authorized", method=int_from_str),
-        Key(2, "2ghz_clients_authenticated", method=int_from_str),
+        Key(0, "2ghz_clients_associated", method=bool_or_int),
+        Key(1, "2ghz_clients_authorized", method=bool_or_int),
+        Key(2, "2ghz_clients_authenticated", method=bool_or_int),
     ],
     "wlc_51_arr": [
-        Key(0, "5ghz_clients_associated", method=int_from_str),
-        Key(1, "5ghz_clients_authorized", method=int_from_str),
-        Key(2, "5ghz_clients_authenticated", method=int_from_str),
+        Key(0, "5ghz_clients_associated", method=bool_or_int),
+        Key(1, "5ghz_clients_authorized", method=bool_or_int),
+        Key(2, "5ghz_clients_authenticated", method=bool_or_int),
     ],
     "wlc_52_arr": [
-        Key(0, "5ghz2_clients_associated", method=int_from_str),
-        Key(1, "5ghz2_clients_authorized", method=int_from_str),
-        Key(2, "5ghz2_clients_authenticated", method=int_from_str),
+        Key(0, "5ghz2_clients_associated", method=bool_or_int),
+        Key(1, "5ghz2_clients_authorized", method=bool_or_int),
+        Key(2, "5ghz2_clients_authenticated", method=bool_or_int),
     ],
 }
 AR_MAP_TEMPERATURE: dict[str, list[str]] = {
