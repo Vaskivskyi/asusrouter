@@ -227,6 +227,13 @@ class AsusRouter:
         except AsusRouter404 as ex:
             """Do nothing"""
 
+        # Check VPN
+        try:
+            data = await self.connection.async_load(AR_PATH["vpn"])
+            identity["vpn_status"] = True
+        except AsusRouter404 as ex:
+            """Do nothing"""
+
         # Save static values
         self._status_led = raw[AR_KEY_LED]
 
@@ -520,11 +527,12 @@ class AsusRouter:
         monitor_misc["DEVICEMAP"] = data
 
         ### VPN ###
-        monitor_misc[KEY_VPN] = await self.async_load(page=AR_PATH["vpn"])
-        if monitor_misc["DEVICEMAP"] and monitor_misc[KEY_VPN]:
-            monitor_misc[KEY_VPN] = compilers.vpn_from_devicemap(
-                monitor_misc[KEY_VPN], monitor_misc["DEVICEMAP"]
-            )
+        if self._identity["vpn_status"]:
+            monitor_misc[KEY_VPN] = await self.async_load(page=AR_PATH["vpn"])
+            if monitor_misc["DEVICEMAP"] and monitor_misc[KEY_VPN]:
+                monitor_misc[KEY_VPN] = compilers.vpn_from_devicemap(
+                    monitor_misc[KEY_VPN], monitor_misc["DEVICEMAP"]
+                )
 
         # Calculate boot time. Since precision is 1 second, could be that old and new are 1 sec different. In this case, we should not change the boot time, but keep the previous value to avoid regular changes
         if "SYS" in monitor_misc["DEVICEMAP"]:
