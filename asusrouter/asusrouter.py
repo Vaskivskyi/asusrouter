@@ -533,6 +533,10 @@ class AsusRouter:
                 monitor_misc[KEY_VPN] = compilers.vpn_from_devicemap(
                     monitor_misc[KEY_VPN], monitor_misc["DEVICEMAP"]
                 )
+        else:
+            monitor_misc[KEY_VPN] = compilers.vpn_from_devicemap(
+                None, monitor_misc["DEVICEMAP"]
+            )
 
         # Calculate boot time. Since precision is 1 second, could be that old and new are 1 sec different. In this case, we should not change the boot time, but keep the previous value to avoid regular changes
         if "SYS" in monitor_misc["DEVICEMAP"]:
@@ -883,9 +887,6 @@ class AsusRouter:
 
     async def async_get_vpn(self, use_cache: bool = True) -> dict[str, Any]:
         """Return VPN status"""
-
-        if not self._identity.vpn_status:
-            return {}
 
         now = datetime.utcnow()
         if (

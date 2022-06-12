@@ -19,6 +19,7 @@ from asusrouter.const import (
     PARAM_UNKNOWN,
 )
 from asusrouter.error import AsusRouterValueError
+from .converters import int_from_str
 
 
 def hook(commands: dict[str, str] | None = None) -> str:
@@ -87,7 +88,7 @@ def vpn_from_devicemap(
                 AR_KEY_OVPN.format(AR_KEY_VPN_CLIENT, num, PARAM_STATE)
                 in devicemap[KEY_VPN]
             ):
-                vpn[key][PARAM_STATUS] = int(
+                vpn[key][PARAM_STATUS] = int_from_str(
                     devicemap[KEY_VPN][
                         AR_KEY_OVPN.format(AR_KEY_VPN_CLIENT, num, PARAM_STATE)
                     ]
@@ -106,7 +107,7 @@ def vpn_from_devicemap(
                 AR_KEY_OVPN.format(AR_KEY_VPN_CLIENT, num, PARAM_ERRNO)
                 in devicemap[KEY_VPN]
             ):
-                vpn[key][PARAM_ERRNO] = int(
+                vpn[key][PARAM_ERRNO] = int_from_str(
                     devicemap[KEY_VPN][
                         AR_KEY_OVPN.format(AR_KEY_VPN_CLIENT, num, PARAM_ERRNO)
                     ]
