@@ -88,7 +88,7 @@ AR_DEVICE_ATTRIBUTES_LIST: tuple[Key, ...] = (
     Key("ip"),
     Key("ipMethod", "ip_method"),
     Key("internetState", "internet_state", method=bool_from_any),
-    Key("internetMode", "internet_mode", method=bool_from_any),
+    Key("internetMode", "internet_mode"),
     Key("isWL", "connection_type", method=int_from_str),
     Key("isOnline", "online", method=bool_from_any),
     Key("rssi", method=int_from_str),
