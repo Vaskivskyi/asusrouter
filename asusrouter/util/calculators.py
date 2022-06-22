@@ -73,7 +73,6 @@ def speed(
     after: (int | float),
     before: (int | float),
     time_delta: (int | float) | None = None,
-    overflow: (int | float) | None = None,
 ) -> float:
     """Calculate speed"""
 
@@ -82,12 +81,7 @@ def speed(
     elif time_delta == CONST_ZERO:
         raise AsusRouterValueError(ERROR_ZERO_DIVISION.format("time_delta"))
 
-    diff = after - before
-
-    # If we care about overflow values
-    if overflow is not None:
-        if diff < CONST_ZERO:
-            diff += overflow
+    diff = after - before if after > before else CONST_ZERO
 
     return diff / time_delta
 

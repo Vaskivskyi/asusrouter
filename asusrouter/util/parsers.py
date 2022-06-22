@@ -40,7 +40,6 @@ from asusrouter.const import (
     DATA_ADD_SPEED,
     DATA_TOTAL,
     DATA_TRAFFIC,
-    DEFAULT_TRAFFIC_OVERFLOW,
     DEVICEMAP_BY_INDEX,
     DEVICEMAP_CLEAR,
     DEVICEMAP_GENERAL,
@@ -197,7 +196,6 @@ def network_speed(
                         after=after[group][type],
                         before=before[group][type],
                         time_delta=time_delta,
-                        overflow=DEFAULT_TRAFFIC_OVERFLOW,
                     )
                 else:
                     speed[DATA_ADD_SPEED.format(type)] = CONST_ZERO
