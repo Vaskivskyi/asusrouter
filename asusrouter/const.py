@@ -241,7 +241,7 @@ AR_MAP_TEMPERATURE: dict[str, list[str]] = {
     "2ghz": ['curr_coreTmp_2_raw="([0-9.]+)&deg;C'],
     "5ghz": ['curr_coreTmp_5_raw="([0-9.]+)&deg;C'],
     "5ghz2": ['curr_coreTmp_52_raw="([0-9.]+)&deg;C'],
-    "cpu": ['curr_cpuTemp="([0-9.]+)"'],
+    "cpu": ['curr_cpuTemp="([0-9.]+)"', 'curr_coreTmp_cpu="([0-9.]+)"'],
 }
 
 AR_PATH = {
