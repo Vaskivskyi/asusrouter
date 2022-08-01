@@ -10,6 +10,7 @@ _LOGGER = logging.getLogger(__name__)
 import json
 import re
 from datetime import datetime, timedelta
+from dateutil.parser import parse as dtparse
 from typing import Any
 
 import xmltodict
@@ -246,7 +247,7 @@ def uptime(data: str) -> datetime:
     try:
         part = data.split("(")
         seconds = int(re.search("([0-9]+)", part[1]).group())
-        when = datetime.strptime(part[0], "%a, %d %b %Y %H:%M:%S %z")
+        when = dtparse(part[0])
         boot = when - timedelta(seconds=seconds)
     except ValueError as ex:
         raise (AsusRouterValueError(ERROR_VALUE.format(data, str(ex))))
