@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 from datetime import datetime, timedelta, timezone
+from dateutil.parser import parse as dtparse
 from typing import Any
 
 from asusrouter.error import AsusRouterValueError
@@ -187,7 +188,7 @@ def datetime_from_str(raw: str) -> datetime:
         return {}
 
     try:
-        return datetime.strptime(raw, "%Y-%m-%d %H:%M:%S")
+        return dtparse(raw)
     except Exception as ex:
         raise ex
 
