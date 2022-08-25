@@ -324,7 +324,7 @@ class AsusRouter:
         except AsusRouter404 as ex:
             raise ex
         except Exception as ex:
-            _LOGGER.error(ex)
+            raise ex
 
         return result
 

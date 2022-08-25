@@ -120,10 +120,7 @@ class Connection:
                             command, endpoint, retry=True
                         )
                     else:
-                        _LOGGER.error(
-                            MSG_ERROR["command"].format(command, endpoint, ex)
-                        )
-                        return {}
+                        raise ex
             else:
                 _LOGGER.error(MSG_ERROR["command"].format(command, endpoint))
                 return {}
