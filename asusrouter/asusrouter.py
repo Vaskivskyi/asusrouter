@@ -70,6 +70,7 @@ from asusrouter.const import (
     MSG_INFO,
     MSG_SUCCESS,
     NVRAM_LIST,
+    NVRAM_TEMPLATE,
     PARAM_COLOR,
     PARAM_COUNT,
     PARAM_MODE,
@@ -928,6 +929,29 @@ class AsusRouter:
             result[value] = self._monitor_main[KEY_WAN][value]
 
         return result
+
+    async def async_get_wlan(self, id: int = 0) -> dict[str, Any]:
+        """Get state of WLAN by id"""
+
+        # NVRAM values to check
+        nvram = list()
+        for value in NVRAM_TEMPLATE["WLAN"]:
+            nvram.append(value.format(id))
+        data = await self.async_hook(compilers.nvram(nvram))
+
+        return data
+
+    async def async_get_wlan_ids(self) -> list[int]:
+        """Return list of WLAN ids"""
+
+        ids = list()
+
+        interfaces = await self.async_get_network_labels()
+        for value in interfaces:
+            if value[:4] == "WLAN":
+                ids.append(int(value[-1:]))
+
+        return ids
 
     ### <-- RETURN DATA
 
