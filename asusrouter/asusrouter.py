@@ -6,6 +6,7 @@ import logging
 
 _LOGGER = logging.getLogger(__name__)
 
+import aiohttp
 import asyncio
 from datetime import datetime
 from typing import Any
@@ -92,6 +93,7 @@ class AsusRouter:
         cache_time: int = DEFAULT_CACHE_TIME,
         enable_monitor: bool = True,
         enable_control: bool = False,
+        session: aiohttp.ClientSession | None = None,
     ):
         """Init"""
 
@@ -125,6 +127,7 @@ class AsusRouter:
             use_ssl=use_ssl,
             cert_check=cert_check,
             cert_path=cert_path,
+            session=session,
         )
 
     ### MAIN CONTROL -->

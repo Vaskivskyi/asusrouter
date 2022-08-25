@@ -54,6 +54,7 @@ class Connection:
         use_ssl: bool = False,
         cert_check: bool = True,
         cert_path: str = "",
+        session: aiohttp.ClientSession | None = None,
     ):
         """Properties for connection"""
 
@@ -63,7 +64,7 @@ class Connection:
         self._password: str | None = password
         self._token: str | None = None
         self._headers: dict[str, str] | None = None
-        self._session: aiohttp.ClientSession | None = None
+        self._session: aiohttp.ClientSession | None = session
 
         self._device: dict[str, str] = dict()
         self._error: bool = False
@@ -350,9 +351,6 @@ class Connection:
         self._connected = False
         self._token = None
         self._headers = None
-        if self._session is not None:
-            await self._session.close()
-        self._session = None
 
     async def async_reset_error(self) -> None:
         """Reset error flag"""
