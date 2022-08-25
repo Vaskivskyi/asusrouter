@@ -94,10 +94,13 @@ def float_from_str(raw: str) -> float:
     return value
 
 
-def bool_from_any(raw: str | int | float) -> bool:
+def bool_from_any(raw: str | int | float | bool) -> bool:
     """Converts string or number to bool"""
 
     _type = type(raw)
+
+    if _type == bool:
+        return raw
 
     if _type == int or _type == float:
         if raw == 0:
@@ -128,6 +131,9 @@ def int_from_bool(raw: bool) -> int:
 
 def none_or_str(raw: str) -> str | None:
     """Returns either string or None if string is empty"""
+
+    if raw is None:
+        return None
 
     if type(raw) != str:
         raise AsusRouterValueError(ERROR_VALUE_TYPE.format(raw, type(raw)))
