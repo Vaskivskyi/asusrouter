@@ -930,13 +930,16 @@ class AsusRouter:
 
         return result
 
-    async def async_get_wlan(self, id: int = 0) -> dict[str, Any]:
+    async def async_get_wlan(self) -> dict[str, Any]:
         """Get state of WLAN by id"""
+
+        ids = await self.async_get_wlan_ids()
 
         # NVRAM values to check
         nvram = list()
-        for value in NVRAM_TEMPLATE["WLAN"]:
-            nvram.append(value.format(id))
+        for id in ids:
+            for value in NVRAM_TEMPLATE["WLAN"]:
+                nvram.append(value.format(id))
         data = await self.async_hook(compilers.nvram(nvram))
 
         return data
