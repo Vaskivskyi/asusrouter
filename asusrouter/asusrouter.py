@@ -4,10 +4,9 @@ from __future__ import annotations
 
 import logging
 
-import aiohttp
-
 _LOGGER = logging.getLogger(__name__)
 
+import aiohttp
 import asyncio
 from datetime import datetime
 from typing import Any
