@@ -939,8 +939,12 @@ class AsusRouter:
         nvram = list()
         for id in ids:
             for value in NVRAM_TEMPLATE["WLAN"]:
-                nvram.append(value.format(id))
+                nvram.append(value.value.format(id))
+
         data = await self.async_hook(compilers.nvram(nvram))
+        for id in ids:
+            for value in NVRAM_TEMPLATE["WLAN"]:
+                data[value.value.format(id)] = value.method(data[value.value.format(id)])
 
         return data
 
