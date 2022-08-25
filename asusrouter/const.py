@@ -356,6 +356,25 @@ INTERFACE_TYPE = {
     "lan_ifnames": "lan",
 }
 
+NVRAM_TEMPLATE = {
+    "WLAN": [
+        "wl{}_radio",
+        "wl{}_ssid",
+        "wl{}_chanspec",
+        "wl{}_closed",
+        "wl{}_nmode_x",
+        "wl{}_bw",
+        "wl{}_auth_mode_x",
+        "wl{}_crypto",
+        "wl{}_wpa_psk",
+        "wl{}_mfp",
+        "wl{}_mbo_enable",
+        "wl{}_country_code",
+        "wl{}_maclist_x",
+        "wl{}_macmode",
+    ],
+}
+
 NVRAM_LIST = {
     "DEVICE": [
         "productid",
