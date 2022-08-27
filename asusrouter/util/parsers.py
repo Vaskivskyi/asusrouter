@@ -28,6 +28,7 @@ from asusrouter.const import (
     AR_KEY_NETWORK_ITEM,
     AR_KEY_OVPN,
     AR_KEY_OVPN_STATUS,
+    AR_KEY_PARENTAL_CONTROL,
     AR_KEY_RAM_ITEM,
     AR_KEY_RAM_LIST,
     AR_KEY_VPN_CLIENT,
@@ -414,6 +415,32 @@ def onboarding(raw: str) -> dict[str, Any]:
     result = dict()
 
     return data
+
+
+def parental_control(raw: dict[str, Any]) -> dict[str, Any]:
+    """Parental control parser"""
+
+    result = dict()
+
+    result[AR_KEY_PARENTAL_CONTROL.get()] = AR_KEY_PARENTAL_CONTROL.method(raw[AR_KEY_PARENTAL_CONTROL.value])
+    list = dict()
+
+    for el in raw:
+        raw[el] = raw[el].split("&#62")
+
+    size = len(raw["MULTIFILTER_MAC"])
+
+    for i in range(0, size):
+        data = {
+            "access": raw["MULTIFILTER_ENABLE"][i],
+            "name": raw["MULTIFILTER_DEVICENAME"][i],
+            "time": raw["MULTIFILTER_MACFILTER_DAYTIME_V2"][i]
+        }
+        list[raw["MULTIFILTER_MAC"][i]] = data.copy()
+
+    result["list"] = list.copy()
+
+    return result
 
 
 def pseudo_json(text: str, page: str) -> dict[str, Any]:

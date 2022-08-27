@@ -33,6 +33,7 @@ from asusrouter.const import (
     AR_KEY_LEDG_SCHEME,
     AR_KEY_LEDG_SCHEME_OLD,
     AR_KEY_NETWORK,
+    AR_KEY_PARENTAL_CONTROL,
     AR_KEY_RAM,
     AR_KEY_SERVICE_COMMAND,
     AR_KEY_SERVICE_MODIFY,
@@ -40,6 +41,7 @@ from asusrouter.const import (
     AR_KEY_VPN_CLIENT,
     AR_KEY_WAN,
     AR_LEDG_MODE,
+    AR_MAP_PARENTAL_CONTROL,
     AR_PATH,
     AR_SERVICE_COMMAND,
     AR_SERVICE_CONTROL,
@@ -786,6 +788,29 @@ class AsusRouter:
             result.append("USB")
 
         return result
+
+    async def async_get_parental_control(self) -> dict[str, Any]:
+        """Return parental control status"""
+
+        # NVRAM values to check
+        nvram = list()
+        nvram.append(AR_KEY_PARENTAL_CONTROL.value)
+        for value in AR_MAP_PARENTAL_CONTROL:
+            nvram.append(value)
+
+        data = await self.async_hook(compilers.nvram(nvram))
+        data = parsers.parental_control(data)
+
+        return data
+
+    async def async_get_parental_control_device(self, mac: str) -> dict[str, Any]:
+        """Return parental control status of a device by its MAC"""
+
+        devices = await self.async_get_parental_control()
+        if mac in devices["list"]:
+            return devices["list"][mac]
+        else:
+            return {}
 
     async def async_get_ports(
         self, use_cache: bool = True
