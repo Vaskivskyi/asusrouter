@@ -243,6 +243,13 @@ AR_MAP_TEMPERATURE: dict[str, list[str]] = {
     "5ghz2": ['curr_coreTmp_52_raw="([0-9.]+)&deg;C'],
     "cpu": ['curr_cpuTemp="([0-9.]+)"', 'curr_coreTmp_cpu="([0-9.]+)"'],
 }
+AR_MAP_PARENTAL_CONTROL: dict[str, str] = {
+    "MULTIFILTER_ENABLE": "enable",
+    "MULTIFILTER_DEVICENAME": "name",
+    "MULTIFILTER_MAC": "mac",
+    "MULTIFILTER_MACFILTER_DAYTIME_V2": "time",
+}
+AR_KEY_PARENTAL_CONTROL = Key("MULTIFILTER_ALL", "parental_control", method=bool_from_any)
 
 AR_PATH = {
     "command": "applyapp.cgi",
