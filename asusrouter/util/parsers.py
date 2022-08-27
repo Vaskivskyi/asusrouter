@@ -402,6 +402,20 @@ def sysinfo(raw: str) -> dict[str, Any]:
     return result
 
 
+def onboarding(raw: str) -> dict[str, Any]:
+    """Onboarding parser"""
+
+    raw = raw.replace("=", '":')
+    raw = raw.replace(";", ',"')
+    raw = raw.replace("[0]", "")
+    raw = '{"' + raw[:-2] + "}"
+    data = json.loads(raw)
+
+    result = dict()
+
+    return data
+
+
 def pseudo_json(text: str, page: str) -> dict[str, Any]:
     """JSON parser"""
 
@@ -415,6 +429,8 @@ def pseudo_json(text: str, page: str) -> dict[str, Any]:
     # Merlin v380
     elif page == AR_PATH["sysinfo"]:
         return sysinfo(data)
+    elif page == AR_PATH["onboarding"]:
+        return onboarding(data)
     elif "get_clientlist" in data:
         data = data.replace('"get_clientlist":', '"get_clientlist":{')
         data += "}"
