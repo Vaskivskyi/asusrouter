@@ -219,6 +219,9 @@ class AsusRouter:
         identity["sysinfo"] = await self.async_check_endpoint(
             endpoint=AR_PATH["sysinfo"]
         )
+        identity["onboarding"] = await self.async_check_endpoint(
+            endpoint=AR_PATH["onboarding"]
+        )
 
         # Check RGBG / AURA
         try:
