@@ -228,7 +228,7 @@ class Connection:
                     if item in r_headers:
                         self._device[item] = r_headers[item]
 
-            # RReset mute_flag on success
+            # Reset mute_flag on success
             self._mute_flag = False
 
             return json_body
@@ -253,9 +253,12 @@ class Connection:
         except (aiohttp.ServerTimeoutError, asyncio.TimeoutError) as ex:
             if not self._mute_flag:
                 raise AsusRouterConnectionTimeoutError()
+        # This happens regularly if more connections are established. Repeat before actually raising the exception
         except aiohttp.ServerDisconnectedError as ex:
-            if not self._mute_flag:
-                raise AsusRouterServerDisconnectedError()
+            if retry:
+                raise AsusRouterServerDisconnectedError(ex) from ex
+            else:
+                _LOGGER.warning(MSG_WARNING["disconnected"].format(endpoint, payload))
 
         # Connection refused -> will repeat
         except aiohttp.ClientConnectorError as ex:
@@ -263,7 +266,7 @@ class Connection:
                 raise AsusRouterConnectionError(str(ex)) from ex
             # Mute warning for retries and while connecting
             if not retry and not self._connecting:
-                _LOGGER.warning(
+                _LOGGER.info(
                     "{}. Endpoint: {}. Payload: {}.\nException summary:{}".format(
                         MSG_WARNING["refused"], endpoint, payload, str(ex)
                     )

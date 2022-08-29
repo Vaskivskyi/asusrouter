@@ -199,7 +199,7 @@ class AsusRouter:
         try:
             raw = await self.async_hook(message, force=True)
         except Exception as ex:
-            AsusRouterIdentityError(ERROR_IDENTITY.format(self._host, str(ex)))
+            raise AsusRouterIdentityError(ERROR_IDENTITY.format(self._host, str(ex)))
 
         # Parse
         identity = dict()
@@ -215,7 +215,7 @@ class AsusRouter:
                 else:
                     identity[key] = data
             except Exception as ex:
-                AsusRouterIdentityError(ERROR_IDENTITY.format(self._host, str(ex)))
+                raise AsusRouterIdentityError(ERROR_IDENTITY.format(self._host, str(ex)))
 
         # Check by page
         identity["sysinfo"] = await self.async_check_endpoint(
@@ -781,6 +781,9 @@ class AsusRouter:
 
         result = list()
 
+        if not KEY_NETWORK in self._monitor_main:
+            self._monitor_main.ready = False
+            return await self.async_get_network_labels()
         for interface in self._monitor_main[KEY_NETWORK]:
             result.append(interface)
 

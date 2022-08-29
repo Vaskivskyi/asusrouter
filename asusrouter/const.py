@@ -352,6 +352,7 @@ MSG_SUCCESS = {
     "logout": "Logout successful",
 }
 MSG_WARNING = {
+    "disconnected": "Disconnected by the device while quering '{}' with payload '{}'. Everything should recover by itself. If this warning appears regularly, you might need to decrease the number of simultaneous connections to your device.",
     "not_connected": "Not connected",
     "refused": "Connection refused",
 }
