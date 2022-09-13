@@ -1,4 +1,5 @@
-[![GitHub Release](https://img.shields.io/github/release/Vaskivskyi/asusrouter.svg?style=for-the-badge&color=blue)](https://github.com/Vaskivskyi/asusrouter/releases) [![License](https://img.shields.io/github/license/Vaskivskyi/asusrouter.svg?style=for-the-badge&color=yellow)](LICENSE)
+[![GitHub Release](https://img.shields.io/github/release/Vaskivskyi/asusrouter.svg?style=for-the-badge&color=blue)](https://github.com/Vaskivskyi/asusrouter/releases) [![License](https://img.shields.io/github/license/Vaskivskyi/asusrouter.svg?style=for-the-badge&color=yellow)](LICENSE)<br/>
+![Downloads](https://img.shields.io/pypi/dm/asusrouter?style=for-the-badge&color=blue) ![Commit activity](https://img.shields.io/github/commit-activity/m/vaskivskyi/asusrouter.svg?style=for-the-badge&color=yellow)<a href="https://www.buymeacoffee.com/vaskivskyi" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-blue.png" alt="Buy Me A Coffee" style="height: 28px !important;" align="right" /></a>
 
 ## AsusRouter
 
@@ -67,11 +68,39 @@ Commands to the method should be sent as a `dict` of `command: value`. Please, r
 
 ## Supported devices
 
-802.11 AC models:
-`RT-AC66U`, `RT-AC86U`, `RT-ACRH13`
+This list provides only the models tested by me or other users.
 
-802.11 AX models:
-`RT-AX55`,`RT-AX58U`, `RT-AX68U`, `RT-AX86U`, `RT-AX88U`, `RT-AX89X`, `RT-AX92U`, `ZenWiFi AX (XT8)`
+<table>
+
+<tr><th>Group</th><th>Devices</th><th>Firmware</th><th>Limitation</th></tr>
+
+<tr><td>Full support</td><td>
+
+**802.11ax**: `DSL-AX82U`, `GT-AX11000`, `RT-AX55`, `RT-AX58U`, `RT-AX68U`, `RT-AX82U`, `RT-AX86U`, `RT-AX86S` (reported as `RT-AX86U`), `RT-AX88U`, `RT-AX89X`, `RT-AX92U`, `TUF-AX5400`, `ZenWiFi AX (XT8)`, `ZenWiFi AX Mini (XD4)`<br/>
+**802.11ac**: `DSL-AC68U`, `RT-AC86U`, `RT-ACRH13`
+
+</td><td><b>Stock</b>: Any<br/><b>Merlin</b>: Any</td><td></td></tr>
+
+<tr><td>Limited support</td><td>
+
+**802.11ac**: `RT-AC51U`, `RT-AC66U`, `RT-ACRH17` (reported as `RT-AC82U`)<br/>
+**802.11n**: `RT-N66U`
+
+</td><td><b>Stock</b>: Latest available<b><br/>Merlin</b>: 380.70+</td><td>no LED control</td></tr>
+
+<tr><td>Non-Asus devices</td><td>
+
+**Netgear**: `R6300V2`, `R7000`
+
+</td><td><b>Merlin</b>: 380.70+</td><td></td></tr>
+
+<tr><td><b>Not supported</b></td><td>
+
+`DSL-AC68VG` (non-compatible FW)
+
+</td><td></td><td></td></tr>
+
+</table>
 
 ## Support the library
 
@@ -89,6 +118,6 @@ Testing the library with different devices would help a lot in the development p
 
 This library is a free-time project. If you like it, you can support me by buying a coffee.
 
-<a href="https://www.buymeacoffee.com/vaskivskyi" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-blue.png" alt="Buy Me A Coffee" style="height: 40px !important;"></a>
+<a href="https://www.buymeacoffee.com/vaskivskyi" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-blue.png" alt="Buy Me A Coffee" style="height: 60px !important;"></a>
 
 
