@@ -422,7 +422,9 @@ def parental_control(raw: dict[str, Any]) -> dict[str, Any]:
 
     result = dict()
 
-    result[AR_KEY_PARENTAL_CONTROL.get()] = AR_KEY_PARENTAL_CONTROL.method(raw[AR_KEY_PARENTAL_CONTROL.value])
+    result[AR_KEY_PARENTAL_CONTROL.get()] = AR_KEY_PARENTAL_CONTROL.method(
+        raw[AR_KEY_PARENTAL_CONTROL.value]
+    )
     list = dict()
 
     for el in raw:
@@ -434,7 +436,7 @@ def parental_control(raw: dict[str, Any]) -> dict[str, Any]:
         data = {
             "access": raw["MULTIFILTER_ENABLE"][i],
             "name": raw["MULTIFILTER_DEVICENAME"][i],
-            "time": raw["MULTIFILTER_MACFILTER_DAYTIME_V2"][i]
+            "time": raw["MULTIFILTER_MACFILTER_DAYTIME_V2"][i],
         }
         list[raw["MULTIFILTER_MAC"][i]] = data.copy()
 

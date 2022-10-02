@@ -215,7 +215,9 @@ class AsusRouter:
                 else:
                     identity[key] = data
             except Exception as ex:
-                raise AsusRouterIdentityError(ERROR_IDENTITY.format(self._host, str(ex)))
+                raise AsusRouterIdentityError(
+                    ERROR_IDENTITY.format(self._host, str(ex))
+                )
 
         # Check by page
         identity["sysinfo"] = await self.async_check_endpoint(
@@ -975,7 +977,9 @@ class AsusRouter:
         data = await self.async_hook(compilers.nvram(nvram))
         for id in ids:
             for value in NVRAM_TEMPLATE["WLAN"]:
-                data[value.value.format(id)] = value.method(data[value.value.format(id)])
+                data[value.value.format(id)] = value.method(
+                    data[value.value.format(id)]
+                )
 
         return data
 
