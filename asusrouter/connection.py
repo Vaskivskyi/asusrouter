@@ -260,8 +260,8 @@ class Connection:
             else:
                 _LOGGER.warning(MSG_WARNING["disconnected"].format(endpoint, payload))
 
-        # Connection refused -> will repeat
-        except aiohttp.ClientConnectorError as ex:
+        # Connection refused or reset by peer -> will repeat
+        except (aiohttp.ClientOSError) as ex:
             if endpoint == AR_PATH["login"] and not self._mute_flag:
                 raise AsusRouterConnectionError(str(ex)) from ex
             # Mute warning for retries and while connecting
