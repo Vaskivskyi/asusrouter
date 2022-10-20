@@ -2,13 +2,10 @@
 
 from __future__ import annotations
 
-import logging
-
-_LOGGER = logging.getLogger(__name__)
-
 import asyncio
 import base64
 import json
+import logging
 import ssl
 import urllib.parse
 from pathlib import Path
@@ -20,6 +17,7 @@ from asusrouter import (
     AsusRouter404,
     AsusRouterConnectionError,
     AsusRouterConnectionTimeoutError,
+    AsusRouterError,
     AsusRouterLoginBlockError,
     AsusRouterLoginError,
     AsusRouterResponseError,
@@ -40,6 +38,8 @@ from asusrouter.const import (
     MSG_WARNING,
 )
 from asusrouter.util import converters, parsers
+
+_LOGGER = logging.getLogger(__name__)
 
 
 class Connection:
@@ -100,10 +100,13 @@ class Connection:
     ) -> dict[str, Any]:
         """Run command. Use the existing connection token, otherwise create new one"""
 
+        _LOGGER.debug(f"Started command {command}")
+
         if self._drop:
             return {}
 
         if self._token is None and not retry:
+            _LOGGER.debug(f"No toren - connecting and repeating")
             await self.async_connect()
             return await self.async_run_command(command, endpoint, retry=True)
         else:
@@ -111,7 +114,7 @@ class Connection:
                 try:
                     result = await self.async_request(command, endpoint, self._headers)
                     return result
-                except (AsusRouter404, AsusRouterServerDisconnectedError) as ex:
+                except AsusRouterError as ex:
                     raise ex
                 except Exception as ex:
                     if not retry:
@@ -204,7 +207,6 @@ class Connection:
                         raise AsusRouterLoginError(MSG_ERROR["credentials"])
                     # Too many attempts
                     elif error_code == AR_ERROR["try_again"]:
-                        _LOGGER.debug(json_body)
                         raise AsusRouterLoginBlockError(
                             MSG_ERROR["try_again"],
                             timeout=converters.int_from_str(
@@ -213,7 +215,6 @@ class Connection:
                         )
                     # Loged out
                     elif error_code == AR_ERROR["logout"]:
-                        _LOGGER.info(MSG_SUCCESS["logout"])
                         return {"success": True}
                     # Unknown error code
                     else:
@@ -236,10 +237,8 @@ class Connection:
         # Handle non-JSON replies
         except json.JSONDecodeError:
             if ".xml" in endpoint:
-                _LOGGER.debug(MSG_INFO["xml"])
                 json_body = parsers.xml(text=string_body, page=endpoint)
             else:
-                _LOGGER.debug(MSG_INFO["json_fix"])
                 json_body = parsers.pseudo_json(text=string_body, page=endpoint)
             return json_body
 
@@ -258,7 +257,7 @@ class Connection:
             if retry:
                 raise AsusRouterServerDisconnectedError(ex) from ex
             else:
-                _LOGGER.warning(MSG_WARNING["disconnected"].format(endpoint, payload))
+                _LOGGER.debug(MSG_WARNING["disconnected"].format(endpoint, payload))
 
         # Connection refused or reset by peer -> will repeat
         except (aiohttp.ClientOSError) as ex:
@@ -266,7 +265,7 @@ class Connection:
                 raise AsusRouterConnectionError(str(ex)) from ex
             # Mute warning for retries and while connecting
             if not retry and not self._connecting:
-                _LOGGER.info(
+                _LOGGER.debug(
                     "{}. Endpoint: {}. Payload: {}.\nException summary:{}".format(
                         MSG_WARNING["refused"], endpoint, payload, str(ex)
                     )
@@ -277,7 +276,7 @@ class Connection:
 
         if not retry:
             self._error = True
-            _LOGGER.info(MSG_INFO["reconnect"])
+            _LOGGER.debug(MSG_INFO["reconnect"])
             await self.async_cleanup()
             await self.async_connect(retry=True)
         return await self.async_request(
@@ -307,7 +306,7 @@ class Connection:
                 "user-agent": AR_USER_AGENT,
                 "cookie": "asus_token={}".format(self._token),
             }
-            _LOGGER.info(
+            _LOGGER.debug(
                 "{} on port {}: {}".format(
                     MSG_SUCCESS["login"], self._port, self._device
                 )

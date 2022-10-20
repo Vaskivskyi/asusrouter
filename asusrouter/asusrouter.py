@@ -2,18 +2,16 @@
 
 from __future__ import annotations
 
-import logging
-
-_LOGGER = logging.getLogger(__name__)
-
 import aiohttp
 import asyncio
 from datetime import datetime
+import logging
 from typing import Any
 
 from asusrouter import (
     AsusDevice,
     AsusRouter404,
+    AsusRouterError,
     AsusRouterIdentityError,
     AsusRouterServerDisconnectedError,
     AsusRouterServiceError,
@@ -79,6 +77,8 @@ from asusrouter.const import (
     PORT_TYPE,
 )
 from asusrouter.util import calculators, compilers, converters, parsers
+
+_LOGGER = logging.getLogger(__name__)
 
 
 class AsusRouter:
@@ -344,111 +344,115 @@ class AsusRouter:
         """Get all the main monitor values. Non-cacheable"""
 
         while self._monitor_main.active:
-            _LOGGER.debug(MSG_INFO["monitor_sleep"].format("main"))
             await asyncio.sleep(DEFAULT_SLEEP_TIME)
-            _LOGGER.debug(MSG_INFO["monitor_wakeup"].format("main"))
             return
 
-        self._monitor_main.start()
+        try:
+            self._monitor_main.start()
 
-        monitor_main = Monitor()
+            monitor_main = Monitor()
 
-        hook = compilers.hook(MONITOR_MAIN)
-        data = await self.async_hook(hook)
+            hook = compilers.hook(MONITOR_MAIN)
+            data = await self.async_hook(hook)
 
-        monitor_main.reset()
+            monitor_main.reset()
 
-        ### CPU ###
-        ## Not yet known what exactly is type of data. But this is the correct way to calculate usage from it
+            ### CPU ###
+            ## Not yet known what exactly is type of data. But this is the correct way to calculate usage from it
 
-        # Keep safe
-        if AR_KEY_CPU in data:
+            # Keep safe
+            if AR_KEY_CPU in data:
 
-            raw_cpu = data[AR_KEY_CPU]
+                raw_cpu = data[AR_KEY_CPU]
 
-            # Check which cores CPU has or find it out and save for later
-            if self._device_cpu_cores is None:
-                self._device_cpu_cores = parsers.cpu_cores(raw=raw_cpu)
+                # Check which cores CPU has or find it out and save for later
+                if self._device_cpu_cores is None:
+                    self._device_cpu_cores = parsers.cpu_cores(raw=raw_cpu)
 
-            # Traffic data from the device
-            monitor_main[KEY_CPU] = parsers.cpu_usage(
-                raw=raw_cpu, cores=self._device_cpu_cores
-            )
-
-            # Calculate actual usage in percents and save it. Only if there was old data for CPU
-            if self._monitor_main.ready and KEY_CPU in self._monitor_main:
-                for item in monitor_main[KEY_CPU]:
-                    if item in self._monitor_main[KEY_CPU]:
-                        monitor_main[KEY_CPU][item] = calculators.usage_in_dict(
-                            after=monitor_main[KEY_CPU][item],
-                            before=self._monitor_main[KEY_CPU][item],
-                        )
-
-        # Keep last data
-        elif self._monitor_main.ready and KEY_CPU in self._monitor_main:
-            monitor_main[KEY_CPU] = self._monitor_main[KEY_CPU]
-
-        ### RAM ###
-        ## Data is in KiB. To get MB as they are shown in the device Web-GUI, should be devided by 1024 (yes, those will be MiB)
-
-        if AR_KEY_RAM in data:
-            # Populate RAM with known values
-            monitor_main[KEY_RAM] = parsers.ram_usage(raw=data[AR_KEY_RAM])
-
-            # Calculate usage in percents
-            if (
-                DATA_USED in monitor_main[KEY_RAM]
-                and DATA_TOTAL in monitor_main[KEY_RAM]
-            ):
-                monitor_main[KEY_RAM] = calculators.usage_in_dict(
-                    after=monitor_main[KEY_RAM]
-                )
-        # Keep last data
-        elif self._monitor_main.ready and KEY_RAM in self._monitor_main:
-            monitor_main[KEY_RAM] = self._monitor_main[KEY_RAM]
-
-        ### NETWORK ###
-        ## Data in Bytes for traffic and bits/s for speeds
-
-        if AR_KEY_NETWORK in data:
-            # Calculate RX and TX from the HEX values. If there is no current value, but there was one before, get it from storage. Traffic resets only on device reboot or when above the limit. Device disconnect / reconnect does NOT reset it
-            monitor_main[KEY_NETWORK] = parsers.network_usage(raw=data[AR_KEY_NETWORK])
-
-            if self._monitor_main.ready and KEY_NETWORK in self._monitor_main:
-                # Calculate speeds
-                time_delta = (
-                    monitor_main.time - self._monitor_main.time
-                ).total_seconds()
-                monitor_main[KEY_NETWORK] = parsers.network_speed(
-                    after=monitor_main[KEY_NETWORK],
-                    before=self._monitor_main[KEY_NETWORK],
-                    time_delta=time_delta,
+                # Traffic data from the device
+                monitor_main[KEY_CPU] = parsers.cpu_usage(
+                    raw=raw_cpu, cores=self._device_cpu_cores
                 )
 
-        # Keep last data
-        elif self._monitor_main.ready and KEY_NETWORK in self._monitor_main:
-            monitor_main[KEY_NETWORK] = self._monitor_main[KEY_NETWORK]
+                # Calculate actual usage in percents and save it. Only if there was old data for CPU
+                if self._monitor_main.ready and KEY_CPU in self._monitor_main:
+                    for item in monitor_main[KEY_CPU]:
+                        if item in self._monitor_main[KEY_CPU]:
+                            monitor_main[KEY_CPU][item] = calculators.usage_in_dict(
+                                after=monitor_main[KEY_CPU][item],
+                                before=self._monitor_main[KEY_CPU][item],
+                            )
 
-        ### WAN STATE ###
+            # Keep last data
+            elif self._monitor_main.ready and KEY_CPU in self._monitor_main:
+                monitor_main[KEY_CPU] = self._monitor_main[KEY_CPU]
 
-        if AR_KEY_WAN in data:
-            # Populate WAN with known values
-            monitor_main[KEY_WAN] = parsers.wan_state(raw=data[AR_KEY_WAN])
+            ### RAM ###
+            ## Data is in KiB. To get MB as they are shown in the device Web-GUI, should be devided by 1024 (yes, those will be MiB)
 
-        # Keep last data
-        elif self._monitor_main.ready and KEY_WAN in self._monitor_main:
-            monitor_main[KEY_WAN] = self._monitor_main[KEY_WAN]
+            if AR_KEY_RAM in data:
+                # Populate RAM with known values
+                monitor_main[KEY_RAM] = parsers.ram_usage(raw=data[AR_KEY_RAM])
 
-        ### SYSINFO ###
+                # Calculate usage in percents
+                if (
+                    DATA_USED in monitor_main[KEY_RAM]
+                    and DATA_TOTAL in monitor_main[KEY_RAM]
+                ):
+                    monitor_main[KEY_RAM] = calculators.usage_in_dict(
+                        after=monitor_main[KEY_RAM]
+                    )
+            # Keep last data
+            elif self._monitor_main.ready and KEY_RAM in self._monitor_main:
+                monitor_main[KEY_RAM] = self._monitor_main[KEY_RAM]
 
-        if self._identity:
-            if self._identity.sysinfo:
-                monitor_main[KEY_SYSINFO] = await self.async_load(
-                    page=AR_PATH["sysinfo"]
+            ### NETWORK ###
+            ## Data in Bytes for traffic and bits/s for speeds
+
+            if AR_KEY_NETWORK in data:
+                # Calculate RX and TX from the HEX values. If there is no current value, but there was one before, get it from storage. Traffic resets only on device reboot or when above the limit. Device disconnect / reconnect does NOT reset it
+                monitor_main[KEY_NETWORK] = parsers.network_usage(
+                    raw=data[AR_KEY_NETWORK]
                 )
 
-        monitor_main.finish()
-        self._monitor_main = monitor_main
+                if self._monitor_main.ready and KEY_NETWORK in self._monitor_main:
+                    # Calculate speeds
+                    time_delta = (
+                        monitor_main.time - self._monitor_main.time
+                    ).total_seconds()
+                    monitor_main[KEY_NETWORK] = parsers.network_speed(
+                        after=monitor_main[KEY_NETWORK],
+                        before=self._monitor_main[KEY_NETWORK],
+                        time_delta=time_delta,
+                    )
+
+            # Keep last data
+            elif self._monitor_main.ready and KEY_NETWORK in self._monitor_main:
+                monitor_main[KEY_NETWORK] = self._monitor_main[KEY_NETWORK]
+
+            ### WAN STATE ###
+
+            if AR_KEY_WAN in data:
+                # Populate WAN with known values
+                monitor_main[KEY_WAN] = parsers.wan_state(raw=data[AR_KEY_WAN])
+
+            # Keep last data
+            elif self._monitor_main.ready and KEY_WAN in self._monitor_main:
+                monitor_main[KEY_WAN] = self._monitor_main[KEY_WAN]
+
+            ### SYSINFO ###
+
+            if self._identity:
+                if self._identity.sysinfo:
+                    monitor_main[KEY_SYSINFO] = await self.async_load(
+                        page=AR_PATH["sysinfo"]
+                    )
+
+            monitor_main.finish()
+            self._monitor_main = monitor_main
+        except AsusRouterError as ex:
+            self._monitor_main.drop()
+            raise ex
 
         return
 
@@ -456,42 +460,46 @@ class AsusRouter:
         """Get the NVRAM values for the specified group list"""
 
         while self._monitor_nvram.active:
-            _LOGGER.debug(MSG_INFO["monitor_sleep"].format("nvram"))
             await asyncio.sleep(DEFAULT_SLEEP_TIME)
-            _LOGGER.debug(MSG_INFO["monitor_wakeup"].format("nvram"))
             return
 
-        self._monitor_nvram.start()
+        try:
+            self._monitor_nvram.start()
 
-        monitor_nvram = Monitor()
+            monitor_nvram = Monitor()
 
-        # If none groups were sent, will return all the known NVRAM values
-        if groups is None:
-            groups = [*NVRAM_LIST]
+            # If none groups were sent, will return all the known NVRAM values
+            if groups is None:
+                groups = [*NVRAM_LIST]
 
-        # If only one group is sent
-        if type(groups) is not list:
-            groups = [groups.upper()]
+            # If only one group is sent
+            if type(groups) is not list:
+                groups = [groups.upper()]
 
-        requests = []
-        for group in groups:
-            group = group.upper()
-            if group in NVRAM_LIST:
-                for value in NVRAM_LIST[group]:
-                    requests.append(value)
-            else:
-                _LOGGER.warning("There is no {} in known NVRAM groups".format(group))
+            requests = []
+            for group in groups:
+                group = group.upper()
+                if group in NVRAM_LIST:
+                    for value in NVRAM_LIST[group]:
+                        requests.append(value)
+                else:
+                    _LOGGER.warning(
+                        "There is no {} in known NVRAM groups".format(group)
+                    )
 
-        message = compilers.nvram(requests)
-        result = await self.async_hook(message)
+            message = compilers.nvram(requests)
+            result = await self.async_hook(message)
 
-        monitor_nvram.reset()
+            monitor_nvram.reset()
 
-        for item in result:
-            monitor_nvram[item] = result[item]
+            for item in result:
+                monitor_nvram[item] = result[item]
 
-        monitor_nvram.finish()
-        self._monitor_nvram = monitor_nvram
+            monitor_nvram.finish()
+            self._monitor_nvram = monitor_nvram
+        except AsusRouterError as ex:
+            self._monitor_nvram.drop()
+            raise ex
 
         return
 
@@ -499,85 +507,87 @@ class AsusRouter:
         """Get all other useful values"""
 
         while self._monitor_misc.active:
-            _LOGGER.debug(MSG_INFO["monitor_sleep"].format("misc"))
             await asyncio.sleep(DEFAULT_SLEEP_TIME)
-            _LOGGER.debug(MSG_INFO["monitor_wakeup"].format("misc"))
             return
 
-        self._monitor_misc.start()
+        try:
+            self._monitor_misc.start()
 
-        monitor_misc = Monitor()
+            monitor_misc = Monitor()
 
-        ### PORTS
+            ### PORTS
 
-        # Receive ports number and status (disconnected, 100 Mb/s, 1 Gb/s)
-        data = await self.async_load(page=AR_PATH["ports"])
+            # Receive ports number and status (disconnected, 100 Mb/s, 1 Gb/s)
+            data = await self.async_load(page=AR_PATH["ports"])
 
-        monitor_misc.reset()
+            monitor_misc.reset()
 
-        monitor_misc["PORTS"] = dict()
-        if "portSpeed" in data:
-            for type in PORT_TYPE:
-                monitor_misc["PORTS"][type] = dict()
-            for value in data["portSpeed"]:
+            monitor_misc["PORTS"] = dict()
+            if "portSpeed" in data:
                 for type in PORT_TYPE:
-                    if type in value:
-                        number = value.replace(type, "")
-                        monitor_misc["PORTS"][type][number] = parsers.port_speed(
-                            data["portSpeed"][value]
-                        )
-                        break
+                    monitor_misc["PORTS"][type] = dict()
+                for value in data["portSpeed"]:
+                    for type in PORT_TYPE:
+                        if type in value:
+                            number = value.replace(type, "")
+                            monitor_misc["PORTS"][type][number] = parsers.port_speed(
+                                data["portSpeed"][value]
+                            )
+                            break
 
-        ### TEMPERATURES ###
-        monitor_misc[KEY_TEMPERATURE] = await self.async_load(
-            page=AR_PATH["temperature"]
-        )
-
-        # Load devicemap
-        data = await self.async_load(page=AR_PATH["devicemap"])
-        monitor_misc["DEVICEMAP"] = data
-
-        ### VPN ###
-        if self._identity.vpn_status:
-            monitor_misc[KEY_VPN] = await self.async_load(page=AR_PATH["vpn"])
-            if monitor_misc["DEVICEMAP"] and monitor_misc[KEY_VPN]:
-                monitor_misc[KEY_VPN] = compilers.vpn_from_devicemap(
-                    monitor_misc[KEY_VPN], monitor_misc["DEVICEMAP"]
-                )
-        else:
-            monitor_misc[KEY_VPN] = compilers.vpn_from_devicemap(
-                None, monitor_misc["DEVICEMAP"]
+            ### TEMPERATURES ###
+            monitor_misc[KEY_TEMPERATURE] = await self.async_load(
+                page=AR_PATH["temperature"]
             )
 
-        # Calculate boot time. Since precision is 1 second, could be that old and new are 1 sec different. In this case, we should not change the boot time, but keep the previous value to avoid regular changes
-        if "SYS" in monitor_misc["DEVICEMAP"]:
-            if "uptimeStr" in monitor_misc["DEVICEMAP"]["SYS"]:
-                time = parsers.uptime(monitor_misc["DEVICEMAP"]["SYS"]["uptimeStr"])
-                timestamp = int(time.timestamp())
-                if not "BOOTTIME" in monitor_misc:
-                    monitor_misc["BOOTTIME"] = dict()
+            # Load devicemap
+            data = await self.async_load(page=AR_PATH["devicemap"])
+            monitor_misc["DEVICEMAP"] = data
 
-                if "BOOTTIME" in self._monitor_misc:
-                    _timestamp = self._monitor_misc["BOOTTIME"]["timestamp"]
-                    _time = datetime.fromtimestamp(_timestamp)
-                    if time == _time or abs(timestamp - _timestamp) < 2:
-                        monitor_misc["BOOTTIME"] = self._monitor_misc["BOOTTIME"]
-                    # This happens on reboots if data is checked before the device got correct time from NTP
-                    elif timestamp - _timestamp < 0:
-                        # Leave the same boot time, since we don't know the new correct time
-                        monitor_misc["BOOTTIME"] = self._monitor_misc["BOOTTIME"]
+            ### VPN ###
+            if self._identity.vpn_status:
+                monitor_misc[KEY_VPN] = await self.async_load(page=AR_PATH["vpn"])
+                if monitor_misc["DEVICEMAP"] and monitor_misc[KEY_VPN]:
+                    monitor_misc[KEY_VPN] = compilers.vpn_from_devicemap(
+                        monitor_misc[KEY_VPN], monitor_misc["DEVICEMAP"]
+                    )
+            else:
+                monitor_misc[KEY_VPN] = compilers.vpn_from_devicemap(
+                    None, monitor_misc["DEVICEMAP"]
+                )
+
+            # Calculate boot time. Since precision is 1 second, could be that old and new are 1 sec different. In this case, we should not change the boot time, but keep the previous value to avoid regular changes
+            if "SYS" in monitor_misc["DEVICEMAP"]:
+                if "uptimeStr" in monitor_misc["DEVICEMAP"]["SYS"]:
+                    time = parsers.uptime(monitor_misc["DEVICEMAP"]["SYS"]["uptimeStr"])
+                    timestamp = int(time.timestamp())
+                    if not "BOOTTIME" in monitor_misc:
+                        monitor_misc["BOOTTIME"] = dict()
+
+                    if "BOOTTIME" in self._monitor_misc:
+                        _timestamp = self._monitor_misc["BOOTTIME"]["timestamp"]
+                        _time = datetime.fromtimestamp(_timestamp)
+                        if time == _time or abs(timestamp - _timestamp) < 2:
+                            monitor_misc["BOOTTIME"] = self._monitor_misc["BOOTTIME"]
+                        # This happens on reboots if data is checked before the device got correct time from NTP
+                        elif timestamp - _timestamp < 0:
+                            # Leave the same boot time, since we don't know the new correct time
+                            monitor_misc["BOOTTIME"] = self._monitor_misc["BOOTTIME"]
+                        else:
+                            monitor_misc["BOOTTIME"]["timestamp"] = timestamp
+                            monitor_misc["BOOTTIME"]["ISO"] = time.isoformat()
                     else:
                         monitor_misc["BOOTTIME"]["timestamp"] = timestamp
                         monitor_misc["BOOTTIME"]["ISO"] = time.isoformat()
-                else:
-                    monitor_misc["BOOTTIME"]["timestamp"] = timestamp
-                    monitor_misc["BOOTTIME"]["ISO"] = time.isoformat()
 
-                if self._device_boottime != monitor_misc["BOOTTIME"]["ISO"]:
-                    self._device_boottime = monitor_misc["BOOTTIME"]["ISO"]
+                    if self._device_boottime != monitor_misc["BOOTTIME"]["ISO"]:
+                        self._device_boottime = monitor_misc["BOOTTIME"]["ISO"]
 
-        monitor_misc.finish()
-        self._monitor_misc = monitor_misc
+            monitor_misc.finish()
+            self._monitor_misc = monitor_misc
+        except AsusRouterError as ex:
+            self._monitor_misc.drop()
+            raise ex
 
         return
 
@@ -585,29 +595,32 @@ class AsusRouter:
         """Monitor connected devices"""
 
         while self._monitor_devices.active:
-            _LOGGER.debug(MSG_INFO["monitor_sleep"].format("devices"))
             await asyncio.sleep(DEFAULT_SLEEP_TIME)
-            _LOGGER.debug(MSG_INFO["monitor_wakeup"].format("devices"))
             return
 
-        self._monitor_devices.start()
-        monitor_devices = Monitor()
+        try:
+            self._monitor_devices.start()
+            monitor_devices = Monitor()
 
-        data = await self.async_hook(AR_HOOK_DEVICES)
-        monitor_devices.reset()
+            data = await self.async_hook(AR_HOOK_DEVICES)
 
-        # Search for new data
-        if AR_KEY_DEVICES in data:
-            data = data[AR_KEY_DEVICES]
-            for mac in data:
-                if converters.is_mac_address(mac):
-                    monitor_devices[mac] = parsers.connected_device(data[mac])
-        # Or keep last data
-        elif self._monitor_devices.ready:
-            monitor_devices = self._monitor_devices
+            monitor_devices.reset()
 
-        monitor_devices.finish()
-        self._monitor_devices = monitor_devices
+            # Search for new data
+            if AR_KEY_DEVICES in data:
+                data = data[AR_KEY_DEVICES]
+                for mac in data:
+                    if converters.is_mac_address(mac):
+                        monitor_devices[mac] = parsers.connected_device(data[mac])
+            # Or keep last data
+            elif self._monitor_devices.ready:
+                monitor_devices = self._monitor_devices
+
+            monitor_devices.finish()
+            self._monitor_devices = monitor_devices
+        except AsusRouterError as ex:
+            self._monitor_devices.drop()
+            raise ex
 
         return
 
@@ -974,7 +987,10 @@ class AsusRouter:
             for value in NVRAM_TEMPLATE["WLAN"]:
                 nvram.append(value.value.format(id))
 
-        data = await self.async_hook(compilers.nvram(nvram))
+        try:
+            data = await self.async_hook(compilers.nvram(nvram))
+        except AsusRouterError as ex:
+            raise ex
         for id in ids:
             for value in NVRAM_TEMPLATE["WLAN"]:
                 data[value.value.format(id)] = value.method(
