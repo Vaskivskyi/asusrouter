@@ -131,3 +131,9 @@ class Monitor(dict):
         """Set ready status to True"""
 
         self.ready = True
+
+    def drop(self) -> None:
+        """Drop on errors"""
+
+        self.stop()
+        self.ready = False
