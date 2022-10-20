@@ -29,17 +29,11 @@ class AsusRouterConnectionTimeoutError(
     """Timeout error on communication"""
 
 
-class AsusRouterServerDisconnectedError(
-    AsusRouterError, aiohttp.ServerDisconnectedError
-):
+class AsusRouterServerDisconnectedError(AsusRouterError):
     """Server disconnected error"""
 
 
-class AsusRouterSSLError(
-    AsusRouterError,
-    aiohttp.ClientConnectorSSLError,
-    aiohttp.ClientConnectorCertificateError,
-):
+class AsusRouterSSLError(AsusRouterError):
     """SSL error"""
 
 
@@ -70,7 +64,7 @@ class AsusRouterLoginBlockError(AsusRouterError):
         return self._timeout
 
 
-class AsusRouterResponseError(AsusRouterError, aiohttp.ClientResponseError):
+class AsusRouterResponseError(AsusRouterError):
     """Error on communication"""
 
 
