@@ -2,6 +2,7 @@
 
 from .error import (
     AsusRouter404,
+    AsusRouterAuthorizationError,
     AsusRouterConnectionError,
     AsusRouterConnectionTimeoutError,
     AsusRouterError,
