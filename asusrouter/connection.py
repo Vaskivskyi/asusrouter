@@ -116,10 +116,13 @@ class Connection:
                     result = await self.async_request(command, endpoint, self._headers)
                     return result
                 except AsusRouterAuthorizationError as ex:
-                    await self.async_connect()
-                    return await self.async_run_command(
-                        command, endpoint, retry=True
-                    )
+                    if not retry:
+                        await self.async_connect()
+                        return await self.async_run_command(
+                            command, endpoint, retry=True
+                        )
+                    else:
+                        raise ex
                 except AsusRouterError as ex:
                     raise ex
                 except Exception as ex:
