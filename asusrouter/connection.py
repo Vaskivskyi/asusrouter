@@ -15,6 +15,7 @@ import aiohttp
 
 from asusrouter import (
     AsusRouter404,
+    AsusRouterAuthorizationError,
     AsusRouterConnectionError,
     AsusRouterConnectionTimeoutError,
     AsusRouterError,
@@ -106,7 +107,7 @@ class Connection:
             return {}
 
         if self._token is None and not retry:
-            _LOGGER.debug(f"No toren - connecting and repeating")
+            _LOGGER.debug(f"No token - connecting and repeating")
             await self.async_connect()
             return await self.async_run_command(command, endpoint, retry=True)
         else:
@@ -114,6 +115,14 @@ class Connection:
                 try:
                     result = await self.async_request(command, endpoint, self._headers)
                     return result
+                except AsusRouterAuthorizationError as ex:
+                    if not retry:
+                        await self.async_connect()
+                        return await self.async_run_command(
+                            command, endpoint, retry=True
+                        )
+                    else:
+                        raise ex
                 except AsusRouterError as ex:
                     raise ex
                 except Exception as ex:
@@ -201,7 +210,7 @@ class Connection:
                     error_code = int(json_body["error_status"])
                     # Not authorised
                     if error_code == AR_ERROR["authorisation"]:
-                        raise AsusRouterResponseError(MSG_ERROR["authorisation"])
+                        raise AsusRouterAuthorizationError(MSG_ERROR["authorisation"])
                     # Wrong crerdentials
                     elif error_code == AR_ERROR["credentials"]:
                         raise AsusRouterLoginError(MSG_ERROR["credentials"])

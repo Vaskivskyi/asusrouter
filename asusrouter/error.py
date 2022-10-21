@@ -19,6 +19,10 @@ class AsusRouterError(Exception):
         super().__init__(*args, message)
 
 
+class AsusRouterAuthorizationError(AsusRouterError):
+    """Authorization error"""
+
+
 class AsusRouterConnectionError(AsusRouterError, aiohttp.ClientConnectionError):
     """Error connecting to the router"""
 
