@@ -756,6 +756,42 @@ class AsusRouter:
 
         return self._monitor_devices.copy()
 
+    async def async_get_gwlan(self) -> dict[str, Any]:
+        """Get state of guest WLAN by id"""
+
+        ids = await self.async_get_gwlan_ids()
+
+        # NVRAM values to check
+        nvram = list()
+        for id in ids:
+            for value in NVRAM_TEMPLATE["GWLAN"]:
+                nvram.append(value.value.format(id))
+
+        try:
+            data = await self.async_hook(compilers.nvram(nvram))
+        except AsusRouterError as ex:
+            raise ex
+        for id in ids:
+            for value in NVRAM_TEMPLATE["GWLAN"]:
+                data[value.value.format(id)] = value.method(
+                    data[value.value.format(id)]
+                )
+
+        return data
+
+    async def async_get_gwlan_ids(self) -> list[int]:
+        """Return list of guest WLAN ids"""
+
+        ids = list()
+
+        wlans = await self.async_get_wlan_ids()
+
+        for wlan in wlans:
+            for i in range(1, 4):
+                ids.append(f"{wlan}.{i}")
+
+        return ids
+
     async def async_get_network(
         self, use_cache: bool = True
     ) -> dict[str, (int | float)]:
