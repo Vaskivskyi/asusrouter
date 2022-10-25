@@ -401,6 +401,63 @@ NVRAM_TEMPLATE = {
         Key("wl{}_wpa_gtk_rekey"),
         Key("wl{}_wpa_psk"),
     ],
+    "GWLAN": [
+        Key("wl{}_akm"),
+        Key("wl{}_ap_isolate"),
+        Key("wl{}_auth"),
+        Key("wl{}_auth_mode"),
+        Key("wl{}_auth_mode_x"),
+        Key("wl{}_bridge"),
+        Key("wl{}_bss_enabled", method=bool_from_any),
+        Key("wl{}_bss_maxassoc", method=int_from_str),
+        Key("wl{}_bw_dl", method=int_from_str),             # Bandwidth limit download
+        Key("wl{}_bw_enabled", method=bool_from_any),       # Bandwidth limit switch
+        Key("wl{}_bw_ul", method=int_from_str),             # Bandwidth limit upload
+        Key("wl{}_closed", method=bool_from_any), 
+        Key("wl{}_crypto"),
+        Key("wl{}_expire", method=int_from_str),            # Expire time in s
+        Key("wl{}_expire_tmp", method=int_from_str),        # Expire time left in s
+        Key("wl{}_gn_wbl_enable"),
+        Key("wl{}_gn_wbl_rule"),
+        Key("wl{}_gn_wbl_type"),
+        Key("wl{}_hwaddr"),                                 # MAC address
+        Key("wl{}_ifname"),                                 # Interface name
+        Key("wl{}_infra"),
+        Key("wl{}_key"),
+        Key("wl{}_key1"),
+        Key("wl{}_key2"),
+        Key("wl{}_key3"),
+        Key("wl{}_key4"),
+        Key("wl{}_lanaccess", method=bool_from_any),        # LAN access
+        Key("wl{}_maclist"),
+        Key("wl{}_macmode", method=bool_from_any),
+        Key("wl{}_maxassoc", method=int_from_str),
+        Key("wl{}_mbss"),
+        Key("wl{}_mfp"),
+        Key("wl{}_mode"),
+        Key("wl{}_net_reauth", method=int_from_str),
+        Key("wl{}_preauth"),
+        Key("wl{}_radio", method=bool_from_any),
+        Key("wl{}_radius_ipaddr"),
+        Key("wl{}_radius_key"),
+        Key("wl{}_radius_port", method=int_from_str),
+        Key("wl{}_sae_anti_clog_threshold"),
+        Key("wl{}_sae_groups"),
+        Key("wl{}_sae_sync"),
+        Key("wl{}_ssid"),                                   # SSID
+        Key("wl{}_sta_retry_time"),
+        Key("wl{}_sync_node", method=bool_from_any),        # Sync AiMesh nodes
+        Key("wl{}_unit"),                                   # GWLAN unit id
+        Key("wl{}_wep", method=bool_from_any),
+        Key("wl{}_wep_x", method=bool_from_any),
+        Key("wl{}_wfi_enable", method=bool_from_any),
+        Key("wl{}_wfi_pinmode"),
+        Key("wl{}_wme"),
+        Key("wl{}_wme_bss_disable", method=bool_from_any),
+        Key("wl{}_wpa_gtk_rekey"),
+        Key("wl{}_wpa_psk"),                                # Password
+        Key("wl{}_wps_mode"),
+    ]
 }
 
 NVRAM_LIST = {

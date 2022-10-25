@@ -14,12 +14,14 @@ BOOL_FALSE: tuple[str, ...] = (
     "block",
     "0",
     "off",
+    "disabled",
 )
 BOOL_TRUE: tuple[str, ...] = (
     "true",
     "allow",
     "1",
     "on",
+    "enabled",
 )
 ERROR_VALUE = "Wrong value: {} with original exception: {}"
 ERROR_VALUE_TYPE = "Wrong value {} of type {}"
@@ -94,7 +96,7 @@ def float_from_str(raw: str) -> float:
     return value
 
 
-def bool_from_any(raw: str | int | float | bool) -> bool:
+def bool_from_any(raw: str | int | float | bool) -> bool | None:
     """Converts string or number to bool"""
 
     _type = type(raw)
@@ -113,6 +115,8 @@ def bool_from_any(raw: str | int | float | bool) -> bool:
             return False
         elif raw.lower().strip() in BOOL_TRUE:
             return True
+        elif raw == str():
+            return None
         else:
             raise AsusRouterValueError(ERROR_VALUE_TYPE.format(raw, type(raw)))
 
