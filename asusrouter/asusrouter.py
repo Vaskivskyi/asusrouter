@@ -602,6 +602,8 @@ class AsusRouter:
             self._monitor_devices.start()
             monitor_devices = Monitor()
 
+            # Update device list (needed for older devices)
+            await self.async_check_endpoint(AR_PATH["devices_update"])
             data = await self.async_hook(AR_HOOK_DEVICES)
 
             monitor_devices.reset()
