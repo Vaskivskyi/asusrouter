@@ -266,6 +266,7 @@ AR_KEY_PARENTAL_CONTROL = Key(
 AR_PATH = {
     "command": "applyapp.cgi",
     "devicemap": "ajax_status.xml",
+    "devices_update": "update_clients.asp",
     "get": "appGet.cgi",
     "ledg": "set_ledg.cgi",
     "login": "login.cgi",
