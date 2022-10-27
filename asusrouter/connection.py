@@ -160,6 +160,8 @@ class Connection:
                 string_body = await r.text()
                 if "404 Not Found" in string_body:
                     raise AsusRouter404()
+        except aiohttp.ClientError as ex:
+            raise AsusRouterConnectionError(ex)
         except Exception as ex:
             raise ex
 
