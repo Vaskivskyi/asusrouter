@@ -450,6 +450,8 @@ def pseudo_json(text: str, page: str) -> dict[str, Any]:
 
     if page == AR_PATH["vpn"]:
         return vpn_status(text)
+    if page == AR_PATH["firmware"]:
+        return firmware(text)
 
     data = re.sub("\s+", "", text)
 
@@ -524,6 +526,19 @@ def variables(raw: str) -> dict[str, Any]:
             break
         values[value[1]] = value[2]
         temp = temp.replace(f"{value[0]};", "")
+
+    return values
+
+
+def firmware(raw: str) -> dict[str, Any]:
+    """Firmware parser"""
+
+    if type(raw) != str:
+        raise AsusRouterValueError(ERROR_VALUE_TYPE.format(raw, type(raw)))
+    if raw.strip() == str():
+        return {}
+
+    values = variables(raw.replace("'", '"'))
 
     return values
 

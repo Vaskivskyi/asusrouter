@@ -21,6 +21,7 @@ from asusrouter import (
 )
 from asusrouter.const import (
     AR_DEVICE_IDENTITY,
+    AR_FIRMWARE_CHECK_COMMAND,
     AR_HOOK_DEVICES,
     AR_KEY_AURARGB,
     AR_KEY_CPU,
@@ -258,7 +259,10 @@ class AsusRouter:
     ### DATA PROCESSING -->
 
     async def async_command(
-        self, commands: dict[str, str], action_mode: str = DEFAULT_ACTION_MODE
+        self,
+        commands: dict[str, str] | None = None,
+        action_mode: str = DEFAULT_ACTION_MODE,
+        apply_to: str = AR_PATH["command"],
     ) -> dict[str, Any]:
         """Command device to run a service or set parameter"""
 
@@ -271,12 +275,13 @@ class AsusRouter:
         request: dict = {
             KEY_ACTION_MODE: action_mode,
         }
-        for command in commands:
-            request[command] = commands[command]
+        if commands is not None:
+            for command in commands:
+                request[command] = commands[command]
 
         try:
             result = await self.connection.async_run_command(
-                command=str(request), endpoint=AR_PATH["command"]
+                command=str(request), endpoint=apply_to
             )
             _LOGGER.debug("{}: {}".format(MSG_SUCCESS["command"], request))
         except Exception as ex:
@@ -1211,6 +1216,30 @@ class AsusRouter:
         service = "reboot"
         await self.async_service_run(service=service, drop_connection=True)
         return True
+
+    async def async_get_firmware_update(self) -> dict[str, Any]:
+        """Check for firmware updates"""
+
+        data = dict()
+
+        # Check for updates
+        await self.async_command(
+            commands=None,
+            action_mode=AR_FIRMWARE_CHECK_COMMAND,
+            apply_to=AR_PATH["apply"],
+        )
+        # Get available firmware data
+        data = await self.async_load(AR_PATH["firmware"])
+
+        if "webs_state_info" in data:
+            if data["webs_state_info"] == self._identity.firmware():
+                data["state"] = True
+            else:
+                data["state"] = False
+        else:
+            data["state"] = False
+
+        return data
 
     ### <-- SERVICES
 
