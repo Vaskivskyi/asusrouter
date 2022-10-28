@@ -201,6 +201,8 @@ class Connection:
                 ssl=self._ssl,
             ) as r:
                 string_body = await r.text()
+                if string_body == str():
+                    return dict()
                 if "404 Not Found" in string_body:
                     raise AsusRouter404()
                 json_body = await r.json()

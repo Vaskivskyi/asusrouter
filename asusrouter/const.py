@@ -269,9 +269,11 @@ AR_KEY_PARENTAL_CONTROL = Key(
 )
 
 AR_PATH = {
+    "apply": "apply.cgi",
     "command": "applyapp.cgi",
     "devicemap": "ajax_status.xml",
     "devices_update": "update_clients.asp",
+    "firmware": "detect_firmware.asp",
     "get": "appGet.cgi",
     "ledg": "set_ledg.cgi",
     "login": "login.cgi",
@@ -296,6 +298,7 @@ AR_VPN_STATUS = {
 AR_HOOK_TEMPLATE = "{}({});"
 AR_HOOK_DEVICES = "{}()".format(AR_KEY_DEVICES)
 
+AR_FIRMWARE_CHECK_COMMAND = "firmware_check"
 AR_SERVICE_COMMAND: dict[str, str] = {
     "force_restart": "restart_{}_force",
     "start": "start_{}",
