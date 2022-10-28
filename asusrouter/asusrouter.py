@@ -1220,15 +1220,14 @@ class AsusRouter:
     async def async_get_firmware_update(self) -> dict[str, Any]:
         """Check for firmware updates"""
 
-        try:
-            # Check for updates
-            await self.async_command(
-                commands=None,
-                action_mode=AR_FIRMWARE_CHECK_COMMAND,
-                apply_to=AR_PATH["apply"],
-            )
-        except Exception as ex:
-            raise ex
+        data = dict()
+
+        # Check for updates
+        await self.async_command(
+            commands=None,
+            action_mode=AR_FIRMWARE_CHECK_COMMAND,
+            apply_to=AR_PATH["apply"],
+        )
         # Get available firmware data
         data = await self.async_load(AR_PATH["firmware"])
 
@@ -1237,6 +1236,8 @@ class AsusRouter:
                 data["state"] = True
             else:
                 data["state"] = False
+        else:
+            data["state"] = False
 
         return data
 
