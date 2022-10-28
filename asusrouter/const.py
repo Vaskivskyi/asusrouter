@@ -72,6 +72,11 @@ REGEX_VARIABLES = '([a-zA-Z0-9\_-]+)\s*=\s*"(.*?)"(?=;)'
 # VALUES TO IGNORE
 VALUES_TO_IGNORE = [str(), "None", "0.0.0.0"]
 
+# Services to recover LED state
+TRACK_SERVICES_LED = [
+    "restart_wireless",
+]
+
 
 ### ASUSWRT KEYS, MAPS AND VALUES
 AR_DEFAULT_CORES = [1]

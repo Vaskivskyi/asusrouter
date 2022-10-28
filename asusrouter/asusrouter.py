@@ -75,6 +75,7 @@ from asusrouter.const import (
     PARAM_COUNT,
     PARAM_MODE,
     PORT_TYPE,
+    TRACK_SERVICES_LED,
 )
 from asusrouter.util import calculators, compilers, converters, parsers
 
@@ -573,9 +574,11 @@ class AsusRouter:
                         elif timestamp - _timestamp < 0:
                             # Leave the same boot time, since we don't know the new correct time
                             monitor_misc["BOOTTIME"] = self._monitor_misc["BOOTTIME"]
+                        # Boot time changed -> there was reboot
                         else:
                             monitor_misc["BOOTTIME"]["timestamp"] = timestamp
                             monitor_misc["BOOTTIME"]["ISO"] = time.isoformat()
+                            await self.async_handle_reboot()
                     else:
                         monitor_misc["BOOTTIME"]["timestamp"] = timestamp
                         monitor_misc["BOOTTIME"]["ISO"] = time.isoformat()
@@ -631,8 +634,9 @@ class AsusRouter:
     async def async_handle_error(self) -> None:
         """Actions to be taken on connection errors"""
 
-        # Most of errors come from device reboots. Handle it
-        await self.async_handle_reboot()
+        # Clear main monitor to prevent calculation errors in it
+        if self._monitor_main.ready:
+            self._monitor_main = Monitor()
 
         # Clear error
         await self.connection.async_reset_error()
@@ -642,9 +646,7 @@ class AsusRouter:
     async def async_handle_reboot(self) -> None:
         """Actions to be taken on reboot"""
 
-        # Clear main monitor to prevent calculation errors in it
-        if self._monitor_main.ready:
-            self._monitor_main = Monitor()
+        await self.async_keep_state_led()
 
         return
 
@@ -1089,6 +1091,9 @@ class AsusRouter:
 
         _LOGGER.debug(MSG_INFO["service"].format(service, arguments, result))
 
+        if service in TRACK_SERVICES_LED:
+            await self.async_keep_state_led()
+
         if expect_modify:
             return converters.bool_from_any(result[AR_KEY_SERVICE_MODIFY])
         return True
@@ -1208,6 +1213,13 @@ class AsusRouter:
         return True
 
     ### <-- SERVICES
+
+    async def async_keep_state_led(self) -> bool:
+        """Keep state of LEDs"""
+
+        # Only for Merlin firmware, so sysinfo should be present
+        if self._identity.sysinfo and self.led == False:
+            await self.async_service_led_set(self.led)
 
     @property
     def connected(self) -> bool:
