@@ -1233,7 +1233,11 @@ class AsusRouter:
 
         # For Merlin
         if not "webs_state_REQinfo" in data or data.get("webs_state_REQinfo") == str():
-            version = self._identity.fw_minor.replace(".", "_") + "_" + self._identity.fw_build
+            version = (
+                self._identity.fw_minor.replace(".", "_")
+                + "_"
+                + self._identity.fw_build
+            )
             data["webs_state_REQinfo"] = version
 
         if "webs_state_info" in data:

@@ -128,6 +128,7 @@ AR_KEY_DEVICE_NAME_LIST = ["nickName", "name", "mac"]
 AR_KEY_DEVICEMAP = "devicemap"
 AR_KEY_DEVICES = "get_clientlist"
 AR_KEY_DEVICES_LIST = "maclist"
+AR_KEY_HEADER = "HEADER"
 AR_KEY_LED = "led_val"
 AR_KEY_LEDG_COUNT = "ledg_count"
 AR_KEY_LEDG_SCHEME = "ledg_scheme"
@@ -157,6 +158,10 @@ AR_KEY_OVPN_STATUS = (
     Key("post-compress bytes", "post_compress", method=int_from_str),
     Key("pre-decompress bytes", "pre_decompress", method=int_from_str),
     Key("post-decompress bytes", "post_decompress", method=int_from_str),
+)
+AR_KEY_OVPN_STATUS_SERVER = (
+    Key("CLIENT_LIST", "client_list"),
+    Key("ROUTING_TABLE", "routing_table"),
 )
 AR_KEY_RAM = "memory_usage"
 AR_KEY_RAM_ITEM = "mem_{}"
