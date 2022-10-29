@@ -20,18 +20,22 @@ from asusrouter.const import (
     AR_DEFAULT_CORES_RANGE,
     AR_DEFAULT_LEDG,
     AR_DEFAULT_OVPN_CLIENTS,
+    AR_DEFAULT_OVPN_SERVERS,
     AR_DEVICE_ATTRIBUTES_LIST,
     AR_KEY_CPU_ITEM,
     AR_KEY_CPU_LIST,
     AR_KEY_DEVICEMAP,
+    AR_KEY_HEADER,
     AR_KEY_NETWORK_GROUPS,
     AR_KEY_NETWORK_ITEM,
     AR_KEY_OVPN,
     AR_KEY_OVPN_STATUS,
+    AR_KEY_OVPN_STATUS_SERVER,
     AR_KEY_PARENTAL_CONTROL,
     AR_KEY_RAM_ITEM,
     AR_KEY_RAM_LIST,
     AR_KEY_VPN_CLIENT,
+    AR_KEY_VPN_SERVER,
     AR_KEY_WAN_STATE,
     AR_MAP_RGB,
     AR_MAP_SYSINFO,
@@ -58,7 +62,7 @@ from asusrouter.const import (
 )
 from asusrouter.dataclass import ConnectedDevice
 from asusrouter.error import AsusRouterNotImplementedError, AsusRouterValueError
-from asusrouter.util import calculators
+from asusrouter.util import calculators, converters
 
 
 def cpu_cores(raw: dict[str, Any] | None = None) -> list[int]:
@@ -509,6 +513,55 @@ def ovpn_client_status(raw: str) -> dict[str, Any]:
     return values
 
 
+def ovpn_server_status(raw: str) -> dict[str, Any]:
+    """OpenVPN server status parser"""
+
+    if type(raw) != str:
+        raise AsusRouterValueError(ERROR_VALUE_TYPE.format(raw, type(raw)))
+    raw = raw.strip()
+    if raw == str() or raw == "None":
+        return {}
+
+    values = dict()
+
+    for key in AR_KEY_OVPN_STATUS_SERVER:
+        if key.value in raw:
+            flag = False
+            # Find headers
+            header = re.search(f"{AR_KEY_HEADER},{key.value},(.*?)(?=>)", raw)
+            if header:
+                keys_raw = header[1].split(",")
+                keys = list()
+                for el in keys_raw:
+                    keys.append(converters.to_snake_case(el))
+                flag = True
+
+            # Hide header
+            raw = raw.replace(f"{AR_KEY_HEADER},{key.value},", "USED-")
+
+            values[key.get()] = list()
+            # Find values
+            while value := re.search(f"{key.value},(.*?)(?=>)", raw):
+                if not value:
+                    break
+                if flag:
+                    cut = value[1].split(",")
+                    i = 0
+                    set = dict()
+                    while i < len(cut) and i < len(keys):
+                        set[keys[i]] = cut[i]
+                        i += 1
+                    values[key.get()].append(set.copy())
+                else:
+                    if key.method:
+                        values[key.get()].append(key.method(value[1]))
+                    else:
+                        values[key.get()].append(value[1])
+                raw = raw.replace(f"{key.value},{value[1]}", "USED-")
+
+    return values
+
+
 # var = "value";
 def variables(raw: str) -> dict[str, Any]:
     """Variables parser"""
@@ -555,6 +608,7 @@ def vpn_status(raw: str) -> dict[str, Any]:
 
     values = variables(raw)
 
+    # Clients
     for num in range(1, AR_DEFAULT_OVPN_CLIENTS + 1):
         key = AR_KEY_OVPN.format(AR_KEY_VPN_CLIENT, num, PARAM_STATUS)
         if not key in values:
@@ -574,6 +628,29 @@ def vpn_status(raw: str) -> dict[str, Any]:
             vpns[vpn_id][PARAM_IP] = values[key]
 
         key = AR_KEY_OVPN.format(AR_KEY_VPN_CLIENT, num, PARAM_RIP)
+        if key in values and values[key] not in VALUES_TO_IGNORE:
+            vpns[vpn_id][PARAM_RIP] = values[key]
+
+    # Servers
+    for num in range(1, AR_DEFAULT_OVPN_SERVERS + 1):
+        key = AR_KEY_OVPN.format(AR_KEY_VPN_SERVER, num, PARAM_STATUS)
+        if not key in values:
+            break
+
+        vpn_id = AR_KEY_VPN_SERVER + str(num)
+
+        if values[key] not in VALUES_TO_IGNORE:
+            vpns[vpn_id] = ovpn_server_status(values[key])
+            vpns[vpn_id][PARAM_STATE] = True
+        else:
+            vpns[vpn_id] = dict()
+            vpns[vpn_id][PARAM_STATE] = False
+
+        key = AR_KEY_OVPN.format(AR_KEY_VPN_SERVER, num, PARAM_IP)
+        if key in values and values[key] not in VALUES_TO_IGNORE:
+            vpns[vpn_id][PARAM_IP] = values[key]
+
+        key = AR_KEY_OVPN.format(AR_KEY_VPN_SERVER, num, PARAM_RIP)
         if key in values and values[key] not in VALUES_TO_IGNORE:
             vpns[vpn_id][PARAM_RIP] = values[key]
 

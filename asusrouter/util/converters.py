@@ -257,3 +257,19 @@ def ovpn_remote_fom_str(raw: str) -> dict[str, Any]:
         }
     except Exception as ex:
         raise ex
+
+
+def to_snake_case(raw: str):
+    """Convert string to snake_case"""
+
+    if type(raw) != str:
+        raise AsusRouterValueError(ERROR_VALUE_TYPE.format(raw, type(raw)))
+
+    string = (
+        re.sub(r"(?<=[a-z])(?=[A-Z])|[^a-zA-Z]", " ", raw).strip().replace(" ", "_")
+    )
+    result = "".join(string.lower())
+    while "__" in result:
+        result = result.replace("__", "_")
+
+    return result
