@@ -1096,7 +1096,8 @@ class AsusRouter:
 
         _LOGGER.debug(MSG_INFO["service"].format(service, arguments, result))
 
-        if service in TRACK_SERVICES_LED:
+        services = service.split(";")
+        if any(service in TRACK_SERVICES_LED for service in services):
             await self.async_keep_state_led()
 
         if expect_modify:
@@ -1257,7 +1258,8 @@ class AsusRouter:
 
         # Only for Merlin firmware, so sysinfo should be present
         if self._identity.sysinfo and self.led == False:
-            await self.async_service_led_set(self.led)
+            await self.async_service_led_set(True)
+            await self.async_service_led_set(False)
 
     @property
     def connected(self) -> bool:
