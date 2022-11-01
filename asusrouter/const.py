@@ -283,6 +283,7 @@ AR_PATH = {
     "ledg": "set_ledg.cgi",
     "login": "login.cgi",
     "logout": "Logout.asp",
+    "networkmap": "update_networkmapd.asp",
     "onboarding": "ajax_onboarding.asp",
     "ports": "ajax_ethernet_ports.asp",
     "rgb": "light_effect.html",

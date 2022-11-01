@@ -49,6 +49,7 @@ class AsusDevice:
     aura: bool = False
     vpn_status: bool = False
     onboarding: bool = False
+    update_networkmapd: bool = False
 
     def firmware(self) -> str:
         return "{}.{}_{}".format(self.fw_major, self.fw_minor, self.fw_build)
