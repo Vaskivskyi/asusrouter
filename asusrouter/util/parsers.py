@@ -60,7 +60,7 @@ from asusrouter.const import (
     REGEX_VARIABLES,
     VALUES_TO_IGNORE,
 )
-from asusrouter.dataclass import ConnectedDevice
+from asusrouter.dataclass import ConnectedDevice, Firmware
 from asusrouter.error import AsusRouterNotImplementedError, AsusRouterValueError
 from asusrouter.util import calculators, converters
 
@@ -594,6 +594,35 @@ def firmware(raw: str) -> dict[str, Any]:
     values = variables(raw.replace("'", '"'))
 
     return values
+
+
+def firmware_string(raw: str):
+    """Firmware string parser"""
+
+    if type(raw) != str:
+        raise AsusRouterValueError(ERROR_VALUE_TYPE.format(raw, type(raw)))
+
+    string = re.match("^(3.?0.?0.?4)?[_.]?([0-9]+)[_.]([0-9]+)[_.-]?([a-zA-Z0-9]+)?$", raw)
+    major = string[1]
+    if major and not "." in major and len(major) == 4:
+        major = major[0] + "." + major[1] + "." + major[2] + "." + major[3]
+
+    minor = int(string[2])
+    build = int(string[3])
+    if string[4] and string[4].isdigit():
+        build_more = int(string[4])
+    else:
+        build_more = string[4]
+
+    fw = Firmware(
+        minor=minor,
+        build=build,
+        build_more=build_more,
+    )
+    if major:
+        fw.major = major
+
+    return fw
 
 
 def vpn_status(raw: str) -> dict[str, Any]:

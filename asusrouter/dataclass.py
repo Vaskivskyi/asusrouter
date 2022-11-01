@@ -138,3 +138,25 @@ class Monitor(dict):
 
         self.stop()
         self.ready = False
+
+
+@dataclass
+class Firmware:
+    """Firmware class"""
+
+    # 3.0.0.4.386.8_0
+    major: str = "3.0.0.4"
+    minor: int | None = None
+    build: int | None = None
+    build_more: int | str | None = None
+
+    def __lt__(self, other: Firmware) -> bool:
+        """Define less-than"""
+
+        if self.minor < other.minor:
+            return True
+        if self.build < other.build:
+            return True
+        if type(self.build_more) == int and type(self.build_more) == type(other.build_more) and self.build_more < other.build_more:
+            return True
+        return False
