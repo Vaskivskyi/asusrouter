@@ -221,6 +221,12 @@ class AsusRouter:
                     ERROR_IDENTITY.format(self._host, str(ex))
                 )
 
+        # Firmware
+        identity["firmware"] = parsers.firmware_string(f"{identity['fw_major']}.{identity['fw_minor']}.{identity['fw_build']}")
+        identity.pop('fw_major')
+        identity.pop('fw_minor')
+        identity.pop('fw_build')
+
         # Check by page
         identity["sysinfo"] = await self.async_check_endpoint(
             endpoint=AR_PATH["sysinfo"]
@@ -1226,7 +1232,7 @@ class AsusRouter:
     async def async_get_firmware_update(self) -> dict[str, Any]:
         """Check for firmware updates"""
 
-        data = dict()
+        result = dict()
 
         # Check for updates
         await self.async_command(
@@ -1237,12 +1243,14 @@ class AsusRouter:
         # Get available firmware data
         data = await self.async_load(AR_PATH["firmware"])
 
-        fw_current = parsers.firmware_string(self._identity.firmware())
+        fw_current = self._identity.firmware
         fw_new = parsers.firmware_string(data["webs_state_info"])
 
-        data["state"] = True if fw_current < fw_new else False
+        result["state"] = True if fw_current < fw_new else False
+        result["current"] = str(fw_current)
+        result["available"] = str(fw_new)
 
-        return data
+        return result
 
     ### <-- SERVICES
 
