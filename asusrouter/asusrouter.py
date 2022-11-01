@@ -228,6 +228,9 @@ class AsusRouter:
         identity["onboarding"] = await self.async_check_endpoint(
             endpoint=AR_PATH["onboarding"]
         )
+        identity["update_networkmapd"] = await self.async_check_endpoint(
+            endpoint=AR_PATH["networkmap"]
+        )
 
         # Check RGBG / AURA
         try:
@@ -612,6 +615,8 @@ class AsusRouter:
 
             # Update device list (needed for older devices)
             await self.async_check_endpoint(AR_PATH["devices_update"])
+            if self._identity.update_networkmapd:
+                await self.async_check_endpoint(AR_PATH["networkmapd"])
             data = await self.async_hook(AR_HOOK_DEVICES)
 
             monitor_devices.reset()
