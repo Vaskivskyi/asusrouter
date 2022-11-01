@@ -39,9 +39,7 @@ class AsusDevice:
     mac: str | None = None
     model: str | None = None
     brand: str = "ASUSTek"
-    fw_major: str | None = None
-    fw_minor: str | None = None
-    fw_build: str | None = None
+    firmware: Firmware | None = None
     services: str | None = None
     sysinfo: bool = False
     led: bool = False
@@ -50,9 +48,6 @@ class AsusDevice:
     vpn_status: bool = False
     onboarding: bool = False
     update_networkmapd: bool = False
-
-    def firmware(self) -> str:
-        return "{}.{}_{}".format(self.fw_major, self.fw_minor, self.fw_build)
 
 
 @dataclass
@@ -144,7 +139,6 @@ class Monitor(dict):
 class Firmware:
     """Firmware class"""
 
-    # 3.0.0.4.386.8_0
     major: str = "3.0.0.4"
     minor: int | None = None
     build: int | None = None
@@ -160,3 +154,8 @@ class Firmware:
         if type(self.build_more) == int and type(self.build_more) == type(other.build_more) and self.build_more < other.build_more:
             return True
         return False
+
+    def __str__(self) -> str:
+        """Define string"""
+
+        return f"{self.major}.{self.minor}.{self.build}_{self.build_more}"
