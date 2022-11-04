@@ -596,13 +596,17 @@ def firmware(raw: str) -> dict[str, Any]:
     return values
 
 
-def firmware_string(raw: str):
+def firmware_string(raw: str) -> Firmware:
     """Firmware string parser"""
 
     if type(raw) != str:
         raise AsusRouterValueError(ERROR_VALUE_TYPE.format(raw, type(raw)))
 
-    string = re.match("^(3.?0.?0.?4)?[_.]?([0-9]+)[_.]([0-9]+)[_.-]?([a-zA-Z0-9]+)?$", raw)
+    string = re.match("^(3.?0.?0.?4)?[_.]?([0-9]{3})[_.]?([0-9]+)[_.-]?([a-zA-Z0-9-_]+)?$", raw)
+    if not string:
+        _LOGGER.warning(f"Firmware version cannot be parser. Please report this. The original FW string is: {raw}")
+        return Firmware()
+
     major = string[1]
     if major and not "." in major and len(major) == 4:
         major = major[0] + "." + major[1] + "." + major[2] + "." + major[3]
