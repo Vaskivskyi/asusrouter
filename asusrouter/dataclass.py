@@ -147,9 +147,9 @@ class Firmware:
     def __lt__(self, other: Firmware) -> bool:
         """Define less-than"""
 
-        if self.minor < other.minor:
+        if self.minor and other.minor and self.minor < other.minor:
             return True
-        if self.build < other.build:
+        if self.build and other.build and self.build < other.build:
             return True
         if type(self.build_more) == int and type(self.build_more) == type(other.build_more) and self.build_more < other.build_more:
             return True
