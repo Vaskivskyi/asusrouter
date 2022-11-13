@@ -7,7 +7,12 @@ from asusrouter.const import (
     AR_DEFAULT_OVPN_CLIENTS,
     AR_HOOK_TEMPLATE,
     AR_KEY_OVPN,
+    AR_KEY_PARENTAL_CONTROL_MAC,
+    AR_KEY_PARENTAL_CONTROL_NAME,
+    AR_KEY_PARENTAL_CONTROL_STATE,
+    AR_KEY_PARENTAL_CONTROL_TIMEMAP,
     AR_KEY_VPN_CLIENT,
+    AR_MAP_PARENTAL_CONTROL_STATE,
     AR_MAP_RGB,
     AR_VPN_STATUS,
     ERROR_VALUE_TYPE,
@@ -18,6 +23,7 @@ from asusrouter.const import (
     PARAM_STATUS,
     PARAM_UNKNOWN,
 )
+from asusrouter import FilterDevice
 from asusrouter.error import AsusRouterValueError
 from .converters import int_from_str
 
@@ -114,3 +120,37 @@ def vpn_from_devicemap(
                 )
 
     return vpn
+
+
+def parental_control(data: dict[str, FilterDevice]) -> dict[str, str]:
+    """Compile parental control rules"""
+
+    if type(data) != dict:
+        raise AsusRouterValueError(ERROR_VALUE_TYPE.format(data, type(data)))
+
+    state_lib = dict()
+    for index, state in AR_MAP_PARENTAL_CONTROL_STATE.items():
+        state_lib[state] = index
+
+    macs = str()
+    names = str()
+    states = str()
+    timemaps = str()
+
+    for rule in data:
+        macs += data[rule].mac + ">"
+        names += data[rule].name + ">"
+        states += state_lib[data[rule].state] + ">"
+        timemaps += data[rule].timemap.replace("&#60", "<") + ">"
+
+    macs = macs[:-1]
+    names = names[:-1]
+    states = states[:-1]
+    timemaps = timemaps[:-1]
+
+    return {
+        AR_KEY_PARENTAL_CONTROL_MAC: macs,
+        AR_KEY_PARENTAL_CONTROL_NAME: names,
+        AR_KEY_PARENTAL_CONTROL_STATE: states,
+        AR_KEY_PARENTAL_CONTROL_TIMEMAP: timemaps,
+    }
