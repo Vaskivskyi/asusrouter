@@ -17,6 +17,7 @@ from asusrouter import (
     AsusRouterServiceError,
     AsusRouterValueError,
     Connection,
+    FilterDevice,
     Monitor,
 )
 from asusrouter.const import (
@@ -887,6 +888,64 @@ class AsusRouter:
             return devices["list"][mac]
         else:
             return {}
+
+    async def async_set_parental_control_device(
+        self,
+        mac: str,
+        name: str,
+        state: str,
+        timemap: str = "W03E21000700<W04122000800",
+    ) -> bool:
+        """Change parental control rules for a device"""
+
+        pc = await self.async_get_parental_control()
+        rules = pc.get("list", None)
+        if not rules:
+            return False
+
+        new_rule = FilterDevice(mac, name, state, timemap)
+
+        rule = None
+
+        for el in rules:
+            if rules[el].mac == mac:
+                rule = rules[el]
+                rules.pop(el)
+                break
+
+        if rule == new_rule:
+            return True
+
+        rules[mac] = new_rule
+
+        request = compilers.parental_control(rules)
+        request["action_mode"] = "apply"
+
+        return await self.async_service_run(
+            service="restart_firewall",
+            arguments=request,
+        )
+
+    async def async_remove_parental_control_device(self, mac: str) -> bool:
+        """Remove device from parental control rules"""
+
+        pc = await self.async_get_parental_control()
+        rules = pc.get("list", None)
+        if not rules:
+            return False
+
+        for el in rules:
+            if rules[el].mac == mac:
+                rules.pop(el)
+                break
+
+        request = compilers.parental_control(rules)
+        request["action_mode"] = "apply"
+
+        return await self.async_service_run(
+            service="restart_firewall",
+            arguments=request,
+        )
 
     async def async_get_ports(
         self, use_cache: bool = True
