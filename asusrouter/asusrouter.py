@@ -222,10 +222,12 @@ class AsusRouter:
                 )
 
         # Firmware
-        identity["firmware"] = parsers.firmware_string(f"{identity['fw_major']}.{identity['fw_minor']}.{identity['fw_build']}")
-        identity.pop('fw_major')
-        identity.pop('fw_minor')
-        identity.pop('fw_build')
+        identity["firmware"] = parsers.firmware_string(
+            f"{identity['fw_major']}.{identity['fw_minor']}.{identity['fw_build']}"
+        )
+        identity.pop("fw_major")
+        identity.pop("fw_minor")
+        identity.pop("fw_build")
 
         # Check by page
         identity["sysinfo"] = await self.async_check_endpoint(

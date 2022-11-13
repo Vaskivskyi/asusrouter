@@ -602,9 +602,13 @@ def firmware_string(raw: str) -> Firmware:
     if type(raw) != str:
         raise AsusRouterValueError(ERROR_VALUE_TYPE.format(raw, type(raw)))
 
-    string = re.match("^(3.?0.?0.?4)?[_.]?([0-9]{3})[_.]?([0-9]+)[_.-]?([a-zA-Z0-9-_]+)?$", raw)
+    string = re.match(
+        "^(3.?0.?0.?4)?[_.]?([0-9]{3})[_.]?([0-9]+)[_.-]?([a-zA-Z0-9-_]+)?$", raw
+    )
     if not string:
-        _LOGGER.warning(f"Firmware version cannot be parser. Please report this. The original FW string is: {raw}")
+        _LOGGER.warning(
+            f"Firmware version cannot be parser. Please report this. The original FW string is: {raw}"
+        )
         return Firmware()
 
     major = string[1]

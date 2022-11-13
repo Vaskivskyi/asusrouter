@@ -30,6 +30,8 @@ class ConnectedDevice:
     rx_speed: float | None = None
     tx_speed: float | None = None
 
+    guest: bool | None = None
+
 
 @dataclass
 class AsusDevice:
@@ -151,7 +153,11 @@ class Firmware:
             return True
         if self.build and other.build and self.build < other.build:
             return True
-        if type(self.build_more) == int and type(self.build_more) == type(other.build_more) and self.build_more < other.build_more:
+        if (
+            type(self.build_more) == int
+            and type(self.build_more) == type(other.build_more)
+            and self.build_more < other.build_more
+        ):
             return True
         return False
 
