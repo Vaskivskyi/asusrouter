@@ -165,3 +165,13 @@ class Firmware:
         """Define string"""
 
         return f"{self.major}.{self.minor}.{self.build}_{self.build_more}"
+
+
+@dataclass
+class FilterDevice:
+    """Device filter class"""
+
+    mac: str | None = None
+    name: str | None = None
+    state: int | None = None
+    timemap: str | None = None

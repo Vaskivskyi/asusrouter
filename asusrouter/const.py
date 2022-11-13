@@ -264,11 +264,20 @@ AR_MAP_TEMPERATURE: dict[str, list[str]] = {
     "6ghz": ['curr_coreTmp_3_raw="([0-9.]+)&deg;C'],
     "cpu": ['curr_cpuTemp="([0-9.]+)"', 'curr_coreTmp_cpu="([0-9.]+)"'],
 }
+AR_KEY_PARENTAL_CONTROL_STATE = "MULTIFILTER_ENABLE"
+AR_KEY_PARENTAL_CONTROL_NAME = "MULTIFILTER_DEVICENAME"
+AR_KEY_PARENTAL_CONTROL_MAC = "MULTIFILTER_MAC"
+AR_KEY_PARENTAL_CONTROL_TIMEMAP = "MULTIFILTER_MACFILTER_DAYTIME_V2"
 AR_MAP_PARENTAL_CONTROL: dict[str, str] = {
     "MULTIFILTER_ENABLE": "enable",
     "MULTIFILTER_DEVICENAME": "name",
     "MULTIFILTER_MAC": "mac",
     "MULTIFILTER_MACFILTER_DAYTIME_V2": "time",
+}
+AR_MAP_PARENTAL_CONTROL_STATE = {
+    "0": "disable",
+    "1": "time",
+    "2": "block",
 }
 AR_KEY_PARENTAL_CONTROL = Key(
     "MULTIFILTER_ALL", "parental_control", method=bool_from_any

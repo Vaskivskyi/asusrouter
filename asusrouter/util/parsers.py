@@ -32,11 +32,16 @@ from asusrouter.const import (
     AR_KEY_OVPN_STATUS,
     AR_KEY_OVPN_STATUS_SERVER,
     AR_KEY_PARENTAL_CONTROL,
+    AR_KEY_PARENTAL_CONTROL_MAC,
+    AR_KEY_PARENTAL_CONTROL_NAME,
+    AR_KEY_PARENTAL_CONTROL_STATE,
+    AR_KEY_PARENTAL_CONTROL_TIMEMAP,
     AR_KEY_RAM_ITEM,
     AR_KEY_RAM_LIST,
     AR_KEY_VPN_CLIENT,
     AR_KEY_VPN_SERVER,
     AR_KEY_WAN_STATE,
+    AR_MAP_PARENTAL_CONTROL_STATE,
     AR_MAP_RGB,
     AR_MAP_SYSINFO,
     AR_MAP_TEMPERATURE,
@@ -60,7 +65,7 @@ from asusrouter.const import (
     REGEX_VARIABLES,
     VALUES_TO_IGNORE,
 )
-from asusrouter.dataclass import ConnectedDevice, Firmware
+from asusrouter.dataclass import ConnectedDevice, FilterDevice, Firmware
 from asusrouter.error import AsusRouterNotImplementedError, AsusRouterValueError
 from asusrouter.util import calculators, converters
 
@@ -437,12 +442,15 @@ def parental_control(raw: dict[str, Any]) -> dict[str, Any]:
     size = len(raw["MULTIFILTER_MAC"])
 
     for i in range(0, size):
-        data = {
-            "access": raw["MULTIFILTER_ENABLE"][i],
-            "name": raw["MULTIFILTER_DEVICENAME"][i],
-            "time": raw["MULTIFILTER_MACFILTER_DAYTIME_V2"][i],
-        }
-        list[raw["MULTIFILTER_MAC"][i]] = data.copy()
+        device = FilterDevice(
+            mac=raw[AR_KEY_PARENTAL_CONTROL_MAC][i],
+            name=raw[AR_KEY_PARENTAL_CONTROL_NAME][i],
+            state=AR_MAP_PARENTAL_CONTROL_STATE.get(
+                raw[AR_KEY_PARENTAL_CONTROL_STATE][i], None
+            ),
+            timemap=raw[AR_KEY_PARENTAL_CONTROL_TIMEMAP][i],
+        )
+        list[raw[AR_KEY_PARENTAL_CONTROL_MAC][i]] = device
 
     result["list"] = list.copy()
 
