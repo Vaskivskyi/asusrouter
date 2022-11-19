@@ -273,3 +273,12 @@ def to_snake_case(raw: str):
         result = result.replace("__", "_")
 
     return result
+
+
+def as_list(raw: Any):
+    """Convert object into list of objects"""
+
+    if type(raw) != list:
+        return [raw]
+
+    return raw

@@ -866,6 +866,21 @@ class AsusRouter:
 
         return result
 
+    ### PARENTAL CONTROL -->
+    async def async_apply_parental_control_rules(
+        self,
+        rules: dict[str, FilterDevice],
+    ) -> bool:
+        """Apply parental control rules"""
+
+        request = compilers.parental_control(rules)
+        request["action_mode"] = "apply"
+
+        return await self.async_service_run(
+            service="restart_firewall",
+            arguments=request,
+        )
+
     async def async_get_parental_control(self) -> dict[str, Any]:
         """Return parental control status"""
 
@@ -880,72 +895,75 @@ class AsusRouter:
 
         return data
 
-    async def async_get_parental_control_device(self, mac: str) -> dict[str, Any]:
-        """Return parental control status of a device by its MAC"""
-
-        devices = await self.async_get_parental_control()
-        if mac in devices["list"]:
-            return devices["list"][mac]
-        else:
-            return {}
-
-    async def async_set_parental_control_device(
+    async def async_get_parental_control_rules(
         self,
-        mac: str,
-        name: str,
-        state: str,
-        timemap: str = "W03E21000700<W04122000800",
+        macs: str | list[str] | None = None,
+    ) -> dict[str, FilterDevice]:
+        """Return parental control rules"""
+
+        pc: dict = await self.async_get_parental_control()
+        rules = pc.get("list", dict())
+
+        # Return the full list if no device specified
+        if macs is None:
+            return rules
+
+        # Return only devices of interest
+        result = dict()
+        macs = converters.as_list(macs)
+        for mac in macs:
+            if mac in rules:
+                result[mac] = rules[mac]
+        return result
+
+    async def async_remove_parental_control_rules(
+        self,
+        macs: str | list[str] | None = None,
+        rules: FilterDevice | list[FilterDevice] = None,
+        apply: bool = True,
+    ) -> dict[str, FilterDevice]:
+        """Remove parental control rules"""
+
+        macs = list() if macs is None else converters.as_list(macs)
+        rules = list() if rules is None else converters.as_list(rules)
+
+        # Get current rules
+        cr: dict = await self.async_get_parental_control_rules()
+
+        # Remove old rules for these MACs
+        for mac in macs:
+            if mac in cr:
+                cr.pop(mac)
+        for rule in rules:
+            if rule.mac in cr:
+                cr.pop(rule.mac)
+
+        # Apply new rules
+        if apply:
+            await self.async_apply_parental_control_rules(cr)
+
+        # Return the new rules
+        return cr
+
+    async def async_set_parental_control_rules(
+        self,
+        rules: FilterDevice | list[FilterDevice],
     ) -> bool:
-        """Change parental control rules for a device"""
+        """Set parental control rules"""
 
-        pc = await self.async_get_parental_control()
-        rules = pc.get("list", None)
-        if not rules:
-            return False
+        rules = converters.as_list(rules)
 
-        new_rule = FilterDevice(mac, name, state, timemap)
+        # Remove old rules for these MACs and get the rest of the list
+        cr = await self.async_remove_parental_control_rules(rules, apply=False)
 
-        rule = None
+        # Add new rules
+        for rule in rules:
+            cr[rule.mac] = rule
 
-        for el in rules:
-            if rules[el].mac == mac:
-                rule = rules[el]
-                rules.pop(el)
-                break
+        # Apply new rules
+        return await self.async_apply_parental_control_rules(cr)
 
-        if rule == new_rule:
-            return True
-
-        rules[mac] = new_rule
-
-        request = compilers.parental_control(rules)
-        request["action_mode"] = "apply"
-
-        return await self.async_service_run(
-            service="restart_firewall",
-            arguments=request,
-        )
-
-    async def async_remove_parental_control_device(self, mac: str) -> bool:
-        """Remove device from parental control rules"""
-
-        pc = await self.async_get_parental_control()
-        rules = pc.get("list", None)
-        if not rules:
-            return False
-
-        for el in rules:
-            if rules[el].mac == mac:
-                rules.pop(el)
-                break
-
-        request = compilers.parental_control(rules)
-        request["action_mode"] = "apply"
-
-        return await self.async_service_run(
-            service="restart_firewall",
-            arguments=request,
-        )
+    ### <-- PARENTAL CONTROL
 
     async def async_get_ports(
         self, use_cache: bool = True

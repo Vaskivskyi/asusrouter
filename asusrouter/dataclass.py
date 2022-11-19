@@ -7,6 +7,8 @@ from datetime import datetime
 
 from asusrouter.util.converters import none_or_str
 
+DEFAULT_PARENTAL_CONTROL_TIMEMAP = "W03E21000700<W04122000800"
+
 
 @dataclass
 class ConnectedDevice:
@@ -167,11 +169,11 @@ class Firmware:
         return f"{self.major}.{self.minor}.{self.build}_{self.build_more}"
 
 
-@dataclass
+@dataclass(frozen=True)
 class FilterDevice:
     """Device filter class"""
 
     mac: str | None = None
     name: str | None = None
     state: int | None = None
-    timemap: str | None = None
+    timemap: str = DEFAULT_PARENTAL_CONTROL_TIMEMAP
