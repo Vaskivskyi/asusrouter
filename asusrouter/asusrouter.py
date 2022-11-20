@@ -295,7 +295,6 @@ class AsusRouter:
             result = await self.connection.async_run_command(
                 command=str(request), endpoint=apply_to
             )
-            _LOGGER.debug("{}: {}".format(MSG_SUCCESS["command"], request))
         except Exception as ex:
             raise ex
 
@@ -320,7 +319,6 @@ class AsusRouter:
             result = await self.connection.async_run_command(
                 command="{}={}".format(KEY_HOOK, hook)
             )
-            _LOGGER.debug("{}: {}".format(MSG_SUCCESS["hook"], hook))
         except Exception as ex:
             raise ex
 
@@ -346,7 +344,6 @@ class AsusRouter:
 
         try:
             result = await self.connection.async_run_command(command="", endpoint=page)
-            _LOGGER.debug(MSG_SUCCESS["load"].format(page))
         except AsusRouter404 as ex:
             raise ex
         except Exception as ex:

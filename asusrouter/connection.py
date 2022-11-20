@@ -101,8 +101,6 @@ class Connection:
     ) -> dict[str, Any]:
         """Run command. Use the existing connection token, otherwise create new one"""
 
-        _LOGGER.debug(f"Started command {command}")
-
         if self._drop:
             return {}
 
@@ -134,7 +132,7 @@ class Connection:
                     else:
                         raise ex
             else:
-                _LOGGER.error(MSG_ERROR["command"].format(command, endpoint))
+                _LOGGER.error(MSG_ERROR["command"].format(endpoint))
                 return {}
 
     async def async_load(self, endpoint: str, retry: bool = False) -> str:
