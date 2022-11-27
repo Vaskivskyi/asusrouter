@@ -434,6 +434,12 @@ def parental_control(raw: dict[str, Any]) -> dict[str, Any]:
     result[AR_KEY_PARENTAL_CONTROL.get()] = AR_KEY_PARENTAL_CONTROL.method(
         raw[AR_KEY_PARENTAL_CONTROL.value]
     )
+
+    # If no rules are set
+    if raw.get(AR_KEY_PARENTAL_CONTROL_MAC) == raw.get(AR_KEY_PARENTAL_CONTROL_STATE):
+        result["list"] = dict()
+        return result
+
     list = dict()
 
     for el in raw:
