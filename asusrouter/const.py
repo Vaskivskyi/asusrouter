@@ -252,16 +252,22 @@ AR_MAP_TEMPERATURE: dict[str, list[str]] = {
     "2ghz": [
         'curr_coreTmp_2_raw="([0-9.]+)&deg;C',
         'curr_coreTmp_0_raw="([0-9.]+)&deg;C',
+        'curr_coreTmp_wl0_raw="([0-9.]+)&deg;C',
     ],
     "5ghz": [
         'curr_coreTmp_5_raw="([0-9.]+)&deg;C',
         'curr_coreTmp_1_raw="([0-9.]+)&deg;C',
+        'curr_coreTmp_wl1_raw="([0-9.]+)&deg;C',
     ],
     "5ghz2": [
         'curr_coreTmp_52_raw="([0-9.]+)&deg;C',
         'curr_coreTmp_2_raw="([0-9.]+)&deg;C',
+        'curr_coreTmp_wl2_raw="([0-9.]+)&deg;C',
     ],
-    "6ghz": ['curr_coreTmp_3_raw="([0-9.]+)&deg;C'],
+    "6ghz": [
+        'curr_coreTmp_3_raw="([0-9.]+)&deg;C',
+        'curr_coreTmp_wl3_raw="([0-9.]+)&deg;C',
+    ],
     "cpu": ['curr_cpuTemp="([0-9.]+)"', 'curr_coreTmp_cpu="([0-9.]+)"'],
 }
 AR_KEY_PARENTAL_CONTROL_STATE = "MULTIFILTER_ENABLE"
