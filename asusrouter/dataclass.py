@@ -32,7 +32,7 @@ class ConnectedDevice:
     rx_speed: float | None = None
     tx_speed: float | None = None
 
-    guest: bool | None = None
+    guest: int = 0
 
 
 @dataclass
