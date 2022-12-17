@@ -100,7 +100,7 @@ AR_DEVICE_ATTRIBUTES_LIST: tuple[Key, ...] = (
     Key("wlConnectTime", "connected_since", time_from_delta),
     Key("curRx", "rx_speed", method=float_from_str),
     Key("curTx", "tx_speed", method=float_from_str),
-    Key("isGN", "guest", method=bool_from_any),
+    Key("isGN", "guest", method=int_from_str),
 )
 AR_DEVICE_IDENTITY: tuple[Key, ...] = (
     Key("serial_no", "serial"),
