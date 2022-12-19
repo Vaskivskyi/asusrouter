@@ -1005,18 +1005,6 @@ class AsusRouter:
 
         return result
 
-    async def async_get_ram_labels(self) -> list[str]:
-        """Return list of CPU cores"""
-
-        if not self._monitor_main.ready:
-            await self.async_monitor_main()
-
-        result = list()
-        for value in self._monitor_main[KEY_RAM]:
-            result.append(value)
-
-        return result
-
     async def async_get_sysinfo(self, use_cache: bool = True) -> dict[str, Any]:
         """Return sysinfo status"""
 
