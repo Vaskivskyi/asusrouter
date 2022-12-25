@@ -454,7 +454,9 @@ def parental_control(raw: dict[str, Any]) -> dict[str, Any]:
             state=AR_MAP_PARENTAL_CONTROL_STATE.get(
                 raw[AR_KEY_PARENTAL_CONTROL_STATE][i], None
             ),
-            timemap=raw[AR_KEY_PARENTAL_CONTROL_TIMEMAP][i],
+            timemap=raw[AR_KEY_PARENTAL_CONTROL_TIMEMAP][i]
+            if i < len(raw[AR_KEY_PARENTAL_CONTROL_TIMEMAP])
+            else "",
         )
         list[raw[AR_KEY_PARENTAL_CONTROL_MAC][i]] = device
 
