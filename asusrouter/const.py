@@ -461,7 +461,7 @@ NVRAM_TEMPLATE = {
         Key("wl{}_key4"),
         Key("wl{}_lanaccess", method=bool_from_any),  # LAN access
         Key("wl{}_maclist"),
-        Key("wl{}_macmode", method=bool_from_any),
+        Key("wl{}_macmode"),
         Key("wl{}_maxassoc", method=int_from_str),
         Key("wl{}_mbss"),
         Key("wl{}_mfp"),
