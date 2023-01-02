@@ -38,7 +38,6 @@ from asusrouter.const import (
     AR_KEY_SERVICE_COMMAND,
     AR_KEY_SERVICE_MODIFY,
     AR_KEY_SERVICE_REPLY,
-    AR_KEY_VPN_CLIENT,
     AR_KEY_WAN,
     AR_LEDG_MODE,
     AR_MAP_PARENTAL_CONTROL,
@@ -79,6 +78,7 @@ from asusrouter.const import (
     PORT_TYPE,
     TRACK_SERVICES_LED,
 )
+from asusrouter.dataclass import AiMeshDevice
 from asusrouter.util import calculators, compilers, converters, parsers
 
 _LOGGER = logging.getLogger(__name__)
@@ -696,6 +696,26 @@ class AsusRouter:
         await self.async_monitor_devices()
 
     ### RETURN DATA -->
+
+    async def async_get_aimesh(self) -> dict[str, AiMeshDevice]:
+        """Return AiMesh device list"""
+
+        if not self._identity.onboarding:
+            return {}
+
+        result = dict()
+
+        try:
+            raw = await self.async_load(AR_PATH["onboarding"])
+            data = raw["get_cfg_clientlist"][0]
+            for device in data:
+                node = parsers.aimesh_node(device)
+                result[node.mac] = node
+
+        except Exception:
+            return result
+
+        return result
 
     async def async_get_cpu(self, use_cache: bool = True) -> dict[str, float]:
         """Return CPU usage"""

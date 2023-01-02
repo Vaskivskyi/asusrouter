@@ -65,7 +65,7 @@ from asusrouter.const import (
     REGEX_VARIABLES,
     VALUES_TO_IGNORE,
 )
-from asusrouter.dataclass import ConnectedDevice, FilterDevice, Firmware
+from asusrouter.dataclass import AiMeshDevice, ConnectedDevice, FilterDevice, Firmware
 from asusrouter.error import AsusRouterNotImplementedError, AsusRouterValueError
 from asusrouter.util import calculators, converters
 
@@ -415,6 +415,7 @@ def sysinfo(raw: str) -> dict[str, Any]:
 def onboarding(raw: str) -> dict[str, Any]:
     """Onboarding parser"""
 
+    raw = raw.replace("\ufeff", "")
     raw = raw.replace("=", '":')
     raw = raw.replace(";", ',"')
     raw = raw.replace("[0]", "")
@@ -424,6 +425,56 @@ def onboarding(raw: str) -> dict[str, Any]:
     result = dict()
 
     return data
+
+
+def aimesh_node(raw: dict[str, Any]) -> AiMeshDevice:
+    """AiMesh node parser"""
+
+    AP = {
+        "2g": "2ghz",
+        "5g": "5ghz",
+        "5g1": "5ghz2",
+        "6g": "6ghz",
+        "dwb": "dwb",
+    }
+
+    FREQUENCIES = [
+        "2g",
+        "5g",
+        "6g",
+    ]
+
+    ap = dict()
+    for el in AP:
+        if f"ap{el}" in raw and raw[f"ap{el}"] is not str():
+            ap[AP[el]] = raw[f"ap{el}"]
+
+    parent = dict()
+    for el in FREQUENCIES:
+        if f"pap{el}" in raw and raw[f"pap{el}"] is not str():
+            parent["connection"] = AP[el]
+            parent["mac"] = raw[f"pap{el}"]
+            parent["rssi"] = converters.none_or_str(raw.get(f"rssi{el}"))
+            parent["ssid"] = converters.none_or_str(raw.get(f"pap{el}_ssid"))
+
+    level = converters.int_from_str(raw.get("level", "0"))
+    state = "router" if level == 0 else "node"
+
+    return AiMeshDevice(
+        status=converters.bool_from_any(raw.get("online", 0)),
+        alias=raw.get("alias", None),
+        model=raw.get("ui_model_name", raw.get("model_name", None)),
+        product_id=raw.get("product_id"),
+        ip=raw.get("ip"),
+        fw=raw.get("fwver", None),
+        fw_new=converters.none_or_str(raw.get("newfwver")),
+        mac=raw.get("mac", None),
+        ap=ap,
+        parent=parent,
+        state=state,
+        level=level,
+        config=raw.get("config"),
+    )
 
 
 def parental_control(raw: dict[str, Any]) -> dict[str, Any]:
