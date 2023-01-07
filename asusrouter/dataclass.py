@@ -25,6 +25,7 @@ class ConnectedDevice:
     internet_mode: bool | None = None
 
     connection_type: str | None = None
+    node: str | None = None
 
     # WLAN only values
     online: bool | None = None
@@ -139,6 +140,7 @@ class Monitor(dict):
     active: bool = False
     time: datetime | None = None
     ready: bool = False
+    enabled: bool = True
 
     def start(self) -> None:
         """Set to active"""
