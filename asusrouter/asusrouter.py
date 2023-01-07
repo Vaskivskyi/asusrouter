@@ -666,11 +666,11 @@ class AsusRouter:
                             RSSI: data[node][connection][mac].get(RSSI, None),
                         }
                         clients[mac] = description
+            monitor[CLIENTS] = clients
 
             # Finish and save data
             monitor.finish()
             self.monitor[ONBOARDING] = monitor
-            monitor[CLIENTS] = clients
 
         except AsusRouterError as ex:
             self.monitor[ONBOARDING].drop()
@@ -726,11 +726,37 @@ class AsusRouter:
 
     ### TECHNICAL -->
 
-    async def async_monitor_should_run(self, monitor: str) -> None:
-        """Check whether monitor should be run"""
+    async def async_monitor_available(self, monitor: str) -> bool:
+        """Check whether monitor is available"""
+
+        # Monitor does not exist
+        if not monitor in self.monitor:
+            return False
 
         # Monitor is disabled
         if self.monitor[monitor].enabled != True:
+            return False
+
+        return True
+
+    async def async_monitor_cached(self, monitor: str, value: Any) -> bool:
+        """Check whether monitor has cached value"""
+
+        now = datetime.utcnow()
+        if (
+            not self.monitor[monitor].ready
+            or not value in self.monitor[monitor]
+            or self._cache_time < (now - self.monitor[monitor].time).total_seconds()
+        ):
+            return False
+
+        return True
+
+    async def async_monitor_should_run(self, monitor: str) -> bool:
+        """Check whether monitor should be run"""
+
+        # Monitor is not available
+        if await self.async_monitor_available(monitor) == False:
             return False
 
         # Monitor is already running - wait to complete
@@ -738,6 +764,8 @@ class AsusRouter:
             while self.monitor[monitor].active:
                 await asyncio.sleep(DEFAULT_SLEEP_TIME)
             return False
+
+        return True
 
     ### <-- TECHNICAL
 
@@ -791,24 +819,24 @@ class AsusRouter:
 
     ### RETURN DATA -->
 
-    async def async_get_aimesh(self) -> dict[str, AiMeshDevice]:
+    async def async_get_aimesh(self, use_cache: bool = True) -> dict[str, AiMeshDevice]:
         """Return AiMesh device list"""
 
-        if not self._identity.onboarding:
-            return {}
-
+        monitor = ONBOARDING
         result = dict()
 
-        try:
-            raw = await self.async_load(AR_PATH["onboarding"])
-            data = raw["get_cfg_clientlist"][0]
-            for device in data:
-                node = parsers.aimesh_node(device)
-                result[node.mac] = node
-
-        except Exception:
+        # Monitor is not available
+        if not await self.async_monitor_available(monitor):
             return result
 
+        # Value is not cached or cache is disabled
+        if not await self.async_monitor_cached(monitor, AIMESH) or use_cache == False:
+            await self.async_monitor_onboarding()
+
+        # Process data
+        result = self.monitor[monitor][AIMESH]
+
+        # Return data
         return result
 
     async def async_get_cpu(self, use_cache: bool = True) -> dict[str, float]:
