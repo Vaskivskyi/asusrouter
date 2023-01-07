@@ -27,6 +27,13 @@ ERROR_VALUE = "Wrong value: {} with original exception: {}"
 ERROR_VALUE_TYPE = "Wrong value {} of type {}"
 REGEX_MAC = re.compile("^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})")
 
+CONNECTION_TYPE = {
+    "2G": 1,
+    "5G": 2,
+    "5G2": 3,
+    "6G": 4,
+}
+
 
 def int_from_str(raw: str, base: int = 10) -> int:
     """Convert string to integer"""
@@ -282,3 +289,25 @@ def as_list(raw: Any):
         return [raw]
 
     return raw
+
+
+def onboarding_connection(raw: str) -> dict[str, int]:
+    """Convert connection type from onboarding type to native type"""
+
+    if type(raw) != str:
+        raise AsusRouterValueError(ERROR_VALUE_TYPE.format(raw, type(raw)))
+
+    if raw == "wired_mac":
+        return {
+            "connection_type": 0,
+            "guest": 0,
+        }
+
+    try:
+        temp = raw.split("_")
+        return {
+            "connection_type": CONNECTION_TYPE[temp[0]],
+            "guest": temp[1] if len(temp) > 1 else 0,
+        }
+    except Exception as ex:
+        raise ex

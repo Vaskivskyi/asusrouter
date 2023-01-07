@@ -1,6 +1,7 @@
 """Compilers module for AsusRouter"""
 
 from __future__ import annotations
+from dataclasses import asdict
 from typing import Any
 
 from asusrouter.const import (
@@ -24,6 +25,7 @@ from asusrouter.const import (
     PARAM_UNKNOWN,
 )
 from asusrouter import FilterDevice
+from asusrouter.dataclass import ConnectedDevice
 from asusrouter.error import AsusRouterValueError
 from .converters import int_from_str
 
@@ -154,3 +156,18 @@ def parental_control(data: dict[str, FilterDevice]) -> dict[str, str]:
         AR_KEY_PARENTAL_CONTROL_STATE: states,
         AR_KEY_PARENTAL_CONTROL_TIMEMAP: timemaps,
     }
+
+
+def connected_device(
+    device: ConnectedDevice, state: dict[str, Any] | None = None
+) -> ConnectedDevice:
+    """Compile connected device from different sources"""
+
+    if state is None:
+        device.online = False
+        return device
+
+    values: dict[str, Any] = asdict(device)
+    values.update(state)
+
+    return ConnectedDevice(**values)

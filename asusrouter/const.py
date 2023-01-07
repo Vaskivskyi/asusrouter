@@ -21,6 +21,17 @@ AR_API = [
     "Httpd_AiHome_Ver",
 ]
 
+### VALUES
+AIMESH = "aimesh"
+CLIENTS = "clients"
+CONNECTION_TYPE = "connection_type"
+GUEST = "guest"
+IP = "ip"
+MAC = "mac"
+NODE = "node"
+ONBOARDING = "onboarding"
+RSSI = "rssi"
+
 ### CONSTANTS, DATA TYPES AND COMMON PARAMETERS
 CONST_BITSINBYTE = 8
 CONST_PERCENTS = 100

@@ -21,6 +21,7 @@ from asusrouter import (
     Monitor,
 )
 from asusrouter.const import (
+    AIMESH,
     AR_DEVICE_IDENTITY,
     AR_FIRMWARE_CHECK_COMMAND,
     AR_HOOK_DEVICES,
@@ -45,6 +46,8 @@ from asusrouter.const import (
     AR_SERVICE_COMMAND,
     AR_SERVICE_CONTROL,
     AR_SERVICE_DROP_CONNECTION,
+    CLIENTS,
+    CONNECTION_TYPE,
     DATA_BY_CORE,
     DATA_TOTAL,
     DATA_USAGE,
@@ -56,7 +59,9 @@ from asusrouter.const import (
     ERROR_SERVICE,
     ERROR_SERVICE_UNKNOWN,
     ERROR_VALUE,
+    GUEST,
     INTERFACE_TYPE,
+    IP,
     KEY_ACTION_MODE,
     KEY_CPU,
     KEY_HOOK,
@@ -66,16 +71,20 @@ from asusrouter.const import (
     KEY_TEMPERATURE,
     KEY_VPN,
     KEY_WAN,
+    MAC,
     MONITOR_MAIN,
     MSG_ERROR,
     MSG_INFO,
     MSG_SUCCESS,
+    NODE,
     NVRAM_LIST,
     NVRAM_TEMPLATE,
+    ONBOARDING,
     PARAM_COLOR,
     PARAM_COUNT,
     PARAM_MODE,
     PORT_TYPE,
+    RSSI,
     TRACK_SERVICES_LED,
 )
 from asusrouter.dataclass import AiMeshDevice
@@ -112,6 +121,10 @@ class AsusRouter:
         self._device_cpu_cores: list[int] | None = None
         self._device_ports: dict[str, str] | None = None
         self._device_boottime: datetime | None = None
+
+        self.monitor: dict[str, Monitor] = {
+            ONBOARDING: Monitor(),
+        }
 
         self._monitor_main: Monitor = Monitor()
         self._monitor_nvram: Monitor = Monitor()
@@ -237,6 +250,7 @@ class AsusRouter:
         identity["onboarding"] = await self.async_check_endpoint(
             endpoint=AR_PATH["onboarding"]
         )
+        self._monitor_onboarding = identity["onboarding"]
         identity["update_networkmapd"] = await self.async_check_endpoint(
             endpoint=AR_PATH["networkmap"]
         )
@@ -608,6 +622,62 @@ class AsusRouter:
 
         return
 
+    async def async_monitor_onboarding(self) -> None:
+        """Get the onboarding state"""
+
+        # Check whether to run
+        if not self.async_monitor_should_run(ONBOARDING):
+            return
+
+        try:
+            # Start
+            self.monitor[ONBOARDING].start()
+            monitor = Monitor()
+            # Hook data
+            raw = await self.async_load(AR_PATH["onboarding"])
+            # Reset time
+            monitor.reset()
+
+            # Process data
+
+            # AiMesh nodes state
+            aimesh = dict()
+            data = raw["get_cfg_clientlist"][0]
+            for device in data:
+                node = parsers.aimesh_node(device)
+                aimesh[node.mac] = node
+            monitor[AIMESH] = aimesh
+
+            # Client list
+            clients = dict()
+            data = raw["get_allclientlist"][0]
+            for node in data:
+                for connection in data[node]:
+                    for mac in data[node][connection]:
+                        convert = converters.onboarding_connection(connection)
+                        description = {
+                            CONNECTION_TYPE: convert[CONNECTION_TYPE],
+                            GUEST: convert[GUEST],
+                            IP: converters.none_or_str(
+                                data[node][connection][mac].get(IP, None)
+                            ),
+                            MAC: mac,
+                            NODE: node,
+                            RSSI: data[node][connection][mac].get(RSSI, None),
+                        }
+                        clients[mac] = description
+
+            # Finish and save data
+            monitor.finish()
+            self.monitor[ONBOARDING] = monitor
+            monitor[CLIENTS] = clients
+
+        except AsusRouterError as ex:
+            self.monitor[ONBOARDING].drop()
+            raise ex
+
+        return
+
     async def async_monitor_devices(self) -> None:
         """Monitor connected devices"""
 
@@ -627,12 +697,19 @@ class AsusRouter:
 
             monitor_devices.reset()
 
+            onboarding = {}
+            if self._identity.onboarding:
+                await self.async_monitor_onboarding()
+                onboarding = self.monitor[ONBOARDING][CLIENTS]
+
             # Search for new data
             if AR_KEY_DEVICES in data:
                 data = data[AR_KEY_DEVICES]
                 for mac in data:
                     if converters.is_mac_address(mac):
-                        monitor_devices[mac] = parsers.connected_device(data[mac])
+                        monitor_devices[mac] = compilers.connected_device(
+                            parsers.connected_device(data[mac]), onboarding.get(mac)
+                        )
             # Or keep last data
             elif self._monitor_devices.ready:
                 monitor_devices = self._monitor_devices
@@ -646,6 +723,23 @@ class AsusRouter:
         return
 
     ### <-- MONITORS
+
+    ### TECHNICAL -->
+
+    async def async_monitor_should_run(self, monitor: str) -> None:
+        """Check whether monitor should be run"""
+
+        # Monitor is disabled
+        if self.monitor[monitor].enabled != True:
+            return False
+
+        # Monitor is already running - wait to complete
+        if self.monitor[monitor].active:
+            while self.monitor[monitor].active:
+                await asyncio.sleep(DEFAULT_SLEEP_TIME)
+            return False
+
+    ### <-- TECHNICAL
 
     async def async_handle_error(self) -> None:
         """Actions to be taken on connection errors"""
