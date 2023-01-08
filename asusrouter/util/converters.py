@@ -30,6 +30,7 @@ REGEX_MAC = re.compile("^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})")
 CONNECTION_TYPE = {
     "2G": 1,
     "5G": 2,
+    "5G1": 3,
     "5G2": 3,
     "6G": 4,
 }
@@ -306,7 +307,7 @@ def onboarding_connection(raw: str) -> dict[str, int]:
     try:
         temp = raw.split("_")
         return {
-            "connection_type": CONNECTION_TYPE[temp[0]],
+            "connection_type": CONNECTION_TYPE.get(temp[0]),
             "guest": temp[1] if len(temp) > 1 else 0,
         }
     except Exception as ex:
