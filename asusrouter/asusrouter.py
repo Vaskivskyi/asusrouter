@@ -56,10 +56,12 @@ from asusrouter.const import (
     DEFAULT_ACTION_MODE,
     DEFAULT_CACHE_TIME,
     DEFAULT_SLEEP_TIME,
+    ENDPOINTS,
     ERROR_IDENTITY,
     ERROR_SERVICE,
     ERROR_SERVICE_UNKNOWN,
     ERROR_VALUE,
+    ETHERNET_PORTS,
     GUEST,
     INFO,
     INTERFACE_TYPE,
@@ -74,6 +76,7 @@ from asusrouter.const import (
     KEY_VPN,
     KEY_WAN,
     LAN,
+    LINK_RATE,
     MAC,
     MONITOR_MAIN,
     MSG_ERROR,
@@ -92,6 +95,8 @@ from asusrouter.const import (
     PORT_TYPES,
     PORTS,
     RSSI,
+    SPEED_TYPES,
+    STATE,
     TRACK_SERVICES_LED,
     USB,
     WAN,
@@ -132,6 +137,7 @@ class AsusRouter:
         self._device_boottime: datetime | None = None
 
         self.monitor: dict[str, Monitor] = {
+            ETHERNET_PORTS: Monitor(),
             ONBOARDING: Monitor(),
             PORT_STATUS: Monitor(),
         }
@@ -266,6 +272,9 @@ class AsusRouter:
         )
         identity[PORT_STATUS] = await self.async_check_endpoint(
             endpoint=compilers.endpoint(PORT_STATUS, self._identity)
+        )
+        identity[ETHERNET_PORTS] = await self.async_check_endpoint(
+            endpoint=compilers.endpoint(ETHERNET_PORTS, self._identity)
         )
 
         # Check RGBG / AURA
@@ -631,6 +640,53 @@ class AsusRouter:
             self._monitor_misc = monitor_misc
         except AsusRouterError as ex:
             self._monitor_misc.drop()
+            raise ex
+
+        return
+
+    async def async_monitor_ethernet_ports(self) -> None:
+        """Monitor ethernet ports state"""
+
+        # Check whether to run
+        if not self.async_monitor_should_run(ETHERNET_PORTS):
+            return
+
+        try:
+            # Start
+            self.monitor[ETHERNET_PORTS].start()
+            monitor = Monitor()
+            # Hook data
+            raw = await self.async_load(
+                compilers.endpoint(ETHERNET_PORTS, self._identity)
+            )
+            # Reset time
+            monitor.reset()
+
+            # Process data
+
+            # Ports info
+            ports = {
+                LAN: dict(),
+                WAN: dict(),
+            }
+            data = raw["portSpeed"]
+            for port in data:
+                port_type = port[0:3].lower()
+                port_id = converters.int_from_str(port[3:])
+                value = SPEED_TYPES.get(data[port])
+                ports[port_type][port_id] = {
+                    STATE: converters.bool_from_any(value),
+                    LINK_RATE: value,
+                }
+
+            monitor[PORTS] = ports
+
+            # Finish and save data
+            monitor.finish()
+            self.monitor[ETHERNET_PORTS] = monitor
+
+        except AsusRouterError as ex:
+            self.monitor[ETHERNET_PORTS].drop()
             raise ex
 
         return
