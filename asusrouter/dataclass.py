@@ -55,6 +55,7 @@ class AsusDevice:
     onboarding: bool = False
     port_status: bool = False
     update_networkmapd: bool = False
+    ethernet_ports: bool = False
 
 
 @dataclass

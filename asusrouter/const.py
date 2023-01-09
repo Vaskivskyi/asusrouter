@@ -25,24 +25,31 @@ AR_API = [
 AIMESH = "aimesh"
 CLIENTS = "clients"
 CONNECTION_TYPE = "connection_type"
+ENDPOINTS = "endpoints"
 GUEST = "guest"
 INFO = "info"
 IP = "ip"
 LAN = "lan"
+LINK_RATE = "link_rate"
 MAC = "mac"
 NODE = "node"
 ONBOARDING = "onboarding"
 PORT = "port"
 PORTS = "ports"
 RSSI = "rssi"
+STATE = "state"
 USB = "usb"
 WAN = "wan"
 
 ### ASUS DATA TYPES
+ETHERNET_PORTS = "ethernet_ports"
 PORT_STATUS = "port_status"
 
 ### ENDPOINTS
-ENDPOINT = {PORT_STATUS: "get_port_status.cgi"}
+ENDPOINT = {
+    ETHERNET_PORTS: "ajax_ethernet_ports.asp",
+    PORT_STATUS: "get_port_status.cgi",
+}
 
 ENDPOINT_ARGS = {
     PORT_STATUS: {
@@ -58,11 +65,18 @@ PORT_TYPES = {
     "W": WAN,
 }
 
+SPEED_TYPES = {
+    "X": 0,
+    "M": 100,
+    "G": 1000,
+    "Q": 2500,
+}
+
 ### CONVERTERS
 
 CONVERTERS = {
     PORT_STATUS: [
-        Key("is_on", "state", method=bool_from_any),
+        Key("is_on", STATE, method=bool_from_any),
     ]
 }
 
