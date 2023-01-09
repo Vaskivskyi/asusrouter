@@ -56,6 +56,7 @@ from asusrouter.const import (
     DEFAULT_ACTION_MODE,
     DEFAULT_CACHE_TIME,
     DEFAULT_SLEEP_TIME,
+    ENDPOINT,
     ENDPOINTS,
     ERROR_IDENTITY,
     ERROR_SERVICE,
@@ -97,6 +98,7 @@ from asusrouter.const import (
     RSSI,
     SPEED_TYPES,
     STATE,
+    SYSINFO,
     TRACK_SERVICES_LED,
     USB,
     WAN,
@@ -140,6 +142,7 @@ class AsusRouter:
             ETHERNET_PORTS: Monitor(),
             ONBOARDING: Monitor(),
             PORT_STATUS: Monitor(),
+            SYSINFO: Monitor(),
         }
 
         self._monitor_main: Monitor = Monitor()
@@ -257,7 +260,7 @@ class AsusRouter:
                 identity["mac"] = identity["lan_mac"]
             elif identity["wan_mac"] is not None:
                 identity["mac"] = identity["wan_mac"]
-        
+
         identity.pop("lan_mac")
         identity.pop("wan_mac")
 
@@ -270,21 +273,12 @@ class AsusRouter:
         identity.pop("fw_build")
 
         # Check by page
-        identity["sysinfo"] = await self.async_check_endpoint(
-            endpoint=AR_PATH["sysinfo"]
-        )
-        identity["onboarding"] = await self.async_check_endpoint(
-            endpoint=AR_PATH["onboarding"]
-        )
-        self._monitor_onboarding = identity["onboarding"]
+        for endpoint in ENDPOINT:
+            self.monitor[endpoint].enabled = identity[
+                endpoint
+            ] = await self.async_check_endpoint(ENDPOINT[endpoint])
         identity["update_networkmapd"] = await self.async_check_endpoint(
             endpoint=AR_PATH["networkmap"]
-        )
-        identity[PORT_STATUS] = await self.async_check_endpoint(
-            endpoint=compilers.endpoint(PORT_STATUS, self._identity)
-        )
-        identity[ETHERNET_PORTS] = await self.async_check_endpoint(
-            endpoint=compilers.endpoint(ETHERNET_PORTS, self._identity)
         )
 
         # Check RGBG / AURA
