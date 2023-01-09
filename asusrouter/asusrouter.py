@@ -48,6 +48,7 @@ from asusrouter.const import (
     AR_SERVICE_DROP_CONNECTION,
     CLIENTS,
     CONNECTION_TYPE,
+    CONVERTERS,
     DATA_BY_CORE,
     DATA_TOTAL,
     DATA_USAGE,
@@ -60,6 +61,7 @@ from asusrouter.const import (
     ERROR_SERVICE_UNKNOWN,
     ERROR_VALUE,
     GUEST,
+    INFO,
     INTERFACE_TYPE,
     IP,
     KEY_ACTION_MODE,
@@ -71,6 +73,7 @@ from asusrouter.const import (
     KEY_TEMPERATURE,
     KEY_VPN,
     KEY_WAN,
+    LAN,
     MAC,
     MONITOR_MAIN,
     MSG_ERROR,
@@ -83,9 +86,15 @@ from asusrouter.const import (
     PARAM_COLOR,
     PARAM_COUNT,
     PARAM_MODE,
+    PORT,
+    PORT_STATUS,
     PORT_TYPE,
+    PORT_TYPES,
+    PORTS,
     RSSI,
     TRACK_SERVICES_LED,
+    USB,
+    WAN,
 )
 from asusrouter.dataclass import AiMeshDevice
 from asusrouter.util import calculators, compilers, converters, parsers
@@ -124,6 +133,7 @@ class AsusRouter:
 
         self.monitor: dict[str, Monitor] = {
             ONBOARDING: Monitor(),
+            PORT_STATUS: Monitor(),
         }
 
         self._monitor_main: Monitor = Monitor()
@@ -253,6 +263,9 @@ class AsusRouter:
         self._monitor_onboarding = identity["onboarding"]
         identity["update_networkmapd"] = await self.async_check_endpoint(
             endpoint=AR_PATH["networkmap"]
+        )
+        identity[PORT_STATUS] = await self.async_check_endpoint(
+            endpoint=compilers.endpoint(PORT_STATUS, self._identity)
         )
 
         # Check RGBG / AURA
@@ -674,6 +687,53 @@ class AsusRouter:
 
         except AsusRouterError as ex:
             self.monitor[ONBOARDING].drop()
+            raise ex
+
+        return
+
+    async def async_monitor_port_status(self) -> None:
+        """Monitor port status for the node"""
+
+        # Check whether to run
+        if not self.async_monitor_should_run(PORT_STATUS):
+            return
+
+        try:
+            # Start
+            self.monitor[PORT_STATUS].start()
+            monitor = Monitor()
+            # Hook data
+            raw = await self.async_load(compilers.endpoint(PORT_STATUS, self._identity))
+            # Reset time
+            monitor.reset()
+
+            # Process data
+
+            # Ports info
+            ports = {
+                LAN: dict(),
+                USB: dict(),
+                WAN: dict(),
+            }
+            data = raw[f"{PORT}_{INFO}"][self._identity.mac]
+            for port in data:
+                port_type = PORT_TYPES.get(port[0])
+                port_id = converters.int_from_str(port[1:])
+                # Replace needed key/value pairs
+                for key in CONVERTERS[PORT_STATUS]:
+                    if key.value in data[port]:
+                        data[port][key.get()] = key.method(data[port][key.value])
+                        data[port].pop(key.value)
+                ports[port_type][port_id] = data[port]
+
+            monitor[PORTS] = ports
+
+            # Finish and save data
+            monitor.finish()
+            self.monitor[PORT_STATUS] = monitor
+
+        except AsusRouterError as ex:
+            self.monitor[PORT_STATUS].drop()
             raise ex
 
         return

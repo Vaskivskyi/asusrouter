@@ -16,6 +16,8 @@ from asusrouter.const import (
     AR_MAP_PARENTAL_CONTROL_STATE,
     AR_MAP_RGB,
     AR_VPN_STATUS,
+    ENDPOINT,
+    ENDPOINT_ARGS,
     ERROR_VALUE_TYPE,
     KEY_NVRAM_GET,
     KEY_VPN,
@@ -25,7 +27,7 @@ from asusrouter.const import (
     PARAM_UNKNOWN,
 )
 from asusrouter import FilterDevice
-from asusrouter.dataclass import ConnectedDevice
+from asusrouter.dataclass import AsusDevice, ConnectedDevice
 from asusrouter.error import AsusRouterValueError
 from .converters import int_from_str
 
@@ -171,3 +173,25 @@ def connected_device(
     values.update(state)
 
     return ConnectedDevice(**values)
+
+
+def endpoint(endpoint: str, device: AsusDevice | dict[str, Any] | None = None) -> str:
+    """Compile endpoint string with required arguments"""
+
+    if endpoint not in ENDPOINT:
+        raise AsusRouterValueError(f"Unknown endpoint `{endpoint}`")
+
+    address = ENDPOINT.get(endpoint, str())
+
+    if type(device) == AsusDevice:
+        device = asdict(device)
+    if type(device) != dict:
+        return address
+
+    address += "?"
+
+    if endpoint in ENDPOINT_ARGS:
+        for key in ENDPOINT_ARGS[endpoint]:
+            address += f"{ENDPOINT_ARGS[endpoint][key]}={device.get(key, str())}&"
+
+    return address

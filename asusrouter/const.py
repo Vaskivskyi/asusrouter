@@ -26,11 +26,45 @@ AIMESH = "aimesh"
 CLIENTS = "clients"
 CONNECTION_TYPE = "connection_type"
 GUEST = "guest"
+INFO = "info"
 IP = "ip"
+LAN = "lan"
 MAC = "mac"
 NODE = "node"
 ONBOARDING = "onboarding"
+PORT = "port"
+PORTS = "ports"
 RSSI = "rssi"
+USB = "usb"
+WAN = "wan"
+
+### ASUS DATA TYPES
+PORT_STATUS = "port_status"
+
+### ENDPOINTS
+ENDPOINT = {PORT_STATUS: "get_port_status.cgi"}
+
+ENDPOINT_ARGS = {
+    PORT_STATUS: {
+        MAC: f"{NODE}_{MAC}",
+    },
+}
+
+### TYPES
+
+PORT_TYPES = {
+    "L": LAN,
+    "U": USB,
+    "W": WAN,
+}
+
+### CONVERTERS
+
+CONVERTERS = {
+    PORT_STATUS: [
+        Key("is_on", "state", method=bool_from_any),
+    ]
+}
 
 ### CONSTANTS, DATA TYPES AND COMMON PARAMETERS
 CONST_BITSINBYTE = 8

@@ -53,6 +53,7 @@ class AsusDevice:
     aura: bool = False
     vpn_status: bool = False
     onboarding: bool = False
+    port_status: bool = False
     update_networkmapd: bool = False
 
 
