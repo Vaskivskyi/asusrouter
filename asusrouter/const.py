@@ -38,6 +38,7 @@ PORT = "port"
 PORTS = "ports"
 RSSI = "rssi"
 STATE = "state"
+SYSINFO = "sysinfo"
 USB = "usb"
 WAN = "wan"
 
@@ -48,7 +49,9 @@ PORT_STATUS = "port_status"
 ### ENDPOINTS
 ENDPOINT = {
     ETHERNET_PORTS: "ajax_ethernet_ports.asp",
+    ONBOARDING: "ajax_onboarding.asp",
     PORT_STATUS: "get_port_status.cgi",
+    SYSINFO: "ajax_sysinfo.asp",
 }
 
 ENDPOINT_ARGS = {
