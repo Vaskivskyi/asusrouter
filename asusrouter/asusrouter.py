@@ -251,6 +251,16 @@ class AsusRouter:
                     ERROR_IDENTITY.format(self._host, str(ex))
                 )
 
+        # Mac (for some Merlin devices missing label_mac)
+        if identity["mac"] is None or identity["mac"] == str():
+            if identity["lan_mac"] is not None:
+                identity["mac"] = identity["lan_mac"]
+            elif identity["wan_mac"] is not None:
+                identity["mac"] = identity["wan_mac"]
+        
+        identity.pop("lan_mac")
+        identity.pop("wan_mac")
+
         # Firmware
         identity["firmware"] = parsers.firmware_string(
             f"{identity['fw_major']}.{identity['fw_minor']}.{identity['fw_build']}"
