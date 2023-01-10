@@ -40,6 +40,7 @@ PORTS = "ports"
 RSSI = "rssi"
 STATE = "state"
 SYSINFO = "sysinfo"
+TEMPERATURE = "temperature"
 USB = "usb"
 WAN = "wan"
 
@@ -53,6 +54,7 @@ ENDPOINT = {
     ONBOARDING: "ajax_onboarding.asp",
     PORT_STATUS: "get_port_status.cgi",
     SYSINFO: "ajax_sysinfo.asp",
+    TEMPERATURE: "ajax_coretmp.asp",
 }
 
 ENDPOINT_ARGS = {
