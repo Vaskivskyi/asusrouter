@@ -82,6 +82,7 @@ from asusrouter.const import (
     LINK_RATE,
     MAC,
     MAP_OVPN_STATUS,
+    Merge,
     MONITOR_MAIN,
     MSG_ERROR,
     MSG_INFO,
@@ -991,31 +992,45 @@ class AsusRouter:
         self,
         data: str,
         monitor: str | list[str],
+        merge: Merge = Merge.ANY,
         process: Callable[[str], dict[str, Any]] = _process_data_none,
         use_cache: bool = True,
     ) -> dict[str, Any]:
         """Return data from the first available monitor in the list"""
 
+        result = dict()
+
         # Convert to list if only one monitor is set
-        monitors = [monitor] if type(monitor) == str else monitor
-        # Reset the monitor
-        monitor = None
-        # Check if any of the monitor is available
-        for item in monitors:
+        monitor = [monitor] if type(monitor) == str else monitor
+
+        # Create a list of monitors
+        monitors = list()
+
+        # Check if monitors are available
+        for item in monitor:
             if await self.async_monitor_available(item):
-                monitor = item
-                break
-        # If no monitor available, return empty dict
-        if not monitor:
+                monitors.append(item)
+
+                # In this mode we need only one of the monitors
+                if merge == Merge.ANY:
+                    break
+
+        # If monitor list is empty return empty dict
+        if len(monitors) == 0:
             return {}
 
-        # Value is not cached or cache is disabled
-        if not await self.async_monitor_cached(monitor, data) or use_cache == False:
-            await self.async_monitor(monitor)
+        # Process monitors
+        for monitor in monitors:
 
-        # Process data
-        data = self.monitor[monitor].get(data, {})
-        result = process(data)
+            # Value is not cached or cache is disabled
+            if not await self.async_monitor_cached(monitor, data) or use_cache == False:
+                await self.async_monitor(monitor)
+
+            # Receive data
+            part = self.monitor[monitor].get(data or {})
+
+            # Process data
+            compilers.update_rec(result, part)
 
         # Return data
         return result
@@ -1077,7 +1092,7 @@ class AsusRouter:
         """Return VPN data"""
 
         return await self.async_get_data(
-            data=VPN, monitor=[DEVICEMAP, VPN], use_cache=use_cache
+            data=VPN, monitor=[DEVICEMAP, VPN], merge=Merge.ALL, use_cache=use_cache
         )
 
     async def async_get_cpu(self, use_cache: bool = True) -> dict[str, float]:
