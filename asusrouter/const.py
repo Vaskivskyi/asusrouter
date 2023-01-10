@@ -26,6 +26,7 @@ AIMESH = "aimesh"
 CLIENTS = "clients"
 CONNECTION_TYPE = "connection_type"
 ENDPOINTS = "endpoints"
+FIRMWARE = "firmware"
 GUEST = "guest"
 INFO = "info"
 IP = "ip"
@@ -51,6 +52,7 @@ PORT_STATUS = "port_status"
 ### ENDPOINTS
 ENDPOINT = {
     ETHERNET_PORTS: "ajax_ethernet_ports.asp",
+    FIRMWARE: "detect_firmware.asp",
     ONBOARDING: "ajax_onboarding.asp",
     PORT_STATUS: "get_port_status.cgi",
     SYSINFO: "ajax_sysinfo.asp",
@@ -361,18 +363,13 @@ AR_PATH = {
     "command": "applyapp.cgi",
     "devicemap": "ajax_status.xml",
     "devices_update": "update_clients.asp",
-    "firmware": "detect_firmware.asp",
     "get": "appGet.cgi",
     "ledg": "set_ledg.cgi",
     "login": "login.cgi",
     "logout": "Logout.asp",
     "networkmap": "update_networkmapd.asp",
-    "onboarding": "ajax_onboarding.asp",
-    "ports": "ajax_ethernet_ports.asp",
     "rgb": "light_effect.html",
     "state": "state.js",
-    "sysinfo": "ajax_sysinfo.asp",
-    "temperature": "ajax_coretmp.asp",
     "vpn": "ajax_vpn_status.asp",
 }
 
