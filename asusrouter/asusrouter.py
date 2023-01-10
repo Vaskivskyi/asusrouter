@@ -798,6 +798,38 @@ class AsusRouter:
 
         return
 
+    async def async_monitor_sysinfo(self) -> None:
+        """Monitor sysinfo data"""
+
+        # Check whether to run
+        if not self.async_monitor_should_run(SYSINFO):
+            return
+
+        try:
+            # Start
+            self.monitor[SYSINFO].start()
+            monitor = Monitor()
+            # Hook data
+            raw = await self.async_load(compilers.endpoint(SYSINFO, self._identity))
+            # Reset time
+            monitor.reset()
+
+            # Process data
+
+            # Sysinfo
+            sysinfo = raw
+            monitor[SYSINFO] = sysinfo
+
+            # Finish and save data
+            monitor.finish()
+            self.monitor[SYSINFO] = monitor
+
+        except AsusRouterError as ex:
+            self.monitor[SYSINFO].drop()
+            raise ex
+
+        return
+
     async def async_monitor_devices(self) -> None:
         """Monitor connected devices"""
 
