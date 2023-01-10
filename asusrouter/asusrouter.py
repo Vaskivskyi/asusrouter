@@ -99,6 +99,7 @@ from asusrouter.const import (
     SPEED_TYPES,
     STATE,
     SYSINFO,
+    TEMPERATURE,
     TRACK_SERVICES_LED,
     USB,
     WAN,
@@ -143,6 +144,7 @@ class AsusRouter:
             ONBOARDING: Monitor(),
             PORT_STATUS: Monitor(),
             SYSINFO: Monitor(),
+            TEMPERATURE: Monitor(),
         }
         self._init_monitor_methods()
 
@@ -177,6 +179,7 @@ class AsusRouter:
             ONBOARDING: self._process_monitor_onboarding,
             PORT_STATUS: self._process_monitor_port_status,
             SYSINFO: self._process_monitor_sysinfo,
+            TEMPERATURE: self._process_monitor_temperature,
         }
 
     ### MAIN CONTROL -->
@@ -573,11 +576,6 @@ class AsusRouter:
 
             monitor_misc = Monitor()
 
-            ### TEMPERATURES ###
-            monitor_misc[KEY_TEMPERATURE] = await self.async_load(
-                page=AR_PATH["temperature"]
-            )
-
             # Load devicemap
             data = await self.async_load(page=AR_PATH["devicemap"])
             monitor_misc["DEVICEMAP"] = data
@@ -753,6 +751,16 @@ class AsusRouter:
 
         return {
             SYSINFO: sysinfo,
+        }
+
+    def _process_monitor_temperature(self, raw: Any) -> dict[str, Any]:
+        """Process data from `temperature` endpoint"""
+
+        # Temperature
+        temperature = raw
+
+        return {
+            TEMPERATURE: temperature,
         }
 
     async def async_monitor_devices(self) -> None:
@@ -960,6 +968,13 @@ class AsusRouter:
 
         return await self.async_get_data(
             data=SYSINFO, monitor=SYSINFO, use_cache=use_cache
+        )
+
+    async def async_get_temperature(self, use_cache: bool = True) -> dict[str, Any]:
+        """Raturn temperature data"""
+
+        return await self.async_get_data(
+            data=TEMPERATURE, monitor=TEMPERATURE, use_cache=use_cache
         )
 
     async def async_get_cpu(self, use_cache: bool = True) -> dict[str, float]:
@@ -1251,22 +1266,6 @@ class AsusRouter:
             result[value] = self._monitor_main[KEY_RAM][value]
 
         return result
-
-    async def async_get_temperature(self, use_cache: bool = True) -> dict[str, Any]:
-        """Raturn temperature status"""
-
-        now = datetime.utcnow()
-        if (
-            not self._monitor_misc.ready
-            or use_cache == False
-            or (
-                use_cache == True
-                and self._cache_time < (now - self._monitor_misc.time).total_seconds()
-            )
-        ):
-            await self.async_monitor_misc()
-
-        return self._monitor_misc[KEY_TEMPERATURE]
 
     async def async_get_vpn(self, use_cache: bool = True) -> dict[str, Any]:
         """Return VPN status"""
