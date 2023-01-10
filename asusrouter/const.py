@@ -1,5 +1,7 @@
 """AsusRouter constants module"""
 
+from enum import Enum
+
 from asusrouter.dataclass import Key
 from asusrouter.util.converters import (
     bool_from_any,
@@ -12,6 +14,14 @@ from asusrouter.util.converters import (
     service_support,
     time_from_delta,
 )
+
+### ENUMS
+class Merge(str, Enum):
+    """Merge enumerator for getting data"""
+
+    ALL = "all"
+    ANY = "any"
+
 
 ### API VALUES
 AR_USER_AGENT = "asusrouter--DUTUtil-"

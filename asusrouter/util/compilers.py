@@ -195,3 +195,13 @@ def endpoint(endpoint: str, device: AsusDevice | dict[str, Any] | None = None) -
             address += f"{ENDPOINT_ARGS[endpoint][key]}={device.get(key, str())}&"
 
     return address
+
+
+def update_rec(left: dict[str, Any], right: dict[str, Any] = dict()) -> None:
+    """Update dictionary with values of other dictionary"""
+
+    for key, value in right.items():
+        if key in left and isinstance(left[key], dict) and isinstance(value, dict):
+            update_rec(left[key], value)
+        else:
+            left[key] = value
