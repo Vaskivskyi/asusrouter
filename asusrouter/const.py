@@ -73,6 +73,7 @@ ENDPOINT = {
     PORT_STATUS: "get_port_status.cgi",
     SYSINFO: "ajax_sysinfo.asp",
     TEMPERATURE: "ajax_coretmp.asp",
+    VPN: "ajax_vpn_status.asp",
 }
 
 ENDPOINT_ARGS = {
@@ -394,7 +395,6 @@ AR_PATH = {
     "networkmap": "update_networkmapd.asp",
     "rgb": "light_effect.html",
     "state": "state.js",
-    "vpn": "ajax_vpn_status.asp",
 }
 
 AR_VPN_STATUS = {
