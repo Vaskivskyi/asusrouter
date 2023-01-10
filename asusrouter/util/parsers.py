@@ -54,15 +54,18 @@ from asusrouter.const import (
     DEVICEMAP_BY_INDEX,
     DEVICEMAP_CLEAR,
     DEVICEMAP_GENERAL,
+    ENDPOINT,
     ERROR_PARSING,
     ERROR_VALUE,
     ERROR_VALUE_TYPE,
     KEY_NETWORK,
+    ONBOARDING,
     PARAM_IP,
     PARAM_RIP,
     PARAM_STATE,
     PARAM_STATUS,
     REGEX_VARIABLES,
+    SYSINFO,
     VALUES_TO_IGNORE,
 )
 from asusrouter.dataclass import AiMeshDevice, ConnectedDevice, FilterDevice, Firmware
@@ -528,10 +531,10 @@ def pseudo_json(text: str, page: str) -> dict[str, Any]:
 
     if "curr_coreTmp" in data:
         return temperatures(data)
-    # Merlin v380
-    elif page == AR_PATH["sysinfo"]:
+    # Merlin
+    elif ENDPOINT[SYSINFO] in page:
         return sysinfo(data)
-    elif page == AR_PATH["onboarding"]:
+    elif ENDPOINT[ONBOARDING] in page:
         return onboarding(data)
     elif "get_clientlist" in data:
         data = data.replace('"get_clientlist":', '"get_clientlist":{')
