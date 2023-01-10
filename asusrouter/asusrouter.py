@@ -46,6 +46,7 @@ from asusrouter.const import (
     AR_SERVICE_COMMAND,
     AR_SERVICE_CONTROL,
     AR_SERVICE_DROP_CONNECTION,
+    BOOTTIME,
     CLIENTS,
     CONNECTION_TYPE,
     CONVERTERS,
@@ -56,6 +57,7 @@ from asusrouter.const import (
     DEFAULT_ACTION_MODE,
     DEFAULT_CACHE_TIME,
     DEFAULT_SLEEP_TIME,
+    DEVICEMAP,
     ENDPOINT,
     ENDPOINTS,
     ERROR_IDENTITY,
@@ -68,6 +70,7 @@ from asusrouter.const import (
     INFO,
     INTERFACE_TYPE,
     IP,
+    ISO,
     KEY_ACTION_MODE,
     KEY_CPU,
     KEY_HOOK,
@@ -96,8 +99,10 @@ from asusrouter.const import (
     RSSI,
     SPEED_TYPES,
     STATE,
+    SYS,
     SYSINFO,
     TEMPERATURE,
+    TIMESTAMP,
     TRACK_SERVICES_LED,
     USB,
     WAN,
@@ -138,6 +143,7 @@ class AsusRouter:
         self._device_boottime: datetime | None = None
 
         self.monitor: dict[str, Monitor] = {
+            DEVICEMAP: Monitor(),
             ETHERNET_PORTS: Monitor(),
             FIRMWARE: Monitor(),
             ONBOARDING: Monitor(),
@@ -158,6 +164,8 @@ class AsusRouter:
         self._ledg_mode: int | None = None
         self._status_led: bool = False
 
+        self._flag_reboot: bool = False
+
         """Connect"""
         self.connection = Connection(
             host=self._host,
@@ -174,6 +182,7 @@ class AsusRouter:
         """Initialie monitors"""
 
         self.monitor_method = {
+            DEVICEMAP: self._process_monitor_devicemap,
             ETHERNET_PORTS: self._process_monitor_ethernet_ports,
             FIRMWARE: self._process_monitor_firmware,
             ONBOARDING: self._process_monitor_onboarding,
@@ -181,6 +190,17 @@ class AsusRouter:
             SYSINFO: self._process_monitor_sysinfo,
             TEMPERATURE: self._process_monitor_temperature,
         }
+
+    def _mark_reboot(self) -> None:
+        """Mark reboot"""
+
+        self._flag_reboot = True
+
+    async def _check_flags(self) -> None:
+        """Check flags"""
+
+        if self._flag_reboot:
+            await self.async_handle_reboot()
 
     ### MAIN CONTROL -->
 
@@ -579,7 +599,7 @@ class AsusRouter:
             monitor_misc = Monitor()
 
             # Load devicemap
-            data = await self.async_load(page=AR_PATH["devicemap"])
+            data = await self.async_load(page=ENDPOINT[DEVICEMAP])
             monitor_misc["DEVICEMAP"] = data
 
             ### VPN ###
@@ -594,35 +614,6 @@ class AsusRouter:
                     None, monitor_misc["DEVICEMAP"]
                 )
 
-            # Calculate boot time. Since precision is 1 second, could be that old and new are 1 sec different. In this case, we should not change the boot time, but keep the previous value to avoid regular changes
-            if "SYS" in monitor_misc["DEVICEMAP"]:
-                if "uptimeStr" in monitor_misc["DEVICEMAP"]["SYS"]:
-                    time = parsers.uptime(monitor_misc["DEVICEMAP"]["SYS"]["uptimeStr"])
-                    timestamp = int(time.timestamp())
-                    if not "BOOTTIME" in monitor_misc:
-                        monitor_misc["BOOTTIME"] = dict()
-
-                    if "BOOTTIME" in self._monitor_misc:
-                        _timestamp = self._monitor_misc["BOOTTIME"]["timestamp"]
-                        _time = datetime.fromtimestamp(_timestamp)
-                        if time == _time or abs(timestamp - _timestamp) < 2:
-                            monitor_misc["BOOTTIME"] = self._monitor_misc["BOOTTIME"]
-                        # This happens on reboots if data is checked before the device got correct time from NTP
-                        elif timestamp - _timestamp < 0:
-                            # Leave the same boot time, since we don't know the new correct time
-                            monitor_misc["BOOTTIME"] = self._monitor_misc["BOOTTIME"]
-                        # Boot time changed -> there was reboot
-                        else:
-                            monitor_misc["BOOTTIME"]["timestamp"] = timestamp
-                            monitor_misc["BOOTTIME"]["ISO"] = time.isoformat()
-                            await self.async_handle_reboot()
-                    else:
-                        monitor_misc["BOOTTIME"]["timestamp"] = timestamp
-                        monitor_misc["BOOTTIME"]["ISO"] = time.isoformat()
-
-                    if self._device_boottime != monitor_misc["BOOTTIME"]["ISO"]:
-                        self._device_boottime = monitor_misc["BOOTTIME"]["ISO"]
-
             monitor_misc.finish()
             self._monitor_misc = monitor_misc
         except AsusRouterError as ex:
@@ -633,6 +624,9 @@ class AsusRouter:
 
     async def async_monitor(self, endpoint: str) -> None:
         """Monitor an endpoint"""
+
+        # Check flags before monitoring for new data
+        await self._check_flags()
 
         # Check whether to run
         if not await self.async_monitor_should_run(endpoint):
@@ -664,6 +658,46 @@ class AsusRouter:
             raise ex
 
         return
+
+    def _process_monitor_devicemap(self, raw: Any) -> dict[str, Any]:
+        """Process data from `devicemap` endpoint"""
+
+        # Devicemap
+        devicemap = raw
+
+        # Boot time
+        boottime = dict()
+        # Calculate boot time. Since precision is 1 second, could be that old and new are 1 sec different.
+        # In this case, we should not change the boot time, but keep the previous value to avoid regular changes
+        if SYS in devicemap and "uptimeStr" in devicemap[SYS]:
+            time = parsers.uptime(devicemap[SYS]["uptimeStr"])
+            timestamp = int(time.timestamp())
+            
+            boottime[TIMESTAMP] = timestamp
+            boottime[ISO] = time.isoformat()
+
+            # If previous boot time exists
+            if BOOTTIME in self.monitor[DEVICEMAP]:
+                _timestamp = self.monitor[DEVICEMAP][BOOTTIME][TIMESTAMP]
+                _time = datetime.fromtimestamp(_timestamp)
+                # Leave the same boot time, since we don't know the new correct time
+                if (
+                    time == _time
+                    or abs(timestamp - _timestamp) < 2
+                    or timestamp - _timestamp < 0
+                ):
+                    boottime = self.monitor[DEVICEMAP][BOOTTIME]
+                # Boot time changed -> there was reboot
+                else:
+                    boottime[TIMESTAMP] = timestamp
+                    boottime[ISO] = time.isoformat()
+                    # Mark reboot
+                    self._mark_reboot()
+
+        return {
+            DEVICEMAP: devicemap,
+            BOOTTIME: boottime,
+        }
 
     def _process_monitor_ethernet_ports(self, raw: Any) -> dict[str, Any]:
         """Process data from `ethernet ports` endpoint"""
@@ -972,6 +1006,20 @@ class AsusRouter:
             data=AIMESH, monitor=ONBOARDING, use_cache=use_cache
         )
 
+    async def async_get_boottime(self, use_cache: bool = True) -> dict[str, Any]:
+        """Return boottime data"""
+
+        return await self.async_get_data(
+            data=BOOTTIME, monitor=DEVICEMAP, use_cache=use_cache
+        )
+
+    async def async_get_devicemap(self, use_cache: bool = True) -> dict[str, Any]:
+        """Return devicemap data"""
+
+        return await self.async_get_data(
+            data=DEVICEMAP, monitor=DEVICEMAP, use_cache=use_cache
+        )
+
     async def async_get_firmware(
         self, use_cache: bool = True
     ) -> dict[str, AiMeshDevice]:
@@ -1048,23 +1096,6 @@ class AsusRouter:
             result.append(DATA_BY_CORE.format(core))
 
         return result
-
-    async def async_get_devicemap(self, use_cache: bool = True) -> dict[str, Any]:
-        """Return devicemap"""
-
-        now = datetime.utcnow()
-        if (
-            not self._monitor_devices.ready
-            or use_cache == False
-            or (
-                use_cache == True
-                and self._cache_time
-                < (now - self._monitor_devices.time).total_seconds()
-            )
-        ):
-            await self.async_monitor_misc()
-
-        return self._monitor_misc["DEVICEMAP"]
 
     async def async_get_devices(self, use_cache: bool = True) -> dict[str, Any]:
         """Return device list"""
@@ -1538,10 +1569,6 @@ class AsusRouter:
     @property
     def connected(self) -> bool:
         return self.connection.connected
-
-    @property
-    def boottime(self) -> datetime:
-        return self._device_boottime
 
     @property
     def led(self) -> bool:

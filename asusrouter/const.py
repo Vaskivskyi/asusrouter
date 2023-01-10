@@ -23,13 +23,18 @@ AR_API = [
 
 ### VALUES
 AIMESH = "aimesh"
+BOOTTIME = "boottime"
 CLIENTS = "clients"
 CONNECTION_TYPE = "connection_type"
+DEVICEMAP = "devicemap"
+DIAG = "diag"
+DHCP = "dhcp"
 ENDPOINTS = "endpoints"
 FIRMWARE = "firmware"
 GUEST = "guest"
 INFO = "info"
 IP = "ip"
+ISO = "iso"
 LAN = "lan"
 LINK_RATE = "link_rate"
 LOAD_AVG = "load_avg"
@@ -38,11 +43,16 @@ NODE = "node"
 ONBOARDING = "onboarding"
 PORT = "port"
 PORTS = "ports"
+QTN = "qtn"
 RSSI = "rssi"
+SIM = "sim"
 STATE = "state"
+SYS = "sys"
 SYSINFO = "sysinfo"
 TEMPERATURE = "temperature"
+TIMESTAMP = "timestamp"
 USB = "usb"
+VPN = "vpn"
 WAN = "wan"
 
 ### ASUS DATA TYPES
@@ -51,6 +61,7 @@ PORT_STATUS = "port_status"
 
 ### ENDPOINTS
 ENDPOINT = {
+    DEVICEMAP: "ajax_status.xml",
     ETHERNET_PORTS: "ajax_ethernet_ports.asp",
     FIRMWARE: "detect_firmware.asp",
     ONBOARDING: "ajax_onboarding.asp",
@@ -361,7 +372,6 @@ AR_KEY_PARENTAL_CONTROL = Key(
 AR_PATH = {
     "apply": "apply.cgi",
     "command": "applyapp.cgi",
-    "devicemap": "ajax_status.xml",
     "devices_update": "update_clients.asp",
     "get": "appGet.cgi",
     "ledg": "set_ledg.cgi",
@@ -780,28 +790,28 @@ DEFAULT_ACTION_MODE = "apply"
 
 # These values are just stored directly in this order in the corresponding node
 DEVICEMAP_BY_INDEX = {
-    "WAN": {
+    WAN: {
         "wan": [
             "status",
             "sbstatus",
             "auxstatus",
         ],
     },
-    "WAN0": {
+    f"{WAN}0": {
         "first_wan": [
             "status",
             "sbstatus",
             "auxstatus",
         ],
     },
-    "WAN1": {
+    f"{WAN}1": {
         "second_wan": [
             "status",
             "sbstatus",
             "auxstatus",
         ],
     },
-    "USB": {
+    USB: {
         "usb": [
             "status",
         ],
@@ -812,7 +822,7 @@ DEVICEMAP_BY_INDEX = {
 # Not implemented yet
 # psta:wlc_state=0;wlc_state_auth=0;
 DEVICEMAP_SPECIAL = {
-    "WAN": {
+    WAN: {
         "psta": [
             "wlc_state",
             "wlc_state_auth",
@@ -822,7 +832,7 @@ DEVICEMAP_SPECIAL = {
 
 # These values are stored as "key=value"
 DEVICEMAP_GENERAL = {
-    "WAN": {
+    WAN: {
         "wan": [
             "monoClient",
             "wlc_state",
@@ -849,7 +859,7 @@ DEVICEMAP_GENERAL = {
             "le_restart_httpd",
         ],
     },
-    "VPN": {
+    VPN: {
         "vpn": [
             "vpnc_proto",
             "vpnc_state_t",
@@ -867,22 +877,22 @@ DEVICEMAP_GENERAL = {
             "vpn_client5_errno",
         ],
     },
-    "SYS": {
+    SYS: {
         "sys": [
             "uptimeStr",
         ],
     },
-    "QTN": {
+    QTN: {
         "qtn": [
             "qtn_state",
         ],
     },
-    "USB": {
+    USB: {
         "usb": [
             "modem_enable",
         ],
     },
-    "WAN0": {
+    f"{WAN}0": {
         "wan": [
             "wan0_enable",
             "wan0_realip_state",
@@ -890,7 +900,7 @@ DEVICEMAP_GENERAL = {
             "wan0_realip_ip",
         ],
     },
-    "WAN1": {
+    f"{WAN}1": {
         "wan": [
             "wan1_enable",
             "wan1_realip_state",
@@ -898,7 +908,7 @@ DEVICEMAP_GENERAL = {
             "wan1_realip_ip",
         ],
     },
-    "SIM": {
+    SIM: {
         "sim": [
             "sim_state",
             "sim_signal",
@@ -915,12 +925,12 @@ DEVICEMAP_GENERAL = {
             "modem_sim_order",
         ],
     },
-    "DHCP": {
+    DHCP: {
         "dhcp": [
             "dnsqmode",
         ],
     },
-    "DIAG": {
+    DIAG: {
         "diag": [
             "diag_dblog_enable",
             "diag_dblog_remaining",
@@ -930,7 +940,7 @@ DEVICEMAP_GENERAL = {
 
 # This should be cleared from the data
 DEVICEMAP_CLEAR = {
-    "WAN": {
+    WAN: {
         "data_rate_info_2g": '"',
         "data_rate_info_5g": '"',
         "data_rate_info_5g_2": '"',
