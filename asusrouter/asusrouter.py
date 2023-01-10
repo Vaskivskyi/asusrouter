@@ -974,6 +974,15 @@ class AsusRouter:
             data=AIMESH, monitor=ONBOARDING, use_cache=use_cache
         )
 
+    async def async_get_ports(
+        self, use_cache: bool = True
+    ) -> dict[str, dict[str, int]]:
+        """Return ports data"""
+
+        return await self.async_get_data(
+            data=PORTS, monitor=[PORT_STATUS, ETHERNET_PORTS], use_cache=use_cache
+        )
+
     async def async_get_sysinfo(self, use_cache: bool = True) -> dict[str, Any]:
         """Return sysinfo data"""
 
@@ -1245,24 +1254,6 @@ class AsusRouter:
         return await self.async_apply_parental_control_rules(cr)
 
     ### <-- PARENTAL CONTROL
-
-    async def async_get_ports(
-        self, use_cache: bool = True
-    ) -> dict[str, dict[str, int]]:
-        """Return WAN/LAN ports status"""
-
-        now = datetime.utcnow()
-        if (
-            not self._monitor_misc.ready
-            or use_cache == False
-            or (
-                use_cache == True
-                and self._cache_time < (now - self._monitor_misc.time).total_seconds()
-            )
-        ):
-            await self.async_monitor_misc()
-
-        return self._monitor_misc["PORTS"]
 
     async def async_get_ram(self, use_cache: bool = True) -> dict[str, (int | float)]:
         """Return RAM and its usage"""
