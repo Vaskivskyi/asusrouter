@@ -45,7 +45,6 @@ from asusrouter.const import (
     AR_MAP_RGB,
     AR_MAP_SYSINFO,
     AR_MAP_TEMPERATURE,
-    AR_PATH,
     CONST_BITSINBYTE,
     CONST_ZERO,
     DATA_ADD_SPEED,

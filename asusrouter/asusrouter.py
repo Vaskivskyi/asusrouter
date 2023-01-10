@@ -6,7 +6,7 @@ import aiohttp
 import asyncio
 from datetime import datetime
 import logging
-from typing import Any, Awaitable, Callable
+from typing import Any, Callable
 
 from asusrouter import (
     AsusDevice,
@@ -76,7 +76,6 @@ from asusrouter.const import (
     KEY_HOOK,
     KEY_NETWORK,
     KEY_RAM,
-    KEY_VPN,
     KEY_WAN,
     LAN,
     LINK_RATE,
@@ -581,42 +580,6 @@ class AsusRouter:
 
         return
 
-    async def async_monitor_misc(self) -> None:
-        """Get all other useful values"""
-
-        while self._monitor_misc.active:
-            await asyncio.sleep(DEFAULT_SLEEP_TIME)
-            return
-
-        try:
-            self._monitor_misc.start()
-
-            monitor_misc = Monitor()
-
-            # Load devicemap
-            data = await self.async_load(page=ENDPOINT[DEVICEMAP])
-            monitor_misc["DEVICEMAP"] = data
-
-            ### VPN ###
-            if self._identity.vpn_status:
-                monitor_misc[KEY_VPN] = await self.async_load(page=AR_PATH["vpn"])
-                if monitor_misc["DEVICEMAP"] and monitor_misc[KEY_VPN]:
-                    monitor_misc[KEY_VPN] = compilers.vpn_from_devicemap(
-                        monitor_misc[KEY_VPN], monitor_misc["DEVICEMAP"]
-                    )
-            else:
-                monitor_misc[KEY_VPN] = compilers.vpn_from_devicemap(
-                    None, monitor_misc["DEVICEMAP"]
-                )
-
-            monitor_misc.finish()
-            self._monitor_misc = monitor_misc
-        except AsusRouterError as ex:
-            self._monitor_misc.drop()
-            raise ex
-
-        return
-
     async def async_monitor(self, endpoint: str) -> None:
         """Monitor an endpoint"""
 
@@ -973,7 +936,6 @@ class AsusRouter:
         await self.async_monitor_main()
         await self.async_monitor_nvram()
         await self.async_find_interfaces()
-        await self.async_monitor_misc()
         await self.async_monitor_devices()
 
     ### PROCESS DATA -->
