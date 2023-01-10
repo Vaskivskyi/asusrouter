@@ -959,9 +959,18 @@ class AsusRouter:
         return result
 
     async def async_get_aimesh(self, use_cache: bool = True) -> dict[str, AiMeshDevice]:
-        """Return AiMesh device list"""
+        """Return AiMesh map"""
 
-        return await self.async_get_data(data=AIMESH, monitor=ONBOARDING)
+        return await self.async_get_data(
+            data=AIMESH, monitor=ONBOARDING, use_cache=use_cache
+        )
+
+    async def async_get_sysinfo(self, use_cache: bool = True) -> dict[str, Any]:
+        """Return sysinfo data"""
+
+        return await self.async_get_data(
+            data=SYSINFO, monitor=SYSINFO, use_cache=use_cache
+        )
 
     async def async_get_cpu(self, use_cache: bool = True) -> dict[str, float]:
         """Return CPU usage"""
@@ -1270,28 +1279,6 @@ class AsusRouter:
             result[value] = self._monitor_main[KEY_RAM][value]
 
         return result
-
-    async def async_get_sysinfo(self, use_cache: bool = True) -> dict[str, Any]:
-        """Return sysinfo status"""
-
-        if not self._identity.sysinfo:
-            return {}
-
-        now = datetime.utcnow()
-        if (
-            not self._monitor_main.ready
-            or use_cache == False
-            or (
-                use_cache == True
-                and self._cache_time < (now - self._monitor_main.time).total_seconds()
-            )
-        ):
-            await self.async_monitor_main()
-
-        if not KEY_SYSINFO in self._monitor_main:
-            return {}
-
-        return self._monitor_main[KEY_SYSINFO]
 
     async def async_get_temperature(self, use_cache: bool = True) -> dict[str, Any]:
         """Raturn temperature status"""
