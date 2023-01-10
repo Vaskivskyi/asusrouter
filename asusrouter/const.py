@@ -30,6 +30,7 @@ DEVICEMAP = "devicemap"
 DIAG = "diag"
 DHCP = "dhcp"
 ENDPOINTS = "endpoints"
+ERRNO = "errno"
 FIRMWARE = "firmware"
 GUEST = "guest"
 INFO = "info"
@@ -47,12 +48,16 @@ QTN = "qtn"
 RSSI = "rssi"
 SIM = "sim"
 STATE = "state"
+STATUS = "status"
 SYS = "sys"
 SYSINFO = "sysinfo"
 TEMPERATURE = "temperature"
 TIMESTAMP = "timestamp"
+UNKNOWN = "unknown"
 USB = "usb"
 VPN = "vpn"
+VPN_CLIENT = "vpn_client"
+VPN_SERVER = "vpn_server"
 WAN = "wan"
 
 ### ASUS DATA TYPES
@@ -75,6 +80,15 @@ ENDPOINT_ARGS = {
         MAC: f"{NODE}_{MAC}",
     },
 }
+
+### ASUS NUMERICS, RANGES & MAPS
+MAP_OVPN_STATUS = {
+    -1: "error",
+    0: "disconnected",
+    1: "connecting",
+    2: "connected",
+}
+RANGE_OVPN_CLIENTS = range(1, 6)  # 5 Open VPN clients from 1 to 5
 
 ### TYPES
 

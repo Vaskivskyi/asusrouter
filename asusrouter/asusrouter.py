@@ -23,7 +23,6 @@ from asusrouter import (
 from asusrouter.const import (
     AIMESH,
     AR_DEVICE_IDENTITY,
-    AR_FIRMWARE_CHECK_COMMAND,
     AR_HOOK_DEVICES,
     AR_KEY_AURARGB,
     AR_KEY_CPU,
@@ -60,6 +59,7 @@ from asusrouter.const import (
     DEVICEMAP,
     ENDPOINT,
     ENDPOINTS,
+    ERRNO,
     ERROR_IDENTITY,
     ERROR_SERVICE,
     ERROR_SERVICE_UNKNOWN,
@@ -81,6 +81,7 @@ from asusrouter.const import (
     LAN,
     LINK_RATE,
     MAC,
+    MAP_OVPN_STATUS,
     MONITOR_MAIN,
     MSG_ERROR,
     MSG_INFO,
@@ -96,15 +97,20 @@ from asusrouter.const import (
     PORT_STATUS,
     PORT_TYPES,
     PORTS,
+    RANGE_OVPN_CLIENTS,
     RSSI,
     SPEED_TYPES,
     STATE,
+    STATUS,
     SYS,
     SYSINFO,
     TEMPERATURE,
     TIMESTAMP,
     TRACK_SERVICES_LED,
+    UNKNOWN,
     USB,
+    VPN,
+    VPN_CLIENT,
     WAN,
 )
 from asusrouter.dataclass import AiMeshDevice
@@ -672,7 +678,7 @@ class AsusRouter:
         if SYS in devicemap and "uptimeStr" in devicemap[SYS]:
             time = parsers.uptime(devicemap[SYS]["uptimeStr"])
             timestamp = int(time.timestamp())
-            
+
             boottime[TIMESTAMP] = timestamp
             boottime[ISO] = time.isoformat()
 
@@ -694,9 +700,26 @@ class AsusRouter:
                     # Mark reboot
                     self._mark_reboot()
 
+        # VPN
+        vpn = dict()
+        vpnmap = devicemap.get(VPN)
+        if vpnmap:
+            for num in RANGE_OVPN_CLIENTS:
+                key = f"{VPN_CLIENT}{num}"
+                vpn[key] = dict()
+                if f"{key}_{STATE}" in vpnmap:
+                    status = converters.int_from_str(vpnmap[f"{key}_{STATE}"])
+                    vpn[key][STATE] = True if status > 0 else False
+                    vpn[key][STATUS] = MAP_OVPN_STATUS.get(
+                        status, f"{UNKNOWN} ({status})"
+                    )
+                if f"{key}_{ERRNO}" in vpnmap:
+                    vpn[key][ERRNO] = converters.int_from_str(vpnmap[f"{key}_{ERRNO}"])
+
         return {
             DEVICEMAP: devicemap,
             BOOTTIME: boottime,
+            VPN: vpn,
         }
 
     def _process_monitor_ethernet_ports(self, raw: Any) -> dict[str, Any]:
@@ -1052,6 +1075,13 @@ class AsusRouter:
             data=TEMPERATURE, monitor=TEMPERATURE, use_cache=use_cache
         )
 
+    async def async_get_vpn(self, use_cache: bool = True) -> dict[str, Any]:
+        """Return VPN data"""
+
+        return await self.async_get_data(
+            data=VPN, monitor=DEVICEMAP, use_cache=use_cache
+        )
+
     async def async_get_cpu(self, use_cache: bool = True) -> dict[str, float]:
         """Return CPU usage"""
 
@@ -1324,22 +1354,6 @@ class AsusRouter:
             result[value] = self._monitor_main[KEY_RAM][value]
 
         return result
-
-    async def async_get_vpn(self, use_cache: bool = True) -> dict[str, Any]:
-        """Return VPN status"""
-
-        now = datetime.utcnow()
-        if (
-            not self._monitor_misc.ready
-            or use_cache == False
-            or (
-                use_cache == True
-                and self._cache_time < (now - self._monitor_misc.time).total_seconds()
-            )
-        ):
-            await self.async_monitor_misc()
-
-        return self._monitor_misc[KEY_VPN]
 
     async def async_get_wan(self, use_cache: bool = True) -> dict[str, str]:
         """Return WAN and its usage"""
