@@ -506,14 +506,6 @@ class AsusRouter:
             elif self._monitor_main.ready and KEY_WAN in self._monitor_main:
                 monitor_main[KEY_WAN] = self._monitor_main[KEY_WAN]
 
-            ### SYSINFO ###
-
-            if self._identity:
-                if self._identity.sysinfo:
-                    monitor_main[KEY_SYSINFO] = await self.async_load(
-                        page=AR_PATH["sysinfo"]
-                    )
-
             monitor_main.finish()
             self._monitor_main = monitor_main
         except AsusRouterError as ex:
