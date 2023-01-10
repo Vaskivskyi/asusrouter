@@ -922,27 +922,46 @@ class AsusRouter:
         await self.async_monitor_misc()
         await self.async_monitor_devices()
 
+    ### PROCESS DATA -->
+
+    @staticmethod
+    def _process_data_none(raw: dict[str, Any]) -> dict[str, Any]:
+        """Don't process the data"""
+
+        return raw
+
+    ### <-- PROCESS DATA
+
     ### RETURN DATA -->
+
+    async def async_get_data(
+        self,
+        data: str,
+        monitor: str,
+        process: Callable[[str], dict[str, Any]] = _process_data_none,
+        use_cache: bool = True,
+    ) -> dict[str, Any]:
+        """Return data from monitor"""
+
+        # Monitor is not available
+        if not await self.async_monitor_available(monitor):
+            return {}
+
+        # Value is not cached or cache is disabled
+        if not await self.async_monitor_cached(monitor, data) or use_cache == False:
+            await self.async_monitor(monitor)
+
+        # Process data
+        data = self.monitor[monitor].get(data, {})
+        result = process(data)
+
+        # Return data
+        return result
 
     async def async_get_aimesh(self, use_cache: bool = True) -> dict[str, AiMeshDevice]:
         """Return AiMesh device list"""
 
-        monitor = ONBOARDING
-        result = dict()
-
-        # Monitor is not available
-        if not await self.async_monitor_available(monitor):
-            return result
-
-        # Value is not cached or cache is disabled
-        if not await self.async_monitor_cached(monitor, AIMESH) or use_cache == False:
-            await self.async_monitor_onboarding()
-
-        # Process data
-        result = self.monitor[monitor][AIMESH]
-
-        # Return data
-        return result
+        return await self.async_get_data(data=AIMESH, monitor=ONBOARDING)
 
     async def async_get_cpu(self, use_cache: bool = True) -> dict[str, float]:
         """Return CPU usage"""
