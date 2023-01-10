@@ -6,7 +6,7 @@ import aiohttp
 import asyncio
 from datetime import datetime
 import logging
-from typing import Any
+from typing import Any, Awaitable, Callable
 
 from asusrouter import (
     AsusDevice,
@@ -144,6 +144,7 @@ class AsusRouter:
             PORT_STATUS: Monitor(),
             SYSINFO: Monitor(),
         }
+        self._init_monitor_methods()
 
         self._monitor_main: Monitor = Monitor()
         self._monitor_nvram: Monitor = Monitor()
@@ -167,6 +168,16 @@ class AsusRouter:
             cert_path=cert_path,
             session=session,
         )
+
+    def _init_monitor_methods(self) -> None:
+        """Initialie monitors"""
+
+        self.monitor_method = {
+            ETHERNET_PORTS: self._process_monitor_ethernet_ports,
+            ONBOARDING: self._process_monitor_onboarding,
+            PORT_STATUS: self._process_monitor_port_status,
+            SYSINFO: self._process_monitor_sysinfo,
+        }
 
     ### MAIN CONTROL -->
 
@@ -648,187 +659,129 @@ class AsusRouter:
 
         return
 
-    async def async_monitor_ethernet_ports(self) -> None:
-        """Monitor ethernet ports state"""
+    async def async_monitor(self, endpoint: str) -> None:
+        """Monitor an endpoint"""
 
         # Check whether to run
-        if not self.async_monitor_should_run(ETHERNET_PORTS):
+        if not self.async_monitor_should_run(endpoint):
             return
+
+        process: Callable[[str], dict[str, Any]] = self.monitor_method.get(endpoint)
 
         try:
             # Start
-            self.monitor[ETHERNET_PORTS].start()
+            self.monitor[endpoint].start()
             monitor = Monitor()
             # Hook data
-            raw = await self.async_load(
-                compilers.endpoint(ETHERNET_PORTS, self._identity)
-            )
+            raw = await self.async_load(compilers.endpoint(endpoint, self._identity))
             # Reset time
             monitor.reset()
 
             # Process data
 
-            # Ports info
-            ports = {
-                LAN: dict(),
-                WAN: dict(),
+            result = process(raw)
+            for key, data in result.items():
+                monitor[key] = data
+
+            # Finish and save data
+            monitor.finish()
+            self.monitor[endpoint] = monitor
+
+        except AsusRouterError as ex:
+            self.monitor[endpoint].drop()
+            raise ex
+
+        return
+
+    def _process_monitor_ethernet_ports(self, raw: Any) -> dict[str, Any]:
+        """Process data from `ethernet ports` endpoint"""
+
+        # Ports info
+        ports = {
+            LAN: dict(),
+            WAN: dict(),
+        }
+        data = raw["portSpeed"]
+        for port in data:
+            port_type = port[0:3].lower()
+            port_id = converters.int_from_str(port[3:])
+            value = SPEED_TYPES.get(data[port])
+            ports[port_type][port_id] = {
+                STATE: converters.bool_from_any(value),
+                LINK_RATE: value,
             }
-            data = raw["portSpeed"]
-            for port in data:
-                port_type = port[0:3].lower()
-                port_id = converters.int_from_str(port[3:])
-                value = SPEED_TYPES.get(data[port])
-                ports[port_type][port_id] = {
-                    STATE: converters.bool_from_any(value),
-                    LINK_RATE: value,
-                }
 
-            monitor[PORTS] = ports
+        return {
+            PORTS: ports,
+        }
 
-            # Finish and save data
-            monitor.finish()
-            self.monitor[ETHERNET_PORTS] = monitor
+    def _process_monitor_onboarding(self, raw: Any) -> dict[str, Any]:
+        """Process data from `onboarding` endpoint"""
 
-        except AsusRouterError as ex:
-            self.monitor[ETHERNET_PORTS].drop()
-            raise ex
+        # AiMesh nodes state
+        aimesh = dict()
+        data = raw["get_cfg_clientlist"][0]
+        for device in data:
+            node = parsers.aimesh_node(device)
+            aimesh[node.mac] = node
 
-        return
+        # Client list
+        clients = dict()
+        data = raw["get_allclientlist"][0]
+        for node in data:
+            for connection in data[node]:
+                for mac in data[node][connection]:
+                    convert = converters.onboarding_connection(connection)
+                    description = {
+                        CONNECTION_TYPE: convert[CONNECTION_TYPE],
+                        GUEST: convert[GUEST],
+                        IP: converters.none_or_str(
+                            data[node][connection][mac].get(IP, None)
+                        ),
+                        MAC: mac,
+                        NODE: node,
+                        RSSI: data[node][connection][mac].get(RSSI, None),
+                    }
+                    clients[mac] = description
 
-    async def async_monitor_onboarding(self) -> None:
-        """Get the onboarding state"""
+        return {
+            AIMESH: aimesh,
+            CLIENTS: clients,
+        }
 
-        # Check whether to run
-        if not self.async_monitor_should_run(ONBOARDING):
-            return
+    def _process_monitor_port_status(self, raw: Any) -> dict[str, Any]:
+        """Process data from `port status` endpoint"""
 
-        try:
-            # Start
-            self.monitor[ONBOARDING].start()
-            monitor = Monitor()
-            # Hook data
-            raw = await self.async_load(AR_PATH["onboarding"])
-            # Reset time
-            monitor.reset()
+        # Ports info
+        ports = {
+            LAN: dict(),
+            USB: dict(),
+            WAN: dict(),
+        }
+        data = raw[f"{PORT}_{INFO}"][self._identity.mac]
+        for port in data:
+            port_type = PORT_TYPES.get(port[0])
+            port_id = converters.int_from_str(port[1:])
+            # Replace needed key/value pairs
+            for key in CONVERTERS[PORT_STATUS]:
+                if key.value in data[port]:
+                    data[port][key.get()] = key.method(data[port][key.value])
+                    data[port].pop(key.value)
+            ports[port_type][port_id] = data[port]
 
-            # Process data
+        return {
+            PORTS: ports,
+        }
 
-            # AiMesh nodes state
-            aimesh = dict()
-            data = raw["get_cfg_clientlist"][0]
-            for device in data:
-                node = parsers.aimesh_node(device)
-                aimesh[node.mac] = node
-            monitor[AIMESH] = aimesh
+    def _process_monitor_sysinfo(self, raw: Any) -> dict[str, Any]:
+        """Process data from `sysinfo` endpoint"""
 
-            # Client list
-            clients = dict()
-            data = raw["get_allclientlist"][0]
-            for node in data:
-                for connection in data[node]:
-                    for mac in data[node][connection]:
-                        convert = converters.onboarding_connection(connection)
-                        description = {
-                            CONNECTION_TYPE: convert[CONNECTION_TYPE],
-                            GUEST: convert[GUEST],
-                            IP: converters.none_or_str(
-                                data[node][connection][mac].get(IP, None)
-                            ),
-                            MAC: mac,
-                            NODE: node,
-                            RSSI: data[node][connection][mac].get(RSSI, None),
-                        }
-                        clients[mac] = description
-            monitor[CLIENTS] = clients
+        # Sysinfo
+        sysinfo = raw
 
-            # Finish and save data
-            monitor.finish()
-            self.monitor[ONBOARDING] = monitor
-
-        except AsusRouterError as ex:
-            self.monitor[ONBOARDING].drop()
-            raise ex
-
-        return
-
-    async def async_monitor_port_status(self) -> None:
-        """Monitor port status for the node"""
-
-        # Check whether to run
-        if not self.async_monitor_should_run(PORT_STATUS):
-            return
-
-        try:
-            # Start
-            self.monitor[PORT_STATUS].start()
-            monitor = Monitor()
-            # Hook data
-            raw = await self.async_load(compilers.endpoint(PORT_STATUS, self._identity))
-            # Reset time
-            monitor.reset()
-
-            # Process data
-
-            # Ports info
-            ports = {
-                LAN: dict(),
-                USB: dict(),
-                WAN: dict(),
-            }
-            data = raw[f"{PORT}_{INFO}"][self._identity.mac]
-            for port in data:
-                port_type = PORT_TYPES.get(port[0])
-                port_id = converters.int_from_str(port[1:])
-                # Replace needed key/value pairs
-                for key in CONVERTERS[PORT_STATUS]:
-                    if key.value in data[port]:
-                        data[port][key.get()] = key.method(data[port][key.value])
-                        data[port].pop(key.value)
-                ports[port_type][port_id] = data[port]
-
-            monitor[PORTS] = ports
-
-            # Finish and save data
-            monitor.finish()
-            self.monitor[PORT_STATUS] = monitor
-
-        except AsusRouterError as ex:
-            self.monitor[PORT_STATUS].drop()
-            raise ex
-
-        return
-
-    async def async_monitor_sysinfo(self) -> None:
-        """Monitor sysinfo data"""
-
-        # Check whether to run
-        if not self.async_monitor_should_run(SYSINFO):
-            return
-
-        try:
-            # Start
-            self.monitor[SYSINFO].start()
-            monitor = Monitor()
-            # Hook data
-            raw = await self.async_load(compilers.endpoint(SYSINFO, self._identity))
-            # Reset time
-            monitor.reset()
-
-            # Process data
-
-            # Sysinfo
-            sysinfo = raw
-            monitor[SYSINFO] = sysinfo
-
-            # Finish and save data
-            monitor.finish()
-            self.monitor[SYSINFO] = monitor
-
-        except AsusRouterError as ex:
-            self.monitor[SYSINFO].drop()
-            raise ex
-
-        return
+        return {
+            SYSINFO: sysinfo,
+        }
 
     async def async_monitor_devices(self) -> None:
         """Monitor connected devices"""
