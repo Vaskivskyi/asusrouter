@@ -149,13 +149,7 @@ class AsusRouter:
         self._device_boottime: datetime | None = None
 
         self.monitor: dict[str, Monitor] = {
-            DEVICEMAP: Monitor(),
-            ETHERNET_PORTS: Monitor(),
-            FIRMWARE: Monitor(),
-            ONBOARDING: Monitor(),
-            PORT_STATUS: Monitor(),
-            SYSINFO: Monitor(),
-            TEMPERATURE: Monitor(),
+            endpoint: Monitor() for endpoint in ENDPOINT
         }
         self._init_monitor_methods()
 
@@ -195,6 +189,7 @@ class AsusRouter:
             PORT_STATUS: self._process_monitor_port_status,
             SYSINFO: self._process_monitor_sysinfo,
             TEMPERATURE: self._process_monitor_temperature,
+            VPN: self._process_monitor_vpn,
         }
 
     def _mark_reboot(self) -> None:
@@ -331,13 +326,6 @@ class AsusRouter:
             elif AR_KEY_LEDG_COUNT in data:
                 identity["ledg"] = True
                 self._ledg_count = parsers.ledg_count(data)
-        except AsusRouter404 as ex:
-            """Do nothing"""
-
-        # Check VPN
-        try:
-            data = await self.connection.async_load(AR_PATH["vpn"])
-            identity["vpn_status"] = True
         except AsusRouter404 as ex:
             """Do nothing"""
 
@@ -838,6 +826,16 @@ class AsusRouter:
             TEMPERATURE: temperature,
         }
 
+    def _process_monitor_vpn(self, raw: Any) -> dict[str, Any]:
+        """Process data from `vpn` endpoint"""
+
+        # VPN
+        vpn = raw
+
+        return {
+            VPN: vpn,
+        }
+
     async def async_monitor_devices(self) -> None:
         """Monitor connected devices"""
 
@@ -1079,7 +1077,7 @@ class AsusRouter:
         """Return VPN data"""
 
         return await self.async_get_data(
-            data=VPN, monitor=DEVICEMAP, use_cache=use_cache
+            data=VPN, monitor=[DEVICEMAP, VPN], use_cache=use_cache
         )
 
     async def async_get_cpu(self, use_cache: bool = True) -> dict[str, float]:

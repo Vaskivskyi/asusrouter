@@ -68,6 +68,7 @@ from asusrouter.const import (
     REGEX_VARIABLES,
     SYSINFO,
     VALUES_TO_IGNORE,
+    VPN,
 )
 from asusrouter.dataclass import AiMeshDevice, ConnectedDevice, FilterDevice, Firmware
 from asusrouter.error import AsusRouterNotImplementedError, AsusRouterValueError
@@ -523,7 +524,7 @@ def parental_control(raw: dict[str, Any]) -> dict[str, Any]:
 def pseudo_json(text: str, page: str) -> dict[str, Any]:
     """JSON parser"""
 
-    if page == AR_PATH["vpn"]:
+    if ENDPOINT[VPN] in page:
         return vpn_status(text)
     if ENDPOINT[FIRMWARE] in page:
         return firmware(text)
