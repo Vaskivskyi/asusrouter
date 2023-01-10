@@ -937,14 +937,23 @@ class AsusRouter:
     async def async_get_data(
         self,
         data: str,
-        monitor: str,
+        monitor: str | list[str],
         process: Callable[[str], dict[str, Any]] = _process_data_none,
         use_cache: bool = True,
     ) -> dict[str, Any]:
-        """Return data from monitor"""
+        """Return data from the first available monitor in the list"""
 
-        # Monitor is not available
-        if not await self.async_monitor_available(monitor):
+        # Convert to list if only one monitor is set
+        monitors = [monitor] if type(monitor) == str else monitor
+        # Reset the monitor
+        monitor = None
+        # Check if any of the monitor is available
+        for item in monitors:
+            if await self.async_monitor_available(item):
+                monitor = item
+                break
+        # If no monitor available, return empty dict
+        if not monitor:
             return {}
 
         # Value is not cached or cache is disabled
