@@ -573,26 +573,6 @@ class AsusRouter:
 
             monitor_misc = Monitor()
 
-            ### PORTS
-
-            # Receive ports number and status (disconnected, 100 Mb/s, 1 Gb/s)
-            data = await self.async_load(page=AR_PATH["ports"])
-
-            monitor_misc.reset()
-
-            monitor_misc["PORTS"] = dict()
-            if "portSpeed" in data:
-                for type in PORT_TYPE:
-                    monitor_misc["PORTS"][type] = dict()
-                for value in data["portSpeed"]:
-                    for type in PORT_TYPE:
-                        if type in value:
-                            number = value.replace(type, "")
-                            monitor_misc["PORTS"][type][number] = parsers.port_speed(
-                                data["portSpeed"][value]
-                            )
-                            break
-
             ### TEMPERATURES ###
             monitor_misc[KEY_TEMPERATURE] = await self.async_load(
                 page=AR_PATH["temperature"]
