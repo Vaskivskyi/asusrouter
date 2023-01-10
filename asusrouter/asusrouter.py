@@ -63,6 +63,7 @@ from asusrouter.const import (
     ERROR_SERVICE_UNKNOWN,
     ERROR_VALUE,
     ETHERNET_PORTS,
+    FIRMWARE,
     GUEST,
     INFO,
     INTERFACE_TYPE,
@@ -72,8 +73,6 @@ from asusrouter.const import (
     KEY_HOOK,
     KEY_NETWORK,
     KEY_RAM,
-    KEY_SYSINFO,
-    KEY_TEMPERATURE,
     KEY_VPN,
     KEY_WAN,
     LAN,
@@ -92,7 +91,6 @@ from asusrouter.const import (
     PARAM_MODE,
     PORT,
     PORT_STATUS,
-    PORT_TYPE,
     PORT_TYPES,
     PORTS,
     RSSI,
@@ -141,6 +139,7 @@ class AsusRouter:
 
         self.monitor: dict[str, Monitor] = {
             ETHERNET_PORTS: Monitor(),
+            FIRMWARE: Monitor(),
             ONBOARDING: Monitor(),
             PORT_STATUS: Monitor(),
             SYSINFO: Monitor(),
@@ -176,6 +175,7 @@ class AsusRouter:
 
         self.monitor_method = {
             ETHERNET_PORTS: self._process_monitor_ethernet_ports,
+            FIRMWARE: self._process_monitor_firmware,
             ONBOARDING: self._process_monitor_onboarding,
             PORT_STATUS: self._process_monitor_port_status,
             SYSINFO: self._process_monitor_sysinfo,
@@ -286,9 +286,11 @@ class AsusRouter:
         identity.pop("fw_minor")
         identity.pop("fw_build")
 
+        identity[ENDPOINTS] = dict()
+
         # Check by page
         for endpoint in ENDPOINT:
-            self.monitor[endpoint].enabled = identity[
+            self.monitor[endpoint].enabled = identity[ENDPOINTS][
                 endpoint
             ] = await self.async_check_endpoint(ENDPOINT[endpoint])
         identity["update_networkmapd"] = await self.async_check_endpoint(
@@ -633,7 +635,7 @@ class AsusRouter:
         """Monitor an endpoint"""
 
         # Check whether to run
-        if not self.async_monitor_should_run(endpoint):
+        if not await self.async_monitor_should_run(endpoint):
             return
 
         process: Callable[[str], dict[str, Any]] = self.monitor_method.get(endpoint)
@@ -683,6 +685,22 @@ class AsusRouter:
 
         return {
             PORTS: ports,
+        }
+
+    def _process_monitor_firmware(self, raw: Any) -> dict[str, Any]:
+        """Process data from `firmware` endpoint"""
+
+        # Firmware
+        firmware = raw
+        fw_current = self._identity.firmware
+        fw_new = parsers.firmware_string(raw["webs_state_info"])
+
+        firmware["state"] = True if fw_current < fw_new else False
+        firmware["current"] = str(fw_current)
+        firmware["available"] = str(fw_new)
+
+        return {
+            FIRMWARE: firmware,
         }
 
     def _process_monitor_onboarding(self, raw: Any) -> dict[str, Any]:
@@ -952,6 +970,15 @@ class AsusRouter:
 
         return await self.async_get_data(
             data=AIMESH, monitor=ONBOARDING, use_cache=use_cache
+        )
+
+    async def async_get_firmware(
+        self, use_cache: bool = True
+    ) -> dict[str, AiMeshDevice]:
+        """Return firmware data"""
+
+        return await self.async_get_data(
+            data=FIRMWARE, monitor=FIRMWARE, use_cache=use_cache
         )
 
     async def async_get_ports(
@@ -1497,36 +1524,6 @@ class AsusRouter:
             return True
 
         return False
-
-    async def async_service_reboot(self) -> bool:
-        """Reboot the device"""
-
-        service = "reboot"
-        await self.async_service_run(service=service, drop_connection=True)
-        return True
-
-    async def async_get_firmware_update(self) -> dict[str, Any]:
-        """Check for firmware updates"""
-
-        result = dict()
-
-        # Check for updates
-        await self.async_command(
-            commands=None,
-            action_mode=AR_FIRMWARE_CHECK_COMMAND,
-            apply_to=AR_PATH["apply"],
-        )
-        # Get available firmware data
-        data = await self.async_load(AR_PATH["firmware"])
-
-        fw_current = self._identity.firmware
-        fw_new = parsers.firmware_string(data["webs_state_info"])
-
-        result["state"] = True if fw_current < fw_new else False
-        result["current"] = str(fw_current)
-        result["available"] = str(fw_new)
-
-        return result
 
     ### <-- SERVICES
 

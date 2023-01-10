@@ -47,16 +47,12 @@ class AsusDevice:
     brand: str = "ASUSTek"
     firmware: Firmware | None = None
     services: str | None = None
-    sysinfo: bool = False
     led: bool = False
     ledg: bool = False
     aura: bool = False
     vpn_status: bool = False
-    onboarding: bool = False
-    port_status: bool = False
     update_networkmapd: bool = False
-    ethernet_ports: bool = False
-    temperature: bool = False
+    endpoints: dict[str, bool] | None = None
 
 
 @dataclass

@@ -58,6 +58,7 @@ from asusrouter.const import (
     ERROR_PARSING,
     ERROR_VALUE,
     ERROR_VALUE_TYPE,
+    FIRMWARE,
     KEY_NETWORK,
     ONBOARDING,
     PARAM_IP,
@@ -524,7 +525,7 @@ def pseudo_json(text: str, page: str) -> dict[str, Any]:
 
     if page == AR_PATH["vpn"]:
         return vpn_status(text)
-    if page == AR_PATH["firmware"]:
+    if ENDPOINT[FIRMWARE] in page:
         return firmware(text)
 
     data = re.sub("\s+", "", text)
