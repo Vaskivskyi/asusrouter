@@ -81,6 +81,7 @@ TIMESTAMP = "timestamp"
 TOTAL = "total"
 TX = "tx"
 UNKNOWN = "unknown"
+UPDATE_CLIENTS = "update_clients"
 USAGE = "usage"
 USED = "used"
 USB = "usb"
@@ -109,6 +110,7 @@ ENDPOINT = {
     PORT_STATUS: "get_port_status.cgi",
     SYSINFO: "ajax_sysinfo.asp",
     TEMPERATURE: "ajax_coretmp.asp",
+    UPDATE_CLIENTS: "update_clients.asp",
     VPN: "ajax_vpn_status.asp",
 }
 

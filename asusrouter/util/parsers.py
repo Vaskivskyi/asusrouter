@@ -72,6 +72,7 @@ from asusrouter.const import (
     SYSINFO,
     TOTAL,
     TRAFFIC_TYPE,
+    UPDATE_CLIENTS,
     VALUES_TO_IGNORE,
     VPN,
 )
@@ -513,6 +514,15 @@ def parental_control(raw: dict[str, Any]) -> dict[str, Any]:
     return result
 
 
+def endpoint_update_clients(raw: str) -> dict[str, Any]:
+    """Parse data from the `update_clients` endpoint"""
+
+    parts = raw.split("originData =")
+    parts = parts[1].split("networkmap_fullscan")
+    data = parts[0].replace("fromNetworkmapd", '"fromNetworkmapd"').replace("nmpClient ", '"nmpClient" ')
+    return json.loads(data.encode().decode("utf-8-sig"))
+
+
 def pseudo_json(text: str, page: str) -> dict[str, Any]:
     """JSON parser"""
 
@@ -520,6 +530,8 @@ def pseudo_json(text: str, page: str) -> dict[str, Any]:
         return vpn_status(text)
     if ENDPOINT[FIRMWARE] in page:
         return firmware(text)
+    if ENDPOINT[UPDATE_CLIENTS] in page:
+        return endpoint_update_clients(text)
 
     data = re.sub("\s+", "", text)
 
