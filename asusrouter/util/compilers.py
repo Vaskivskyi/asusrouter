@@ -6,7 +6,6 @@ from typing import Any
 
 from asusrouter.const import (
     AR_DEFAULT_OVPN_CLIENTS,
-    AR_HOOK_TEMPLATE,
     AR_KEY_OVPN,
     AR_KEY_PARENTAL_CONTROL_MAC,
     AR_KEY_PARENTAL_CONTROL_NAME,
@@ -20,13 +19,18 @@ from asusrouter.const import (
     ENDPOINT,
     ENDPOINT_ARGS,
     ERROR_VALUE_TYPE,
+    GWLAN,
     HOOK,
-    KEY_NVRAM_GET,
     KEY_VPN,
+    MAP_NVRAM,
+    NVRAM_GET,
     PARAM_ERRNO,
     PARAM_STATE,
     PARAM_STATUS,
     PARAM_UNKNOWN,
+    RANGE_GWLAN,
+    WLAN,
+    WLAN_TYPE,
 )
 from asusrouter import FilterDevice
 from asusrouter.dataclass import AsusDevice, ConnectedDevice
@@ -39,24 +43,24 @@ def hook(commands: dict[str, str] | None = None) -> str:
 
     data = str()
     if commands is not None:
-        for item in commands:
-            data += AR_HOOK_TEMPLATE.format(item, commands[item])
+        for item, value in commands.items():
+            data += f"{item}({value});"
 
     return data
 
 
 def nvram(values: list[str] | str | None = None) -> str:
-    """NVRAM request compiler"""
+    """NVRAM compiler"""
 
     if values is None:
         return str()
 
     if type(values) == str:
-        return AR_HOOK_TEMPLATE.format(KEY_NVRAM_GET, values)
+        return f"{NVRAM_GET}({values});"
 
     request = str()
     for value in values:
-        request += AR_HOOK_TEMPLATE.format(KEY_NVRAM_GET, value)
+        request += f"{NVRAM_GET}({value});"
 
     return request
 
@@ -206,3 +210,22 @@ def update_rec(left: dict[str, Any], right: dict[str, Any] = dict()) -> None:
             update_rec(left[key], value)
         else:
             left[key] = value
+
+
+def monitor_arg_nvram(wlan: list[str] | None) -> str | None:
+    """Compile NVRAM monitor"""
+
+    if not wlan:
+        return None
+
+    request = list()
+    for intf in wlan:
+        interface = WLAN_TYPE.get(intf)
+        for key in MAP_NVRAM[WLAN]:
+            request.append(key.value.format(interface))
+
+        for key in MAP_NVRAM[GWLAN]:
+            for id in RANGE_GWLAN:
+                request.append(key.value.format(f"{interface}.{id}"))
+
+    return nvram(request)
