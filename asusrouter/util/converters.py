@@ -141,6 +141,15 @@ def int_from_bool(raw: bool) -> int:
     return 1 if raw else 0
 
 
+def none_or_any(raw: Any) -> None | Any:
+    """Return value or process it with none_or_str"""
+
+    if type(raw) == str:
+        return none_or_str(raw)
+
+    return raw
+
+
 def none_or_str(raw: str) -> str | None:
     """Returns either string or None if string is empty"""
 

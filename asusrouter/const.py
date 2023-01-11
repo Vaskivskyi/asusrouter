@@ -2,7 +2,7 @@
 
 from enum import Enum
 
-from asusrouter.dataclass import Key
+from asusrouter.dataclass import Key, SearchKey
 from asusrouter.util.converters import (
     bool_from_any,
     bool_or_int,
@@ -61,10 +61,14 @@ MAC = "mac"
 MAIN = "main"
 MEMORY_USAGE = "memory_usage"
 MONITOR = "monitor"
+NAME = "name"
 NETDEV = "netdev"
 NETWORK = "network"
+NETWORKMAPD = "networkmapd"
 NODE = "node"
+NPMCLIENT = "npmclient"
 ONBOARDING = "onboarding"
+ONLINE = "online"
 PORT = "port"
 PORTS = "ports"
 QTN = "qtn"
@@ -106,6 +110,7 @@ ENDPOINT = {
     ETHERNET_PORTS: "ajax_ethernet_ports.asp",
     FIRMWARE: "detect_firmware.asp",
     HOOK: "appGet.cgi",
+    # NETWORKMAPD: "update_networkmapd.asp",
     ONBOARDING: "ajax_onboarding.asp",
     PORT_STATUS: "get_port_status.cgi",
     SYSINFO: "ajax_sysinfo.asp",
@@ -136,6 +141,59 @@ HD_DATA: tuple[tuple[str, ...], ...] = (
 )
 
 ### ASUS NUMERICS, RANGES & MAPS
+
+# Map of the parameters for connected device
+# value_to_find: [where_to_search, method to convert]
+# List is sorted by importance with the most important first
+MAP_CONNECTED_DEVICE: dict[str, list[SearchKey]] = {
+    "connected_since": [
+        SearchKey("wlConnectTime", time_from_delta),
+    ],
+    CONNECTION_TYPE: [
+        SearchKey(CONNECTION_TYPE),
+        SearchKey("isWL", int_from_str),
+    ],
+    GUEST: [
+        SearchKey(GUEST),
+        SearchKey("isGN", int_from_str),
+    ],
+    "internet_mode": [
+        SearchKey("internetMode"),
+    ],
+    "internet_state": [
+        SearchKey("internetState", bool_from_any),
+    ],
+    IP: [
+        SearchKey(IP),
+    ],
+    "ip_method": [
+        SearchKey("ipMethod"),
+    ],
+    MAC: [
+        SearchKey(MAC),
+    ],
+    NAME: [
+        SearchKey("nickName"),
+        SearchKey(NAME),
+        SearchKey(MAC),
+    ],
+    NODE: [
+        SearchKey(NODE),
+    ],
+    ONLINE: [
+        SearchKey(ONLINE),
+        SearchKey("isOnline", bool_from_any),
+    ],
+    RSSI: [
+        SearchKey(RSSI, int_from_str),
+    ],
+    "rx_speed": [
+        SearchKey("curRx", float_from_str),
+    ],
+    "tx_speed": [
+        SearchKey("curTx", float_from_str),
+    ],
+}
 MAP_CPU: tuple[Key, ...] = (Key(TOTAL), Key(USAGE, USED))
 MAP_NETWORK: tuple[Key, ...] = (
     Key("INTERNET", WAN),

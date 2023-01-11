@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any
+from typing import Any, Callable
 
-from asusrouter.util.converters import none_or_str
+from asusrouter.util.converters import none_or_any, none_or_str
 
 DEFAULT_PARENTAL_CONTROL_TIMEMAP = "W03E21000700<W04122000800"
 
@@ -28,7 +28,7 @@ class ConnectedDevice:
     node: str | None = None
 
     # WLAN only values
-    online: bool | None = None
+    online: bool = False
     rssi: int | None = None
     connected_since: int | None = None
     rx_speed: float | None = None
@@ -108,6 +108,19 @@ class Key:
             return self.value_to_use
 
         return self.value
+
+
+@dataclass
+class SearchKey:
+    """SearchKey class"""
+
+    value: str
+    method: Callable = none_or_any
+
+    def __str__(self) -> str:
+        """Return only `value` as default"""
+
+        return str(self.value)
 
 
 @dataclass
