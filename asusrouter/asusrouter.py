@@ -348,7 +348,7 @@ class AsusRouter:
     async def async_api_load(
         self,
         endpoint: str | None = None,
-        command: str | None = None,
+        command: str = "",
     ) -> dict[str, Any]:
         """Load API endpoint"""
 
