@@ -16,18 +16,14 @@ from typing import Any
 import xmltodict
 
 from asusrouter.const import (
-    AR_DEFAULT_CORES,
     AR_DEFAULT_CORES_RANGE,
     AR_DEFAULT_LEDG,
     AR_DEFAULT_OVPN_CLIENTS,
     AR_DEFAULT_OVPN_SERVERS,
-    AR_DEVICE_ATTRIBUTES_LIST,
     AR_KEY_CPU_ITEM,
     AR_KEY_CPU_LIST,
     AR_KEY_DEVICEMAP,
     AR_KEY_HEADER,
-    AR_KEY_NETWORK_GROUPS,
-    AR_KEY_NETWORK_ITEM,
     AR_KEY_OVPN,
     AR_KEY_OVPN_STATUS,
     AR_KEY_OVPN_STATUS_SERVER,
@@ -49,8 +45,6 @@ from asusrouter.const import (
     CONST_ZERO,
     CPU,
     DATA_ADD_SPEED,
-    DATA_TOTAL,
-    DATA_TRAFFIC,
     DEVICEMAP_BY_INDEX,
     DEVICEMAP_CLEAR,
     DEVICEMAP_GENERAL,
@@ -59,7 +53,6 @@ from asusrouter.const import (
     ERROR_VALUE,
     ERROR_VALUE_TYPE,
     FIRMWARE,
-    KEY_NETWORK,
     MAP_CPU,
     MAP_NETWORK,
     ONBOARDING,
@@ -76,7 +69,7 @@ from asusrouter.const import (
     VALUES_TO_IGNORE,
     VPN,
 )
-from asusrouter.dataclass import AiMeshDevice, ConnectedDevice, FilterDevice, Firmware
+from asusrouter.dataclass import AiMeshDevice, FilterDevice, Firmware
 from asusrouter.error import AsusRouterNotImplementedError, AsusRouterValueError
 from asusrouter.util import calculators, converters
 
@@ -228,25 +221,6 @@ def wan_state(raw: dict[str, Any]) -> dict[str, Any]:
                 _LOGGER.warning(ERROR_PARSING.format(key.value, str(ex)))
 
     return values
-
-
-def connected_device(raw: dict[str, Any]) -> ConnectedDevice:
-    """Device parser"""
-
-    values = dict()
-
-    for key in AR_DEVICE_ATTRIBUTES_LIST:
-        if key.value in raw and raw[key.value] != str():
-            try:
-                values[key.get()] = (
-                    key.method(raw[key.value]) if key.method else raw[key.value]
-                )
-            except AsusRouterValueError as ex:
-                _LOGGER.warning(ERROR_PARSING.format(key.value, str(ex)))
-
-    device = ConnectedDevice(**values)
-
-    return device
 
 
 def uptime(data: str) -> datetime:

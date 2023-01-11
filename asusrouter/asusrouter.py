@@ -74,12 +74,15 @@ from asusrouter.const import (
     LINK_RATE,
     MAC,
     MAIN,
+    MAP_CONNECTED_DEVICE,
     MAP_OVPN_STATUS,
     MEMORY_USAGE,
     NETDEV,
     NETWORK,
+    ONLINE,
     RAM,
     TOTAL,
+    UPDATE_CLIENTS,
     USED,
     WANLINK_STATE,
     Merge,
@@ -112,7 +115,7 @@ from asusrouter.const import (
     VPN_CLIENT,
     WAN,
 )
-from asusrouter.dataclass import AiMeshDevice
+from asusrouter.dataclass import AiMeshDevice, ConnectedDevice
 from asusrouter.util import calculators, compilers, converters, parsers
 
 _LOGGER = logging.getLogger(__name__)
@@ -157,8 +160,6 @@ class AsusRouter:
             self.monitor_arg[key] = f"hook={compilers.hook(value)}"
         self._init_monitor_methods()
 
-        self._monitor_devices: Monitor = Monitor()
-
         self._identity: AsusDevice | None = None
         self._ledg_color: dict[int, dict[str, int]] | None = None
         self._ledg_count: int = 0
@@ -180,7 +181,7 @@ class AsusRouter:
         )
 
     def _init_monitor_methods(self) -> None:
-        """Initialie monitors"""
+        """Initialize monitors"""
 
         self.monitor_method = {
             DEVICEMAP: self._process_monitor_devicemap,
@@ -191,6 +192,7 @@ class AsusRouter:
             PORT_STATUS: self._process_monitor_port_status,
             SYSINFO: self._process_monitor_sysinfo,
             TEMPERATURE: self._process_monitor_temperature,
+            UPDATE_CLIENTS: self._process_monitor_update_clients,
             VPN: self._process_monitor_vpn,
         }
 
@@ -684,6 +686,7 @@ class AsusRouter:
                         ),
                         MAC: mac,
                         NODE: node,
+                        ONLINE: True,
                         RSSI: data[node][connection][mac].get(RSSI, None),
                     }
                     clients[mac] = description
@@ -737,6 +740,29 @@ class AsusRouter:
             TEMPERATURE: temperature,
         }
 
+    def _process_monitor_update_clients(
+        self, raw: Any, time: datetime
+    ) -> dict[str, Any]:
+        """Process data from `update_clients` endpoint"""
+
+        # Clients
+        clients = dict()
+        if "nmpClient" in raw:
+            data = raw["nmpClient"][0]
+            for mac, description in data.items():
+                if converters.is_mac_address(mac):
+                    clients[mac] = description
+
+        if "fromNetworkmapd" in raw:
+            data = raw["fromNetworkmapd"][0]
+            for mac, description in data.items():
+                if converters.is_mac_address(mac):
+                    clients[mac] = description
+
+        return {
+            CLIENTS: clients,
+        }
+
     def _process_monitor_vpn(self, raw: Any, time: datetime) -> dict[str, Any]:
         """Process data from `vpn` endpoint"""
 
@@ -746,50 +772,6 @@ class AsusRouter:
         return {
             VPN: vpn,
         }
-
-    async def async_monitor_devices(self) -> None:
-        """Monitor connected devices"""
-
-        while self._monitor_devices.active:
-            await asyncio.sleep(DEFAULT_SLEEP_TIME)
-            return
-
-        try:
-            self._monitor_devices.start()
-            monitor_devices = Monitor()
-
-            # Update device list (needed for older devices)
-            await self.async_check_endpoint(AR_PATH["devices_update"])
-            if self._identity.update_networkmapd:
-                await self.async_check_endpoint(AR_PATH["networkmap"])
-            data = await self.async_hook(AR_HOOK_DEVICES)
-
-            monitor_devices.reset()
-
-            onboarding = {}
-            if self._identity.onboarding:
-                await self.async_monitor_onboarding()
-                onboarding = self.monitor[ONBOARDING][CLIENTS]
-
-            # Search for new data
-            if AR_KEY_DEVICES in data:
-                data = data[AR_KEY_DEVICES]
-                for mac in data:
-                    if converters.is_mac_address(mac):
-                        monitor_devices[mac] = compilers.connected_device(
-                            parsers.connected_device(data[mac]), onboarding.get(mac)
-                        )
-            # Or keep last data
-            elif self._monitor_devices.ready:
-                monitor_devices = self._monitor_devices
-
-            monitor_devices.finish()
-            self._monitor_devices = monitor_devices
-        except AsusRouterError as ex:
-            self._monitor_devices.drop()
-            raise ex
-
-        return
 
     ### <-- MONITORS
 
@@ -855,16 +837,40 @@ class AsusRouter:
 
         return
 
-    async def async_initialize(self):
-        """Get all the data needed at the startup"""
-
-        await self.async_monitor_devices()
-
     ### PROCESS DATA -->
 
     @staticmethod
     def _process_data_none(raw: dict[str, Any]) -> dict[str, Any]:
         """Don't process the data"""
+
+        return raw
+
+    @staticmethod
+    def _process_data_connected_devices(
+        raw: dict[str, Any]
+    ) -> dict[str, ConnectedDevice]:
+        """Process data for the connected devices"""
+
+        for mac, description in raw.items():
+            for attribute, keys in MAP_CONNECTED_DEVICE.items():
+                value = None
+
+                for key in keys:
+                    if description.get(key.value):
+                        value = key.method(description[key.value])
+                        break
+
+                if value:
+                    raw[mac][attribute] = value
+
+            # Remove unknown attributes
+            description = {
+                attribute: value
+                for attribute, value in description.items()
+                if attribute in MAP_CONNECTED_DEVICE
+            }
+
+            raw[mac] = ConnectedDevice(**description)
 
         return raw
 
@@ -913,8 +919,11 @@ class AsusRouter:
             # Receive data
             part = self.monitor[monitor].get(data or {})
 
-            # Process data
+            # Update data
             compilers.update_rec(result, part)
+
+        # Process data
+        result = process(result)
 
         # Return data
         return result
@@ -937,6 +946,19 @@ class AsusRouter:
         """Return CPU data"""
 
         return await self.async_get_data(data=CPU, monitor=MAIN, use_cache=use_cache)
+
+    async def async_get_connected_devices(
+        self, use_cache: bool = True
+    ) -> dict[str, ConnectedDevice]:
+        """Return connected devices data"""
+
+        return await self.async_get_data(
+            data=CLIENTS,
+            monitor=[UPDATE_CLIENTS, ONBOARDING],
+            merge=Merge.ALL,
+            use_cache=use_cache,
+            process=self._process_data_connected_devices,
+        )
 
     async def async_get_devicemap(self, use_cache: bool = True) -> dict[str, Any]:
         """Return devicemap data"""
@@ -1018,23 +1040,6 @@ class AsusRouter:
         return [item for item in raw]
 
     ### NOT PROCESSED -->
-
-    async def async_get_devices(self, use_cache: bool = True) -> dict[str, Any]:
-        """Return device list"""
-
-        now = datetime.utcnow()
-        if (
-            not self._monitor_devices.ready
-            or use_cache == False
-            or (
-                use_cache == True
-                and self._cache_time
-                < (now - self._monitor_devices.time).total_seconds()
-            )
-        ):
-            await self.async_monitor_devices()
-
-        return self._monitor_devices.copy()
 
     async def async_get_gwlan(self) -> dict[str, Any]:
         """Get state of guest WLAN by id"""
