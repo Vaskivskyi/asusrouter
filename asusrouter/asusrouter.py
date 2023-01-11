@@ -905,32 +905,10 @@ class AsusRouter:
 
         return
 
-    async def async_find_interfaces(self, use_cache: bool = True) -> None:
-        """Find available interfaces/type dictionary"""
-
-        if not self._monitor_nvram.ready or use_cache == False:
-            await self.async_monitor_nvram()
-
-        ports = {}
-
-        data = self._monitor_nvram
-
-        for if_type in INTERFACE_TYPE:
-            if if_type in data:
-                values = data[if_type].split(" ")
-                for item in values:
-                    ports[item] = INTERFACE_TYPE[if_type]
-
-        self._device_ports = ports
-
-        return
-
     async def async_initialize(self):
         """Get all the data needed at the startup"""
 
-        await self.async_monitor_main()
         await self.async_monitor_nvram()
-        await self.async_find_interfaces()
         await self.async_monitor_devices()
 
     ### PROCESS DATA -->
