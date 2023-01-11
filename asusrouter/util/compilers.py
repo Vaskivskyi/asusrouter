@@ -16,9 +16,11 @@ from asusrouter.const import (
     AR_MAP_PARENTAL_CONTROL_STATE,
     AR_MAP_RGB,
     AR_VPN_STATUS,
+    ENDHOOKS,
     ENDPOINT,
     ENDPOINT_ARGS,
     ERROR_VALUE_TYPE,
+    HOOK,
     KEY_NVRAM_GET,
     KEY_VPN,
     PARAM_ERRNO,
@@ -178,10 +180,9 @@ def connected_device(
 def endpoint(endpoint: str, device: AsusDevice | dict[str, Any] | None = None) -> str:
     """Compile endpoint string with required arguments"""
 
-    if endpoint not in ENDPOINT:
-        raise AsusRouterValueError(f"Unknown endpoint `{endpoint}`")
-
-    address = ENDPOINT.get(endpoint, str())
+    address = ENDPOINT.get(endpoint)
+    if not address:
+        address = ENDPOINT[HOOK] if endpoint in ENDHOOKS else str()
 
     if type(device) == AsusDevice:
         device = asdict(device)

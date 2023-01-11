@@ -25,20 +25,16 @@ from asusrouter.const import (
     AR_DEVICE_IDENTITY,
     AR_HOOK_DEVICES,
     AR_KEY_AURARGB,
-    AR_KEY_CPU,
     AR_KEY_DEVICES,
     AR_KEY_LED,
     AR_KEY_LEDG_COUNT,
     AR_KEY_LEDG_RGB,
     AR_KEY_LEDG_SCHEME,
     AR_KEY_LEDG_SCHEME_OLD,
-    AR_KEY_NETWORK,
     AR_KEY_PARENTAL_CONTROL,
-    AR_KEY_RAM,
     AR_KEY_SERVICE_COMMAND,
     AR_KEY_SERVICE_MODIFY,
     AR_KEY_SERVICE_REPLY,
-    AR_KEY_WAN,
     AR_LEDG_MODE,
     AR_MAP_PARENTAL_CONTROL,
     AR_PATH,
@@ -49,14 +45,13 @@ from asusrouter.const import (
     CLIENTS,
     CONNECTION_TYPE,
     CONVERTERS,
-    DATA_BY_CORE,
-    DATA_TOTAL,
-    DATA_USAGE,
-    DATA_USED,
+    CPU,
+    CPU_USAGE,
     DEFAULT_ACTION_MODE,
     DEFAULT_CACHE_TIME,
     DEFAULT_SLEEP_TIME,
     DEVICEMAP,
+    ENDHOOKS,
     ENDPOINT,
     ENDPOINTS,
     ERRNO,
@@ -67,22 +62,28 @@ from asusrouter.const import (
     ETHERNET_PORTS,
     FIRMWARE,
     GUEST,
+    HD_DATA,
     INFO,
     INTERFACE_TYPE,
     IP,
     ISO,
     KEY_ACTION_MODE,
-    KEY_CPU,
     KEY_HOOK,
     KEY_NETWORK,
-    KEY_RAM,
     KEY_WAN,
     LAN,
     LINK_RATE,
     MAC,
+    MAIN,
     MAP_OVPN_STATUS,
+    MEMORY_USAGE,
+    NETDEV,
+    NETWORK,
+    RAM,
+    TOTAL,
+    USED,
+    WANLINK_STATE,
     Merge,
-    MONITOR_MAIN,
     MSG_ERROR,
     MSG_INFO,
     MSG_SUCCESS,
@@ -148,14 +149,17 @@ class AsusRouter:
         self._device_ports: dict[str, str] | None = None
         self._device_boottime: datetime | None = None
 
+        # Monitors
         self.monitor: dict[str, Monitor] = {
             endpoint: Monitor() for endpoint in ENDPOINT
         }
+        self.monitor_arg = dict()
+        for key, value in ENDHOOKS.items():
+            self.monitor[key] = Monitor()
+            self.monitor_arg[key] = f"hook={compilers.hook(value)}"
         self._init_monitor_methods()
 
-        self._monitor_main: Monitor = Monitor()
         self._monitor_nvram: Monitor = Monitor()
-        self._monitor_misc: Monitor = Monitor()
         self._monitor_devices: Monitor = Monitor()
 
         self._identity: AsusDevice | None = None
@@ -185,6 +189,7 @@ class AsusRouter:
             DEVICEMAP: self._process_monitor_devicemap,
             ETHERNET_PORTS: self._process_monitor_ethernet_ports,
             FIRMWARE: self._process_monitor_firmware,
+            MAIN: self._process_monitor_main,
             ONBOARDING: self._process_monitor_onboarding,
             PORT_STATUS: self._process_monitor_port_status,
             SYSINFO: self._process_monitor_sysinfo,
@@ -340,6 +345,28 @@ class AsusRouter:
 
     ### DATA PROCESSING -->
 
+    async def async_api_load(
+        self,
+        endpoint: str | None = None,
+        command: str | None = None,
+    ) -> dict[str, Any]:
+        """Load API endpoint"""
+
+        # Endpoint should be selected
+        if endpoint is None:
+            _LOGGER.debug(MSG_INFO["empty_request"])
+            return {}
+
+        # Process endpoint
+        try:
+            result = await self.connection.async_run_command(
+                command=command, endpoint=endpoint
+            )
+        except Exception as ex:
+            raise ex
+
+        return result
+
     async def async_command(
         self,
         commands: dict[str, str] | None = None,
@@ -425,114 +452,6 @@ class AsusRouter:
 
     ### MONITORS -->
 
-    async def async_monitor_main(self) -> None:
-        """Get all the main monitor values. Non-cacheable"""
-
-        while self._monitor_main.active:
-            await asyncio.sleep(DEFAULT_SLEEP_TIME)
-            return
-
-        try:
-            self._monitor_main.start()
-
-            monitor_main = Monitor()
-
-            hook = compilers.hook(MONITOR_MAIN)
-            data = await self.async_hook(hook)
-
-            monitor_main.reset()
-
-            ### CPU ###
-            ## Not yet known what exactly is type of data. But this is the correct way to calculate usage from it
-
-            # Keep safe
-            if AR_KEY_CPU in data:
-
-                raw_cpu = data[AR_KEY_CPU]
-
-                # Check which cores CPU has or find it out and save for later
-                if self._device_cpu_cores is None:
-                    self._device_cpu_cores = parsers.cpu_cores(raw=raw_cpu)
-
-                # Traffic data from the device
-                monitor_main[KEY_CPU] = parsers.cpu_usage(
-                    raw=raw_cpu, cores=self._device_cpu_cores
-                )
-
-                # Calculate actual usage in percents and save it. Only if there was old data for CPU
-                if self._monitor_main.ready and KEY_CPU in self._monitor_main:
-                    for item in monitor_main[KEY_CPU]:
-                        if item in self._monitor_main[KEY_CPU]:
-                            monitor_main[KEY_CPU][item] = calculators.usage_in_dict(
-                                after=monitor_main[KEY_CPU][item],
-                                before=self._monitor_main[KEY_CPU][item],
-                            )
-
-            # Keep last data
-            elif self._monitor_main.ready and KEY_CPU in self._monitor_main:
-                monitor_main[KEY_CPU] = self._monitor_main[KEY_CPU]
-
-            ### RAM ###
-            ## Data is in KiB. To get MB as they are shown in the device Web-GUI, should be devided by 1024 (yes, those will be MiB)
-
-            if AR_KEY_RAM in data:
-                # Populate RAM with known values
-                monitor_main[KEY_RAM] = parsers.ram_usage(raw=data[AR_KEY_RAM])
-
-                # Calculate usage in percents
-                if (
-                    DATA_USED in monitor_main[KEY_RAM]
-                    and DATA_TOTAL in monitor_main[KEY_RAM]
-                ):
-                    monitor_main[KEY_RAM] = calculators.usage_in_dict(
-                        after=monitor_main[KEY_RAM]
-                    )
-            # Keep last data
-            elif self._monitor_main.ready and KEY_RAM in self._monitor_main:
-                monitor_main[KEY_RAM] = self._monitor_main[KEY_RAM]
-
-            ### NETWORK ###
-            ## Data in Bytes for traffic and bits/s for speeds
-
-            if AR_KEY_NETWORK in data:
-                # Calculate RX and TX from the HEX values. If there is no current value, but there was one before, get it from storage. Traffic resets only on device reboot or when above the limit. Device disconnect / reconnect does NOT reset it
-                monitor_main[KEY_NETWORK] = parsers.network_usage(
-                    raw=data[AR_KEY_NETWORK]
-                )
-
-                if self._monitor_main.ready and KEY_NETWORK in self._monitor_main:
-                    # Calculate speeds
-                    time_delta = (
-                        monitor_main.time - self._monitor_main.time
-                    ).total_seconds()
-                    monitor_main[KEY_NETWORK] = parsers.network_speed(
-                        after=monitor_main[KEY_NETWORK],
-                        before=self._monitor_main[KEY_NETWORK],
-                        time_delta=time_delta,
-                    )
-
-            # Keep last data
-            elif self._monitor_main.ready and KEY_NETWORK in self._monitor_main:
-                monitor_main[KEY_NETWORK] = self._monitor_main[KEY_NETWORK]
-
-            ### WAN STATE ###
-
-            if AR_KEY_WAN in data:
-                # Populate WAN with known values
-                monitor_main[KEY_WAN] = parsers.wan_state(raw=data[AR_KEY_WAN])
-
-            # Keep last data
-            elif self._monitor_main.ready and KEY_WAN in self._monitor_main:
-                monitor_main[KEY_WAN] = self._monitor_main[KEY_WAN]
-
-            monitor_main.finish()
-            self._monitor_main = monitor_main
-        except AsusRouterError as ex:
-            self._monitor_main.drop()
-            raise ex
-
-        return
-
     async def async_monitor_nvram(self, groups: list[str] | str | None = None) -> None:
         """Get the NVRAM values for the specified group list"""
 
@@ -597,13 +516,16 @@ class AsusRouter:
             self.monitor[endpoint].start()
             monitor = Monitor()
             # Hook data
-            raw = await self.async_load(compilers.endpoint(endpoint, self._identity))
+            raw = await self.async_api_load(
+                compilers.endpoint(endpoint, self._identity),
+                command=self.monitor_arg.get(endpoint, str()),
+            )
             # Reset time
             monitor.reset()
 
             # Process data
 
-            result = process(raw)
+            result = process(raw, time=monitor.time)
             for key, data in result.items():
                 monitor[key] = data
 
@@ -617,7 +539,7 @@ class AsusRouter:
 
         return
 
-    def _process_monitor_devicemap(self, raw: Any) -> dict[str, Any]:
+    def _process_monitor_devicemap(self, raw: Any, time: datetime) -> dict[str, Any]:
         """Process data from `devicemap` endpoint"""
 
         # Devicemap
@@ -674,7 +596,9 @@ class AsusRouter:
             VPN: vpn,
         }
 
-    def _process_monitor_ethernet_ports(self, raw: Any) -> dict[str, Any]:
+    def _process_monitor_ethernet_ports(
+        self, raw: Any, time: datetime
+    ) -> dict[str, Any]:
         """Process data from `ethernet ports` endpoint"""
 
         # Ports info
@@ -696,7 +620,7 @@ class AsusRouter:
             PORTS: ports,
         }
 
-    def _process_monitor_firmware(self, raw: Any) -> dict[str, Any]:
+    def _process_monitor_firmware(self, raw: Any, time: datetime) -> dict[str, Any]:
         """Process data from `firmware` endpoint"""
 
         # Firmware
@@ -712,7 +636,80 @@ class AsusRouter:
             FIRMWARE: firmware,
         }
 
-    def _process_monitor_onboarding(self, raw: Any) -> dict[str, Any]:
+    def _process_monitor_main(self, raw: Any, time: datetime) -> dict[str, Any]:
+        """Process data from `main` endpoint"""
+
+        # CPU
+        cpu = dict()
+        if CPU_USAGE in raw:
+
+            cpu = parsers.cpu_usage(raw=raw[CPU_USAGE])
+
+            # Calculate actual usage in percents and save it. Only if there was old data for CPU
+            if self.monitor[MAIN].ready and CPU in self.monitor[MAIN]:
+                for item in cpu:
+                    if item in self.monitor[MAIN][CPU]:
+                        cpu[item] = calculators.usage_in_dict(
+                            after=cpu[item],
+                            before=self.monitor[MAIN][CPU][item],
+                        )
+        # Keep last data
+        elif self.monitor[MAIN].ready and CPU in self.monitor[MAIN]:
+            cpu = self.monitor[MAIN][CPU]
+
+        # RAM
+        ram = dict()
+        ## Data is in KiB. To get MB as they are shown in the device Web-GUI, should be devided by 1024 (yes, those will be MiB)
+        if MEMORY_USAGE in raw:
+            # Populate RAM with known values
+            ram = parsers.ram_usage(raw=raw[MEMORY_USAGE])
+
+            # Calculate usage in percents
+            if USED in ram and TOTAL in ram:
+                ram = calculators.usage_in_dict(after=ram)
+        # Keep last data
+        elif self.monitor[MAIN].ready and RAM in self.monitor[MAIN]:
+            ram = self.monitor[MAIN][RAM]
+
+        # Network
+        network = dict()
+        ## Data in Bytes for traffic and bits/s for speeds
+        if NETDEV in raw:
+            # Calculate RX and TX from the HEX values. If there is no current value, but there was one before, get it from storage. Traffic resets only on device reboot or when above the limit. Device disconnect / reconnect does NOT reset it
+            network = parsers.network_usage(raw=raw[NETDEV])
+
+            if self.monitor[MAIN].ready and NETWORK in self.monitor[MAIN]:
+                # Calculate speeds
+                time_delta = (time - self.monitor[MAIN].time).total_seconds()
+                network = parsers.network_speed(
+                    after=network,
+                    before=self.monitor[MAIN][KEY_NETWORK],
+                    time_delta=time_delta,
+                )
+        # Keep last data
+        elif self.monitor[MAIN].ready and NETWORK in self.monitor[MAIN]:
+            network = self.monitor[MAIN][NETWORK]
+
+        if not USB in network and "dualwan" in self._identity.services:
+            network[USB] = dict()
+
+        # WAN
+        wan = dict()
+        if WANLINK_STATE in raw:
+            # Populate WAN with known values
+            wan = parsers.wan_state(raw=raw[WANLINK_STATE])
+        # Keep last data
+        elif self.monitor[MAIN].ready and WAN in self.monitor[MAIN]:
+            wan = self.monitor[MAIN][KEY_WAN]
+
+        return {
+            CPU: cpu,
+            NETWORK: network,
+            RAM: ram,
+            WAN: wan,
+        }
+
+    def _process_monitor_onboarding(self, raw: Any, time: datetime) -> dict[str, Any]:
         """Process data from `onboarding` endpoint"""
 
         # AiMesh nodes state
@@ -746,7 +743,7 @@ class AsusRouter:
             CLIENTS: clients,
         }
 
-    def _process_monitor_port_status(self, raw: Any) -> dict[str, Any]:
+    def _process_monitor_port_status(self, raw: Any, time: datetime) -> dict[str, Any]:
         """Process data from `port status` endpoint"""
 
         # Ports info
@@ -770,7 +767,7 @@ class AsusRouter:
             PORTS: ports,
         }
 
-    def _process_monitor_sysinfo(self, raw: Any) -> dict[str, Any]:
+    def _process_monitor_sysinfo(self, raw: Any, time: datetime) -> dict[str, Any]:
         """Process data from `sysinfo` endpoint"""
 
         # Sysinfo
@@ -780,7 +777,7 @@ class AsusRouter:
             SYSINFO: sysinfo,
         }
 
-    def _process_monitor_temperature(self, raw: Any) -> dict[str, Any]:
+    def _process_monitor_temperature(self, raw: Any, time: datetime) -> dict[str, Any]:
         """Process data from `temperature` endpoint"""
 
         # Temperature
@@ -790,7 +787,7 @@ class AsusRouter:
             TEMPERATURE: temperature,
         }
 
-    def _process_monitor_vpn(self, raw: Any) -> dict[str, Any]:
+    def _process_monitor_vpn(self, raw: Any, time: datetime) -> dict[str, Any]:
         """Process data from `vpn` endpoint"""
 
         # VPN
@@ -889,19 +886,17 @@ class AsusRouter:
 
         return True
 
-    ### <-- TECHNICAL
+    async def _async_handle_erorr(self) -> None:
+        """Actions to be taken on connection error"""
 
-    async def async_handle_error(self) -> None:
-        """Actions to be taken on connection errors"""
-
-        # Clear main monitor to prevent calculation errors in it
-        if self._monitor_main.ready:
-            self._monitor_main = Monitor()
-
-        # Clear error
-        await self.connection.async_reset_error()
+        # Drop history dependent monitor values
+        for (monitor, data) in HD_DATA:
+            if monitor in self.monitor and data in self.monitor[monitor]:
+                self.monitor[monitor].pop(data)
 
         return
+
+    ### <-- TECHNICAL
 
     async def async_handle_reboot(self) -> None:
         """Actions to be taken on reboot"""
@@ -1011,6 +1006,11 @@ class AsusRouter:
             data=BOOTTIME, monitor=DEVICEMAP, use_cache=use_cache
         )
 
+    async def async_get_cpu(self, use_cache: bool = True) -> dict[str, float]:
+        """Return CPU data"""
+
+        return await self.async_get_data(data=CPU, monitor=MAIN, use_cache=use_cache)
+
     async def async_get_devicemap(self, use_cache: bool = True) -> dict[str, Any]:
         """Return devicemap data"""
 
@@ -1027,6 +1027,15 @@ class AsusRouter:
             data=FIRMWARE, monitor=FIRMWARE, use_cache=use_cache
         )
 
+    async def async_get_network(
+        self, use_cache: bool = True
+    ) -> dict[str, (int | float)]:
+        """Return network data"""
+
+        return await self.async_get_data(
+            data=NETWORK, monitor=MAIN, use_cache=use_cache
+        )
+
     async def async_get_ports(
         self, use_cache: bool = True
     ) -> dict[str, dict[str, int]]:
@@ -1035,6 +1044,11 @@ class AsusRouter:
         return await self.async_get_data(
             data=PORTS, monitor=[PORT_STATUS, ETHERNET_PORTS], use_cache=use_cache
         )
+
+    async def async_get_ram(self, use_cache: bool = True) -> dict[str, (int | float)]:
+        """Return RAM data"""
+
+        return await self.async_get_data(data=RAM, monitor=MAIN, use_cache=use_cache)
 
     async def async_get_sysinfo(self, use_cache: bool = True) -> dict[str, Any]:
         """Return sysinfo data"""
@@ -1057,50 +1071,26 @@ class AsusRouter:
             data=VPN, monitor=[DEVICEMAP, VPN], merge=Merge.ALL, use_cache=use_cache
         )
 
-    async def async_get_cpu(self, use_cache: bool = True) -> dict[str, float]:
-        """Return CPU usage"""
+    async def async_get_wan(self, use_cache: bool = True) -> dict[str, str]:
+        """Return WAN data"""
 
-        now = datetime.utcnow()
-        if (
-            not self._monitor_main.ready
-            or not KEY_CPU in self._monitor_main
-            or use_cache == False
-            or (
-                use_cache == True
-                and self._cache_time < (now - self._monitor_main.time).total_seconds()
-            )
-            or self._device_cpu_cores is None
-        ):
-            await self.async_monitor_main()
+        return await self.async_get_data(data=WAN, monitor=MAIN, use_cache=use_cache)
 
-        result = dict()
-
-        # Check if CPU was monitored
-        if not self._monitor_main.ready or not KEY_CPU in self._monitor_main:
-            return result
-
-        for core in self._device_cpu_cores:
-            if DATA_USAGE in self._monitor_main[KEY_CPU][core]:
-                result[DATA_BY_CORE.format(core)] = self._monitor_main[KEY_CPU][core][
-                    DATA_USAGE
-                ]
-        if DATA_USAGE in self._monitor_main[KEY_CPU][DATA_TOTAL]:
-            result[DATA_TOTAL] = self._monitor_main[KEY_CPU][DATA_TOTAL][DATA_USAGE]
-
-        return result
+    ### LEGACY -->
 
     async def async_get_cpu_labels(self) -> list[str]:
         """Return list of CPU cores"""
 
-        if self._device_cpu_cores is None:
-            await self.async_monitor_main()
+        raw = await self.async_get_cpu()
+        return [item for item in raw]
 
-        result = list()
-        result.append(DATA_TOTAL)
-        for core in self._device_cpu_cores:
-            result.append(DATA_BY_CORE.format(core))
+    async def async_get_network_labels(self) -> list[str]:
+        """Return list of network interfaces"""
 
-        return result
+        raw = await self.async_get_network()
+        return [item for item in raw]
+
+    ### NOT PROCESSED -->
 
     async def async_get_devices(self, use_cache: bool = True) -> dict[str, Any]:
         """Return device list"""
@@ -1154,57 +1144,6 @@ class AsusRouter:
                 ids.append(f"{wlan}.{i}")
 
         return ids
-
-    async def async_get_network(
-        self, use_cache: bool = True
-    ) -> dict[str, (int | float)]:
-        """Return traffic and speed for all interfaces"""
-
-        now = datetime.utcnow()
-        if (
-            not self._monitor_main.ready
-            or use_cache == False
-            or (
-                use_cache == True
-                and self._cache_time < (now - self._monitor_main.time).total_seconds()
-            )
-        ):
-            await self.async_monitor_main()
-
-        result = dict()
-
-        # Check if network was monitored
-        if not self._monitor_main.ready or not KEY_NETWORK in self._monitor_main:
-            return result
-
-        for interface in self._monitor_main[KEY_NETWORK]:
-            for value in self._monitor_main[KEY_NETWORK][interface]:
-                result["{}_{}".format(interface, value)] = self._monitor_main[
-                    KEY_NETWORK
-                ][interface][value]
-
-        return result
-
-    async def async_get_network_labels(self) -> list[str]:
-        """Return list of network interfaces"""
-
-        if not self._monitor_main.ready:
-            await self.async_monitor_main()
-        if not self._identity:
-            await self.async_identify()
-
-        result = list()
-
-        if not KEY_NETWORK in self._monitor_main:
-            self._monitor_main.ready = False
-            return await self.async_get_network_labels()
-        for interface in self._monitor_main[KEY_NETWORK]:
-            result.append(interface)
-
-        if not "USB" in result and "dualwan" in self._identity.services:
-            result.append("USB")
-
-        return result
 
     ### PARENTAL CONTROL -->
     async def async_apply_parental_control_rules(
@@ -1304,56 +1243,6 @@ class AsusRouter:
         return await self.async_apply_parental_control_rules(cr)
 
     ### <-- PARENTAL CONTROL
-
-    async def async_get_ram(self, use_cache: bool = True) -> dict[str, (int | float)]:
-        """Return RAM and its usage"""
-
-        now = datetime.utcnow()
-        if (
-            not self._monitor_main.ready
-            or use_cache == False
-            or (
-                use_cache == True
-                and self._cache_time < (now - self._monitor_main.time).total_seconds()
-            )
-        ):
-            await self.async_monitor_main()
-
-        result = dict()
-
-        # Check if RAM was monitored
-        if not self._monitor_main.ready or not KEY_RAM in self._monitor_main:
-            return result
-
-        for value in self._monitor_main[KEY_RAM]:
-            result[value] = self._monitor_main[KEY_RAM][value]
-
-        return result
-
-    async def async_get_wan(self, use_cache: bool = True) -> dict[str, str]:
-        """Return WAN and its usage"""
-
-        now = datetime.utcnow()
-        if (
-            not self._monitor_main.ready
-            or use_cache == False
-            or (
-                use_cache == True
-                and self._cache_time < (now - self._monitor_main.time).total_seconds()
-            )
-        ):
-            await self.async_monitor_main()
-
-        result = dict()
-
-        # Check if WAN was monitored
-        if not self._monitor_main.ready or not KEY_WAN in self._monitor_main:
-            return result
-
-        for value in self._monitor_main[KEY_WAN]:
-            result[value] = self._monitor_main[KEY_WAN][value]
-
-        return result
 
     async def async_get_wlan(self) -> dict[str, Any]:
         """Get state of WLAN by id"""
