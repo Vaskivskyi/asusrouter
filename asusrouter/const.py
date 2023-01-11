@@ -32,10 +32,16 @@ AR_API = [
 ]
 
 ### VALUES
+ACTION_MODE = "action_mode"
 AIMESH = "aimesh"
+APPLY = "apply"
 BOOTTIME = "boottime"
+BRIDGE = "bridge"
 CLIENTS = "clients"
 CONNECTION_TYPE = "connection_type"
+CPU = "cpu"
+CPU_USAGE = "cpu_usage"
+DATA = "data"
 DEVICEMAP = "devicemap"
 DIAG = "diag"
 DHCP = "dhcp"
@@ -43,19 +49,28 @@ ENDPOINTS = "endpoints"
 ERRNO = "errno"
 FIRMWARE = "firmware"
 GUEST = "guest"
+HOOK = "hook"
 INFO = "info"
 IP = "ip"
 ISO = "iso"
+LACP = "lacp"
 LAN = "lan"
 LINK_RATE = "link_rate"
 LOAD_AVG = "load_avg"
 MAC = "mac"
+MAIN = "main"
+MEMORY_USAGE = "memory_usage"
+MONITOR = "monitor"
+NETDEV = "netdev"
+NETWORK = "network"
 NODE = "node"
 ONBOARDING = "onboarding"
 PORT = "port"
 PORTS = "ports"
 QTN = "qtn"
+RAM = "ram"
 RSSI = "rssi"
+RX = "rx"
 SIM = "sim"
 STATE = "state"
 STATUS = "status"
@@ -63,12 +78,22 @@ SYS = "sys"
 SYSINFO = "sysinfo"
 TEMPERATURE = "temperature"
 TIMESTAMP = "timestamp"
+TOTAL = "total"
+TX = "tx"
 UNKNOWN = "unknown"
+USAGE = "usage"
+USED = "used"
 USB = "usb"
 VPN = "vpn"
 VPN_CLIENT = "vpn_client"
 VPN_SERVER = "vpn_server"
 WAN = "wan"
+WANLINK_STATE = "wanlink_state"
+WIRED = "wired"
+WLAN_2GHZ = "2ghz"
+WLAN_5GHZ = "5ghz"
+WLAN_5GHZ2 = "5ghz2"
+WLAN_6GHZ = "6ghz"
 
 ### ASUS DATA TYPES
 ETHERNET_PORTS = "ethernet_ports"
@@ -79,11 +104,21 @@ ENDPOINT = {
     DEVICEMAP: "ajax_status.xml",
     ETHERNET_PORTS: "ajax_ethernet_ports.asp",
     FIRMWARE: "detect_firmware.asp",
+    HOOK: "appGet.cgi",
     ONBOARDING: "ajax_onboarding.asp",
     PORT_STATUS: "get_port_status.cgi",
     SYSINFO: "ajax_sysinfo.asp",
     TEMPERATURE: "ajax_coretmp.asp",
     VPN: "ajax_vpn_status.asp",
+}
+
+ENDHOOKS = {
+    MAIN: {
+        "cpu_usage": "appobj",
+        "memory_usage": "appobj",
+        "netdev": "appobj",
+        "wanlink_state": "appobj",
+    },
 }
 
 ENDPOINT_ARGS = {
@@ -92,13 +127,33 @@ ENDPOINT_ARGS = {
     },
 }
 
+### History-dependent values in the monitor to be removed to prevent errors
+HD_DATA: tuple[tuple[str, ...], ...] = (
+    (MAIN, CPU),
+    (MAIN, NETWORK),
+)
+
 ### ASUS NUMERICS, RANGES & MAPS
+MAP_CPU: tuple[Key, ...] = (Key(TOTAL), Key(USAGE, USED))
+MAP_NETWORK: tuple[Key, ...] = (
+    Key("INTERNET", WAN),
+    Key("INTERNET1", USB),
+    Key("WIRED", WIRED),
+    Key("BRIDGE", BRIDGE),
+    Key("WIRELESS0", WLAN_2GHZ),
+    Key("WIRELESS1", WLAN_5GHZ),
+    Key("WIRELESS2", WLAN_5GHZ2),
+    Key("WIRELESS3", WLAN_6GHZ),
+    Key("LACP1", f"{LACP}1"),
+    Key("LACP2", f"{LACP}2"),
+)
 MAP_OVPN_STATUS = {
     -1: "error",
     0: "disconnected",
     1: "connecting",
     2: "connected",
 }
+RANGE_CPU_CORES = range(1, 9)  # 8 cores from 1 to 8
 RANGE_OVPN_CLIENTS = range(1, 6)  # 5 Open VPN clients from 1 to 5
 
 ### TYPES
@@ -116,6 +171,11 @@ SPEED_TYPES = {
     "Q": 2500,
 }
 
+TRAFFIC_TYPE: tuple[str, ...] = (
+    RX,
+    TX,
+)
+
 ### CONVERTERS
 
 CONVERTERS = {
@@ -128,6 +188,9 @@ CONVERTERS = {
 CONST_BITSINBYTE = 8
 CONST_PERCENTS = 100
 CONST_ZERO = 0.0
+
+
+# CHECK LEGACY FROM HERE -->
 
 DATA_FREE = "free"
 DATA_TOTAL = "total"
@@ -790,13 +853,6 @@ NVRAM_LIST = {
         "wl1.3_mbss",
         "wl1.3_sync_mode",
     ],
-}
-
-MONITOR_MAIN = {
-    "cpu_usage": "appobj",
-    "memory_usage": "appobj",
-    "netdev": "appobj",
-    "wanlink_state": "appobj",
 }
 
 PORT_TYPE = [

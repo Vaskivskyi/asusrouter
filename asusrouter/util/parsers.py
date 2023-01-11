@@ -47,6 +47,7 @@ from asusrouter.const import (
     AR_MAP_TEMPERATURE,
     CONST_BITSINBYTE,
     CONST_ZERO,
+    CPU,
     DATA_ADD_SPEED,
     DATA_TOTAL,
     DATA_TRAFFIC,
@@ -59,13 +60,18 @@ from asusrouter.const import (
     ERROR_VALUE_TYPE,
     FIRMWARE,
     KEY_NETWORK,
+    MAP_CPU,
+    MAP_NETWORK,
     ONBOARDING,
     PARAM_IP,
     PARAM_RIP,
     PARAM_STATE,
     PARAM_STATUS,
+    RANGE_CPU_CORES,
     REGEX_VARIABLES,
     SYSINFO,
+    TOTAL,
+    TRAFFIC_TYPE,
     VALUES_TO_IGNORE,
     VPN,
 )
@@ -93,24 +99,25 @@ def cpu_cores(raw: dict[str, Any] | None = None) -> list[int]:
     return cores
 
 
-def cpu_usage(
-    raw: dict[str, Any], cores: list[int] = AR_DEFAULT_CORES
-) -> dict[str, Any]:
+def cpu_usage(raw: dict[str, Any]) -> dict[str, Any]:
     """CPU usage parser"""
 
     cpu = dict()
 
     # Populate total
-    cpu[DATA_TOTAL] = dict()
-    for item in AR_KEY_CPU_LIST:
-        cpu[DATA_TOTAL][item.get()] = CONST_ZERO
+    cpu[TOTAL] = dict()
+    for item in MAP_CPU:
+        cpu[TOTAL][item.get()] = CONST_ZERO
 
     # Data / core
-    for core in cores:
+    for core in RANGE_CPU_CORES:
+        if not f"{CPU}{core}_{TOTAL}" in raw:
+            break
+
         cpu[core] = dict()
 
-        for item in AR_KEY_CPU_LIST:
-            key = AR_KEY_CPU_ITEM.format(core, item)
+        for item in MAP_CPU:
+            key = f"{CPU}{core}_{item}"
             new_key = item.get()
             if key in raw:
                 try:
@@ -118,7 +125,7 @@ def cpu_usage(
                 except ValueError as ex:
                     raise (AsusRouterValueError(ERROR_VALUE.format(raw[key], str(ex))))
                 # Add this to total as well
-                cpu[DATA_TOTAL][new_key] += cpu[core][new_key]
+                cpu[TOTAL][new_key] += cpu[core][new_key]
 
     return cpu
 
@@ -148,33 +155,19 @@ def network_usage(
     """Network usage parser"""
 
     network = dict()
-    for group in AR_KEY_NETWORK_GROUPS:
-        for type in DATA_TRAFFIC:
-            if AR_KEY_NETWORK_ITEM.format(group, type) in raw:
-                if not AR_KEY_NETWORK_GROUPS[group] in network:
-                    network[AR_KEY_NETWORK_GROUPS[group]] = dict()
-                try:
-                    network[AR_KEY_NETWORK_GROUPS[group]][type] = int(
-                        raw[AR_KEY_NETWORK_ITEM.format(group, type)], base=16
-                    )
-                except ValueError as ex:
-                    raise (
-                        AsusRouterValueError(
-                            ERROR_VALUE.format(
-                                raw[AR_KEY_NETWORK_ITEM.format(group, type)], str(ex)
-                            )
-                        )
-                    )
-
-            elif (
-                cache is not None
-                and KEY_NETWORK in cache
-                and AR_KEY_NETWORK_GROUPS[group] in cache[DATA_TRAFFIC]
-                and type in cache[DATA_TRAFFIC][AR_KEY_NETWORK_GROUPS[group]]
-            ):
-                network[AR_KEY_NETWORK_GROUPS[group]][type] = cache[DATA_TRAFFIC][
-                    AR_KEY_NETWORK_GROUPS[group]
-                ][type]
+    for interface in MAP_NETWORK:
+        data = dict()
+        for traffic in TRAFFIC_TYPE:
+            try:
+                value = converters.int_from_str(
+                    raw.get(f"{interface.value}_{traffic}"), base=16
+                )
+                if value:
+                    data[traffic] = value
+            except Exception:
+                continue
+        if len(data) > 0:
+            network[interface.get()] = data
 
     return network
 
