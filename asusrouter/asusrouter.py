@@ -1140,32 +1140,6 @@ class AsusRouter:
 
         return await self.async_get_data(data=WLAN, monitor=NVRAM, use_cache=use_cache)
 
-    ### LEGACY -->
-
-    async def async_get_cpu_labels(self) -> list[str]:
-        """Return list of CPU cores"""
-
-        raw = await self.async_get_cpu()
-        return [item for item in raw]
-
-    async def async_get_gwlan_ids(self) -> list[int]:
-        """Return list of guest WLAN ids"""
-
-        raw = await self.async_get_gwlan()
-        return [item for item in raw]
-
-    async def async_get_network_labels(self) -> list[str]:
-        """Return list of network interfaces"""
-
-        raw = await self.async_get_network()
-        return [item for item in raw]
-
-    async def async_get_wlan_ids(self) -> list[int]:
-        """Return list of WLAN ids"""
-
-        raw = await self.async_get_wlan()
-        return [item for item in raw]
-
     ### NOT PROCESSED -->
 
     ### PARENTAL CONTROL -->
