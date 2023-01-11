@@ -23,9 +23,7 @@ from asusrouter import (
 from asusrouter.const import (
     AIMESH,
     AR_DEVICE_IDENTITY,
-    AR_HOOK_DEVICES,
     AR_KEY_AURARGB,
-    AR_KEY_DEVICES,
     AR_KEY_LED,
     AR_KEY_LEDG_COUNT,
     AR_KEY_LEDG_RGB,
@@ -44,6 +42,7 @@ from asusrouter.const import (
     BOOTTIME,
     CLIENTS,
     CONNECTION_TYPE,
+    CONST_REQUIRE_MONITOR,
     CONVERTERS,
     CPU,
     CPU_USAGE,
@@ -62,6 +61,7 @@ from asusrouter.const import (
     ETHERNET_PORTS,
     FIRMWARE,
     GUEST,
+    GWLAN,
     HD_DATA,
     INFO,
     IP,
@@ -75,22 +75,27 @@ from asusrouter.const import (
     MAC,
     MAIN,
     MAP_CONNECTED_DEVICE,
+    MAP_NVRAM,
     MAP_OVPN_STATUS,
     MEMORY_USAGE,
+    MONITOR_REQUIRE_CONST,
     NETDEV,
     NETWORK,
+    NVRAM,
     ONLINE,
     RAM,
+    RANGE_GWLAN,
     TOTAL,
     UPDATE_CLIENTS,
     USED,
     WANLINK_STATE,
+    WLAN,
+    WLAN_TYPE,
     Merge,
     MSG_ERROR,
     MSG_INFO,
     MSG_SUCCESS,
     NODE,
-    NVRAM_TEMPLATE,
     ONBOARDING,
     PARAM_COLOR,
     PARAM_COUNT,
@@ -154,11 +159,18 @@ class AsusRouter:
         self.monitor: dict[str, Monitor] = {
             endpoint: Monitor() for endpoint in ENDPOINT
         }
+        # Monitor arguments
         self.monitor_arg = dict()
         for key, value in ENDHOOKS.items():
             self.monitor[key] = Monitor()
-            self.monitor_arg[key] = f"hook={compilers.hook(value)}"
+            if value:
+                self.monitor_arg[key] = f"hook={compilers.hook(value)}"
+            else:
+                self.monitor[key].ready = False
         self._init_monitor_methods()
+        self._init_monitor_requirements()
+        # Constants
+        self.constant = dict()
 
         self._identity: AsusDevice | None = None
         self._ledg_color: dict[int, dict[str, int]] | None = None
@@ -188,12 +200,20 @@ class AsusRouter:
             ETHERNET_PORTS: self._process_monitor_ethernet_ports,
             FIRMWARE: self._process_monitor_firmware,
             MAIN: self._process_monitor_main,
+            NVRAM: self._process_monitor_nvram,
             ONBOARDING: self._process_monitor_onboarding,
             PORT_STATUS: self._process_monitor_port_status,
             SYSINFO: self._process_monitor_sysinfo,
             TEMPERATURE: self._process_monitor_temperature,
             UPDATE_CLIENTS: self._process_monitor_update_clients,
             VPN: self._process_monitor_vpn,
+        }
+
+    def _init_monitor_requirements(self) -> None:
+        """Initialize monitor requirements"""
+
+        self.monitor_compile = {
+            NVRAM: self._compile_monitor_nvram,
         }
 
     def _mark_reboot(self) -> None:
@@ -491,6 +511,81 @@ class AsusRouter:
 
         return
 
+    async def async_monitor_available(self, monitor: str) -> bool:
+        """Check whether monitor is available"""
+
+        # Monitor does not exist
+        if not monitor in self.monitor:
+            return False
+
+        # Monitor is disabled
+        if self.monitor[monitor].enabled != True:
+            return False
+
+        return True
+
+    async def async_monitor_cached(self, monitor: str, value: Any) -> bool:
+        """Check whether monitor has cached value"""
+
+        now = datetime.utcnow()
+        if (
+            not self.monitor[monitor].ready
+            or not value in self.monitor[monitor]
+            or self._cache_time < (now - self.monitor[monitor].time).total_seconds()
+        ):
+            return False
+
+        return True
+
+    async def async_monitor_ready(self, monitor: str, retry=False) -> bool:
+        """Get monitor ready to run"""
+
+        if not self.monitor[monitor].ready:
+            requirement = MONITOR_REQUIRE_CONST.get(monitor)
+            if requirement:
+                value = self.constant.get(requirement)
+                if value:
+                    self.monitor_compile[monitor](value)
+                    return True
+                else:
+                    if not retry and requirement in CONST_REQUIRE_MONITOR:
+                        await self.async_monitor(CONST_REQUIRE_MONITOR[requirement])
+                        return await self.async_monitor_ready(monitor, retry=True)
+                    return False
+            return False
+        return True
+
+    async def async_monitor_should_run(self, monitor: str) -> bool:
+        """Check whether monitor should be run"""
+
+        # Monitor is not available
+        if not await self.async_monitor_available(monitor):
+            return False
+
+        # Monitor not ready
+        if not await self.async_monitor_ready(monitor):
+            return False
+
+        # Monitor is already running - wait to complete
+        if self.monitor[monitor].active:
+            while self.monitor[monitor].active:
+                await asyncio.sleep(DEFAULT_SLEEP_TIME)
+            return False
+
+        return True
+
+    ### COMPILE MONITORS
+
+    def _compile_monitor_nvram(self, wlan: list[str]) -> None:
+        """Compile `nvram` monitor"""
+
+        arg = compilers.monitor_arg_nvram(wlan)
+        if arg:
+            self.monitor_arg[NVRAM] = f"hook={arg}"
+        self.monitor[NVRAM].ready = True
+
+    ### PROCESS MONITORS
+
     def _process_monitor_devicemap(self, raw: Any, time: datetime) -> dict[str, Any]:
         """Process data from `devicemap` endpoint"""
 
@@ -644,6 +739,12 @@ class AsusRouter:
 
         if not USB in network and "dualwan" in self._identity.services:
             network[USB] = dict()
+        # Save constant
+        constant = list()
+        for interface in network:
+            if interface in WLAN_TYPE:
+                constant.append(interface)
+        self._init_constant(WLAN, constant)
 
         # WAN
         wan = dict()
@@ -659,6 +760,43 @@ class AsusRouter:
             NETWORK: network,
             RAM: ram,
             WAN: wan,
+        }
+
+    def _process_monitor_nvram(self, raw: Any, time: datetime) -> dict[str, Any]:
+        """Process data from `nvram` endpoint"""
+
+        # WLAN
+        wlan = dict()
+        dictionary = MAP_NVRAM.get(WLAN)
+        if dictionary:
+            for intf in self.constant[WLAN]:
+                interface = WLAN_TYPE.get(intf)
+                if interface is not None:
+                    wlan[intf] = dict()
+                    for key in dictionary:
+                        key_to_use = (key.value.format(interface))[4:]
+                        wlan[intf][key_to_use] = key.method(
+                            raw[key.value.format(interface)]
+                        )
+
+        # GWLAN
+        gwlan = dict()
+        dictionary = MAP_NVRAM.get(GWLAN)
+        if dictionary:
+            for intf in self.constant[WLAN]:
+                interface = WLAN_TYPE.get(intf)
+                if interface is not None:
+                    for id in RANGE_GWLAN:
+                        gwlan[f"{intf}_{id}"] = dict()
+                        for key in dictionary:
+                            key_to_use = (key.value.format(interface))[4:]
+                            gwlan[f"{intf}_{id}"][key_to_use] = key.method(
+                                raw[key.value.format(f"{interface}.{id}")]
+                            )
+
+        return {
+            GWLAN: gwlan,
+            WLAN: wlan,
         }
 
     def _process_monitor_onboarding(self, raw: Any, time: datetime) -> dict[str, Any]:
@@ -777,47 +915,6 @@ class AsusRouter:
 
     ### TECHNICAL -->
 
-    async def async_monitor_available(self, monitor: str) -> bool:
-        """Check whether monitor is available"""
-
-        # Monitor does not exist
-        if not monitor in self.monitor:
-            return False
-
-        # Monitor is disabled
-        if self.monitor[monitor].enabled != True:
-            return False
-
-        return True
-
-    async def async_monitor_cached(self, monitor: str, value: Any) -> bool:
-        """Check whether monitor has cached value"""
-
-        now = datetime.utcnow()
-        if (
-            not self.monitor[monitor].ready
-            or not value in self.monitor[monitor]
-            or self._cache_time < (now - self.monitor[monitor].time).total_seconds()
-        ):
-            return False
-
-        return True
-
-    async def async_monitor_should_run(self, monitor: str) -> bool:
-        """Check whether monitor should be run"""
-
-        # Monitor is not available
-        if await self.async_monitor_available(monitor) == False:
-            return False
-
-        # Monitor is already running - wait to complete
-        if self.monitor[monitor].active:
-            while self.monitor[monitor].active:
-                await asyncio.sleep(DEFAULT_SLEEP_TIME)
-            return False
-
-        return True
-
     async def _async_handle_erorr(self) -> None:
         """Actions to be taken on connection error"""
 
@@ -827,6 +924,14 @@ class AsusRouter:
                 self.monitor[monitor].pop(data)
 
         return
+
+    def _init_constant(self, constant: str, value: Any) -> None:
+        """Initialize constant"""
+
+        self.constant[constant] = value
+        for monitor, const in MONITOR_REQUIRE_CONST.items():
+            if constant == const:
+                self.monitor[monitor].ready
 
     ### <-- TECHNICAL
 
@@ -976,6 +1081,11 @@ class AsusRouter:
             data=FIRMWARE, monitor=FIRMWARE, use_cache=use_cache
         )
 
+    async def async_get_gwlan(self, use_cache: bool = True) -> dict[str, Any]:
+        """Return GWLAN data"""
+
+        return await self.async_get_data(data=GWLAN, monitor=NVRAM, use_cache=use_cache)
+
     async def async_get_network(
         self, use_cache: bool = True
     ) -> dict[str, (int | float)]:
@@ -1025,6 +1135,11 @@ class AsusRouter:
 
         return await self.async_get_data(data=WAN, monitor=MAIN, use_cache=use_cache)
 
+    async def async_get_wlan(self, use_cache: bool = True) -> dict[str, Any]:
+        """Return WLAN data"""
+
+        return await self.async_get_data(data=WLAN, monitor=NVRAM, use_cache=use_cache)
+
     ### LEGACY -->
 
     async def async_get_cpu_labels(self) -> list[str]:
@@ -1033,49 +1148,25 @@ class AsusRouter:
         raw = await self.async_get_cpu()
         return [item for item in raw]
 
+    async def async_get_gwlan_ids(self) -> list[int]:
+        """Return list of guest WLAN ids"""
+
+        raw = await self.async_get_gwlan()
+        return [item for item in raw]
+
     async def async_get_network_labels(self) -> list[str]:
         """Return list of network interfaces"""
 
         raw = await self.async_get_network()
         return [item for item in raw]
 
+    async def async_get_wlan_ids(self) -> list[int]:
+        """Return list of WLAN ids"""
+
+        raw = await self.async_get_wlan()
+        return [item for item in raw]
+
     ### NOT PROCESSED -->
-
-    async def async_get_gwlan(self) -> dict[str, Any]:
-        """Get state of guest WLAN by id"""
-
-        ids = await self.async_get_gwlan_ids()
-
-        # NVRAM values to check
-        nvram = list()
-        for id in ids:
-            for value in NVRAM_TEMPLATE["GWLAN"]:
-                nvram.append(value.value.format(id))
-
-        try:
-            data = await self.async_hook(compilers.nvram(nvram))
-        except AsusRouterError as ex:
-            raise ex
-        for id in ids:
-            for value in NVRAM_TEMPLATE["GWLAN"]:
-                data[value.value.format(id)] = value.method(
-                    data[value.value.format(id)]
-                )
-
-        return data
-
-    async def async_get_gwlan_ids(self) -> list[int]:
-        """Return list of guest WLAN ids"""
-
-        ids = list()
-
-        wlans = await self.async_get_wlan_ids()
-
-        for wlan in wlans:
-            for i in range(1, 4):
-                ids.append(f"{wlan}.{i}")
-
-        return ids
 
     ### PARENTAL CONTROL -->
     async def async_apply_parental_control_rules(
@@ -1175,41 +1266,6 @@ class AsusRouter:
         return await self.async_apply_parental_control_rules(cr)
 
     ### <-- PARENTAL CONTROL
-
-    async def async_get_wlan(self) -> dict[str, Any]:
-        """Get state of WLAN by id"""
-
-        ids = await self.async_get_wlan_ids()
-
-        # NVRAM values to check
-        nvram = list()
-        for id in ids:
-            for value in NVRAM_TEMPLATE["WLAN"]:
-                nvram.append(value.value.format(id))
-
-        try:
-            data = await self.async_hook(compilers.nvram(nvram))
-        except AsusRouterError as ex:
-            raise ex
-        for id in ids:
-            for value in NVRAM_TEMPLATE["WLAN"]:
-                data[value.value.format(id)] = value.method(
-                    data[value.value.format(id)]
-                )
-
-        return data
-
-    async def async_get_wlan_ids(self) -> list[int]:
-        """Return list of WLAN ids"""
-
-        ids = list()
-
-        interfaces = await self.async_get_network_labels()
-        for value in interfaces:
-            if value[:4] == "WLAN":
-                ids.append(int(value[-1:]))
-
-        return ids
 
     ### <-- RETURN DATA
 

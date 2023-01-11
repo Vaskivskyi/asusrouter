@@ -49,6 +49,7 @@ ENDPOINTS = "endpoints"
 ERRNO = "errno"
 FIRMWARE = "firmware"
 GUEST = "guest"
+GWLAN = "gwlan"
 HOOK = "hook"
 INFO = "info"
 IP = "ip"
@@ -67,6 +68,8 @@ NETWORK = "network"
 NETWORKMAPD = "networkmapd"
 NODE = "node"
 NPMCLIENT = "npmclient"
+NVRAM = "nvram"
+NVRAM_GET = "nvram_get"
 ONBOARDING = "onboarding"
 ONLINE = "online"
 PORT = "port"
@@ -95,6 +98,7 @@ VPN_SERVER = "vpn_server"
 WAN = "wan"
 WANLINK_STATE = "wanlink_state"
 WIRED = "wired"
+WLAN = "wlan"
 WLAN_2GHZ = "2ghz"
 WLAN_5GHZ = "5ghz"
 WLAN_5GHZ2 = "5ghz2"
@@ -119,13 +123,14 @@ ENDPOINT = {
     VPN: "ajax_vpn_status.asp",
 }
 
-ENDHOOKS = {
+ENDHOOKS: dict[str, dict[str, str] | None] = {
     MAIN: {
         "cpu_usage": "appobj",
         "memory_usage": "appobj",
         "netdev": "appobj",
         "wanlink_state": "appobj",
     },
+    NVRAM: None,
 }
 
 ENDPOINT_ARGS = {
@@ -139,6 +144,15 @@ HD_DATA: tuple[tuple[str, ...], ...] = (
     (MAIN, CPU),
     (MAIN, NETWORK),
 )
+
+### REQUIREMENTS
+# Don't create loops
+CONST_REQUIRE_MONITOR = {
+    WLAN: MAIN,
+}
+MONITOR_REQUIRE_CONST = {
+    NVRAM: WLAN,
+}
 
 ### ASUS NUMERICS, RANGES & MAPS
 
@@ -207,6 +221,88 @@ MAP_NETWORK: tuple[Key, ...] = (
     Key("LACP1", f"{LACP}1"),
     Key("LACP2", f"{LACP}2"),
 )
+MAP_NVRAM = {
+    WLAN: [
+        SearchKey("wl{}_auth_mode_x"),
+        SearchKey("wl{}_bw"),
+        SearchKey("wl{}_channel"),
+        SearchKey("wl{}_chanspec"),
+        SearchKey("wl{}_closed", bool_from_any),
+        SearchKey("wl{}_country_code"),
+        SearchKey("wl{}_crypto"),
+        SearchKey("wl{}_gmode_check"),
+        SearchKey("wl{}_maclist_x"),
+        SearchKey("wl{}_macmode"),
+        SearchKey("wl{}_mbo_enable"),
+        SearchKey("wl{}_mfp"),
+        SearchKey("wl{}_nmode_x"),
+        SearchKey("wl{}_optimizexbox_ckb"),
+        SearchKey("wl{}_radio", bool_from_any),
+        SearchKey("wl{}_radius_ipaddr"),
+        SearchKey("wl{}_radius_key"),
+        SearchKey("wl{}_radius_port"),
+        SearchKey("wl{}_ssid"),
+        SearchKey("wl{}_wpa_gtk_rekey"),
+        SearchKey("wl{}_wpa_psk"),
+    ],
+    GWLAN: [
+        SearchKey("wl{}_akm"),
+        SearchKey("wl{}_ap_isolate"),
+        SearchKey("wl{}_auth"),
+        SearchKey("wl{}_auth_mode"),
+        SearchKey("wl{}_auth_mode_x"),
+        SearchKey("wl{}_bridge"),
+        SearchKey("wl{}_bss_enabled", bool_from_any),
+        SearchKey("wl{}_bss_maxassoc", int_from_str),
+        SearchKey("wl{}_bw_dl", int_from_str),  # Bandwidth limit download
+        SearchKey("wl{}_bw_enabled", bool_from_any),  # Bandwidth limit switch
+        SearchKey("wl{}_bw_ul", int_from_str),  # Bandwidth limit upload
+        SearchKey("wl{}_closed", bool_from_any),
+        SearchKey("wl{}_crypto"),
+        SearchKey("wl{}_expire", int_from_str),  # Expire time in s
+        SearchKey("wl{}_expire_tmp", int_from_str),  # Expire time left in s
+        SearchKey("wl{}_gn_wbl_enable"),
+        SearchKey("wl{}_gn_wbl_rule"),
+        SearchKey("wl{}_gn_wbl_type"),
+        SearchKey("wl{}_hwaddr"),  # MAC address
+        SearchKey("wl{}_ifname"),  # Interface name
+        SearchKey("wl{}_infra"),
+        SearchKey("wl{}_key"),
+        SearchKey("wl{}_key1"),
+        SearchKey("wl{}_key2"),
+        SearchKey("wl{}_key3"),
+        SearchKey("wl{}_key4"),
+        SearchKey("wl{}_lanaccess", bool_from_any),  # LAN access
+        SearchKey("wl{}_maclist"),
+        SearchKey("wl{}_macmode"),
+        SearchKey("wl{}_maxassoc", int_from_str),
+        SearchKey("wl{}_mbss"),
+        SearchKey("wl{}_mfp"),
+        SearchKey("wl{}_mode"),
+        SearchKey("wl{}_net_reauth", int_from_str),
+        SearchKey("wl{}_preauth"),
+        SearchKey("wl{}_radio", bool_from_any),
+        SearchKey("wl{}_radius_ipaddr"),
+        SearchKey("wl{}_radius_key"),
+        SearchKey("wl{}_radius_port", int_from_str),
+        SearchKey("wl{}_sae_anti_clog_threshold"),
+        SearchKey("wl{}_sae_groups"),
+        SearchKey("wl{}_sae_sync"),
+        SearchKey("wl{}_ssid"),  # SSID
+        SearchKey("wl{}_sta_retry_time"),
+        SearchKey("wl{}_sync_node", bool_from_any),  # Sync AiMesh nodes
+        SearchKey("wl{}_unit"),  # GWLAN unit id
+        SearchKey("wl{}_wep", bool_from_any),
+        SearchKey("wl{}_wep_x", bool_from_any),
+        SearchKey("wl{}_wfi_enable", bool_from_any),
+        SearchKey("wl{}_wfi_pinmode"),
+        SearchKey("wl{}_wme"),
+        SearchKey("wl{}_wme_bss_disable", bool_from_any),
+        SearchKey("wl{}_wpa_gtk_rekey"),
+        SearchKey("wl{}_wpa_psk"),  # Password
+        SearchKey("wl{}_wps_mode"),
+    ],
+}
 MAP_OVPN_STATUS = {
     -1: "error",
     0: "disconnected",
@@ -214,7 +310,9 @@ MAP_OVPN_STATUS = {
     2: "connected",
 }
 RANGE_CPU_CORES = range(1, 9)  # 8 cores from 1 to 8
+RANGE_GWLAN = range(1, 4)  # 3 guest WLANs from 1 to 3 per each WLAN
 RANGE_OVPN_CLIENTS = range(1, 6)  # 5 Open VPN clients from 1 to 5
+RANGE_WLAN = range(0, 4)  # 4 WLANs from 0 to 3
 
 ### TYPES
 
@@ -235,6 +333,13 @@ TRAFFIC_TYPE: tuple[str, ...] = (
     RX,
     TX,
 )
+
+WLAN_TYPE: dict[str, str] = {
+    WLAN_2GHZ: 0,
+    WLAN_5GHZ: 1,
+    WLAN_5GHZ2: 2,
+    WLAN_6GHZ: 3,
+}
 
 ### CONVERTERS
 

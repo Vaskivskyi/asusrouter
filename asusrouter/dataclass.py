@@ -136,7 +136,7 @@ class Monitor(dict):
 
     `time`: datetime object showing the last time monitor was updated
 
-    `ready`: bool flag if monitor was ever loaded
+    `ready`: bool flag if monitor is compiled
 
     Methods
     -----
@@ -151,7 +151,7 @@ class Monitor(dict):
 
     active: bool = False
     time: datetime | None = None
-    ready: bool = False
+    ready: bool = True
     enabled: bool = True
 
     def start(self) -> None:
