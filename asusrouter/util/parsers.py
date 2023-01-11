@@ -519,7 +519,11 @@ def endpoint_update_clients(raw: str) -> dict[str, Any]:
 
     parts = raw.split("originData =")
     parts = parts[1].split("networkmap_fullscan")
-    data = parts[0].replace("fromNetworkmapd", '"fromNetworkmapd"').replace("nmpClient ", '"nmpClient" ')
+    data = (
+        parts[0]
+        .replace("fromNetworkmapd", '"fromNetworkmapd"')
+        .replace("nmpClient ", '"nmpClient" ')
+    )
     return json.loads(data.encode().decode("utf-8-sig"))
 
 

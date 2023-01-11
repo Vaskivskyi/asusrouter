@@ -64,7 +64,6 @@ from asusrouter.const import (
     GUEST,
     HD_DATA,
     INFO,
-    INTERFACE_TYPE,
     IP,
     ISO,
     KEY_ACTION_MODE,
@@ -88,7 +87,6 @@ from asusrouter.const import (
     MSG_INFO,
     MSG_SUCCESS,
     NODE,
-    NVRAM_LIST,
     NVRAM_TEMPLATE,
     ONBOARDING,
     PARAM_COLOR,
@@ -159,7 +157,6 @@ class AsusRouter:
             self.monitor_arg[key] = f"hook={compilers.hook(value)}"
         self._init_monitor_methods()
 
-        self._monitor_nvram: Monitor = Monitor()
         self._monitor_devices: Monitor = Monitor()
 
         self._identity: AsusDevice | None = None
@@ -451,53 +448,6 @@ class AsusRouter:
     ### <-- DATA PROCESSING
 
     ### MONITORS -->
-
-    async def async_monitor_nvram(self, groups: list[str] | str | None = None) -> None:
-        """Get the NVRAM values for the specified group list"""
-
-        while self._monitor_nvram.active:
-            await asyncio.sleep(DEFAULT_SLEEP_TIME)
-            return
-
-        try:
-            self._monitor_nvram.start()
-
-            monitor_nvram = Monitor()
-
-            # If none groups were sent, will return all the known NVRAM values
-            if groups is None:
-                groups = [*NVRAM_LIST]
-
-            # If only one group is sent
-            if type(groups) is not list:
-                groups = [groups.upper()]
-
-            requests = []
-            for group in groups:
-                group = group.upper()
-                if group in NVRAM_LIST:
-                    for value in NVRAM_LIST[group]:
-                        requests.append(value)
-                else:
-                    _LOGGER.warning(
-                        "There is no {} in known NVRAM groups".format(group)
-                    )
-
-            message = compilers.nvram(requests)
-            result = await self.async_hook(message)
-
-            monitor_nvram.reset()
-
-            for item in result:
-                monitor_nvram[item] = result[item]
-
-            monitor_nvram.finish()
-            self._monitor_nvram = monitor_nvram
-        except AsusRouterError as ex:
-            self._monitor_nvram.drop()
-            raise ex
-
-        return
 
     async def async_monitor(self, endpoint: str) -> None:
         """Monitor an endpoint"""
@@ -908,7 +858,6 @@ class AsusRouter:
     async def async_initialize(self):
         """Get all the data needed at the startup"""
 
-        await self.async_monitor_nvram()
         await self.async_monitor_devices()
 
     ### PROCESS DATA -->
