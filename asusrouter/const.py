@@ -402,7 +402,7 @@ KEY_VPN = "VPN"
 KEY_WAN = "WAN"
 
 # OUR REGEX
-REGEX_VARIABLES = '([a-zA-Z0-9\_-]+)\s*=\s*"(.*?)"(?=;)'
+REGEX_VARIABLES = r'([a-zA-Z0-9\_-]+)\s*=\s*"(.*?)"(?=;)'
 
 # VALUES TO IGNORE
 VALUES_TO_IGNORE = [str(), "None", "0.0.0.0"]
@@ -648,7 +648,7 @@ AR_VPN_STATUS = {
 
 ### ASUSWRT SERVICES
 AR_HOOK_TEMPLATE = "{}({});"
-AR_HOOK_DEVICES = "{}()".format(AR_KEY_DEVICES)
+AR_HOOK_DEVICES = f"{AR_KEY_DEVICES}()"
 
 AR_FIRMWARE_CHECK_COMMAND = "firmware_check"
 AR_SERVICE_COMMAND: dict[str, str] = {

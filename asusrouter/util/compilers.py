@@ -55,7 +55,7 @@ def nvram(values: list[str] | str | None = None) -> str:
     if values is None:
         return str()
 
-    if type(values) == str:
+    if isinstance(values, str):
         return f"{NVRAM_GET}({values});"
 
     request = str()
@@ -73,9 +73,9 @@ def rgb(raw: dict[int, dict[str, int]]) -> str:
     raw = dict(sorted(raw.items()))
 
     for led in raw:
-        for channel in AR_MAP_RGB:
-            if AR_MAP_RGB[channel] in raw[led]:
-                value += f"{raw[led][AR_MAP_RGB[channel]]},"
+        for code in AR_MAP_RGB.values():
+            if code in raw[led]:
+                value += f"{raw[led][code]},"
             else:
                 value += "0,"
 
@@ -89,17 +89,17 @@ def vpn_from_devicemap(
 ) -> dict[str, Any]:
     """Compile devicemap into VPN"""
 
-    if type(devicemap) != dict:
+    if not isinstance(devicemap, dict):
         raise AsusRouterValueError(ERROR_VALUE_TYPE.format(devicemap, type(devicemap)))
 
-    if type(vpn) != dict:
-        vpn = dict()
+    if not isinstance(vpn, dict):
+        vpn = {}
 
     if KEY_VPN in devicemap:
         for num in range(1, AR_DEFAULT_OVPN_CLIENTS + 1):
             key = f"{AR_KEY_VPN_CLIENT}{num}"
             if not key in vpn:
-                vpn[key] = dict()
+                vpn[key] = {}
             if (
                 AR_KEY_OVPN.format(AR_KEY_VPN_CLIENT, num, PARAM_STATE)
                 in devicemap[KEY_VPN]
@@ -135,10 +135,10 @@ def vpn_from_devicemap(
 def parental_control(data: dict[str, FilterDevice]) -> dict[str, str]:
     """Compile parental control rules"""
 
-    if type(data) != dict:
+    if not isinstance(data, dict):
         raise AsusRouterValueError(ERROR_VALUE_TYPE.format(data, type(data)))
 
-    state_lib = dict()
+    state_lib = {}
     for index, state in AR_MAP_PARENTAL_CONTROL_STATE.items():
         state_lib[state] = index
 
@@ -188,9 +188,9 @@ def endpoint(endpoint: str, device: AsusDevice | dict[str, Any] | None = None) -
     if not address:
         address = ENDPOINT[HOOK] if endpoint in ENDHOOKS else str()
 
-    if type(device) == AsusDevice:
+    if isinstance(device, AsusDevice):
         device = asdict(device)
-    if type(device) != dict:
+    if not isinstance(device, dict):
         return address
 
     address += "?"
@@ -202,9 +202,11 @@ def endpoint(endpoint: str, device: AsusDevice | dict[str, Any] | None = None) -
     return address
 
 
-def update_rec(left: dict[str, Any], right: dict[str, Any] = dict()) -> None:
+def update_rec(left: dict[str, Any], right: dict[str, Any] | None = None) -> None:
     """Update dictionary with values of other dictionary"""
 
+    if not right:
+        right = {}
     for key, value in right.items():
         if key in left and isinstance(left[key], dict) and isinstance(value, dict):
             update_rec(left[key], value)
@@ -225,7 +227,7 @@ def monitor_arg_nvram(wlan: list[str] | None) -> str | None:
             request.append(key.value.format(interface))
 
         for key in MAP_NVRAM[GWLAN]:
-            for id in RANGE_GWLAN:
-                request.append(key.value.format(f"{interface}.{id}"))
+            for gid in RANGE_GWLAN:
+                request.append(key.value.format(f"{interface}.{gid}"))
 
     return nvram(request)
