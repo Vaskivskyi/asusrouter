@@ -1,6 +1,7 @@
 """AsusRouter constants module"""
 
 from enum import Enum
+from typing import Any
 
 from asusrouter.dataclass import Key, SearchKey
 from asusrouter.util.converters import (
@@ -123,7 +124,7 @@ ENDPOINT = {
     VPN: "ajax_vpn_status.asp",
 }
 
-ENDHOOKS: dict[str, dict[str, str] | None] = {
+ENDHOOKS: dict[str, Any] = {
     MAIN: {
         "cpu_usage": "appobj",
         "memory_usage": "appobj",
@@ -309,6 +310,7 @@ MAP_OVPN_STATUS = {
     1: "connecting",
     2: "connected",
 }
+MAP_PORTS: tuple[Key, ...] = ()
 RANGE_CPU_CORES = range(1, 9)  # 8 cores from 1 to 8
 RANGE_GWLAN = range(1, 4)  # 3 guest WLANs from 1 to 3 per each WLAN
 RANGE_OVPN_CLIENTS = range(1, 6)  # 5 Open VPN clients from 1 to 5
@@ -346,6 +348,8 @@ WLAN_TYPE: dict[str, str] = {
 CONVERTERS = {
     PORT_STATUS: [
         Key("is_on", STATE, method=bool_from_any),
+        Key("max_rate", method=int_from_str),
+        Key(LINK_RATE, method=int_from_str),
     ]
 }
 
