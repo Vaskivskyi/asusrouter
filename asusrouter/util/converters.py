@@ -36,8 +36,11 @@ CONNECTION_TYPE = {
 }
 
 
-def int_from_str(raw: str, base: int = 10) -> int:
-    """Convert string to integer"""
+def int_from_str(raw: str | int, base: int = 10) -> int:
+    """Convert to integer"""
+
+    if type(raw) == int:
+        return raw
 
     if type(raw) != str:
         raise AsusRouterValueError(ERROR_VALUE_TYPE.format(raw, type(raw)))
@@ -62,8 +65,11 @@ def clean_html(raw: str) -> str:
     return re.sub("<([\/ibu]+)>", "", raw)
 
 
-def bool_or_int(raw: str, base: int = 10) -> bool | int:
+def bool_or_int(raw: str | bool, base: int = 10) -> bool | int:
     """Convert to bool or to int"""
+
+    if type(raw) == bool:
+        return raw
 
     if type(raw) != str:
         raise AsusRouterValueError(ERROR_VALUE_TYPE.format(raw, type(raw)))

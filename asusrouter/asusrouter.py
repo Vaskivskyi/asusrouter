@@ -68,7 +68,6 @@ from asusrouter.const import (
     ISO,
     KEY_ACTION_MODE,
     KEY_HOOK,
-    KEY_NETWORK,
     KEY_WAN,
     LAN,
     LINK_RATE,
@@ -441,7 +440,7 @@ class AsusRouter:
         # Check for errors during hook
         if self.connection.error:
             _LOGGER.debug(MSG_INFO["error_flag"])
-            await self.async_handle_error()
+            await self._async_handle_error()
 
         return result
 
@@ -730,7 +729,7 @@ class AsusRouter:
                 time_delta = (time - self.monitor[MAIN].time).total_seconds()
                 network = parsers.network_speed(
                     after=network,
-                    before=self.monitor[MAIN][KEY_NETWORK],
+                    before=self.monitor[MAIN][NETWORK],
                     time_delta=time_delta,
                 )
         # Keep last data
@@ -851,7 +850,8 @@ class AsusRouter:
             for key in CONVERTERS[PORT_STATUS]:
                 if key.value in data[port]:
                     data[port][key.get()] = key.method(data[port][key.value])
-                    data[port].pop(key.value)
+                    if key.get() != key.value:
+                        data[port].pop(key.value)
             ports[port_type][port_id] = data[port]
 
         return {
@@ -915,7 +915,7 @@ class AsusRouter:
 
     ### TECHNICAL -->
 
-    async def _async_handle_erorr(self) -> None:
+    async def _async_handle_error(self) -> None:
         """Actions to be taken on connection error"""
 
         # Drop history dependent monitor values
@@ -944,15 +944,13 @@ class AsusRouter:
 
     ### PROCESS DATA -->
 
-    @staticmethod
-    def _process_data_none(raw: dict[str, Any]) -> dict[str, Any]:
+    def _process_data_none(self, raw: dict[str, Any]) -> dict[str, Any]:
         """Don't process the data"""
 
         return raw
 
-    @staticmethod
     def _process_data_connected_devices(
-        raw: dict[str, Any]
+        self, raw: dict[str, Any]
     ) -> dict[str, ConnectedDevice]:
         """Process data for the connected devices"""
 
@@ -988,7 +986,7 @@ class AsusRouter:
         data: str,
         monitor: str | list[str],
         merge: Merge = Merge.ANY,
-        process: Callable[[str], dict[str, Any]] = _process_data_none,
+        process: Callable[[str], dict[str, Any]] | None = None,
         use_cache: bool = True,
     ) -> dict[str, Any]:
         """Return data from the first available monitor in the list"""
@@ -1028,7 +1026,8 @@ class AsusRouter:
             compilers.update_rec(result, part)
 
         # Process data
-        result = process(result)
+        if process:
+            result = process(result)
 
         # Return data
         return result
@@ -1402,7 +1401,7 @@ class AsusRouter:
         """Keep state of LEDs"""
 
         # Only for Merlin firmware, so sysinfo should be present
-        if self._identity.sysinfo and self.led == False:
+        if self._identity.endpoints.get(SYSINFO) and self.led == False:
             await self.async_service_led_set(True)
             await self.async_service_led_set(False)
 
