@@ -88,7 +88,7 @@ class Key:
 
     value: str | int
     value_to_use: str = ""
-    method: function = none_or_str
+    method: Callable = none_or_str
 
     def __str__(self) -> str:
         """Return only `value` as default"""
@@ -198,8 +198,8 @@ class Firmware:
         if self.build and other.build and self.build < other.build:
             return True
         if (
-            type(self.build_more) == int
-            and type(self.build_more) == type(other.build_more)
+            isinstance(self.build_more, int)
+            and type(self.build_more) is type(other.build_more)
             and self.build_more < other.build_more
         ):
             return True

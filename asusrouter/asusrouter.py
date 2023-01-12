@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
-import aiohttp
 import asyncio
 from datetime import datetime
 import logging
 from typing import Any, Callable
+
+import aiohttp
 
 from asusrouter import (
     AsusDevice,
@@ -63,11 +64,11 @@ from asusrouter.const import (
     GUEST,
     GWLAN,
     HD_DATA,
+    HOOK,
     INFO,
     IP,
     ISO,
     KEY_ACTION_MODE,
-    KEY_HOOK,
     KEY_WAN,
     LAN,
     LINK_RATE,
@@ -91,7 +92,6 @@ from asusrouter.const import (
     WLAN,
     WLAN_TYPE,
     Merge,
-    MSG_ERROR,
     MSG_INFO,
     MSG_SUCCESS,
     NODE,
@@ -135,11 +135,7 @@ class AsusRouter:
         password: str | None = None,
         port: int | None = None,
         use_ssl: bool = False,
-        cert_check: bool = True,
-        cert_path: str = "",
         cache_time: int = DEFAULT_CACHE_TIME,
-        enable_monitor: bool = True,
-        enable_control: bool = False,
         session: aiohttp.ClientSession | None = None,
     ):
         """Init"""
@@ -147,8 +143,6 @@ class AsusRouter:
         self._host: str = host
 
         self._cache_time: int = cache_time
-        self._enable_monitor: bool = enable_monitor
-        self._enable_control: bool = enable_control
 
         self._device_cpu_cores: list[int] | None = None
         self._device_ports: dict[str, str] | None = None
@@ -159,7 +153,7 @@ class AsusRouter:
             endpoint: Monitor() for endpoint in ENDPOINT
         }
         # Monitor arguments
-        self.monitor_arg = dict()
+        self.monitor_arg = {}
         for key, value in ENDHOOKS.items():
             self.monitor[key] = Monitor()
             if value:
@@ -169,7 +163,7 @@ class AsusRouter:
         self._init_monitor_methods()
         self._init_monitor_requirements()
         # Constants
-        self.constant = dict()
+        self.constant = {}
 
         self._identity: AsusDevice | None = None
         self._ledg_color: dict[int, dict[str, int]] | None = None
@@ -186,8 +180,6 @@ class AsusRouter:
             password=password,
             port=port,
             use_ssl=use_ssl,
-            cert_check=cert_check,
-            cert_path=cert_path,
             session=session,
         )
 
@@ -232,7 +224,7 @@ class AsusRouter:
         """Check if endpoint exists"""
 
         try:
-            result = await self.connection.async_load(endpoint)
+            await self.connection.async_load(endpoint)
             return True
         except AsusRouter404:
             return False
@@ -283,7 +275,7 @@ class AsusRouter:
         _LOGGER.debug(MSG_INFO["identifying"])
 
         # Compile
-        query = list()
+        query = []
         for item in AR_DEVICE_IDENTITY:
             query.append(item)
 
@@ -292,16 +284,18 @@ class AsusRouter:
         try:
             raw = await self.async_hook(message, force=True)
         except Exception as ex:
-            raise AsusRouterIdentityError(ERROR_IDENTITY.format(self._host, str(ex)))
+            raise AsusRouterIdentityError(
+                ERROR_IDENTITY.format(self._host, str(ex))
+            ) from ex
 
         # Parse
-        identity = dict()
+        identity = {}
         for item in AR_DEVICE_IDENTITY:
             key = item.get()
             try:
                 data = item.method(raw[item.value]) if item.method else raw[item.value]
                 if key in identity:
-                    if type(identity[key]) is list:
+                    if isinstance(identity[key], list):
                         identity[key].extend(data)
                     else:
                         identity[key] = data
@@ -310,7 +304,7 @@ class AsusRouter:
             except Exception as ex:
                 raise AsusRouterIdentityError(
                     ERROR_IDENTITY.format(self._host, str(ex))
-                )
+                ) from ex
 
         # Mac (for some Merlin devices missing label_mac)
         if identity["mac"] is None or identity["mac"] == str():
@@ -330,13 +324,13 @@ class AsusRouter:
         identity.pop("fw_minor")
         identity.pop("fw_build")
 
-        identity[ENDPOINTS] = dict()
+        identity[ENDPOINTS] = {}
 
         # Check by page
-        for endpoint in ENDPOINT:
+        for endpoint, address in ENDPOINT.items():
             self.monitor[endpoint].enabled = identity[ENDPOINTS][
                 endpoint
-            ] = await self.async_check_endpoint(ENDPOINT[endpoint])
+            ] = await self.async_check_endpoint(address)
         identity["update_networkmapd"] = await self.async_check_endpoint(
             endpoint=AR_PATH["networkmap"]
         )
@@ -395,10 +389,6 @@ class AsusRouter:
 
         result = {}
 
-        if not self._enable_control:
-            _LOGGER.error(MSG_ERROR["disabled_control"])
-            return result
-
         request: dict = {
             KEY_ACTION_MODE: action_mode,
         }
@@ -422,18 +412,12 @@ class AsusRouter:
 
         result = {}
 
-        if not self._enable_monitor and not force:
-            _LOGGER.error(MSG_ERROR["disabled_monitor"])
-            return result
-
         if hook is None:
             _LOGGER.debug(MSG_INFO["empty_request"])
             return result
 
         try:
-            result = await self.connection.async_run_command(
-                command="{}={}".format(KEY_HOOK, hook)
-            )
+            result = await self.connection.async_run_command(command=f"{HOOK}={hook}")
         except Exception as ex:
             raise ex
 
@@ -448,10 +432,6 @@ class AsusRouter:
         """Return the data from the page"""
 
         result = {}
-
-        if not self._enable_monitor:
-            _LOGGER.error(MSG_ERROR["disabled_monitor"])
-            return result
 
         if page is None:
             _LOGGER.debug(MSG_INFO["empty_request"])
@@ -518,7 +498,7 @@ class AsusRouter:
             return False
 
         # Monitor is disabled
-        if self.monitor[monitor].enabled != True:
+        if not self.monitor[monitor].enabled:
             return False
 
         return True
@@ -592,9 +572,10 @@ class AsusRouter:
         devicemap = raw
 
         # Boot time
-        boottime = dict()
-        # Calculate boot time. Since precision is 1 second, could be that old and new are 1 sec different.
-        # In this case, we should not change the boot time, but keep the previous value to avoid regular changes
+        boottime = {}
+        # Since precision is 1 second, could be that old and new are 1 sec different.
+        # In this case, we should not change the boot time,
+        # but keep the previous value to avoid regular changes
         if SYS in devicemap and "uptimeStr" in devicemap[SYS]:
             time = parsers.uptime(devicemap[SYS]["uptimeStr"])
             timestamp = int(time.timestamp())
@@ -621,12 +602,12 @@ class AsusRouter:
                     self._mark_reboot()
 
         # VPN
-        vpn = dict()
+        vpn = {}
         vpnmap = devicemap.get(VPN)
         if vpnmap:
             for num in RANGE_OVPN_CLIENTS:
                 key = f"{VPN_CLIENT}{num}"
-                vpn[key] = dict()
+                vpn[key] = {}
                 if f"{key}_{STATE}" in vpnmap:
                     status = converters.int_from_str(vpnmap[f"{key}_{STATE}"])
                     vpn[key][STATE] = True if status > 0 else False
@@ -649,8 +630,8 @@ class AsusRouter:
 
         # Ports info
         ports = {
-            LAN: dict(),
-            WAN: dict(),
+            LAN: {},
+            WAN: {},
         }
         data = raw["portSpeed"]
         for port in data:
@@ -686,7 +667,7 @@ class AsusRouter:
         """Process data from `main` endpoint"""
 
         # CPU
-        cpu = dict()
+        cpu = {}
         if CPU_USAGE in raw:
 
             cpu = parsers.cpu_usage(raw=raw[CPU_USAGE])
@@ -704,8 +685,9 @@ class AsusRouter:
             cpu = self.monitor[MAIN][CPU]
 
         # RAM
-        ram = dict()
-        ## Data is in KiB. To get MB as they are shown in the device Web-GUI, should be devided by 1024 (yes, those will be MiB)
+        ram = {}
+        # Data is in KiB. To get MB as they are shown in the device Web-GUI,
+        # should be devided by 1024 (yes, those will be MiB)
         if MEMORY_USAGE in raw:
             # Populate RAM with known values
             ram = parsers.ram_usage(raw=raw[MEMORY_USAGE])
@@ -718,10 +700,13 @@ class AsusRouter:
             ram = self.monitor[MAIN][RAM]
 
         # Network
-        network = dict()
+        network = {}
         ## Data in Bytes for traffic and bits/s for speeds
         if NETDEV in raw:
-            # Calculate RX and TX from the HEX values. If there is no current value, but there was one before, get it from storage. Traffic resets only on device reboot or when above the limit. Device disconnect / reconnect does NOT reset it
+            # Calculate RX and TX from the HEX values.
+            # If there is no current value, but there was one before, get it from storage.
+            # Traffic resets only on device reboot or when above the limit.
+            # Device disconnect / reconnect does NOT reset it
             network = parsers.network_usage(raw=raw[NETDEV])
 
             if self.monitor[MAIN].ready and NETWORK in self.monitor[MAIN]:
@@ -737,16 +722,16 @@ class AsusRouter:
             network = self.monitor[MAIN][NETWORK]
 
         if not USB in network and "dualwan" in self._identity.services:
-            network[USB] = dict()
+            network[USB] = {}
         # Save constant
-        constant = list()
+        constant = []
         for interface in network:
             if interface in WLAN_TYPE:
                 constant.append(interface)
         self._init_constant(WLAN, constant)
 
         # WAN
-        wan = dict()
+        wan = {}
         if WANLINK_STATE in raw:
             # Populate WAN with known values
             wan = parsers.wan_state(raw=raw[WANLINK_STATE])
@@ -765,13 +750,13 @@ class AsusRouter:
         """Process data from `nvram` endpoint"""
 
         # WLAN
-        wlan = dict()
+        wlan = {}
         dictionary = MAP_NVRAM.get(WLAN)
         if dictionary:
             for intf in self.constant[WLAN]:
                 interface = WLAN_TYPE.get(intf)
                 if interface is not None:
-                    wlan[intf] = dict()
+                    wlan[intf] = {}
                     for key in dictionary:
                         key_to_use = (key.value.format(interface))[4:]
                         wlan[intf][key_to_use] = key.method(
@@ -779,18 +764,18 @@ class AsusRouter:
                         )
 
         # GWLAN
-        gwlan = dict()
+        gwlan = {}
         dictionary = MAP_NVRAM.get(GWLAN)
         if dictionary:
             for intf in self.constant[WLAN]:
                 interface = WLAN_TYPE.get(intf)
                 if interface is not None:
-                    for id in RANGE_GWLAN:
-                        gwlan[f"{intf}_{id}"] = dict()
+                    for gid in RANGE_GWLAN:
+                        gwlan[f"{intf}_{gid}"] = {}
                         for key in dictionary:
                             key_to_use = (key.value.format(interface))[4:]
-                            gwlan[f"{intf}_{id}"][key_to_use] = key.method(
-                                raw[key.value.format(f"{interface}.{id}")]
+                            gwlan[f"{intf}_{gid}"][key_to_use] = key.method(
+                                raw[key.value.format(f"{interface}.{gid}")]
                             )
 
         return {
@@ -802,14 +787,14 @@ class AsusRouter:
         """Process data from `onboarding` endpoint"""
 
         # AiMesh nodes state
-        aimesh = dict()
+        aimesh = {}
         data = raw["get_cfg_clientlist"][0]
         for device in data:
             node = parsers.aimesh_node(device)
             aimesh[node.mac] = node
 
         # Client list
-        clients = dict()
+        clients = {}
         data = raw["get_allclientlist"][0]
         for node in data:
             for connection in data[node]:
@@ -838,9 +823,9 @@ class AsusRouter:
 
         # Ports info
         ports = {
-            LAN: dict(),
-            USB: dict(),
-            WAN: dict(),
+            LAN: {},
+            USB: {},
+            WAN: {},
         }
         data = raw[f"{PORT}_{INFO}"][self._identity.mac]
         for port in data:
@@ -884,7 +869,7 @@ class AsusRouter:
         """Process data from `update_clients` endpoint"""
 
         # Clients
-        clients = dict()
+        clients = {}
         if "nmpClient" in raw:
             data = raw["nmpClient"][0]
             for mac, description in data.items():
@@ -931,7 +916,7 @@ class AsusRouter:
         self.constant[constant] = value
         for monitor, const in MONITOR_REQUIRE_CONST.items():
             if constant == const:
-                self.monitor[monitor].ready
+                self.monitor[monitor].ready = True
 
     ### <-- TECHNICAL
 
@@ -991,13 +976,13 @@ class AsusRouter:
     ) -> dict[str, Any]:
         """Return data from the first available monitor in the list"""
 
-        result = dict()
+        result = {}
 
         # Convert to list if only one monitor is set
-        monitor = [monitor] if type(monitor) == str else monitor
+        monitor = [monitor] if isinstance(monitor, str) else monitor
 
         # Create a list of monitors
-        monitors = list()
+        monitors = []
 
         # Check if monitors are available
         for item in monitor:
@@ -1016,7 +1001,7 @@ class AsusRouter:
         for monitor in monitors:
 
             # Value is not cached or cache is disabled
-            if not await self.async_monitor_cached(monitor, data) or use_cache == False:
+            if not await self.async_monitor_cached(monitor, data) or use_cache is False:
                 await self.async_monitor(monitor)
 
             # Receive data
@@ -1160,7 +1145,7 @@ class AsusRouter:
         """Return parental control status"""
 
         # NVRAM values to check
-        nvram = list()
+        nvram = []
         nvram.append(AR_KEY_PARENTAL_CONTROL.value)
         for value in AR_MAP_PARENTAL_CONTROL:
             nvram.append(value)
@@ -1177,14 +1162,14 @@ class AsusRouter:
         """Return parental control rules"""
 
         pc: dict = await self.async_get_parental_control()
-        rules = pc.get("list", dict())
+        rules = pc.get("list", {})
 
         # Return the full list if no device specified
         if macs is None:
             return rules
 
         # Return only devices of interest
-        result = dict()
+        result = {}
         macs = converters.as_list(macs)
         for mac in macs:
             if mac in rules:
@@ -1199,8 +1184,8 @@ class AsusRouter:
     ) -> dict[str, FilterDevice]:
         """Remove parental control rules"""
 
-        macs = list() if macs is None else converters.as_list(macs)
-        rules = list() if rules is None else converters.as_list(rules)
+        macs = [] if macs is None else converters.as_list(macs)
+        rules = [] if rules is None else converters.as_list(rules)
 
         # Get current rules
         cr: dict = await self.async_get_parental_control_rules()
@@ -1334,7 +1319,7 @@ class AsusRouter:
     async def async_service_ledg_get(self) -> dict[str, Any] | None:
         """Return status of RGB LEDs in LEDG scheme"""
 
-        nvram = list()
+        nvram = []
         for mode in AR_LEDG_MODE:
             nvram.append(AR_KEY_LEDG_RGB.format(mode))
         nvram.append(AR_KEY_LEDG_SCHEME)
@@ -1342,7 +1327,7 @@ class AsusRouter:
 
         data = await self.async_hook(compilers.nvram(nvram))
 
-        ledg = dict()
+        ledg = {}
         if AR_KEY_LEDG_SCHEME in data and data[AR_KEY_LEDG_SCHEME] != str():
             self._ledg_mode = data[AR_KEY_LEDG_SCHEME]
             ledg[AR_KEY_LEDG_SCHEME] = self._ledg_mode
@@ -1382,7 +1367,7 @@ class AsusRouter:
                 if self._ledg_color and num in self._ledg_color:
                     colors[num] = self._ledg_color[num]
                 else:
-                    colors[num] = dict()
+                    colors[num] = {}
 
         color_to_set = compilers.rgb(colors)
 
@@ -1401,18 +1386,21 @@ class AsusRouter:
         """Keep state of LEDs"""
 
         # Only for Merlin firmware, so sysinfo should be present
-        if self._identity.endpoints.get(SYSINFO) and self.led == False:
+        if self._identity.endpoints.get(SYSINFO) and self.led is False:
             await self.async_service_led_set(True)
             await self.async_service_led_set(False)
 
     @property
     def connected(self) -> bool:
+        """Connection status"""
         return self.connection.connected
 
     @property
     def led(self) -> bool:
+        """LED status"""
         return self._status_led
 
     @property
     def ledg_count(self) -> int:
+        """LEDG status"""
         return self._ledg_count

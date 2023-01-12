@@ -39,13 +39,13 @@ def usage(
     total = current_total - previous_total
 
     if used < 0:
-        raise AsusRouterValueError("Usage cannot be negative, used = {}".format(used))
+        raise AsusRouterValueError(f"Usage cannot be negative, used = {used}")
     if total < 0:
-        raise AsusRouterValueError("Usage cannot be negative, total = {}".format(total))
+        raise AsusRouterValueError(f"Usage cannot be negative, total = {total}")
 
     if used > total:
         raise AsusRouterValueError(
-            "Usage cannot be above 100%, used = {}, total = {}".format(used, total)
+            "Usage cannot be above 100%, used = {used}, total = {total}"
         )
 
     return round(
