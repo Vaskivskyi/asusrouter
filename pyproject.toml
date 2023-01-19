@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name            = "asusrouter"
-version         = "0.18.2"
+version         = "0.18.3"
 license         = {text = "Apache-2.0"}
 requires-python = ">=3.9.0"
 readme          = "README.md"
