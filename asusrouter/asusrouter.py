@@ -495,12 +495,15 @@ class AsusRouter:
 
         # Monitor does not exist
         if not monitor in self.monitor:
+            _LOGGER.debug("Monitor `%s` does not exist", monitor)
             return False
 
         # Monitor is disabled
         if not self.monitor[monitor].enabled:
+            _LOGGER.debug("Monitor `%s` is disabled", monitor)
             return False
 
+        _LOGGER.debug("Monitor `%s` is enabled", monitor)
         return True
 
     async def async_monitor_cached(self, monitor: str, value: Any) -> bool:
@@ -512,8 +515,16 @@ class AsusRouter:
             or not value in self.monitor[monitor]
             or self._cache_time < (now - self.monitor[monitor].time).total_seconds()
         ):
+            _LOGGER.debug(
+                "Value `%s` is not in cache yet by monitor `%s` or the caching time has already expired",
+                value,
+                monitor,
+            )
             return False
 
+        _LOGGER.debug(
+            "Value `%s` is already cached by monitor `%s`. Using cache", value, monitor
+        )
         return True
 
     async def async_monitor_ready(self, monitor: str, retry=False) -> bool:
@@ -524,13 +535,21 @@ class AsusRouter:
             if requirement:
                 value = self.constant.get(requirement)
                 if value:
+                    _LOGGER.debug(
+                        "Required constant found. Trying to compile monitor `%s`",
+                        monitor,
+                    )
                     self.monitor_compile[monitor](value)
                     return True
-                else:
-                    if not retry and requirement in CONST_REQUIRE_MONITOR:
-                        await self.async_monitor(CONST_REQUIRE_MONITOR[requirement])
-                        return await self.async_monitor_ready(monitor, retry=True)
-                    return False
+                if not retry and requirement in CONST_REQUIRE_MONITOR:
+                    _LOGGER.debug(
+                        "Monitor `%s` requires constant `%s` to be found first. Initializing corresponding monitor",
+                        monitor,
+                        requirement,
+                    )
+                    await self.async_monitor(CONST_REQUIRE_MONITOR[requirement])
+                    return await self.async_monitor_ready(monitor, retry=True)
+                return False
             return False
         return True
 
@@ -558,10 +577,14 @@ class AsusRouter:
     def _compile_monitor_nvram(self, wlan: list[str]) -> None:
         """Compile `nvram` monitor"""
 
+        _LOGGER.debug("Compiling monitor NVRAM")
+
         arg = compilers.monitor_arg_nvram(wlan)
         if arg:
             self.monitor_arg[NVRAM] = f"hook={arg}"
         self.monitor[NVRAM].ready = True
+
+        _LOGGER.debug("Monitor NVRAM was compiled")
 
     ### PROCESS MONITORS
 
@@ -913,10 +936,8 @@ class AsusRouter:
     def _init_constant(self, constant: str, value: Any) -> None:
         """Initialize constant"""
 
+        _LOGGER.debug("Initializing constant `%s`=`%s`", constant, value)
         self.constant[constant] = value
-        for monitor, const in MONITOR_REQUIRE_CONST.items():
-            if constant == const:
-                self.monitor[monitor].ready = True
 
     ### <-- TECHNICAL
 
