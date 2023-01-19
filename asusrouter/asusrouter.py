@@ -42,6 +42,7 @@ from asusrouter.const import (
     AR_SERVICE_DROP_CONNECTION,
     BOOTTIME,
     CLIENTS,
+    CLIENTS_HISTORIC,
     CONNECTION_TYPE,
     CONST_REQUIRE_MONITOR,
     CONVERTERS,
@@ -892,13 +893,14 @@ class AsusRouter:
         """Process data from `update_clients` endpoint"""
 
         # Clients
-        clients = {}
+        clients_historic = {}
         if "nmpClient" in raw:
             data = raw["nmpClient"][0]
             for mac, description in data.items():
                 if converters.is_mac_address(mac):
-                    clients[mac] = description
+                    clients_historic[mac] = description
 
+        clients = {}
         if "fromNetworkmapd" in raw:
             data = raw["fromNetworkmapd"][0]
             for mac, description in data.items():
@@ -907,6 +909,7 @@ class AsusRouter:
 
         return {
             CLIENTS: clients,
+            CLIENTS_HISTORIC: clients_historic,
         }
 
     def _process_monitor_vpn(self, raw: Any, time: datetime) -> dict[str, Any]:
