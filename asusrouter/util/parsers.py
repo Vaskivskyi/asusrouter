@@ -8,8 +8,8 @@ import re
 from datetime import datetime, timedelta
 from typing import Any
 
-from dateutil.parser import parse as dtparse
 import xmltodict
+from dateutil.parser import parse as dtparse
 
 from asusrouter.const import (
     AR_DEFAULT_CORES_RANGE,

@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime
 import logging
+from datetime import datetime
 from typing import Any, Callable
 
 import aiohttp
@@ -80,23 +80,14 @@ from asusrouter.const import (
     MAP_OVPN_STATUS,
     MEMORY_USAGE,
     MONITOR_REQUIRE_CONST,
-    NETDEV,
-    NETWORK,
-    NVRAM,
-    ONLINE,
-    RAM,
-    RANGE_GWLAN,
-    TOTAL,
-    UPDATE_CLIENTS,
-    USED,
-    WANLINK_STATE,
-    WLAN,
-    WLAN_TYPE,
-    Merge,
     MSG_INFO,
     MSG_SUCCESS,
+    NETDEV,
+    NETWORK,
     NODE,
+    NVRAM,
     ONBOARDING,
+    ONLINE,
     PARAM_COLOR,
     PARAM_COUNT,
     PARAM_MODE,
@@ -104,6 +95,8 @@ from asusrouter.const import (
     PORT_STATUS,
     PORT_TYPES,
     PORTS,
+    RAM,
+    RANGE_GWLAN,
     RANGE_OVPN_CLIENTS,
     RSSI,
     SPEED_TYPES,
@@ -113,12 +106,19 @@ from asusrouter.const import (
     SYSINFO,
     TEMPERATURE,
     TIMESTAMP,
+    TOTAL,
     TRACK_SERVICES_LED,
     UNKNOWN,
+    UPDATE_CLIENTS,
     USB,
+    USED,
     VPN,
     VPN_CLIENT,
     WAN,
+    WANLINK_STATE,
+    WLAN,
+    WLAN_TYPE,
+    Merge,
 )
 from asusrouter.dataclass import AiMeshDevice, ConnectedDevice
 from asusrouter.util import calculators, compilers, converters, parsers
