@@ -1,9 +1,11 @@
 """Compilers module for AsusRouter"""
 
 from __future__ import annotations
+
 from dataclasses import asdict
 from typing import Any
 
+from asusrouter import FilterDevice
 from asusrouter.const import (
     AR_DEFAULT_OVPN_CLIENTS,
     AR_KEY_OVPN,
@@ -32,9 +34,9 @@ from asusrouter.const import (
     WLAN,
     WLAN_TYPE,
 )
-from asusrouter import FilterDevice
 from asusrouter.dataclass import AsusDevice, ConnectedDevice
 from asusrouter.error import AsusRouterValueError
+
 from .converters import int_from_str
 
 

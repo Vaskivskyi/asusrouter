@@ -16,6 +16,7 @@ from asusrouter.util.converters import (
     time_from_delta,
 )
 
+
 ### ENUMS
 class Merge(str, Enum):
     """Merge enumerator for getting data"""
