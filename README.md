@@ -27,44 +27,8 @@ router = AsusRouter(host = "router.my.address",         #required - both IP and 
                     password = "password",              #required
                     port = None,                        #optional - default port would be selected based on use_ssl parameter
                     use_ssl = False,                    #optional
-                    cert_check = True,                  #optional
-                    cert_path = "",                     #optional
-                    cache_time = 5,                     #optional
-                    enable_monitor = True,              #optional
-                    enable_control = False)             #optional
+                    cache_time = 5)                     #optional
 ```
-
-The module has the initialization method to load all the known data (all the monitors and methods from the next section, require `enable_monitor` to be `True`):
-
-```python
-router.async_initialize()
-```
-
-#### Monitors and additional methods
-
-Most of the values, obtained from the router are grouped in several monitor methods to decrease the amount of data sent between the library and the device. All of them require the `enable_monitor` parameter of `AsusRouter` to be set to `True`.
-
-```python
-async_monitor_main()
-async_monitor_nvram()
-async_monitor_misc()
-async_monitor_devices()
-```
-
-A detailed description of monitors and monitoring methods is available here (*in work*).
-
-#### Commands
-
-`AsusRouter` class supports sending commands to the device using the `async_command` method. Sending commands requires the `enable_command` parameter of `AsusRrouter` to be set to `True`.
-
-For example, to reboot the device:
-
-```python
-# This command will REBOOT your device if connected!
-router.async_command(commands = {"rc_service": "reboot"}, action_mode = "apply")
-```
-
-Commands to the method should be sent as a `dict` of `command: value`. Please, refer to the Command List (*in work*) for a detailed explanation of the available commands.
 
 ## Supported devices
 
