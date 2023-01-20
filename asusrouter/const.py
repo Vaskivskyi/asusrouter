@@ -66,9 +66,12 @@ LACP = "lacp"
 LAN = "lan"
 LED = "led"
 LED_VAL = "led_val"
+LEDG = "ledg"
 LIGHT = "light"
 LINK_RATE = "link_rate"
 LOAD_AVG = "load_avg"
+LOGIN = "login"
+LOGOUT = "logout"
 MAC = "mac"
 MAIN = "main"
 MEM = "mem"
@@ -89,6 +92,7 @@ PORT = "port"
 PORTS = "ports"
 QTN = "qtn"
 RAM = "ram"
+RGB = "rgb"
 RIP = "rip"
 RSSI = "rssi"
 RULES = "rules"
@@ -141,15 +145,22 @@ DELIMITER_PARENTAL_CONTROL_ITEM = "&#62"
 
 
 ### ENDPOINTS
+ENDPOINT_LOGIN = "login.cgi"
+ENDPOINT_LOGOUT = "Logout.asp"
+
 ENDPOINT = {
+    APPLY: "apply.cgi",
     COMMAND: "applyapp.cgi",
     DEVICEMAP: "ajax_status.xml",
     ETHERNET_PORTS: "ajax_ethernet_ports.asp",
     FIRMWARE: "detect_firmware.asp",
     HOOK: "appGet.cgi",
+    LEDG: "set_ledg.cgi",
     # NETWORKMAPD: "update_networkmapd.asp",
     ONBOARDING: "ajax_onboarding.asp",
     PORT_STATUS: "get_port_status.cgi",
+    RGB: "light_effect.html",
+    STATE: "state.js",
     SYSINFO: "ajax_sysinfo.asp",
     TEMPERATURE: "ajax_coretmp.asp",
     UPDATE_CLIENTS: "update_clients.asp",
@@ -604,18 +615,6 @@ AR_MAP_TEMPERATURE: dict[str, list[str]] = {
         'curr_coreTmp_wl3_raw="([0-9.]+)&deg;C',
     ],
     "cpu": ['curr_cpuTemp="([0-9.]+)"', 'curr_coreTmp_cpu="([0-9.]+)"'],
-}
-AR_PATH = {
-    "apply": "apply.cgi",
-    "command": "applyapp.cgi",
-    "devices_update": "update_clients.asp",
-    "get": "appGet.cgi",
-    "ledg": "set_ledg.cgi",
-    "login": "login.cgi",
-    "logout": "Logout.asp",
-    "networkmap": "update_networkmapd.asp",
-    "rgb": "light_effect.html",
-    "state": "state.js",
 }
 
 ### ASUSWRT SERVICES

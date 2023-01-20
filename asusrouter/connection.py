@@ -28,11 +28,14 @@ from asusrouter import (
 from asusrouter.const import (
     AR_API,
     AR_ERROR,
-    AR_PATH,
     AR_USER_AGENT,
     DEFAULT_PORT,
     DEFAULT_SLEEP_CONNECTING,
     DEFAULT_SLEEP_RECONNECT,
+    ENDPOINT,
+    ENDPOINT_LOGIN,
+    ENDPOINT_LOGOUT,
+    HOOK,
     MSG_ERROR,
     MSG_INFO,
     MSG_SUCCESS,
@@ -97,7 +100,7 @@ class Connection:
         self._connected: bool = None
 
     async def async_run_command(
-        self, command: str, endpoint: str = AR_PATH["get"], retry: bool = False
+        self, command: str, endpoint: str = ENDPOINT[HOOK], retry: bool = False
     ) -> dict[str, Any]:
         """Run command. Use the existing connection token, otherwise create new one"""
 
@@ -177,7 +180,7 @@ class Connection:
             await asyncio.sleep(DEFAULT_SLEEP_RECONNECT)
 
         # Connection process
-        if endpoint == AR_PATH["login"]:
+        if endpoint == ENDPOINT_LOGIN:
             self._connecting = True
         # Sleep if we got here during the connection process
         else:
@@ -231,7 +234,7 @@ class Connection:
                         )
 
             # If loged in, save the device API data
-            if endpoint == AR_PATH["login"]:
+            if endpoint == ENDPOINT_LOGIN:
                 r_headers = r.headers
                 for item in AR_API:
                     if item in r_headers:
@@ -270,7 +273,7 @@ class Connection:
 
         # Connection refused or reset by peer -> will repeat
         except (aiohttp.ClientOSError) as ex:
-            if endpoint == AR_PATH["login"] and not self._mute_flag:
+            if endpoint == ENDPOINT_LOGIN and not self._mute_flag:
                 raise AsusRouterConnectionError(str(ex)) from ex
             # Mute warning for retries and while connecting
             if not retry and not self._connecting:
@@ -305,7 +308,7 @@ class Connection:
         headers = {"user-agent": AR_USER_AGENT}
 
         response = await self.async_request(
-            payload=payload, endpoint=AR_PATH["login"], headers=headers, retry=retry
+            payload=payload, endpoint=ENDPOINT_LOGIN, headers=headers, retry=retry
         )
         if "asus_token" in response:
             self._token = response["asus_token"]
@@ -334,7 +337,7 @@ class Connection:
             _LOGGER.debug(MSG_WARNING["not_connected"])
         # Connected
         else:
-            result = await self.async_request("", AR_PATH["logout"], self._headers)
+            result = await self.async_request("", ENDPOINT_LOGOUT, self._headers)
             if not "success" in result:
                 return False
 

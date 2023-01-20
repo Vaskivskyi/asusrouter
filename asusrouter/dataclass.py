@@ -51,7 +51,6 @@ class AsusDevice:
     ledg: bool = False
     aura: bool = False
     vpn_status: bool = False
-    update_networkmapd: bool = False
     endpoints: dict[str, bool] | None = None
 
 
