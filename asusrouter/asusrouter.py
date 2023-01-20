@@ -26,14 +26,10 @@ from asusrouter.const import (
     AIMESH,
     APPLY,
     AR_KEY_AURARGB,
-    AR_KEY_LED,
     AR_KEY_LEDG_COUNT,
     AR_KEY_LEDG_RGB,
     AR_KEY_LEDG_SCHEME,
     AR_KEY_LEDG_SCHEME_OLD,
-    AR_KEY_SERVICE_COMMAND,
-    AR_KEY_SERVICE_MODIFY,
-    AR_KEY_SERVICE_REPLY,
     AR_LEDG_MODE,
     AR_PATH,
     AR_SERVICE_COMMAND,
@@ -48,7 +44,6 @@ from asusrouter.const import (
     CONVERTERS,
     CPU,
     CPU_USAGE,
-    DEFAULT_ACTION_MODE,
     DEFAULT_CACHE_TIME,
     DEFAULT_SLEEP_TIME,
     DELIMITER_PARENTAL_CONTROL_ITEM,
@@ -58,7 +53,6 @@ from asusrouter.const import (
     ENDPOINTS,
     ERRNO,
     ERROR_IDENTITY,
-    ERROR_SERVICE,
     ERROR_SERVICE_UNKNOWN,
     ERROR_VALUE,
     ETHERNET_PORTS,
@@ -70,11 +64,13 @@ from asusrouter.const import (
     INFO,
     IP,
     ISO,
-    KEY_ACTION_MODE,
     KEY_PARENTAL_CONTROL_MAC,
     KEY_PARENTAL_CONTROL_STATE,
     KEY_PARENTAL_CONTROL_TYPE,
     LAN,
+    LED,
+    LED_VAL,
+    LIGHT,
     LINK_RATE,
     MAC,
     MAIN,
@@ -111,6 +107,7 @@ from asusrouter.const import (
     SERVICE_COMMAND,
     SERVICE_MODIFY,
     SERVICE_REPLY,
+    SERVICE_SET_LED,
     SPEED_TYPES,
     STATE,
     STATUS,
@@ -184,8 +181,11 @@ class AsusRouter:
         self._ledg_color: dict[int, dict[str, int]] | None = None
         self._ledg_count: int = 0
         self._ledg_mode: int | None = None
-        self._status_led: bool = False
 
+        # State values
+        self._state_led: bool = False
+
+        # Flags
         self._flag_reboot: bool = False
 
         """Connect"""
@@ -205,6 +205,7 @@ class AsusRouter:
             DEVICEMAP: self._process_monitor_devicemap,
             ETHERNET_PORTS: self._process_monitor_ethernet_ports,
             FIRMWARE: self._process_monitor_firmware,
+            LIGHT: self._process_monitor_light,
             MAIN: self._process_monitor_main,
             NVRAM: self._process_monitor_nvram,
             ONBOARDING: self._process_monitor_onboarding,
@@ -365,7 +366,7 @@ class AsusRouter:
         # <-- NOT READY FOR USAGE
 
         # Save static values
-        self._status_led = raw[AR_KEY_LED]
+        self._state_led = raw[LED_VAL]
 
         self._identity = AsusDevice(**identity)
 
@@ -660,6 +661,19 @@ class AsusRouter:
 
         return {
             FIRMWARE: firmware,
+        }
+
+    def _process_monitor_light(self, raw: Any, time: datetime) -> dict[str, Any]:
+        """Process data from `light` endpoint"""
+
+        # LED
+        led = {}
+        if LED_VAL in raw:
+            led[STATE] = converters.bool_from_any(raw[LED_VAL])
+            self._state_led = led[STATE]
+
+        return {
+            LED: led,
         }
 
     def _process_monitor_main(self, raw: Any, time: datetime) -> dict[str, Any]:
@@ -1107,6 +1121,11 @@ class AsusRouter:
 
         return await self.async_get_data(data=GWLAN, monitor=NVRAM, use_cache=use_cache)
 
+    async def async_get_led(self, use_cache: bool = True) -> dict[str, Any]:
+        """Return LED data"""
+
+        return await self.async_get_data(data=LED, monitor=LIGHT, use_cache=use_cache)
+
     async def async_get_network(
         self, use_cache: bool = True
     ) -> dict[str, (int | float)]:
@@ -1173,6 +1192,24 @@ class AsusRouter:
     ### <-- RETURN DATA
 
     ### APPLY -->
+
+    # LED
+    async def async_set_led(self, value: bool | int | str) -> bool:
+        """Set LED state"""
+
+        value_to_set = converters.bool_from_any(value)
+
+        service = SERVICE_SET_LED
+        arguments = {
+            ACTION_MODE: APPLY,
+            LED_VAL: converters.int_from_bool(value_to_set),
+        }
+
+        result = await self.async_service_generic(service=service, arguments=arguments)
+
+        if result:
+            self._state_led = value_to_set
+        return result
 
     # Parental control
     async def async_apply_parental_control_rules(
@@ -1318,31 +1355,6 @@ class AsusRouter:
             service=service, drop_connection=drop_connection
         )
 
-    async def async_service_led_get(self) -> bool | None:
-        """Return status of the LEDs"""
-
-        key = AR_KEY_LED
-        raw = await self.async_api_hook(compilers.nvram(key))
-        if not converters.none_or_str(raw[key]):
-            return None
-        value = converters.bool_from_any(raw[key])
-        self._status_led = value
-        return value
-
-    async def async_service_led_set(self, value: bool | int | str) -> bool:
-        """Set status of the LEDs"""
-
-        value_to_set = converters.bool_from_any(value)
-
-        service = "start_ctrl_led"
-        arguments = {
-            AR_KEY_LED: converters.int_from_bool(value_to_set),
-        }
-        result = await self.async_service_generic(service=service, arguments=arguments)
-        if result:
-            self._status_led = value_to_set
-        return result
-
     async def async_service_ledg_get(self) -> dict[str, Any] | None:
         """Return status of RGB LEDs in LEDG scheme"""
 
@@ -1413,9 +1425,9 @@ class AsusRouter:
         """Keep state of LEDs"""
 
         # Only for Merlin firmware, so sysinfo should be present
-        if self._identity.endpoints.get(SYSINFO) and self.led is False:
-            await self.async_service_led_set(True)
-            await self.async_service_led_set(False)
+        if self._identity.endpoints.get(SYSINFO) and self.state_led is False:
+            await self.async_set_led(True)
+            await self.async_set_led(False)
 
     @property
     def connected(self) -> bool:
@@ -1423,9 +1435,9 @@ class AsusRouter:
         return self.connection.connected
 
     @property
-    def led(self) -> bool:
+    def state_led(self) -> bool:
         """LED status"""
-        return self._status_led
+        return self._state_led
 
     @property
     def ledg_count(self) -> int:

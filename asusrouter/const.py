@@ -64,6 +64,9 @@ IP = "ip"
 ISO = "iso"
 LACP = "lacp"
 LAN = "lan"
+LED = "led"
+LED_VAL = "led_val"
+LIGHT = "light"
 LINK_RATE = "link_rate"
 LOAD_AVG = "load_avg"
 MAC = "mac"
@@ -93,6 +96,7 @@ RX = "rx"
 SERVICE_COMMAND = "rc_service"
 SERVICE_MODIFY = "modify"
 SERVICE_REPLY = "run_service"
+SERVICE_SET_LED = "start_ctrl_led"
 SIM = "sim"
 STATE = "state"
 STATUS = "status"
@@ -153,12 +157,15 @@ ENDPOINT = {
 }
 
 ENDHOOKS: dict[str, Any] = {
-    MAIN: {
+    LIGHT: [
+        (NVRAM_GET, LED_VAL),
+    ],
+    MAIN: [
         (CPU_USAGE, APPOBJ),
         (MEMORY_USAGE, APPOBJ),
         (NETDEV, APPOBJ),
         (WANLINK_STATE, APPOBJ),
-    },
+    ],
     NVRAM: None,
     PARENTAL_CONTROL: [
         (NVRAM_GET, KEY_PARENTAL_CONTROL_MAC),
@@ -246,7 +253,7 @@ MAP_CONNECTED_DEVICE: dict[str, list[SearchKey]] = {
 MAP_CPU: tuple[Key, ...] = (Key(TOTAL), Key(USAGE, USED))
 MAP_IDENTITY: tuple[Key, ...] = (
     Key("serial_no", "serial"),
-    Key("label_mac", "mac"),
+    Key("label_mac", MAC),
     Key("lan_hwaddr", "lan_mac"),
     Key("wan_hwaddr", "wan_mac"),
     Key("productid", "model"),
@@ -255,7 +262,7 @@ MAP_IDENTITY: tuple[Key, ...] = (
     Key("extendno", "fw_build"),
     Key("rc_support", "services", method=service_support),
     Key("ss_support", "services", method=service_support),
-    Key("led_val", "led", method=exists_or_not),
+    Key(LED_VAL, LED, method=exists_or_not),
 )
 MAP_NETWORK: tuple[Key, ...] = (
     Key("INTERNET", WAN),
