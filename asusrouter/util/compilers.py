@@ -209,7 +209,7 @@ def monitor_arg_nvram(wlan: list[str] | None) -> str | None:
     if not wlan:
         return None
 
-    request = list()
+    request = []
     for intf in wlan:
         interface = WLAN_TYPE.get(intf)
         for key in MAP_NVRAM[WLAN]:

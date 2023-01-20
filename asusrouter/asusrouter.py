@@ -148,10 +148,6 @@ class AsusRouter:
 
         self._cache_time: int = cache_time
 
-        self._device_cpu_cores: list[int] | None = None
-        self._device_ports: dict[str, str] | None = None
-        self._device_boottime: datetime | None = None
-
         # Monitors
         self.monitor: dict[str, Monitor] = {
             endpoint: Monitor() for endpoint in ENDPOINT
@@ -589,7 +585,7 @@ class AsusRouter:
                 vpn[key] = {}
                 if f"{key}_{STATE}" in vpnmap:
                     status = converters.int_from_str(vpnmap[f"{key}_{STATE}"])
-                    vpn[key][STATE] = True if status > 0 else False
+                    vpn[key][STATE] = status > 0
                     vpn[key][STATUS] = MAP_OVPN_STATUS.get(
                         status, f"{UNKNOWN} ({status})"
                     )
@@ -1028,14 +1024,17 @@ class AsusRouter:
             return {}
 
         # Process monitors
-        for monitor in monitors:
+        for _monitor in monitors:
 
             # Value is not cached or cache is disabled
-            if not await self.async_monitor_cached(monitor, data) or use_cache is False:
-                await self.async_monitor(monitor)
+            if (
+                not await self.async_monitor_cached(_monitor, data)
+                or use_cache is False
+            ):
+                await self.async_monitor(_monitor)
 
             # Receive data
-            part = self.monitor[monitor].get(data or {})
+            part = self.monitor[_monitor].get(data or {})
 
             # Update data
             compilers.update_rec(result, part)
@@ -1301,7 +1300,7 @@ class AsusRouter:
                 f"Raw result is: {result}"
             )
         _LOGGER.debug(
-            "Service `%s` was run successfully" "with arguments`%s`. Result: %s",
+            "Service `%s` was run successfully with arguments`%s`. Result: %s",
             service,
             arguments,
             result,

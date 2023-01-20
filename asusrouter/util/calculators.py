@@ -58,10 +58,12 @@ def usage(
 
 def usage_in_dict(
     after: dict[str, (int | float)],
-    before: dict[str, (int | float)] = DEFAULT_USAGE_NONE,
+    before: dict[str, (int | float)] | None = None,
 ) -> dict[str, (int | float)]:
     """Calculate usage in percents in a dictionary"""
 
+    if not before:
+        before = DEFAULT_USAGE_NONE
     after[USAGE] = usage(after[USED], after[TOTAL], before[USED], before[TOTAL])
 
     return after
@@ -76,7 +78,7 @@ def speed(
 
     if time_delta is None:
         return CONST_ZERO
-    elif time_delta == CONST_ZERO:
+    if time_delta == CONST_ZERO:
         raise AsusRouterValueError(ERROR_ZERO_DIVISION.format("time_delta"))
 
     diff = after - before if after > before else CONST_ZERO
@@ -87,10 +89,10 @@ def speed(
 def rgb(raw: dict[int, dict[str, int]]) -> dict[int, dict[str, int]]:
     """Calculate RGB values from input"""
 
-    output = dict()
+    output = {}
 
     for led in raw:
-        output[led] = dict()
+        output[led] = {}
         for channel in raw[led]:
             value = raw[led][channel]
             if value < 0:

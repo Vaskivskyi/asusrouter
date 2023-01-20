@@ -119,24 +119,21 @@ def bool_from_any(raw: str | int | float | bool) -> bool | None:
     if _type == bool:
         return raw
 
-    if _type == int or _type == float:
+    if _type in (int, float):
         if raw == 0:
             return False
-        else:
-            return True
+        return True
 
-    elif _type == str:
+    if _type == str:
         if raw.lower().strip() in BOOL_FALSE:
             return False
-        elif raw.lower().strip() in BOOL_TRUE:
+        if raw.lower().strip() in BOOL_TRUE:
             return True
-        elif raw == str():
+        if raw == str():
             return None
-        else:
-            raise AsusRouterValueError(ERROR_VALUE_TYPE.format(raw, type(raw)))
-
-    else:
         raise AsusRouterValueError(ERROR_VALUE_TYPE.format(raw, type(raw)))
+
+    raise AsusRouterValueError(ERROR_VALUE_TYPE.format(raw, type(raw)))
 
 
 def int_from_bool(raw: bool) -> int:

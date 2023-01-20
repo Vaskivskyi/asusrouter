@@ -26,7 +26,6 @@ from asusrouter.const import (
     DEVICEMAP_CLEAR,
     DEVICEMAP_GENERAL,
     ENDPOINT,
-    ERROR_PARSING,
     ERROR_VALUE,
     ERROR_VALUE_TYPE,
     FIRMWARE,
@@ -42,12 +41,12 @@ from asusrouter.const import (
     PARAM_IP,
     PARAM_RIP,
     PARAM_STATE,
-    PARAM_STATUS,
     RANGE_CPU_CORES,
     RANGE_OVPN_CLIENTS,
     RANGE_OVPN_SERVERS,
     REGEX_VARIABLES,
     RIP,
+    STATE,
     STATUS,
     SYSINFO,
     TOTAL,
@@ -59,27 +58,10 @@ from asusrouter.const import (
     VPN_SERVER,
 )
 from asusrouter.dataclass import AiMeshDevice, Firmware
-from asusrouter.error import AsusRouterNotImplementedError, AsusRouterValueError
+from asusrouter.error import AsusRouterValueError
 from asusrouter.util import calculators, converters
 
 _LOGGER = logging.getLogger(__name__)
-
-
-def cpu_cores(raw: dict[str, Any] | None = None) -> list[int]:
-    """CPU cores parser"""
-
-    cores = []
-
-    if raw is None:
-        return cores
-
-    for i in RANGE_CPU_CORES:
-        if any(f"{CPU}{i}_{data_type}" in raw for data_type in MAP_CPU):
-            cores.append(i)
-        else:
-            break
-
-    return cores
 
 
 def cpu_usage(raw: dict[str, Any]) -> dict[str, Any]:
@@ -208,7 +190,11 @@ def wan_state(raw: dict[str, Any]) -> dict[str, Any]:
                     key.method(raw[key.value]) if key.method else raw[key.value]
                 )
             except AsusRouterValueError as ex:
-                _LOGGER.warning(ERROR_PARSING.format(key.value, str(ex)))
+                _LOGGER.warning(
+                    "Failed parsing value '%s'. Please report this issue. Exception summary: %s",
+                    key.value,
+                    str(ex),
+                )
 
     return values
 
@@ -225,23 +211,6 @@ def uptime(data: str) -> datetime:
         raise (AsusRouterValueError(ERROR_VALUE.format(data, str(ex)))) from ex
 
     return boot
-
-
-def port_speed(value: str | None = None) -> int | None:
-    """Port speed -> Mb/s parcer"""
-
-    if value is None:
-        return None
-    elif value == "X":
-        return 0
-    elif value == "M":
-        return 100
-    elif value == "G":
-        return 1000
-    elif value == "Q":
-        return 2500
-    else:
-        raise AsusRouterNotImplementedError(value)
 
 
 def devicemap(devicemap: dict[str, Any]) -> dict[str, Any]:
@@ -369,7 +338,11 @@ def sysinfo(raw: str) -> dict[str, Any]:
                         else data[set][key.value]
                     )
                 except AsusRouterValueError as ex:
-                    _LOGGER.warning(ERROR_PARSING.format(key.value, str(ex)))
+                    _LOGGER.warning(
+                        "Failed parsing value '%s'. Please report this issue. Exception summary: %s",
+                        key.value,
+                        str(ex),
+                    )
 
     return result
 
@@ -453,23 +426,25 @@ def endpoint_update_clients(raw: str) -> dict[str, Any]:
 def pseudo_json(text: str, page: str) -> dict[str, Any]:
     """JSON parser"""
 
-    if ENDPOINT[VPN] in page:
-        return vpn_status(text)
     if ENDPOINT[FIRMWARE] in page:
         return firmware(text)
+    if ENDPOINT[STATE] in page:
+        return {}
     if ENDPOINT[UPDATE_CLIENTS] in page:
         return endpoint_update_clients(text)
+    if ENDPOINT[VPN] in page:
+        return vpn_status(text)
 
     data = re.sub(r"\s+", "", text)
 
     if "curr_coreTmp" in data:
         return temperatures(data)
     # Merlin
-    elif ENDPOINT[SYSINFO] in page:
+    if ENDPOINT[SYSINFO] in page:
         return sysinfo(data)
-    elif ENDPOINT[ONBOARDING] in page:
+    if ENDPOINT[ONBOARDING] in page:
         return onboarding(data)
-    elif "get_clientlist" in data:
+    if "get_clientlist" in data:
         data = data.replace('"get_clientlist":', '"get_clientlist":{')
         data += "}"
     elif "get_wan_lan_status=" in data:
@@ -480,7 +455,9 @@ def pseudo_json(text: str, page: str) -> dict[str, Any]:
         data = data.replace(";memInfo=", '},"memory":{')
         data = data.replace(";", "}}")
     else:
-        _LOGGER.error("Unknown data. Template for this data is unknown")
+        _LOGGER.error(
+            "Unknown data. Template for this data is unknown. Endpoint=%s}", page
+        )
         return {}
 
     return json.loads(data.encode().decode("utf-8-sig"))
