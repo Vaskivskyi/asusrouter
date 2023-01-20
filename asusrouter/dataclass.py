@@ -217,5 +217,5 @@ class FilterDevice:
 
     mac: str | None = None
     name: str | None = None
-    state: int | None = None
+    type: int | None = None
     timemap: str = DEFAULT_PARENTAL_CONTROL_TIMEMAP

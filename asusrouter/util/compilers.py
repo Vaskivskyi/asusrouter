@@ -23,8 +23,13 @@ from asusrouter.const import (
     ERROR_VALUE_TYPE,
     GWLAN,
     HOOK,
+    KEY_PARENTAL_CONTROL_MAC,
+    KEY_PARENTAL_CONTROL_NAME,
+    KEY_PARENTAL_CONTROL_TIMEMAP,
+    KEY_PARENTAL_CONTROL_TYPE,
     KEY_VPN,
     MAP_NVRAM,
+    MAP_PARENTAL_CONTROL_TYPE,
     NVRAM_GET,
     PARAM_ERRNO,
     PARAM_STATE,
@@ -45,7 +50,7 @@ def hook(commands: dict[str, str] | None = None) -> str:
 
     data = str()
     if commands is not None:
-        for item, value in commands.items():
+        for item, value in commands:
             data += f"{item}({value});"
 
     return data
@@ -140,31 +145,31 @@ def parental_control(data: dict[str, FilterDevice]) -> dict[str, str]:
     if not isinstance(data, dict):
         raise AsusRouterValueError(ERROR_VALUE_TYPE.format(data, type(data)))
 
-    state_lib = {}
-    for index, state in AR_MAP_PARENTAL_CONTROL_STATE.items():
-        state_lib[state] = index
+    types_lib = {}
+    for index, state in MAP_PARENTAL_CONTROL_TYPE.items():
+        types_lib[state] = index
 
     macs = str()
     names = str()
-    states = str()
+    types = str()
     timemaps = str()
 
     for rule in data:
-        macs += data[rule].mac + ">"
-        names += data[rule].name + ">"
-        states += state_lib[data[rule].state] + ">"
-        timemaps += data[rule].timemap.replace("&#60", "<") + ">"
+        macs += f"{data[rule].mac}>"
+        names += f"{data[rule].name}>"
+        types += f"{types_lib[data[rule].type]}>"
+        timemaps += f"{data[rule].timemap.replace('&#60', '<')}>"
 
     macs = macs[:-1]
     names = names[:-1]
-    states = states[:-1]
     timemaps = timemaps[:-1]
+    types = types[:-1]
 
     return {
-        AR_KEY_PARENTAL_CONTROL_MAC: macs,
-        AR_KEY_PARENTAL_CONTROL_NAME: names,
-        AR_KEY_PARENTAL_CONTROL_STATE: states,
-        AR_KEY_PARENTAL_CONTROL_TIMEMAP: timemaps,
+        KEY_PARENTAL_CONTROL_MAC: macs,
+        KEY_PARENTAL_CONTROL_NAME: names,
+        KEY_PARENTAL_CONTROL_TIMEMAP: timemaps,
+        KEY_PARENTAL_CONTROL_TYPE: types,
     }
 
 
