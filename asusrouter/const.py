@@ -658,7 +658,10 @@ ERROR_IDENTITY = "Cannot obtain identity from the device {}. Exception summary{}
 ERROR_PARSING = (
     "Failed parsing value '{}'. Please report this issue. Exception summary: {}"
 )
-ERROR_SERVICE = "Error calling service '{}'. Service did not return any expected value in the reply: {}"
+ERROR_SERVICE = (
+    "Error calling service '{}'. "
+    "Service did not return any expected value in the reply: {}"
+)
 ERROR_SERVICE_UNKNOWN = "Unknown service '{}' with mode '{}'"
 ERROR_VALUE = "Wrong value '{}' with original exception: {}"
 ERROR_VALUE_TYPE = "Wrong value '{}' of type {}"
