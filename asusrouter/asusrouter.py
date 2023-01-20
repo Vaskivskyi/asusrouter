@@ -1337,23 +1337,9 @@ class AsusRouter:
             return converters.bool_from_any(result[SERVICE_MODIFY])
         return True
 
-    ### SERVICES -->
+    ### <-- SERVICE
 
-    async def async_service_control(self, target: str, mode: str) -> bool:
-        """Start / stop / (force) restart service"""
-
-        if not target in AR_SERVICE_CONTROL or not mode in AR_SERVICE_CONTROL[target]:
-            raise AsusRouterServiceError(ERROR_SERVICE_UNKNOWN.format(target, mode))
-
-        service = AR_SERVICE_COMMAND[mode].format(target)
-
-        drop_connection = False
-        if target in AR_SERVICE_DROP_CONNECTION:
-            drop_connection = True
-
-        return await self.async_service_generic(
-            service=service, drop_connection=drop_connection
-        )
+    ### ALPHA / NOT READY -->
 
     async def async_service_ledg_get(self) -> dict[str, Any] | None:
         """Return status of RGB LEDs in LEDG scheme"""
@@ -1419,7 +1405,7 @@ class AsusRouter:
 
         return False
 
-    ### <-- SERVICES
+    ### <-- ALPHA / NOT READY
 
     async def async_keep_state_led(self) -> bool:
         """Keep state of LEDs"""
