@@ -54,6 +54,7 @@ DHCP = "dhcp"
 ENDPOINTS = "endpoints"
 ERRNO = "errno"
 FIRMWARE = "firmware"
+FREE = "free"
 GUEST = "guest"
 GWLAN = "gwlan"
 HOOK = "hook"
@@ -66,6 +67,7 @@ LINK_RATE = "link_rate"
 LOAD_AVG = "load_avg"
 MAC = "mac"
 MAIN = "main"
+MEM = "mem"
 MEMORY_USAGE = "memory_usage"
 MONITOR = "monitor"
 NAME = "name"
@@ -83,6 +85,7 @@ PORT = "port"
 PORTS = "ports"
 QTN = "qtn"
 RAM = "ram"
+RIP = "rip"
 RSSI = "rssi"
 RULES = "rules"
 RX = "rx"
@@ -236,6 +239,19 @@ MAP_CONNECTED_DEVICE: dict[str, list[SearchKey]] = {
     ],
 }
 MAP_CPU: tuple[Key, ...] = (Key(TOTAL), Key(USAGE, USED))
+MAP_IDENTITY: tuple[Key, ...] = (
+    Key("serial_no", "serial"),
+    Key("label_mac", "mac"),
+    Key("lan_hwaddr", "lan_mac"),
+    Key("wan_hwaddr", "wan_mac"),
+    Key("productid", "model"),
+    Key("firmver", "fw_major"),
+    Key("buildno", "fw_minor"),
+    Key("extendno", "fw_build"),
+    Key("rc_support", "services", method=service_support),
+    Key("ss_support", "services", method=service_support),
+    Key("led_val", "led", method=exists_or_not),
+)
 MAP_NETWORK: tuple[Key, ...] = (
     Key("INTERNET", WAN),
     Key("INTERNET1", USB),
@@ -330,12 +346,29 @@ MAP_NVRAM = {
         SearchKey("wl{}_wps_mode"),
     ],
 }
+MAP_OVPN_CLIENT = (
+    Key("REMOTE", "remote", method=ovpn_remote_fom_str),
+    Key("Updated", "datetime", method=datetime_from_str),
+    Key("TUN/TAP read bytes", "tun_tap_read", method=int_from_str),
+    Key("TUN/TAP write bytes", "tun_tap_write", method=int_from_str),
+    Key("TCP/UDP read bytes", "tcp_udp_read", method=int_from_str),
+    Key("TCP/UDP write bytes", "tcp_udp_write", method=int_from_str),
+    Key("Auth read bytes", "auth_read", method=int_from_str),
+    Key("pre-compress bytes", "pre_compress", method=int_from_str),
+    Key("post-compress bytes", "post_compress", method=int_from_str),
+    Key("pre-decompress bytes", "pre_decompress", method=int_from_str),
+    Key("post-decompress bytes", "post_decompress", method=int_from_str),
+)
 MAP_OVPN_STATUS = {
     -1: "error",
     0: "disconnected",
     1: "connecting",
     2: "connected",
 }
+MAP_OVPN_SERVER = (
+    Key("CLIENT_LIST", "client_list"),
+    Key("ROUTING_TABLE", "routing_table"),
+)
 MAP_PARENTAL_CONTROL_ITEM: tuple[Key, ...] = (
     Key(KEY_PARENTAL_CONTROL_MAC, MAC),
     Key(KEY_PARENTAL_CONTROL_NAME, NAME),
@@ -348,9 +381,34 @@ MAP_PARENTAL_CONTROL_TYPE = {
     2: BLOCK,
 }
 MAP_PORTS: tuple[Key, ...] = ()
+MAP_RAM: tuple[Key, ...] = (Key(FREE), Key(TOTAL), Key(USED))
+MAP_WAN = (
+    Key("wanstate", STATE),
+    Key("wansbstate", "bstate"),
+    Key("wanauxstate", "aux"),
+    Key("autodet_state"),
+    Key("autodet_auxstate"),
+    Key("wanlink_status", STATUS, method=bool_from_any),
+    Key("wanlink_type", "ip_type"),
+    Key("wanlink_ipaddr", IP),
+    Key("wanlink_netmask", "mask"),
+    Key("wanlink_gateway", "gateway"),
+    Key("wanlink_dns", "dns"),
+    Key("wanlink_lease", "lease"),
+    Key("wanlink_expires", "expires"),
+    Key("is_private_subnet", "private_subnet", method=int_from_str),
+    Key("wanlink_xtype", "xtype"),
+    Key("wanlink_xipaddr", "xip"),
+    Key("wanlink_xnetmask", "xmask"),
+    Key("wanlink_xgateway", "xgateway"),
+    Key("wanlink_xdns", "xdns"),
+    Key("wanlink_xlease", "xlease"),
+    Key("wanlink_xexpires", "xexpires"),
+)
 RANGE_CPU_CORES = range(1, 9)  # 8 cores from 1 to 8
 RANGE_GWLAN = range(1, 4)  # 3 guest WLANs from 1 to 3 per each WLAN
 RANGE_OVPN_CLIENTS = range(1, 6)  # 5 Open VPN clients from 1 to 5
+RANGE_OVPN_SERVERS = range(1, 3)  # 2 Open VPN servers from 1 to 2
 RANGE_WLAN = range(0, 4)  # 4 WLANs from 0 to 3
 
 ### TYPES
@@ -429,15 +487,6 @@ PARAM_STATE = "state"
 PARAM_STATUS = "status"
 PARAM_UNKNOWN = "unknown"
 
-### OUR KEYS
-KEY_CPU = "CPU"
-KEY_NETWORK = "NETWORK"
-KEY_RAM = "RAM"
-KEY_SYSINFO = "SYSINFO"
-KEY_TEMPERATURE = "TEMPERATURE"
-KEY_VPN = "VPN"
-KEY_WAN = "WAN"
-
 # OUR REGEX
 REGEX_VARIABLES = r'([a-zA-Z0-9\_-]+)\s*=\s*"(.*?)"(?=;)'
 
@@ -451,42 +500,7 @@ TRACK_SERVICES_LED = [
 
 
 ### ASUSWRT KEYS, MAPS AND VALUES
-AR_DEFAULT_CORES = [1]
-AR_DEFAULT_CORES_RANGE = range(1, 8)
 AR_DEFAULT_LEDG = 8
-AR_DEFAULT_OVPN_CLIENTS = 5
-AR_DEFAULT_OVPN_SERVERS = 2
-
-AR_DEVICE_ATTRIBUTES_LIST: tuple[Key, ...] = (
-    Key("mac", "name"),
-    Key("name", "name"),
-    Key("nickName", "name"),
-    Key("mac"),
-    Key("ip"),
-    Key("ipMethod", "ip_method"),
-    Key("internetState", "internet_state", method=bool_from_any),
-    Key("internetMode", "internet_mode"),
-    Key("isWL", "connection_type", method=int_from_str),
-    Key("isOnline", "online", method=bool_from_any),
-    Key("rssi", method=int_from_str),
-    Key("wlConnectTime", "connected_since", time_from_delta),
-    Key("curRx", "rx_speed", method=float_from_str),
-    Key("curTx", "tx_speed", method=float_from_str),
-    Key("isGN", "guest", method=int_from_str),
-)
-AR_DEVICE_IDENTITY: tuple[Key, ...] = (
-    Key("serial_no", "serial"),
-    Key("label_mac", "mac"),
-    Key("lan_hwaddr", "lan_mac"),
-    Key("wan_hwaddr", "wan_mac"),
-    Key("productid", "model"),
-    Key("firmver", "fw_major"),
-    Key("buildno", "fw_minor"),
-    Key("extendno", "fw_build"),
-    Key("rc_support", "services", method=service_support),
-    Key("ss_support", "services", method=service_support),
-    Key("led_val", "led", method=exists_or_not),
-)
 
 AR_ERROR = {
     "authorisation": 2,
@@ -496,80 +510,15 @@ AR_ERROR = {
 }
 
 AR_KEY_AURARGB = "aurargb"
-AR_KEY_CPU = "cpu_usage"
-AR_KEY_CPU_ITEM = "cpu{}_{}"
-AR_KEY_CPU_LIST: tuple[Key, ...] = (Key(DATA_TOTAL), Key(DATA_USAGE, DATA_USED))
-AR_KEY_DEVICE_NAME_LIST = ["nickName", "name", "mac"]
-AR_KEY_DEVICEMAP = "devicemap"
-AR_KEY_DEVICES = "get_clientlist"
-AR_KEY_DEVICES_LIST = "maclist"
 AR_KEY_HEADER = "HEADER"
 AR_KEY_LED = "led_val"
 AR_KEY_LEDG_COUNT = "ledg_count"
 AR_KEY_LEDG_SCHEME = "ledg_scheme"
 AR_KEY_LEDG_SCHEME_OLD = "ledg_scheme_old"
 AR_KEY_LEDG_RGB = "ledg_rgb{}"
-AR_KEY_NETWORK = "netdev"
-AR_KEY_NETWORK_GROUPS = {
-    "INTERNET": "WAN",  # main WAN
-    "INTERNET1": "USB",  # secondary WAN (USB modem / phone)
-    "WIRED": "WIRED",  # wired connections
-    "BRIDGE": "BRIDGE",  # bridge
-    "WIRELESS0": "WLAN0",  # 2.4 GHz WiFi
-    "WIRELESS1": "WLAN1",  # 5 GHz WiFi
-    "WIRELESS2": "WLAN2",  # 5 GHz WiFi #2 (<-- check)
-}
-AR_KEY_NETWORK_ITEM = "{}_{}"
-AR_KEY_OVPN = "{}{}_{}"  # client/server, id, type
-AR_KEY_OVPN_STATUS = (
-    Key("REMOTE", "remote", method=ovpn_remote_fom_str),
-    Key("Updated", "datetime", method=datetime_from_str),
-    Key("TUN/TAP read bytes", "tun_tap_read", method=int_from_str),
-    Key("TUN/TAP write bytes", "tun_tap_write", method=int_from_str),
-    Key("TCP/UDP read bytes", "tcp_udp_read", method=int_from_str),
-    Key("TCP/UDP write bytes", "tcp_udp_write", method=int_from_str),
-    Key("Auth read bytes", "auth_read", method=int_from_str),
-    Key("pre-compress bytes", "pre_compress", method=int_from_str),
-    Key("post-compress bytes", "post_compress", method=int_from_str),
-    Key("pre-decompress bytes", "pre_decompress", method=int_from_str),
-    Key("post-decompress bytes", "post_decompress", method=int_from_str),
-)
-AR_KEY_OVPN_STATUS_SERVER = (
-    Key("CLIENT_LIST", "client_list"),
-    Key("ROUTING_TABLE", "routing_table"),
-)
-AR_KEY_RAM = "memory_usage"
-AR_KEY_RAM_ITEM = "mem_{}"
-AR_KEY_RAM_LIST = [DATA_FREE, DATA_TOTAL, DATA_USED]
 AR_KEY_SERVICE_COMMAND = "rc_service"
 AR_KEY_SERVICE_MODIFY = "modify"
 AR_KEY_SERVICE_REPLY = "run_service"
-AR_KEY_VPN_CLIENT = "vpn_client"
-AR_KEY_VPN_SERVER = "vpn_server"
-AR_KEY_WAN = "wanlink_state"
-AR_KEY_WAN_STATE = (
-    Key("wanstate", "state"),
-    Key("wansbstate", "bstate"),
-    Key("wanauxstate", "aux"),
-    Key("autodet_state"),
-    Key("autodet_auxstate"),
-    Key("wanlink_status", "status", method=bool_from_any),
-    Key("wanlink_type", "ip_type"),
-    Key("wanlink_ipaddr", "ip"),
-    Key("wanlink_netmask", "mask"),
-    Key("wanlink_gateway", "gateway"),
-    Key("wanlink_dns", "dns"),
-    Key("wanlink_lease", "lease"),
-    Key("wanlink_expires", "expires"),
-    Key("is_private_subnet", "private_subnet", method=int_from_str),
-    Key("wanlink_xtype", "xtype"),
-    Key("wanlink_xipaddr", "xip"),
-    Key("wanlink_xnetmask", "xmask"),
-    Key("wanlink_xgateway", "xgateway"),
-    Key("wanlink_xdns", "xdns"),
-    Key("wanlink_xlease", "xlease"),
-    Key("wanlink_xexpires", "xexpires"),
-)
 
 AR_LEDG_MODE: dict[int, str] = {
     1: "Gradient",
@@ -644,25 +593,6 @@ AR_MAP_TEMPERATURE: dict[str, list[str]] = {
     ],
     "cpu": ['curr_cpuTemp="([0-9.]+)"', 'curr_coreTmp_cpu="([0-9.]+)"'],
 }
-AR_KEY_PARENTAL_CONTROL_STATE = "MULTIFILTER_ENABLE"
-AR_KEY_PARENTAL_CONTROL_NAME = "MULTIFILTER_DEVICENAME"
-AR_KEY_PARENTAL_CONTROL_MAC = "MULTIFILTER_MAC"
-AR_KEY_PARENTAL_CONTROL_TIMEMAP = "MULTIFILTER_MACFILTER_DAYTIME_V2"
-AR_MAP_PARENTAL_CONTROL: dict[str, str] = {
-    "MULTIFILTER_ENABLE": "enable",
-    "MULTIFILTER_DEVICENAME": "name",
-    "MULTIFILTER_MAC": "mac",
-    "MULTIFILTER_MACFILTER_DAYTIME_V2": "time",
-}
-AR_MAP_PARENTAL_CONTROL_STATE = {
-    "0": "disable",
-    "1": "time",
-    "2": "block",
-}
-AR_KEY_PARENTAL_CONTROL = Key(
-    "MULTIFILTER_ALL", "parental_control", method=bool_from_any
-)
-
 AR_PATH = {
     "apply": "apply.cgi",
     "command": "applyapp.cgi",
@@ -676,16 +606,7 @@ AR_PATH = {
     "state": "state.js",
 }
 
-AR_VPN_STATUS = {
-    -1: "error",
-    0: "disconnected",
-    1: "connecting",
-    2: "connected",
-}
-
 ### ASUSWRT SERVICES
-AR_HOOK_TEMPLATE = "{}({});"
-AR_HOOK_DEVICES = f"{AR_KEY_DEVICES}()"
 
 AR_FIRMWARE_CHECK_COMMAND = "firmware_check"
 AR_SERVICE_COMMAND: dict[str, str] = {
@@ -773,89 +694,6 @@ INTERFACE_TYPE = {
     "wl0_vifnames": "gwlan2",
     "wl1_vifnames": "gwlan5",
     "lan_ifnames": "lan",
-}
-
-NVRAM_TEMPLATE = {
-    "WLAN": [
-        Key("wl{}_auth_mode_x"),
-        Key("wl{}_bw"),
-        Key("wl{}_channel"),
-        Key("wl{}_chanspec"),
-        Key("wl{}_closed", method=bool_from_any),
-        Key("wl{}_country_code"),
-        Key("wl{}_crypto"),
-        Key("wl{}_gmode_check"),
-        Key("wl{}_maclist_x"),
-        Key("wl{}_macmode"),
-        Key("wl{}_mbo_enable"),
-        Key("wl{}_mfp"),
-        Key("wl{}_nmode_x"),
-        Key("wl{}_optimizexbox_ckb"),
-        Key("wl{}_radio", method=bool_from_any),
-        Key("wl{}_radius_ipaddr"),
-        Key("wl{}_radius_key"),
-        Key("wl{}_radius_port"),
-        Key("wl{}_ssid"),
-        Key("wl{}_wpa_gtk_rekey"),
-        Key("wl{}_wpa_psk"),
-    ],
-    "GWLAN": [
-        Key("wl{}_akm"),
-        Key("wl{}_ap_isolate"),
-        Key("wl{}_auth"),
-        Key("wl{}_auth_mode"),
-        Key("wl{}_auth_mode_x"),
-        Key("wl{}_bridge"),
-        Key("wl{}_bss_enabled", method=bool_from_any),
-        Key("wl{}_bss_maxassoc", method=int_from_str),
-        Key("wl{}_bw_dl", method=int_from_str),  # Bandwidth limit download
-        Key("wl{}_bw_enabled", method=bool_from_any),  # Bandwidth limit switch
-        Key("wl{}_bw_ul", method=int_from_str),  # Bandwidth limit upload
-        Key("wl{}_closed", method=bool_from_any),
-        Key("wl{}_crypto"),
-        Key("wl{}_expire", method=int_from_str),  # Expire time in s
-        Key("wl{}_expire_tmp", method=int_from_str),  # Expire time left in s
-        Key("wl{}_gn_wbl_enable"),
-        Key("wl{}_gn_wbl_rule"),
-        Key("wl{}_gn_wbl_type"),
-        Key("wl{}_hwaddr"),  # MAC address
-        Key("wl{}_ifname"),  # Interface name
-        Key("wl{}_infra"),
-        Key("wl{}_key"),
-        Key("wl{}_key1"),
-        Key("wl{}_key2"),
-        Key("wl{}_key3"),
-        Key("wl{}_key4"),
-        Key("wl{}_lanaccess", method=bool_from_any),  # LAN access
-        Key("wl{}_maclist"),
-        Key("wl{}_macmode"),
-        Key("wl{}_maxassoc", method=int_from_str),
-        Key("wl{}_mbss"),
-        Key("wl{}_mfp"),
-        Key("wl{}_mode"),
-        Key("wl{}_net_reauth", method=int_from_str),
-        Key("wl{}_preauth"),
-        Key("wl{}_radio", method=bool_from_any),
-        Key("wl{}_radius_ipaddr"),
-        Key("wl{}_radius_key"),
-        Key("wl{}_radius_port", method=int_from_str),
-        Key("wl{}_sae_anti_clog_threshold"),
-        Key("wl{}_sae_groups"),
-        Key("wl{}_sae_sync"),
-        Key("wl{}_ssid"),  # SSID
-        Key("wl{}_sta_retry_time"),
-        Key("wl{}_sync_node", method=bool_from_any),  # Sync AiMesh nodes
-        Key("wl{}_unit"),  # GWLAN unit id
-        Key("wl{}_wep", method=bool_from_any),
-        Key("wl{}_wep_x", method=bool_from_any),
-        Key("wl{}_wfi_enable", method=bool_from_any),
-        Key("wl{}_wfi_pinmode"),
-        Key("wl{}_wme"),
-        Key("wl{}_wme_bss_disable", method=bool_from_any),
-        Key("wl{}_wpa_gtk_rekey"),
-        Key("wl{}_wpa_psk"),  # Password
-        Key("wl{}_wps_mode"),
-    ],
 }
 
 NVRAM_LIST = {
@@ -1060,11 +898,6 @@ NVRAM_LIST = {
         "wl1.3_sync_mode",
     ],
 }
-
-PORT_TYPE = [
-    "LAN",
-    "WAN",
-]
 
 KEY_NVRAM_GET = "nvram_get"
 KEY_ACTION_MODE = "action_mode"

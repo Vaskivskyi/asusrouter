@@ -7,19 +7,11 @@ from typing import Any
 
 from asusrouter import FilterDevice
 from asusrouter.const import (
-    AR_DEFAULT_OVPN_CLIENTS,
-    AR_KEY_OVPN,
-    AR_KEY_PARENTAL_CONTROL_MAC,
-    AR_KEY_PARENTAL_CONTROL_NAME,
-    AR_KEY_PARENTAL_CONTROL_STATE,
-    AR_KEY_PARENTAL_CONTROL_TIMEMAP,
-    AR_KEY_VPN_CLIENT,
-    AR_MAP_PARENTAL_CONTROL_STATE,
     AR_MAP_RGB,
-    AR_VPN_STATUS,
     ENDHOOKS,
     ENDPOINT,
     ENDPOINT_ARGS,
+    ERRNO,
     ERROR_VALUE_TYPE,
     GWLAN,
     HOOK,
@@ -27,15 +19,17 @@ from asusrouter.const import (
     KEY_PARENTAL_CONTROL_NAME,
     KEY_PARENTAL_CONTROL_TIMEMAP,
     KEY_PARENTAL_CONTROL_TYPE,
-    KEY_VPN,
     MAP_NVRAM,
+    MAP_OVPN_STATUS,
     MAP_PARENTAL_CONTROL_TYPE,
     NVRAM_GET,
-    PARAM_ERRNO,
-    PARAM_STATE,
-    PARAM_STATUS,
-    PARAM_UNKNOWN,
     RANGE_GWLAN,
+    RANGE_OVPN_CLIENTS,
+    STATE,
+    STATUS,
+    UNKNOWN,
+    VPN,
+    VPN_CLIENT,
     WLAN,
     WLAN_TYPE,
 )
@@ -102,38 +96,26 @@ def vpn_from_devicemap(
     if not isinstance(vpn, dict):
         vpn = {}
 
-    if KEY_VPN in devicemap:
-        for num in range(1, AR_DEFAULT_OVPN_CLIENTS + 1):
-            key = f"{AR_KEY_VPN_CLIENT}{num}"
+    if VPN in devicemap:
+        for num in RANGE_OVPN_CLIENTS:
+            key = f"{VPN_CLIENT}{num}"
             if not key in vpn:
                 vpn[key] = {}
-            if (
-                AR_KEY_OVPN.format(AR_KEY_VPN_CLIENT, num, PARAM_STATE)
-                in devicemap[KEY_VPN]
-            ):
-                vpn[key][PARAM_STATUS] = int_from_str(
-                    devicemap[KEY_VPN][
-                        AR_KEY_OVPN.format(AR_KEY_VPN_CLIENT, num, PARAM_STATE)
-                    ]
+            if f"{VPN_CLIENT}{num}_{STATE}" in devicemap[VPN]:
+                vpn[key][STATUS] = int_from_str(
+                    devicemap[VPN][f"{VPN_CLIENT}{num}_{STATE}"]
                 )
-                if vpn[key][PARAM_STATUS] == 1 or vpn[key][PARAM_STATUS] == 2:
-                    vpn[key][PARAM_STATE] = True
+                if vpn[key][STATUS] == 1 or vpn[key][STATUS] == 2:
+                    vpn[key][STATE] = True
                 else:
-                    vpn[key][PARAM_STATE] = False
-                if vpn[key][PARAM_STATUS] in AR_VPN_STATUS:
-                    vpn[key][PARAM_STATUS] = AR_VPN_STATUS[vpn[key][PARAM_STATUS]]
+                    vpn[key][STATE] = False
+                if vpn[key][STATUS] in MAP_OVPN_STATUS:
+                    vpn[key][STATUS] = MAP_OVPN_STATUS[vpn[key][STATUS]]
                 else:
-                    vpn[key][
-                        PARAM_STATUS
-                    ] = f"{PARAM_UNKNOWN} ({vpn[key][PARAM_STATUS]})"
-            if (
-                AR_KEY_OVPN.format(AR_KEY_VPN_CLIENT, num, PARAM_ERRNO)
-                in devicemap[KEY_VPN]
-            ):
-                vpn[key][PARAM_ERRNO] = int_from_str(
-                    devicemap[KEY_VPN][
-                        AR_KEY_OVPN.format(AR_KEY_VPN_CLIENT, num, PARAM_ERRNO)
-                    ]
+                    vpn[key][STATUS] = f"{UNKNOWN} ({vpn[key][STATUS]})"
+            if f"{VPN_CLIENT}{num}_{ERRNO}" in devicemap[VPN]:
+                vpn[key][ERRNO] = int_from_str(
+                    devicemap[VPN][f"{VPN_CLIENT}{num}_{ERRNO}"]
                 )
 
     return vpn
