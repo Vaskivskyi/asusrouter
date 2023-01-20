@@ -25,16 +25,10 @@ from asusrouter.const import (
     ACTION_MODE,
     AIMESH,
     APPLY,
-    AR_KEY_AURARGB,
-    AR_KEY_LEDG_COUNT,
     AR_KEY_LEDG_RGB,
     AR_KEY_LEDG_SCHEME,
     AR_KEY_LEDG_SCHEME_OLD,
     AR_LEDG_MODE,
-    AR_PATH,
-    AR_SERVICE_COMMAND,
-    AR_SERVICE_CONTROL,
-    AR_SERVICE_DROP_CONNECTION,
     BOOTTIME,
     CLIENTS,
     CLIENTS_HISTORIC,
@@ -53,7 +47,6 @@ from asusrouter.const import (
     ENDPOINTS,
     ERRNO,
     ERROR_IDENTITY,
-    ERROR_SERVICE_UNKNOWN,
     ERROR_VALUE,
     ETHERNET_PORTS,
     FIRMWARE,
@@ -70,6 +63,7 @@ from asusrouter.const import (
     LAN,
     LED,
     LED_VAL,
+    LEDG,
     LIGHT,
     LINK_RATE,
     MAC,
@@ -82,8 +76,6 @@ from asusrouter.const import (
     MAP_PARENTAL_CONTROL_TYPE,
     MEMORY_USAGE,
     MONITOR_REQUIRE_CONST,
-    MSG_INFO,
-    MSG_SUCCESS,
     NAME,
     NETDEV,
     NETWORK,
@@ -235,7 +227,7 @@ class AsusRouter:
         if self._flag_reboot:
             await self.async_handle_reboot()
 
-    ### MAIN CONTROL -->
+    # MAIN CONTROL -->
 
     async def async_check_endpoint(self, endpoint: str) -> bool:
         """Check if endpoint exists"""
@@ -289,7 +281,7 @@ class AsusRouter:
     async def async_identify(self) -> None:
         """Identify the device"""
 
-        _LOGGER.debug(MSG_INFO["identifying"])
+        _LOGGER.debug("Identifying the device")
 
         # Compile
         query = []
@@ -348,33 +340,18 @@ class AsusRouter:
             self.monitor[endpoint].enabled = identity[ENDPOINTS][
                 endpoint
             ] = await self.async_check_endpoint(address)
-        identity["update_networkmapd"] = await self.async_check_endpoint(
-            endpoint=AR_PATH["networkmap"]
-        )
-
-        # NOT READY FOR USAGE -->
-        # Check RGBG / AURA
-        try:
-            data = await self.async_api_load(AR_PATH["rgb"])
-            if AR_KEY_AURARGB in data:
-                identity["aura"] = True
-            elif AR_KEY_LEDG_COUNT in data:
-                identity["ledg"] = True
-                self._ledg_count = parsers.ledg_count(data)
-        except AsusRouter404 as ex:
-            """Do nothing"""
-        # <-- NOT READY FOR USAGE
 
         # Save static values
         self._state_led = raw[LED_VAL]
 
+        # Save identity
         self._identity = AsusDevice(**identity)
 
-        _LOGGER.debug(MSG_SUCCESS["identity"])
+        _LOGGER.debug("Identity collected")
 
-    ### <-- MAIN CONTROL
+    # <-- MAIN CONTROL
 
-    ### API COMMUNICATIONS -->
+    # API COMMUNICATIONS -->
 
     async def async_api_command(
         self,
@@ -402,7 +379,7 @@ class AsusRouter:
 
         # Endpoint should be selected
         if endpoint is None:
-            _LOGGER.debug(MSG_INFO["empty_request"])
+            _LOGGER.debug("No endpoint selected")
             return {}
 
         # Process endpoint
@@ -418,14 +395,14 @@ class AsusRouter:
 
         # Check for errors during API call
         if self.connection.error:
-            _LOGGER.debug(MSG_INFO["error_flag"])
+            _LOGGER.debug("Error flag found. Fixing")
             await self._async_handle_error()
 
         return result
 
-    ### <-- API COMMUNICATIONS
+    # <-- API COMMUNICATIONS
 
-    ### MONITORS -->
+    # MONITORS -->
 
     async def async_monitor(self, endpoint: str) -> None:
         """Monitor an endpoint"""
@@ -471,7 +448,7 @@ class AsusRouter:
         """Check whether monitor is available"""
 
         # Monitor does not exist
-        if not monitor in self.monitor:
+        if monitor not in self.monitor:
             _LOGGER.debug("Monitor `%s` does not exist", monitor)
             return False
 
@@ -489,11 +466,12 @@ class AsusRouter:
         now = datetime.utcnow()
         if (
             not self.monitor[monitor].ready
-            or not value in self.monitor[monitor]
+            or value not in self.monitor[monitor]
             or self._cache_time < (now - self.monitor[monitor].time).total_seconds()
         ):
             _LOGGER.debug(
-                "Value `%s` is not in cache yet by monitor `%s` or the caching time has already expired",
+                "Value `%s` is not in cache yet by monitor `%s` "
+                "or the caching time has already expired",
                 value,
                 monitor,
             )
@@ -520,7 +498,8 @@ class AsusRouter:
                     return True
                 if not retry and requirement in CONST_REQUIRE_MONITOR:
                     _LOGGER.debug(
-                        "Monitor `%s` requires constant `%s` to be found first. Initializing corresponding monitor",
+                        "Monitor `%s` requires constant `%s` to be found first. "
+                        "Initializing corresponding monitor",
                         monitor,
                         requirement,
                     )
@@ -549,7 +528,7 @@ class AsusRouter:
 
         return True
 
-    ### COMPILE MONITORS
+    # COMPILE MONITORS
 
     def _compile_monitor_nvram(self, wlan: list[str]) -> None:
         """Compile `nvram` monitor"""
@@ -563,7 +542,7 @@ class AsusRouter:
 
         _LOGGER.debug("Monitor NVRAM was compiled")
 
-    ### PROCESS MONITORS
+    # PROCESS MONITORS
 
     def _process_monitor_devicemap(self, raw: Any, time: datetime) -> dict[str, Any]:
         """Process data from `devicemap` endpoint"""
@@ -655,7 +634,7 @@ class AsusRouter:
         fw_current = self._identity.firmware
         fw_new = parsers.firmware_string(raw["webs_state_info"])
 
-        firmware["state"] = True if fw_current < fw_new else False
+        firmware[STATE] = fw_current < fw_new
         firmware["current"] = str(fw_current)
         firmware["available"] = str(fw_new)
 
@@ -714,7 +693,7 @@ class AsusRouter:
 
         # Network
         network = {}
-        ## Data in Bytes for traffic and bits/s for speeds
+        # Data in Bytes for traffic and bits/s for speeds
         if NETDEV in raw:
             # Calculate RX and TX from the HEX values.
             # If there is no current value, but there was one before, get it from storage.
@@ -734,7 +713,7 @@ class AsusRouter:
         elif self.monitor[MAIN].ready and NETWORK in self.monitor[MAIN]:
             network = self.monitor[MAIN][NETWORK]
 
-        if not USB in network and "dualwan" in self._identity.services:
+        if USB not in network and "dualwan" in self._identity.services:
             network[USB] = {}
         # Save constant
         constant = []
@@ -949,9 +928,9 @@ class AsusRouter:
             VPN: vpn,
         }
 
-    ### <-- MONITORS
+    # <-- MONITORS
 
-    ### TECHNICAL -->
+    # TECHNICAL -->
 
     async def _async_handle_error(self) -> None:
         """Actions to be taken on connection error"""
@@ -969,7 +948,7 @@ class AsusRouter:
         _LOGGER.debug("Initializing constant `%s`=`%s`", constant, value)
         self.constant[constant] = value
 
-    ### <-- TECHNICAL
+    # <-- TECHNICAL
 
     async def async_handle_reboot(self) -> None:
         """Actions to be taken on reboot"""
@@ -978,7 +957,7 @@ class AsusRouter:
 
         return
 
-    ### PROCESS DATA -->
+    # PROCESS DATA -->
 
     def _process_data_none(self, raw: dict[str, Any]) -> dict[str, Any]:
         """Don't process the data"""
@@ -1013,9 +992,9 @@ class AsusRouter:
 
         return raw
 
-    ### <-- PROCESS DATA
+    # <-- PROCESS DATA
 
-    ### RETURN DATA -->
+    # RETURN DATA -->
 
     async def async_get_data(
         self,
@@ -1082,11 +1061,6 @@ class AsusRouter:
             data=BOOTTIME, monitor=DEVICEMAP, use_cache=use_cache
         )
 
-    async def async_get_cpu(self, use_cache: bool = True) -> dict[str, float]:
-        """Return CPU data"""
-
-        return await self.async_get_data(data=CPU, monitor=MAIN, use_cache=use_cache)
-
     async def async_get_connected_devices(
         self, use_cache: bool = True
     ) -> dict[str, ConnectedDevice]:
@@ -1099,6 +1073,11 @@ class AsusRouter:
             use_cache=use_cache,
             process=self._process_data_connected_devices,
         )
+
+    async def async_get_cpu(self, use_cache: bool = True) -> dict[str, float]:
+        """Return CPU data"""
+
+        return await self.async_get_data(data=CPU, monitor=MAIN, use_cache=use_cache)
 
     async def async_get_devicemap(self, use_cache: bool = True) -> dict[str, Any]:
         """Return devicemap data"""
@@ -1189,9 +1168,9 @@ class AsusRouter:
 
         return await self.async_get_data(data=WLAN, monitor=NVRAM, use_cache=use_cache)
 
-    ### <-- RETURN DATA
+    # <-- RETURN DATA
 
-    ### APPLY -->
+    # APPLY -->
 
     # LED
     async def async_set_led(self, value: bool | int | str) -> bool:
@@ -1275,9 +1254,9 @@ class AsusRouter:
         # Apply new rules
         return await self.async_apply_parental_control_rules(current_rules)
 
-    ### <-- APPLY
+    # <-- APPLY
 
-    ### SERVICE -->
+    # SERVICE -->
 
     async def async_service_generic(
         self,
@@ -1313,15 +1292,16 @@ class AsusRouter:
 
         # Check for the run success
         if (
-            not SERVICE_REPLY in result
+            SERVICE_REPLY not in result
             or result[SERVICE_REPLY] != service
-            or not SERVICE_MODIFY in result
+            or SERVICE_MODIFY not in result
         ):
             raise AsusRouterServiceError(
-                f"Something went wrong running service `{service}`. Raw result is: {result}"
+                f"Something went wrong running service `{service}`."
+                f"Raw result is: {result}"
             )
         _LOGGER.debug(
-            "Service `%s` was run successfully with arguments `%s`. Result: %s",
+            "Service `%s` was run successfully" "with arguments`%s`. Result: %s",
             service,
             arguments,
             result,
@@ -1337,9 +1317,9 @@ class AsusRouter:
             return converters.bool_from_any(result[SERVICE_MODIFY])
         return True
 
-    ### <-- SERVICE
+    # <-- SERVICE
 
-    ### ALPHA / NOT READY -->
+    # ALPHA / NOT READY -->
 
     async def async_service_ledg_get(self) -> dict[str, Any] | None:
         """Return status of RGB LEDs in LEDG scheme"""
@@ -1379,7 +1359,7 @@ class AsusRouter:
         if self._ledg_count == 0:
             return False
 
-        if not mode in AR_LEDG_MODE:
+        if mode not in AR_LEDG_MODE:
             raise (AsusRouterValueError(ERROR_VALUE.format(mode)))
 
         # Check for the known state
@@ -1388,7 +1368,7 @@ class AsusRouter:
 
         colors = calculators.rgb(color)
         for num in range(1, self._ledg_count + 1):
-            if not num in colors:
+            if num not in colors:
                 if self._ledg_color and num in self._ledg_color:
                     colors[num] = self._ledg_color[num]
                 else:
@@ -1397,7 +1377,7 @@ class AsusRouter:
         color_to_set = compilers.rgb(colors)
 
         result = await self.async_api_load(
-            f"{AR_PATH['ledg']}?{AR_KEY_LEDG_SCHEME}={mode}&ledg_rgb={color_to_set}"
+            f"{ENDPOINT[LEDG]}?{AR_KEY_LEDG_SCHEME}" f"={mode}&ledg_rgb={color_to_set}"
         )
 
         if "statusCode" in result and int(result["statusCode"]) == 200:
@@ -1405,7 +1385,7 @@ class AsusRouter:
 
         return False
 
-    ### <-- ALPHA / NOT READY
+    # <-- ALPHA / NOT READY
 
     async def async_keep_state_led(self) -> bool:
         """Keep state of LEDs"""
