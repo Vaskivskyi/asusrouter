@@ -32,12 +32,19 @@ AR_API = [
     "AiHOMEAPILevel",
     "Httpd_AiHome_Ver",
 ]
+AR_ERROR_CODE = {
+    "authorization": 2,
+    "credentials": 3,
+    "try_again": 7,
+    "logout": 8,
+}
 
 ### VALUES
 ACTION_MODE = "action_mode"
 AIMESH = "aimesh"
 APPLY = "apply"
 APPOBJ = "appobj"
+AUTHORIZATION = "authorization"
 BLOCK = "block"
 BOOTTIME = "boottime"
 BRIDGE = "bridge"
@@ -47,18 +54,22 @@ COMMAND = "command"
 CONNECTION_TYPE = "connection_type"
 CPU = "cpu"
 CPU_USAGE = "cpu_usage"
+CREDENTIALS = "credentials"
 DATA = "data"
 DEVICEMAP = "devicemap"
 DIAG = "diag"
 DISABLE = "disable"
 DHCP = "dhcp"
 ENDPOINTS = "endpoints"
+ERROR_STATUS = "error_status"
 ERRNO = "errno"
 FIRMWARE = "firmware"
 FREE = "free"
 GUEST = "guest"
 GWLAN = "gwlan"
 HOOK = "hook"
+HTTP = "http"
+HTTPS = "https"
 INFO = "info"
 IP = "ip"
 ISO = "iso"
@@ -104,6 +115,7 @@ SERVICE_SET_LED = "start_ctrl_led"
 SIM = "sim"
 STATE = "state"
 STATUS = "status"
+SUCCESS = "success"
 SYS = "sys"
 SYSINFO = "sysinfo"
 TEMPERATURE = "temperature"
@@ -111,6 +123,7 @@ TIME = "time"
 TIMEMAP = "timemap"
 TIMESTAMP = "timestamp"
 TOTAL = "total"
+TRY_AGAIN = "try_again"
 TX = "tx"
 TYPE = "type"
 UNKNOWN = "unknown"
@@ -525,13 +538,6 @@ TRACK_SERVICES_LED = [
 ### ASUSWRT KEYS, MAPS AND VALUES
 AR_DEFAULT_LEDG = 8
 
-AR_ERROR = {
-    "authorisation": 2,
-    "credentials": 3,
-    "try_again": 7,
-    "logout": 8,
-}
-
 AR_KEY_AURARGB = "aurargb"
 AR_KEY_HEADER = "HEADER"
 AR_KEY_LED = "led_val"
@@ -657,47 +663,6 @@ ERROR_SERVICE_UNKNOWN = "Unknown service '{}' with mode '{}'"
 ERROR_VALUE = "Wrong value '{}' with original exception: {}"
 ERROR_VALUE_TYPE = "Wrong value '{}' of type {}"
 ERROR_ZERO_DIVISION = "Zero division allert: {}"
-
-MSG_ERROR = {
-    "authorisation": "Session is not authorised",
-    "cert_missing": "CA certificate is missing",
-    "command": "Error sending a command to {}. Exception: {}",
-    "credentials": "Wrong credentials",
-    "disabled_control": "Device is connected in no-control mode. Sending commands is blocked",
-    "disabled_monitor": "Device is connected in no-monitor mode. Sending hooks is blocked",
-    "token": "Cannot recieve a token from device",
-    "try_again": "Too many attempts",
-    "unknown": "Unknown error code {}",
-}
-MSG_INFO = {
-    "drop_connection_service": "Connection will be dropped on behalf of '{}' service",
-    "error_flag": "Error flag found",
-    "empty_reqquest": "This request is empty",
-    "identifying": "Identifying the device",
-    "json_fix": "Trying to fix JSON response",
-    "monitor_sleep": "Monitor {} is already active -> sleep",
-    "monitor_wakeup": "Monitor {} woke up -> closing",
-    "no_cert": "No certificate provided. Using trusted",
-    "no_cert_check": "Certificate won't be checked",
-    "reconnect": "Reconnecting",
-    "service": "Service '{}' was called with arguments '{}' successfully. Reply: {}",
-    "xml": "Data is in XML",
-}
-MSG_SUCCESS = {
-    "cert_found": "CA certificate found",
-    "command": "Command was sent successfully",
-    "hook": "Hook was sent successfully",
-    "identity": "Identity collected",
-    "load": "Page {} was loaded successfully",
-    "login": "Login successful",
-    "logout": "Logout successful",
-}
-MSG_WARNING = {
-    "disconnected": "Disconnected by the device while quering '{}' with payload '{}'. Everything should recover by itself. If this warning appears regularly, you might need to decrease the number of simultaneous connections to your device.",
-    "not_connected": "Not connected",
-    "refused": "Connection refused",
-}
-
 
 INTERFACE_TYPE = {
     "wan_ifnames": "wan",
