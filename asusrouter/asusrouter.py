@@ -42,6 +42,7 @@ from asusrouter.const import (
     BOOTTIME,
     CLIENTS,
     CLIENTS_HISTORIC,
+    COMMAND,
     CONNECTION_TYPE,
     CONST_REQUIRE_MONITOR,
     CONVERTERS,
@@ -107,6 +108,9 @@ from asusrouter.const import (
     RANGE_OVPN_CLIENTS,
     RSSI,
     RULES,
+    SERVICE_COMMAND,
+    SERVICE_MODIFY,
+    SERVICE_REPLY,
     SPEED_TYPES,
     STATE,
     STATUS,
@@ -236,7 +240,7 @@ class AsusRouter:
         """Check if endpoint exists"""
 
         try:
-            await self.connection.async_load(endpoint)
+            await self.async_api_load(endpoint)
             return True
         except AsusRouter404:
             return False
@@ -294,7 +298,7 @@ class AsusRouter:
         # Collect data
         message = compilers.nvram(query)
         try:
-            raw = await self.async_hook(message, force=True)
+            raw = await self.async_api_hook(message)
         except Exception as ex:
             raise AsusRouterIdentityError(
                 ERROR_IDENTITY.format(self._host, str(ex))
@@ -347,9 +351,10 @@ class AsusRouter:
             endpoint=AR_PATH["networkmap"]
         )
 
+        # NOT READY FOR USAGE -->
         # Check RGBG / AURA
         try:
-            data = await self.connection.async_load(AR_PATH["rgb"])
+            data = await self.async_api_load(AR_PATH["rgb"])
             if AR_KEY_AURARGB in data:
                 identity["aura"] = True
             elif AR_KEY_LEDG_COUNT in data:
@@ -357,6 +362,7 @@ class AsusRouter:
                 self._ledg_count = parsers.ledg_count(data)
         except AsusRouter404 as ex:
             """Do nothing"""
+        # <-- NOT READY FOR USAGE
 
         # Save static values
         self._status_led = raw[AR_KEY_LED]
@@ -367,7 +373,24 @@ class AsusRouter:
 
     ### <-- MAIN CONTROL
 
-    ### DATA PROCESSING -->
+    ### API COMMUNICATIONS -->
+
+    async def async_api_command(
+        self,
+        commands: dict[str, str] | None = None,
+        endpoint: str = ENDPOINT[COMMAND],
+    ) -> dict[str, Any]:
+        """Send a command to API"""
+
+        return await self.async_api_load(endpoint=endpoint, command=str(commands))
+
+    async def async_api_hook(self, hook: str | None = None) -> dict[str, Any]:
+        """Hook data from API"""
+
+        return await self.async_api_load(
+            endpoint=ENDPOINT[HOOK],
+            command=f"{HOOK}={hook}",
+        )
 
     async def async_api_load(
         self,
@@ -386,79 +409,20 @@ class AsusRouter:
             result = await self.connection.async_run_command(
                 command=command, endpoint=endpoint
             )
+        # HTTP 404 should be processed separately
+        except AsusRouter404 as ex:
+            raise AsusRouter404 from ex
         except Exception as ex:
             raise ex
 
-        return result
-
-    async def async_command(
-        self,
-        commands: dict[str, str] | None = None,
-        action_mode: str = DEFAULT_ACTION_MODE,
-        apply_to: str = AR_PATH["command"],
-    ) -> dict[str, Any]:
-        """Command device to run a service or set parameter"""
-
-        result = {}
-
-        request: dict = {
-            KEY_ACTION_MODE: action_mode,
-        }
-        if commands is not None:
-            for command in commands:
-                request[command] = commands[command]
-
-        try:
-            result = await self.connection.async_run_command(
-                command=str(request), endpoint=apply_to
-            )
-        except Exception as ex:
-            raise ex
-
-        return result
-
-    async def async_hook(
-        self, hook: str | None = None, force: bool = False
-    ) -> dict[str, Any]:
-        """Hook data from device"""
-
-        result = {}
-
-        if hook is None:
-            _LOGGER.debug(MSG_INFO["empty_request"])
-            return result
-
-        try:
-            result = await self.connection.async_run_command(command=f"{HOOK}={hook}")
-        except Exception as ex:
-            raise ex
-
-        # Check for errors during hook
+        # Check for errors during API call
         if self.connection.error:
             _LOGGER.debug(MSG_INFO["error_flag"])
             await self._async_handle_error()
 
         return result
 
-    async def async_load(self, page: str | None = None) -> dict[str, Any]:
-        """Return the data from the page"""
-
-        result = {}
-
-        if page is None:
-            _LOGGER.debug(MSG_INFO["empty_request"])
-            return result
-
-        try:
-            result = await self.connection.async_run_command(command="", endpoint=page)
-        except AsusRouter404 as ex:
-            raise ex
-        except Exception as ex:
-            raise ex
-
-        return result
-
-    ### <-- DATA PROCESSING
+    ### <-- API COMMUNICATIONS
 
     ### MONITORS -->
 
@@ -1220,7 +1184,7 @@ class AsusRouter:
         request = compilers.parental_control(rules)
         request[ACTION_MODE] = APPLY
 
-        return await self.async_service_run(
+        return await self.async_service_generic(
             service="restart_firewall",
             arguments=request,
         )
@@ -1276,50 +1240,64 @@ class AsusRouter:
 
     ### <-- APPLY
 
-    ### SERVICE RUN -->
+    ### SERVICE -->
 
-    async def async_service_run(
+    async def async_service_generic(
         self,
         service: str,
         arguments: dict[str, Any] | None = None,
         expect_modify: bool = True,
         drop_connection: bool = False,
     ) -> bool:
-        """Generic service to run"""
+        """Run generic service"""
 
+        # Generate commands
+        # Should include service name to run
+        # and default mode to apply changes
         commands = {
-            AR_KEY_SERVICE_COMMAND: service,
+            SERVICE_COMMAND: service,
         }
 
+        # Add arguments if any
         if arguments:
             commands.update(arguments)
 
+        # Try running the service command
         try:
-            result = await self.async_command(commands=commands)
+            result = await self.async_api_command(commands=commands)
         except AsusRouterServerDisconnectedError as ex:
-            # For services, that will block any further connections
             if drop_connection:
-                _LOGGER.debug(MSG_INFO["drop_connection_service"].format(service))
+                _LOGGER.debug(
+                    "Service `%s` requires dropping connection to the device", service
+                )
                 await self.async_drop_connection()
                 return True
-            else:
-                raise ex
+            raise ex
 
+        # Check for the run success
         if (
-            not AR_KEY_SERVICE_REPLY in result
-            or result[AR_KEY_SERVICE_REPLY] != service
-            or not AR_KEY_SERVICE_MODIFY in result
+            not SERVICE_REPLY in result
+            or result[SERVICE_REPLY] != service
+            or not SERVICE_MODIFY in result
         ):
-            raise AsusRouterServiceError(ERROR_SERVICE.format(service, result))
+            raise AsusRouterServiceError(
+                f"Something went wrong running service `{service}`. Raw result is: {result}"
+            )
+        _LOGGER.debug(
+            "Service `%s` was run successfully with arguments `%s`. Result: %s",
+            service,
+            arguments,
+            result,
+        )
 
-        _LOGGER.debug(MSG_INFO["service"].format(service, arguments, result))
-
+        # Check whether service(s) run requires additional actions
         services = service.split(";")
         if any(service in TRACK_SERVICES_LED for service in services):
             await self.async_keep_state_led()
 
+        # Return based on the expectations
         if expect_modify:
-            return converters.bool_from_any(result[AR_KEY_SERVICE_MODIFY])
+            return converters.bool_from_any(result[SERVICE_MODIFY])
         return True
 
     ### SERVICES -->
@@ -1336,7 +1314,7 @@ class AsusRouter:
         if target in AR_SERVICE_DROP_CONNECTION:
             drop_connection = True
 
-        return await self.async_service_run(
+        return await self.async_service_generic(
             service=service, drop_connection=drop_connection
         )
 
@@ -1344,7 +1322,7 @@ class AsusRouter:
         """Return status of the LEDs"""
 
         key = AR_KEY_LED
-        raw = await self.async_hook(compilers.nvram(key))
+        raw = await self.async_api_hook(compilers.nvram(key))
         if not converters.none_or_str(raw[key]):
             return None
         value = converters.bool_from_any(raw[key])
@@ -1360,7 +1338,7 @@ class AsusRouter:
         arguments = {
             AR_KEY_LED: converters.int_from_bool(value_to_set),
         }
-        result = await self.async_service_run(service=service, arguments=arguments)
+        result = await self.async_service_generic(service=service, arguments=arguments)
         if result:
             self._status_led = value_to_set
         return result
@@ -1374,7 +1352,7 @@ class AsusRouter:
         nvram.append(AR_KEY_LEDG_SCHEME)
         nvram.append(AR_KEY_LEDG_SCHEME_OLD)
 
-        data = await self.async_hook(compilers.nvram(nvram))
+        data = await self.async_api_hook(compilers.nvram(nvram))
 
         ledg = {}
         if AR_KEY_LEDG_SCHEME in data and data[AR_KEY_LEDG_SCHEME] != str():
@@ -1420,7 +1398,7 @@ class AsusRouter:
 
         color_to_set = compilers.rgb(colors)
 
-        result = await self.async_load(
+        result = await self.async_api_load(
             f"{AR_PATH['ledg']}?{AR_KEY_LEDG_SCHEME}={mode}&ledg_rgb={color_to_set}"
         )
 

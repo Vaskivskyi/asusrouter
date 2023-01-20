@@ -43,6 +43,7 @@ BOOTTIME = "boottime"
 BRIDGE = "bridge"
 CLIENTS = "clients"
 CLIENTS_HISTORIC = "clients_historic"
+COMMAND = "command"
 CONNECTION_TYPE = "connection_type"
 CPU = "cpu"
 CPU_USAGE = "cpu_usage"
@@ -89,6 +90,9 @@ RIP = "rip"
 RSSI = "rssi"
 RULES = "rules"
 RX = "rx"
+SERVICE_COMMAND = "rc_service"
+SERVICE_MODIFY = "modify"
+SERVICE_REPLY = "run_service"
 SIM = "sim"
 STATE = "state"
 STATUS = "status"
@@ -134,6 +138,7 @@ DELIMITER_PARENTAL_CONTROL_ITEM = "&#62"
 
 ### ENDPOINTS
 ENDPOINT = {
+    COMMAND: "applyapp.cgi",
     DEVICEMAP: "ajax_status.xml",
     ETHERNET_PORTS: "ajax_ethernet_ports.asp",
     FIRMWARE: "detect_firmware.asp",
