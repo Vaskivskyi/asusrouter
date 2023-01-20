@@ -37,6 +37,8 @@ AR_API = [
 ACTION_MODE = "action_mode"
 AIMESH = "aimesh"
 APPLY = "apply"
+APPOBJ = "appobj"
+BLOCK = "block"
 BOOTTIME = "boottime"
 BRIDGE = "bridge"
 CLIENTS = "clients"
@@ -47,6 +49,7 @@ CPU_USAGE = "cpu_usage"
 DATA = "data"
 DEVICEMAP = "devicemap"
 DIAG = "diag"
+DISABLE = "disable"
 DHCP = "dhcp"
 ENDPOINTS = "endpoints"
 ERRNO = "errno"
@@ -75,11 +78,13 @@ NVRAM = "nvram"
 NVRAM_GET = "nvram_get"
 ONBOARDING = "onboarding"
 ONLINE = "online"
+PARENTAL_CONTROL = "parental_control"
 PORT = "port"
 PORTS = "ports"
 QTN = "qtn"
 RAM = "ram"
 RSSI = "rssi"
+RULES = "rules"
 RX = "rx"
 SIM = "sim"
 STATE = "state"
@@ -87,9 +92,12 @@ STATUS = "status"
 SYS = "sys"
 SYSINFO = "sysinfo"
 TEMPERATURE = "temperature"
+TIME = "time"
+TIMEMAP = "timemap"
 TIMESTAMP = "timestamp"
 TOTAL = "total"
 TX = "tx"
+TYPE = "type"
 UNKNOWN = "unknown"
 UPDATE_CLIENTS = "update_clients"
 USAGE = "usage"
@@ -111,6 +119,16 @@ WLAN_6GHZ = "6ghz"
 ETHERNET_PORTS = "ethernet_ports"
 PORT_STATUS = "port_status"
 
+### Keys & delimiters
+KEY_PARENTAL_CONTROL_MAC = "MULTIFILTER_MAC"
+KEY_PARENTAL_CONTROL_NAME = "MULTIFILTER_DEVICENAME"
+KEY_PARENTAL_CONTROL_STATE = "MULTIFILTER_ALL"
+KEY_PARENTAL_CONTROL_TIMEMAP = "MULTIFILTER_MACFILTER_DAYTIME_V2"
+KEY_PARENTAL_CONTROL_TYPE = "MULTIFILTER_ENABLE"
+
+DELIMITER_PARENTAL_CONTROL_ITEM = "&#62"
+
+
 ### ENDPOINTS
 ENDPOINT = {
     DEVICEMAP: "ajax_status.xml",
@@ -128,14 +146,20 @@ ENDPOINT = {
 
 ENDHOOKS: dict[str, Any] = {
     MAIN: {
-        "cpu_usage": "appobj",
-        "memory_usage": "appobj",
-        "netdev": "appobj",
-        "wanlink_state": "appobj",
+        (CPU_USAGE, APPOBJ),
+        (MEMORY_USAGE, APPOBJ),
+        (NETDEV, APPOBJ),
+        (WANLINK_STATE, APPOBJ),
     },
     NVRAM: None,
+    PARENTAL_CONTROL: [
+        (NVRAM_GET, KEY_PARENTAL_CONTROL_MAC),
+        (NVRAM_GET, KEY_PARENTAL_CONTROL_NAME),
+        (NVRAM_GET, KEY_PARENTAL_CONTROL_STATE),
+        (NVRAM_GET, KEY_PARENTAL_CONTROL_TIMEMAP),
+        (NVRAM_GET, KEY_PARENTAL_CONTROL_TYPE),
+    ],
 }
-
 ENDPOINT_ARGS = {
     PORT_STATUS: {
         MAC: f"{NODE}_{MAC}",
@@ -311,6 +335,17 @@ MAP_OVPN_STATUS = {
     0: "disconnected",
     1: "connecting",
     2: "connected",
+}
+MAP_PARENTAL_CONTROL_ITEM: tuple[Key, ...] = (
+    Key(KEY_PARENTAL_CONTROL_MAC, MAC),
+    Key(KEY_PARENTAL_CONTROL_NAME, NAME),
+    Key(KEY_PARENTAL_CONTROL_TIMEMAP, TIMEMAP),
+    Key(KEY_PARENTAL_CONTROL_TYPE, TYPE, int_from_str),
+)
+MAP_PARENTAL_CONTROL_TYPE = {
+    0: DISABLE,
+    1: TIME,
+    2: BLOCK,
 }
 MAP_PORTS: tuple[Key, ...] = ()
 RANGE_CPU_CORES = range(1, 9)  # 8 cores from 1 to 8

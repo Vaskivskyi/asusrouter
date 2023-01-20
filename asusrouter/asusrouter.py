@@ -22,7 +22,9 @@ from asusrouter import (
     Monitor,
 )
 from asusrouter.const import (
+    ACTION_MODE,
     AIMESH,
+    APPLY,
     AR_DEVICE_IDENTITY,
     AR_KEY_AURARGB,
     AR_KEY_LED,
@@ -51,6 +53,7 @@ from asusrouter.const import (
     DEFAULT_ACTION_MODE,
     DEFAULT_CACHE_TIME,
     DEFAULT_SLEEP_TIME,
+    DELIMITER_PARENTAL_CONTROL_ITEM,
     DEVICEMAP,
     ENDHOOKS,
     ENDPOINT,
@@ -70,6 +73,9 @@ from asusrouter.const import (
     IP,
     ISO,
     KEY_ACTION_MODE,
+    KEY_PARENTAL_CONTROL_MAC,
+    KEY_PARENTAL_CONTROL_STATE,
+    KEY_PARENTAL_CONTROL_TYPE,
     KEY_WAN,
     LAN,
     LINK_RATE,
@@ -78,10 +84,13 @@ from asusrouter.const import (
     MAP_CONNECTED_DEVICE,
     MAP_NVRAM,
     MAP_OVPN_STATUS,
+    MAP_PARENTAL_CONTROL_ITEM,
+    MAP_PARENTAL_CONTROL_TYPE,
     MEMORY_USAGE,
     MONITOR_REQUIRE_CONST,
     MSG_INFO,
     MSG_SUCCESS,
+    NAME,
     NETDEV,
     NETWORK,
     NODE,
@@ -91,6 +100,7 @@ from asusrouter.const import (
     PARAM_COLOR,
     PARAM_COUNT,
     PARAM_MODE,
+    PARENTAL_CONTROL,
     PORT,
     PORT_STATUS,
     PORT_TYPES,
@@ -99,15 +109,18 @@ from asusrouter.const import (
     RANGE_GWLAN,
     RANGE_OVPN_CLIENTS,
     RSSI,
+    RULES,
     SPEED_TYPES,
     STATE,
     STATUS,
     SYS,
     SYSINFO,
     TEMPERATURE,
+    TIMEMAP,
     TIMESTAMP,
     TOTAL,
     TRACK_SERVICES_LED,
+    TYPE,
     UNKNOWN,
     UPDATE_CLIENTS,
     USB,
@@ -194,6 +207,7 @@ class AsusRouter:
             MAIN: self._process_monitor_main,
             NVRAM: self._process_monitor_nvram,
             ONBOARDING: self._process_monitor_onboarding,
+            PARENTAL_CONTROL: self._process_monitor_parental_control,
             PORT_STATUS: self._process_monitor_port_status,
             SYSINFO: self._process_monitor_sysinfo,
             TEMPERATURE: self._process_monitor_temperature,
@@ -842,6 +856,44 @@ class AsusRouter:
             CLIENTS: clients,
         }
 
+    def _process_monitor_parental_control(
+        self, raw: Any, time: datetime
+    ) -> dict[str, Any]:
+        """Process data from `parental control` endpoint"""
+
+        parental_control = {}
+
+        # State
+        parental_control[STATE] = None
+        if KEY_PARENTAL_CONTROL_STATE in raw:
+            parental_control[STATE] = converters.bool_from_any(
+                raw[KEY_PARENTAL_CONTROL_STATE]
+            )
+
+        # Rules
+        rules = {}
+
+        if raw.get(KEY_PARENTAL_CONTROL_MAC) != raw.get(KEY_PARENTAL_CONTROL_TYPE):
+            as_is = {}
+            for element in MAP_PARENTAL_CONTROL_ITEM:
+                temp = raw[element.value].split(DELIMITER_PARENTAL_CONTROL_ITEM)
+                as_is[element.get()] = []
+                for temp_element in temp:
+                    as_is[element.get()].append(element.method(temp_element))
+
+            number = len(as_is[MAC])
+            for i in range(0, number):
+                rules[as_is[MAC][i]] = FilterDevice(
+                    mac=as_is[MAC][i],
+                    name=as_is[NAME][i],
+                    type=MAP_PARENTAL_CONTROL_TYPE.get(as_is[TYPE][i], UNKNOWN),
+                    timemap=as_is[TIMEMAP][i],
+                )
+
+        parental_control[RULES] = rules.copy()
+
+        return {PARENTAL_CONTROL: parental_control}
+
     def _process_monitor_port_status(self, raw: Any, time: datetime) -> dict[str, Any]:
         """Process data from `port status` endpoint"""
 
@@ -1103,6 +1155,15 @@ class AsusRouter:
             data=NETWORK, monitor=MAIN, use_cache=use_cache
         )
 
+    async def async_get_parental_control(
+        self, use_cache: bool = True
+    ) -> dict[str, (int | float)]:
+        """Return parental control data"""
+
+        return await self.async_get_data(
+            data=PARENTAL_CONTROL, monitor=PARENTAL_CONTROL, use_cache=use_cache
+        )
+
     async def async_get_ports(
         self, use_cache: bool = True
     ) -> dict[str, dict[str, int]]:
@@ -1148,9 +1209,11 @@ class AsusRouter:
 
         return await self.async_get_data(data=WLAN, monitor=NVRAM, use_cache=use_cache)
 
-    ### NOT PROCESSED -->
+    ### <-- RETURN DATA
 
-    ### PARENTAL CONTROL -->
+    ### APPLY -->
+
+    # Parental control
     async def async_apply_parental_control_rules(
         self,
         rules: dict[str, FilterDevice],
@@ -1158,47 +1221,12 @@ class AsusRouter:
         """Apply parental control rules"""
 
         request = compilers.parental_control(rules)
-        request["action_mode"] = "apply"
+        request[ACTION_MODE] = APPLY
 
         return await self.async_service_run(
             service="restart_firewall",
             arguments=request,
         )
-
-    async def async_get_parental_control(self) -> dict[str, Any]:
-        """Return parental control status"""
-
-        # NVRAM values to check
-        nvram = []
-        nvram.append(AR_KEY_PARENTAL_CONTROL.value)
-        for value in AR_MAP_PARENTAL_CONTROL:
-            nvram.append(value)
-
-        data = await self.async_hook(compilers.nvram(nvram))
-        data = parsers.parental_control(data)
-
-        return data
-
-    async def async_get_parental_control_rules(
-        self,
-        macs: str | list[str] | None = None,
-    ) -> dict[str, FilterDevice]:
-        """Return parental control rules"""
-
-        pc: dict = await self.async_get_parental_control()
-        rules = pc.get("list", {})
-
-        # Return the full list if no device specified
-        if macs is None:
-            return rules
-
-        # Return only devices of interest
-        result = {}
-        macs = converters.as_list(macs)
-        for mac in macs:
-            if mac in rules:
-                result[mac] = rules[mac]
-        return result
 
     async def async_remove_parental_control_rules(
         self,
@@ -1212,22 +1240,22 @@ class AsusRouter:
         rules = [] if rules is None else converters.as_list(rules)
 
         # Get current rules
-        cr: dict = await self.async_get_parental_control_rules()
+        current_rules: dict = (await self.async_get_parental_control())[RULES]
 
         # Remove old rules for these MACs
         for mac in macs:
-            if mac in cr:
-                cr.pop(mac)
+            if mac in current_rules:
+                current_rules.pop(mac)
         for rule in rules:
-            if rule.mac in cr:
-                cr.pop(rule.mac)
+            if rule.mac in current_rules:
+                current_rules.pop(rule.mac)
 
         # Apply new rules
         if apply:
-            await self.async_apply_parental_control_rules(cr)
+            await self.async_apply_parental_control_rules(current_rules)
 
         # Return the new rules
-        return cr
+        return current_rules
 
     async def async_set_parental_control_rules(
         self,
@@ -1238,18 +1266,18 @@ class AsusRouter:
         rules = converters.as_list(rules)
 
         # Remove old rules for these MACs and get the rest of the list
-        cr = await self.async_remove_parental_control_rules(rules, apply=False)
+        current_rules = await self.async_remove_parental_control_rules(
+            rules, apply=False
+        )
 
         # Add new rules
         for rule in rules:
-            cr[rule.mac] = rule
+            current_rules[rule.mac] = rule
 
         # Apply new rules
-        return await self.async_apply_parental_control_rules(cr)
+        return await self.async_apply_parental_control_rules(current_rules)
 
-    ### <-- PARENTAL CONTROL
-
-    ### <-- RETURN DATA
+    ### <-- APPLY
 
     ### SERVICE RUN -->
 

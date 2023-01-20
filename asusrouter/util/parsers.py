@@ -49,6 +49,8 @@ from asusrouter.const import (
     ERROR_VALUE,
     ERROR_VALUE_TYPE,
     FIRMWARE,
+    KEY_PARENTAL_CONTROL_MAC,
+    KEY_PARENTAL_CONTROL_TYPE,
     MAP_CPU,
     MAP_NETWORK,
     ONBOARDING,
@@ -444,45 +446,6 @@ def aimesh_node(raw: dict[str, Any]) -> AiMeshDevice:
         level=level,
         config=raw.get("config"),
     )
-
-
-def parental_control(raw: dict[str, Any]) -> dict[str, Any]:
-    """Parental control parser"""
-
-    result = {}
-
-    result[AR_KEY_PARENTAL_CONTROL.get()] = AR_KEY_PARENTAL_CONTROL.method(
-        raw[AR_KEY_PARENTAL_CONTROL.value]
-    )
-
-    # If no rules are set
-    if raw.get(AR_KEY_PARENTAL_CONTROL_MAC) == raw.get(AR_KEY_PARENTAL_CONTROL_STATE):
-        result["list"] = {}
-        return result
-
-    list = {}
-
-    for el in raw:
-        raw[el] = raw[el].split("&#62")
-
-    size = len(raw["MULTIFILTER_MAC"])
-
-    for i in range(0, size):
-        device = FilterDevice(
-            mac=raw[AR_KEY_PARENTAL_CONTROL_MAC][i],
-            name=raw[AR_KEY_PARENTAL_CONTROL_NAME][i],
-            state=AR_MAP_PARENTAL_CONTROL_STATE.get(
-                raw[AR_KEY_PARENTAL_CONTROL_STATE][i], None
-            ),
-            timemap=raw[AR_KEY_PARENTAL_CONTROL_TIMEMAP][i]
-            if i < len(raw[AR_KEY_PARENTAL_CONTROL_TIMEMAP])
-            else "",
-        )
-        list[raw[AR_KEY_PARENTAL_CONTROL_MAC][i]] = device
-
-    result["list"] = list.copy()
-
-    return result
 
 
 def endpoint_update_clients(raw: str) -> dict[str, Any]:
