@@ -5,17 +5,17 @@ from __future__ import annotations
 from asusrouter.const import (
     CONST_PERCENTS,
     CONST_ZERO,
-    DATA_TOTAL,
-    DATA_USAGE,
-    DATA_USED,
+    TOTAL,
+    USAGE,
+    USED,
     DEFAULT_USAGE_DIGITS,
     ERROR_ZERO_DIVISION,
 )
 from asusrouter.error import AsusRouterValueError
 
 DEFAULT_USAGE_NONE = {
-    DATA_TOTAL: 0,
-    DATA_USED: 0,
+    TOTAL: 0,
+    USED: 0,
 }
 
 
@@ -62,9 +62,7 @@ def usage_in_dict(
 ) -> dict[str, (int | float)]:
     """Calculate usage in percents in a dictionary"""
 
-    after[DATA_USAGE] = usage(
-        after[DATA_USED], after[DATA_TOTAL], before[DATA_USED], before[DATA_TOTAL]
-    )
+    after[USAGE] = usage(after[USED], after[TOTAL], before[USED], before[TOTAL])
 
     return after
 

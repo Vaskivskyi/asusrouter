@@ -12,28 +12,8 @@ import xmltodict
 from dateutil.parser import parse as dtparse
 
 from asusrouter.const import (
-    AR_DEFAULT_CORES_RANGE,
     AR_DEFAULT_LEDG,
-    AR_DEFAULT_OVPN_CLIENTS,
-    AR_DEFAULT_OVPN_SERVERS,
-    AR_KEY_CPU_ITEM,
-    AR_KEY_CPU_LIST,
-    AR_KEY_DEVICEMAP,
     AR_KEY_HEADER,
-    AR_KEY_OVPN,
-    AR_KEY_OVPN_STATUS,
-    AR_KEY_OVPN_STATUS_SERVER,
-    AR_KEY_PARENTAL_CONTROL,
-    AR_KEY_PARENTAL_CONTROL_MAC,
-    AR_KEY_PARENTAL_CONTROL_NAME,
-    AR_KEY_PARENTAL_CONTROL_STATE,
-    AR_KEY_PARENTAL_CONTROL_TIMEMAP,
-    AR_KEY_RAM_ITEM,
-    AR_KEY_RAM_LIST,
-    AR_KEY_VPN_CLIENT,
-    AR_KEY_VPN_SERVER,
-    AR_KEY_WAN_STATE,
-    AR_MAP_PARENTAL_CONTROL_STATE,
     AR_MAP_RGB,
     AR_MAP_SYSINFO,
     AR_MAP_TEMPERATURE,
@@ -41,6 +21,7 @@ from asusrouter.const import (
     CONST_ZERO,
     CPU,
     DATA_ADD_SPEED,
+    DEVICEMAP,
     DEVICEMAP_BY_INDEX,
     DEVICEMAP_CLEAR,
     DEVICEMAP_GENERAL,
@@ -49,25 +30,35 @@ from asusrouter.const import (
     ERROR_VALUE,
     ERROR_VALUE_TYPE,
     FIRMWARE,
-    KEY_PARENTAL_CONTROL_MAC,
-    KEY_PARENTAL_CONTROL_TYPE,
+    IP,
     MAP_CPU,
     MAP_NETWORK,
+    MAP_OVPN_CLIENT,
+    MAP_OVPN_SERVER,
+    MAP_RAM,
+    MAP_WAN,
+    MEM,
     ONBOARDING,
     PARAM_IP,
     PARAM_RIP,
     PARAM_STATE,
     PARAM_STATUS,
     RANGE_CPU_CORES,
+    RANGE_OVPN_CLIENTS,
+    RANGE_OVPN_SERVERS,
     REGEX_VARIABLES,
+    RIP,
+    STATUS,
     SYSINFO,
     TOTAL,
     TRAFFIC_TYPE,
     UPDATE_CLIENTS,
     VALUES_TO_IGNORE,
     VPN,
+    VPN_CLIENT,
+    VPN_SERVER,
 )
-from asusrouter.dataclass import AiMeshDevice, FilterDevice, Firmware
+from asusrouter.dataclass import AiMeshDevice, Firmware
 from asusrouter.error import AsusRouterNotImplementedError, AsusRouterValueError
 from asusrouter.util import calculators, converters
 
@@ -77,15 +68,13 @@ _LOGGER = logging.getLogger(__name__)
 def cpu_cores(raw: dict[str, Any] | None = None) -> list[int]:
     """CPU cores parser"""
 
-    cores = list()
+    cores = []
 
     if raw is None:
         return cores
 
-    for i in AR_DEFAULT_CORES_RANGE:
-        if any(
-            AR_KEY_CPU_ITEM.format(i, data_type) in raw for data_type in AR_KEY_CPU_LIST
-        ):
+    for i in RANGE_CPU_CORES:
+        if any(f"{CPU}{i}_{data_type}" in raw for data_type in MAP_CPU):
             cores.append(i)
         else:
             break
@@ -131,14 +120,14 @@ def ram_usage(raw: dict[str, Any]) -> dict[str, Any]:
 
     ram = {}
 
-    for item in AR_KEY_RAM_LIST:
-        if AR_KEY_RAM_ITEM.format(item) in raw:
+    for item in MAP_RAM:
+        if f"{MEM}_{item.value}" in raw:
             try:
-                ram[item] = int(raw[AR_KEY_RAM_ITEM.format(item)])
+                ram[item.get()] = int(raw[f"{MEM}_{item.value}"])
             except ValueError as ex:
                 raise (
                     AsusRouterValueError(
-                        ERROR_VALUE.format(raw[AR_KEY_RAM_ITEM.format(item)], str(ex))
+                        ERROR_VALUE.format(raw[f"{MEM}_{item.value}"], str(ex))
                     )
                 ) from ex
 
@@ -212,7 +201,7 @@ def wan_state(raw: dict[str, Any]) -> dict[str, Any]:
 
     values = {}
 
-    for key in AR_KEY_WAN_STATE:
+    for key in MAP_WAN:
         if key.value in raw and raw[key.value] != str():
             try:
                 values[key.get()] = (
@@ -501,8 +490,8 @@ def xml(text: str) -> dict[str, Any]:
     """XML parser"""
 
     data = xmltodict.parse(text)
-    if AR_KEY_DEVICEMAP in data:
-        return devicemap(data[AR_KEY_DEVICEMAP])
+    if DEVICEMAP in data:
+        return devicemap(data[DEVICEMAP])
 
     return {}
 
@@ -518,7 +507,7 @@ def ovpn_client_status(raw: str) -> dict[str, Any]:
 
     values = {}
 
-    for key in AR_KEY_OVPN_STATUS:
+    for key in MAP_OVPN_CLIENT:
         if key.value in raw:
             value = re.search(f"{key.value},(.*?)(?=>)", raw)
             if value:
@@ -538,14 +527,14 @@ def ovpn_server_status(raw: str) -> dict[str, Any]:
 
     values = {}
 
-    for key in AR_KEY_OVPN_STATUS_SERVER:
+    for key in MAP_OVPN_SERVER:
         if key.value in raw:
             flag = False
             # Find headers
             header = re.search(f"{AR_KEY_HEADER},{key.value},(.*?)(?=>)", raw)
             if header:
                 keys_raw = header[1].split(",")
-                keys = list()
+                keys = []
                 for el in keys_raw:
                     keys.append(converters.to_snake_case(el))
                 flag = True
@@ -553,7 +542,7 @@ def ovpn_server_status(raw: str) -> dict[str, Any]:
             # Hide header
             raw = raw.replace(f"{AR_KEY_HEADER},{key.value},", "USED-")
 
-            values[key.get()] = list()
+            values[key.get()] = []
             # Find values
             while value := re.search(f"{key.value},(.*?)(?=>)", raw):
                 if not value:
@@ -661,12 +650,12 @@ def vpn_status(raw: str) -> dict[str, Any]:
     values = variables(raw)
 
     # Clients
-    for num in range(1, AR_DEFAULT_OVPN_CLIENTS + 1):
-        key = AR_KEY_OVPN.format(AR_KEY_VPN_CLIENT, num, PARAM_STATUS)
+    for num in RANGE_OVPN_CLIENTS:
+        key = f"{VPN_CLIENT}{num}_{STATUS}"
         if not key in values:
             break
 
-        vpn_id = AR_KEY_VPN_CLIENT + str(num)
+        vpn_id = VPN_CLIENT + str(num)
 
         if values[key] not in VALUES_TO_IGNORE:
             vpns[vpn_id] = ovpn_client_status(values[key])
@@ -675,21 +664,21 @@ def vpn_status(raw: str) -> dict[str, Any]:
             vpns[vpn_id] = {}
             vpns[vpn_id][PARAM_STATE] = False
 
-        key = AR_KEY_OVPN.format(AR_KEY_VPN_CLIENT, num, PARAM_IP)
+        key = f"{VPN_CLIENT}{num}_{IP}"
         if key in values and values[key] not in VALUES_TO_IGNORE:
             vpns[vpn_id][PARAM_IP] = values[key]
 
-        key = AR_KEY_OVPN.format(AR_KEY_VPN_CLIENT, num, PARAM_RIP)
+        key = f"{VPN_CLIENT}{num}_{RIP}"
         if key in values and values[key] not in VALUES_TO_IGNORE:
             vpns[vpn_id][PARAM_RIP] = values[key]
 
     # Servers
-    for num in range(1, AR_DEFAULT_OVPN_SERVERS + 1):
-        key = AR_KEY_OVPN.format(AR_KEY_VPN_SERVER, num, PARAM_STATUS)
+    for num in RANGE_OVPN_SERVERS:
+        key = f"{VPN_SERVER}{num}_{STATUS}"
         if not key in values:
             break
 
-        vpn_id = AR_KEY_VPN_SERVER + str(num)
+        vpn_id = VPN_SERVER + str(num)
 
         if values[key] not in VALUES_TO_IGNORE:
             vpns[vpn_id] = ovpn_server_status(values[key])
@@ -698,11 +687,11 @@ def vpn_status(raw: str) -> dict[str, Any]:
             vpns[vpn_id] = {}
             vpns[vpn_id][PARAM_STATE] = False
 
-        key = AR_KEY_OVPN.format(AR_KEY_VPN_SERVER, num, PARAM_IP)
+        key = f"{VPN_SERVER}{num}_{IP}"
         if key in values and values[key] not in VALUES_TO_IGNORE:
             vpns[vpn_id][PARAM_IP] = values[key]
 
-        key = AR_KEY_OVPN.format(AR_KEY_VPN_SERVER, num, PARAM_RIP)
+        key = f"{VPN_SERVER}{num}_{RIP}"
         if key in values and values[key] not in VALUES_TO_IGNORE:
             vpns[vpn_id][PARAM_RIP] = values[key]
 

@@ -25,19 +25,16 @@ from asusrouter.const import (
     ACTION_MODE,
     AIMESH,
     APPLY,
-    AR_DEVICE_IDENTITY,
     AR_KEY_AURARGB,
     AR_KEY_LED,
     AR_KEY_LEDG_COUNT,
     AR_KEY_LEDG_RGB,
     AR_KEY_LEDG_SCHEME,
     AR_KEY_LEDG_SCHEME_OLD,
-    AR_KEY_PARENTAL_CONTROL,
     AR_KEY_SERVICE_COMMAND,
     AR_KEY_SERVICE_MODIFY,
     AR_KEY_SERVICE_REPLY,
     AR_LEDG_MODE,
-    AR_MAP_PARENTAL_CONTROL,
     AR_PATH,
     AR_SERVICE_COMMAND,
     AR_SERVICE_CONTROL,
@@ -76,12 +73,12 @@ from asusrouter.const import (
     KEY_PARENTAL_CONTROL_MAC,
     KEY_PARENTAL_CONTROL_STATE,
     KEY_PARENTAL_CONTROL_TYPE,
-    KEY_WAN,
     LAN,
     LINK_RATE,
     MAC,
     MAIN,
     MAP_CONNECTED_DEVICE,
+    MAP_IDENTITY,
     MAP_NVRAM,
     MAP_OVPN_STATUS,
     MAP_PARENTAL_CONTROL_ITEM,
@@ -291,7 +288,7 @@ class AsusRouter:
 
         # Compile
         query = []
-        for item in AR_DEVICE_IDENTITY:
+        for item in MAP_IDENTITY:
             query.append(item)
 
         # Collect data
@@ -305,7 +302,7 @@ class AsusRouter:
 
         # Parse
         identity = {}
-        for item in AR_DEVICE_IDENTITY:
+        for item in MAP_IDENTITY:
             key = item.get()
             try:
                 data = item.method(raw[item.value]) if item.method else raw[item.value]
@@ -775,7 +772,7 @@ class AsusRouter:
             wan = parsers.wan_state(raw=raw[WANLINK_STATE])
         # Keep last data
         elif self.monitor[MAIN].ready and WAN in self.monitor[MAIN]:
-            wan = self.monitor[MAIN][KEY_WAN]
+            wan = self.monitor[MAIN][WAN]
 
         return {
             CPU: cpu,
