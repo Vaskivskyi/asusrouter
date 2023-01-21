@@ -598,7 +598,9 @@ def firmware_string(raw: str) -> Firmware:
 
     minor = int(string[2])
     build = int(string[3])
-    if string[4] and string[4].isdigit():
+    if not string[4]:
+        build_more = 0
+    elif string[4].isdigit():
         build_more = int(string[4])
     else:
         build_more = string[4]
