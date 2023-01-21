@@ -77,6 +77,7 @@ class Connection:
         self._drop: bool = False
 
         self._http = HTTPS if use_ssl else HTTP
+        self._ssl = use_ssl
 
         if self._port is None or self._port == 0:
             self._port = DEFAULT_PORT[self._http]
@@ -131,6 +132,7 @@ class Connection:
             async with self._session.post(
                 url=f"{self._http}://{self._host}:{self._port}/{endpoint}",
                 headers=self._headers,
+                ssl=self._ssl,
             ) as reply:
                 string_body = await reply.text()
                 if "404 Not Found" in string_body:
@@ -171,6 +173,7 @@ class Connection:
                 url=f"{self._http}://{self._host}:{self._port}/{endpoint}",
                 data=urllib.parse.quote(payload),
                 headers=headers,
+                ssl=self._ssl,
             ) as reply:
                 string_body = await reply.text()
                 if string_body == str():
@@ -229,12 +232,9 @@ class Connection:
             return json_body
 
         # Raise only if mute_flag not set
-        except (
-            aiohttp.ClientConnectorSSLError,
-            aiohttp.ClientConnectorCertificateError,
-        ) as ex:
+        except aiohttp.ClientSSLError as ex:
             if not self._mute_flag:
-                raise AsusRouterSSLError()
+                raise AsusRouterSSLError() from ex
         except (aiohttp.ServerTimeoutError, asyncio.TimeoutError) as ex:
             if not self._mute_flag:
                 raise AsusRouterConnectionTimeoutError() from ex
@@ -280,10 +280,13 @@ class Connection:
     async def async_connect(self, retry: bool = False) -> bool:
         """Start new connection to and get new auth token"""
 
+        _LOGGER.debug("Trying to connect")
+
         _success = False
         self._drop = False
 
         if self._session is None:
+            _LOGGER.debug("No client session provided. Starting a new session")
             self._session = aiohttp.ClientSession()
 
         auth = f"{self._username}:{self._password}".encode("ascii")
@@ -291,6 +294,7 @@ class Connection:
         payload = f"login_authorization={logintoken}"
         headers = {"user-agent": AR_USER_AGENT}
 
+        _LOGGER.debug("Sending connection request")
         response = await self.async_request(
             payload=payload, endpoint=ENDPOINT_LOGIN, headers=headers, retry=retry
         )
@@ -319,9 +323,12 @@ class Connection:
             _LOGGER.debug("Not connected")
         # Connected
         else:
-            result = await self.async_request("", ENDPOINT_LOGOUT, self._headers)
-            if SUCCESS not in result:
-                return False
+            try:
+                result = await self.async_request("", ENDPOINT_LOGOUT, self._headers)
+                if SUCCESS not in result:
+                    return False
+            except AsusRouterAuthorizationError:
+                _LOGGER.debug("Connection was already droped")
 
         # Clean up
         await self.async_cleanup()
@@ -336,6 +343,8 @@ class Connection:
 
     async def async_cleanup(self) -> None:
         """Cleanup after logout"""
+
+        _LOGGER.debug("Cleaning up")
 
         self._connected = False
         self._token = None
