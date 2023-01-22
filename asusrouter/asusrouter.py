@@ -737,6 +737,13 @@ class AsusRouter:
     def _process_monitor_nvram(self, raw: Any, time: datetime) -> dict[str, Any]:
         """Process data from `nvram` endpoint"""
 
+        # Check whether data was received before trying to parse it
+        if not raw:
+            return {
+                GWLAN: {},
+                WLAN: {},
+            }
+
         # WLAN
         wlan = {}
         dictionary = MAP_NVRAM.get(WLAN)
