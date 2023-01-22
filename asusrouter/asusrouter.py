@@ -1182,7 +1182,9 @@ class AsusRouter:
             LED_VAL: converters.int_from_bool(value_to_set),
         }
 
-        result = await self.async_service_generic_apply(service=service, arguments=arguments)
+        result = await self.async_service_generic_apply(
+            service=service, arguments=arguments
+        )
 
         if result:
             self._state_led = value_to_set
