@@ -189,9 +189,11 @@ class Firmware:
     build: int | None = None
     build_more: int | str | None = None
 
-    def __lt__(self, other: Firmware) -> bool:
+    def __lt__(self, other: Firmware | None) -> bool:
         """Define less-than"""
 
+        if not other:
+            return False
         if self.minor and other.minor and self.minor < other.minor:
             return True
         if self.build and other.build and self.build < other.build:

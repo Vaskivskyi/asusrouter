@@ -576,8 +576,11 @@ def firmware(raw: str) -> dict[str, Any]:
     return values
 
 
-def firmware_string(raw: str) -> Firmware:
+def firmware_string(raw: str) -> Firmware | None:
     """Firmware string parser"""
+
+    if raw == str():
+        return None
 
     if not isinstance(raw, str):
         raise AsusRouterValueError(ERROR_VALUE_TYPE.format(raw, type(raw)))

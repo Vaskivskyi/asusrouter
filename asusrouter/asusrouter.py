@@ -628,7 +628,7 @@ class AsusRouter:
         # Firmware
         firmware = raw
         fw_current = self._identity.firmware
-        fw_new = parsers.firmware_string(raw["webs_state_info"])
+        fw_new = parsers.firmware_string(raw["webs_state_info"]) or fw_current
 
         firmware[STATE] = fw_current < fw_new
         firmware["current"] = str(fw_current)
