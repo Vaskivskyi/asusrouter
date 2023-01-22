@@ -77,7 +77,7 @@ class Connection:
         self._drop: bool = False
 
         self._http = HTTPS if use_ssl else HTTP
-        self._ssl = use_ssl
+        self._ssl = False
 
         if self._port is None or self._port == 0:
             self._port = DEFAULT_PORT[self._http]
