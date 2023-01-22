@@ -1179,11 +1179,10 @@ class AsusRouter:
 
         service = SERVICE_SET_LED
         arguments = {
-            ACTION_MODE: APPLY,
             LED_VAL: converters.int_from_bool(value_to_set),
         }
 
-        result = await self.async_service_generic(service=service, arguments=arguments)
+        result = await self.async_service_generic_apply(service=service, arguments=arguments)
 
         if result:
             self._state_led = value_to_set
@@ -1197,9 +1196,8 @@ class AsusRouter:
         """Apply parental control rules"""
 
         request = compilers.parental_control(rules)
-        request[ACTION_MODE] = APPLY
 
-        return await self.async_service_generic(
+        return await self.async_service_generic_apply(
             service="restart_firewall",
             arguments=request,
         )
@@ -1315,6 +1313,27 @@ class AsusRouter:
         if expect_modify:
             return converters.bool_from_any(result[SERVICE_MODIFY])
         return True
+
+    async def async_service_generic_apply(
+        self,
+        service: str,
+        arguments: dict[str, Any] | None = None,
+        expect_modify: bool = True,
+        drop_connection: bool = False,
+    ) -> bool:
+        """Run generic service with apply"""
+
+        if not arguments:
+            arguments = {ACTION_MODE: APPLY}
+        else:
+            arguments[ACTION_MODE] = APPLY
+
+        return await self.async_service_generic(
+            service=service,
+            arguments=arguments,
+            expect_modify=expect_modify,
+            drop_connection=drop_connection,
+        )
 
     # <-- SERVICE
 
