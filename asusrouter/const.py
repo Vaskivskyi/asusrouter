@@ -57,6 +57,7 @@ CPU_USAGE = "cpu_usage"
 CREDENTIALS = "credentials"
 DATA = "data"
 DEVICEMAP = "devicemap"
+DEVICES = "devices"
 DIAG = "diag"
 DISABLE = "disable"
 DHCP = "dhcp"
@@ -181,6 +182,7 @@ ENDPOINT = {
 }
 
 ENDHOOKS: dict[str, Any] = {
+    DEVICES: [("get_clientlist", "")],
     LIGHT: [
         (NVRAM_GET, LED_VAL),
     ],

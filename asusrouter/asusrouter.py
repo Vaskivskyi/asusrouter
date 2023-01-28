@@ -42,6 +42,7 @@ from asusrouter.const import (
     DEFAULT_SLEEP_TIME,
     DELIMITER_PARENTAL_CONTROL_ITEM,
     DEVICEMAP,
+    DEVICES,
     ENDHOOKS,
     ENDPOINT,
     ENDPOINTS,
@@ -176,6 +177,9 @@ class AsusRouter:
         # Flags
         self._flag_reboot: bool = False
 
+        # Endpoint switch
+        self._endpoint_devices: str = UPDATE_CLIENTS
+
         """Connect"""
         self.connection = Connection(
             host=self._host,
@@ -191,6 +195,7 @@ class AsusRouter:
 
         self.monitor_method = {
             DEVICEMAP: self._process_monitor_devicemap,
+            DEVICES: self._process_monitor_devices,
             ETHERNET_PORTS: self._process_monitor_ethernet_ports,
             FIRMWARE: self._process_monitor_firmware,
             LIGHT: self._process_monitor_light,
@@ -339,6 +344,10 @@ class AsusRouter:
 
         # Save static values
         self._state_led = raw[LED_VAL]
+
+        # Define usable endpoints
+        if identity["firmware"].minor == 380:
+            self._endpoint_devices = DEVICES
 
         # Save identity
         self._identity = AsusDevice(**identity)
@@ -596,6 +605,21 @@ class AsusRouter:
             DEVICEMAP: devicemap,
             BOOTTIME: boottime,
             VPN: vpn,
+        }
+
+    def _process_monitor_devices(self, raw: Any, time: datetime) -> dict[str, Any]:
+        """Process data from `devices` endpoint"""
+
+        # Clients
+        clients = {}
+        if "get_clientlist" in raw:
+            data = raw["get_clientlist"]
+            for mac, description in data.items():
+                if converters.is_mac_address(mac):
+                    clients[mac] = description
+
+        return {
+            CLIENTS: clients,
         }
 
     def _process_monitor_ethernet_ports(
@@ -1076,7 +1100,7 @@ class AsusRouter:
 
         return await self.async_get_data(
             data=CLIENTS,
-            monitor=[UPDATE_CLIENTS, ONBOARDING],
+            monitor=[self._endpoint_devices, ONBOARDING],
             merge=Merge.ALL,
             use_cache=use_cache,
             process=self._process_data_connected_devices,
