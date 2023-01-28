@@ -19,7 +19,6 @@ categories:
   - title: "📦 Dependencies"
     labels: 
       - "dependencies"
-      - "build"
 
 template: |
   ## Changes
