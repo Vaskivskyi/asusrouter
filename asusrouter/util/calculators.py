@@ -24,29 +24,20 @@ def usage(
     current_total: (int | float),
     previous_used: (int | float) = CONST_ZERO,
     previous_total: (int | float) = CONST_ZERO,
-) -> float:
+) -> float | None:
     """Calculate usage in percents"""
 
-    if current_used == previous_used:
+    # Handle zero usage
+    if current_used == previous_used or current_total == previous_total:
         return CONST_ZERO
 
-    if current_total == previous_total:
-        raise AsusRouterValueError(
-            ERROR_ZERO_DIVISION.format("current_total == previous_total")
-        )
-
+    # Calculate change
     used = current_used - previous_used
     total = current_total - previous_total
 
-    if used < 0:
-        raise AsusRouterValueError(f"Usage cannot be negative, used = {used}")
-    if total < 0:
-        raise AsusRouterValueError(f"Usage cannot be negative, total = {total}")
-
-    if used > total:
-        raise AsusRouterValueError(
-            "Usage cannot be above 100%, used = {used}, total = {total}"
-        )
+    # Handle any wrong input
+    if used < 0 or total < 0 or used > total:
+        return None
 
     return round(
         CONST_PERCENTS
