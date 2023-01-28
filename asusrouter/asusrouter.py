@@ -958,6 +958,7 @@ class AsusRouter:
         """Actions to be taken on reboot"""
 
         await self.async_keep_state_led()
+        self._flag_reboot = False
 
         return
 
