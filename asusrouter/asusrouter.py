@@ -125,6 +125,7 @@ from asusrouter.const import (
     Merge,
 )
 from asusrouter.dataclass import AiMeshDevice, ConnectedDevice
+from asusrouter.error import AsusRouterDataProcessError
 from asusrouter.util import calculators, compilers, converters, parsers
 
 _LOGGER = logging.getLogger(__name__)
@@ -236,7 +237,7 @@ class AsusRouter:
         try:
             await self.async_api_load(endpoint)
             return True
-        except AsusRouter404:
+        except (AsusRouter404, AsusRouterDataProcessError):
             return False
 
     async def async_connect(self) -> bool:

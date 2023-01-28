@@ -58,7 +58,7 @@ from asusrouter.const import (
     VPN_SERVER,
 )
 from asusrouter.dataclass import AiMeshDevice, Firmware
-from asusrouter.error import AsusRouterValueError
+from asusrouter.error import AsusRouterDataProcessError, AsusRouterValueError
 from asusrouter.util import calculators, converters
 
 _LOGGER = logging.getLogger(__name__)
@@ -324,7 +324,11 @@ def sysinfo(raw: str) -> dict[str, Any]:
     raw = raw.replace("=", '":')
     raw = raw.replace(";", ',"')
     raw = '{"' + raw[:-2] + "}"
-    data = json.loads(raw)
+
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError as ex:
+        raise AsusRouterDataProcessError from ex
 
     result = {}
 
@@ -355,7 +359,11 @@ def onboarding(raw: str) -> dict[str, Any]:
     raw = raw.replace(";", ',"')
     raw = raw.replace("[0]", "")
     raw = '{"' + raw[:-2] + "}"
-    data = json.loads(raw)
+
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError as ex:
+        raise AsusRouterDataProcessError from ex
 
     return data
 
@@ -420,7 +428,10 @@ def endpoint_update_clients(raw: str) -> dict[str, Any]:
         .replace("fromNetworkmapd", '"fromNetworkmapd"')
         .replace("nmpClient ", '"nmpClient" ')
     )
-    return json.loads(data.encode().decode("utf-8-sig"))
+    try:
+        return json.loads(data.encode().decode("utf-8-sig"))
+    except json.JSONDecodeError as ex:
+        raise AsusRouterDataProcessError from ex
 
 
 def pseudo_json(text: str, page: str) -> dict[str, Any]:
@@ -460,7 +471,10 @@ def pseudo_json(text: str, page: str) -> dict[str, Any]:
         )
         return {}
 
-    return json.loads(data.encode().decode("utf-8-sig"))
+    try:
+        return json.loads(data.encode().decode("utf-8-sig"))
+    except json.JSONDecodeError as ex:
+        raise AsusRouterDataProcessError from ex
 
 
 def xml(text: str) -> dict[str, Any]:

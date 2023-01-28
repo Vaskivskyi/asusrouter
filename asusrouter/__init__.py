@@ -5,6 +5,7 @@ from .error import (
     AsusRouterAuthorizationError,
     AsusRouterConnectionError,
     AsusRouterConnectionTimeoutError,
+    AsusRouterDataProcessError,
     AsusRouterError,
     AsusRouterIdentityError,
     AsusRouterLoginBlockError,

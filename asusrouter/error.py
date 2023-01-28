@@ -76,6 +76,10 @@ class AsusRouterServiceError(AsusRouterError):
     """Error on calling a service"""
 
 
+class AsusRouterDataProcessError(AsusRouterError):
+    """Error on processing data"""
+
+
 class AsusRouterValueError(AsusRouterError, ValueError):
     """Invalid value received"""
 
