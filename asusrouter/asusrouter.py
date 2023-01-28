@@ -982,6 +982,10 @@ class AsusRouter:
     async def async_handle_reboot(self) -> None:
         """Actions to be taken on reboot"""
 
+        # Handle reboot as error
+        await self._async_handle_error()
+
+        # Recover LED state
         await self.async_keep_state_led()
         self._flag_reboot = False
 
