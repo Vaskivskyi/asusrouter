@@ -969,6 +969,9 @@ class AsusRouter:
             if monitor in self.monitor and data in self.monitor[monitor]:
                 self.monitor[monitor].pop(data)
 
+        # Clear error flag
+        await self.connection.async_reset_error()
+
         return
 
     def _init_constant(self, constant: str, value: Any) -> None:
