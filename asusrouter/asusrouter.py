@@ -897,6 +897,8 @@ class AsusRouter:
                         if key.get() != key.value:
                             data[port].pop(key.value)
                 ports[port_type][port_id] = data[port]
+        elif self.monitor[PORT_STATUS].ready and PORTS in self.monitor[PORT_STATUS]:
+            ports = self.monitor[PORT_STATUS][PORTS]
 
         return {
             PORTS: ports,
