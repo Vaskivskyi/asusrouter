@@ -860,17 +860,18 @@ class AsusRouter:
             USB: {},
             WAN: {},
         }
-        data = raw[f"{PORT}_{INFO}"][self._identity.mac]
-        for port in data:
-            port_type = PORT_TYPES.get(port[0])
-            port_id = converters.int_from_str(port[1:])
-            # Replace needed key/value pairs
-            for key in CONVERTERS[PORT_STATUS]:
-                if key.value in data[port]:
-                    data[port][key.get()] = key.method(data[port][key.value])
-                    if key.get() != key.value:
-                        data[port].pop(key.value)
-            ports[port_type][port_id] = data[port]
+        if f"{PORT}_{INFO}" in raw:
+            data = raw[f"{PORT}_{INFO}"][self._identity.mac]
+            for port in data:
+                port_type = PORT_TYPES.get(port[0])
+                port_id = converters.int_from_str(port[1:])
+                # Replace needed key/value pairs
+                for key in CONVERTERS[PORT_STATUS]:
+                    if key.value in data[port]:
+                        data[port][key.get()] = key.method(data[port][key.value])
+                        if key.get() != key.value:
+                            data[port].pop(key.value)
+                ports[port_type][port_id] = data[port]
 
         return {
             PORTS: ports,
