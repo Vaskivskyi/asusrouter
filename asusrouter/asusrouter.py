@@ -869,7 +869,7 @@ class AsusRouter:
                     mac=as_is[MAC][i],
                     name=as_is[NAME][i],
                     type=MAP_PARENTAL_CONTROL_TYPE.get(as_is[TYPE][i], UNKNOWN),
-                    timemap=as_is[TIMEMAP].get(i),
+                    timemap=as_is[TIMEMAP][i] if i < len(as_is[TIMEMAP]) else None,
                 )
 
         parental_control[RULES] = rules.copy()
