@@ -61,6 +61,8 @@ from asusrouter.const import (
     KEY_PARENTAL_CONTROL_MAC,
     KEY_PARENTAL_CONTROL_STATE,
     KEY_PARENTAL_CONTROL_TYPE,
+    KEY_PORT_FORWARDING_LIST,
+    KEY_PORT_FORWARDING_STATE,
     LAN,
     LED,
     LED_VAL,
@@ -89,6 +91,7 @@ from asusrouter.const import (
     PARAM_MODE,
     PARENTAL_CONTROL,
     PORT,
+    PORT_FORWARDING,
     PORT_STATUS,
     PORT_TYPES,
     PORTS,
@@ -124,7 +127,7 @@ from asusrouter.const import (
     WLAN_TYPE,
     Merge,
 )
-from asusrouter.dataclass import AiMeshDevice, ConnectedDevice
+from asusrouter.dataclass import AiMeshDevice, ConnectedDevice, PortForwarding
 from asusrouter.error import AsusRouterDataProcessError
 from asusrouter.util import calculators, compilers, converters, parsers
 
@@ -205,6 +208,7 @@ class AsusRouter:
             ONBOARDING: self._process_monitor_onboarding,
             PARENTAL_CONTROL: self._process_monitor_parental_control,
             PORT_STATUS: self._process_monitor_port_status,
+            PORT_FORWARDING: self._process_monitor_port_forwarding,
             SYSINFO: self._process_monitor_sysinfo,
             TEMPERATURE: self._process_monitor_temperature,
             UPDATE_CLIENTS: self._process_monitor_update_clients,
@@ -904,6 +908,45 @@ class AsusRouter:
             PORTS: ports,
         }
 
+    def _process_monitor_port_forwarding(
+        self, raw: Any, time: datetime
+    ) -> dict[str, Any]:
+        """Process data from `port forwarding` endpoint"""
+
+        port_forwarding = {}
+
+        # State
+        port_forwarding[STATE] = None
+        if KEY_PORT_FORWARDING_STATE in raw:
+            port_forwarding[STATE] = converters.bool_from_any(
+                raw[KEY_PORT_FORWARDING_STATE]
+            )
+
+        # Rules
+        if KEY_PORT_FORWARDING_LIST in raw:
+            rules = []
+            data = raw[KEY_PORT_FORWARDING_LIST]
+            rule_list = data.split("&#60")
+            for rule in rule_list:
+                if rule == str():
+                    continue
+                part = rule.split("&#62")
+                rules.append(
+                    PortForwarding(
+                        name=converters.none_or_any(part[0]),
+                        ip=part[2],
+                        port=converters.none_or_any(part[3]),
+                        protocol=part[4],
+                        ip_external=converters.none_or_any(part[5]),
+                        port_external=part[1],
+                    )
+                )
+            port_forwarding[RULES] = rules.copy()
+
+        return {
+            PORT_FORWARDING: port_forwarding,
+        }
+
     def _process_monitor_sysinfo(self, raw: Any, time: datetime) -> dict[str, Any]:
         """Process data from `sysinfo` endpoint"""
 
@@ -1165,6 +1208,13 @@ class AsusRouter:
             data=PARENTAL_CONTROL, monitor=PARENTAL_CONTROL, use_cache=use_cache
         )
 
+    async def async_get_port_forwarding(self, use_cache: bool = True) -> dict[str, Any]:
+        """Return port forwarding data"""
+
+        return await self.async_get_data(
+            data=PORT_FORWARDING, monitor=PORT_FORWARDING, use_cache=use_cache
+        )
+
     async def async_get_ports(
         self, use_cache: bool = True
     ) -> dict[str, dict[str, int]]:
@@ -1295,6 +1345,81 @@ class AsusRouter:
 
         # Apply new rules
         return await self.async_apply_parental_control_rules(current_rules)
+
+    # Port forwarding
+    async def async_apply_port_forwarding_rules(
+        self,
+        rules: list[PortForwarding],
+    ) -> bool:
+        """Apply port forwarding rules"""
+
+        request = compilers.port_forwarding(rules)
+
+        return await self.async_service_generic_apply(
+            service="restart_firewall",
+            arguments=request,
+        )
+
+    async def async_remove_port_forwarding_rules(
+        self,
+        ips: str | list[str] | None = None,
+        rules: PortForwarding | list[PortForwarding] | None = None,
+        apply: bool = True,
+    ) -> list[PortForwarding]:
+        """Remove port forwarding rules"""
+
+        ips = [] if ips is None else converters.as_list(ips)
+        rules = [] if rules is None else converters.as_list(rules)
+
+        # Get current rules
+        current_rules: list[PortForwarding] = (await self.async_get_port_forwarding())[
+            RULES
+        ]
+
+        # Remove all rules for these IPs
+        for ip in ips:
+            current_rules = [rule for rule in current_rules if rule.ip != ip]
+        # Remove exact rules
+        for rule_to_find in rules:
+            current_rules = [
+                rule
+                for rule in current_rules
+                if rule.ip != rule_to_find.ip
+                or rule.port_external != rule_to_find.port_external
+                or rule.protocol != rule_to_find.protocol
+                or (
+                    rule_to_find.ip_external is not None
+                    and rule.ip_external != rule_to_find.ip_external
+                )
+                or (rule_to_find.port is not None and rule.port != rule_to_find.port)
+            ]
+
+        # Apply new rules
+        if apply:
+            await self.async_apply_port_forwarding_rules(current_rules)
+
+        # Return the new rules
+        return current_rules
+
+    async def async_set_port_forwarding_rules(
+        self,
+        rules: PortForwarding | list[PortForwarding],
+    ) -> bool:
+        """Set port forwarding rules"""
+
+        rules = converters.as_list(rules)
+
+        # Get current rules
+        current_rules: list[PortForwarding] = (await self.async_get_port_forwarding())[
+            RULES
+        ]
+
+        # Add new rules
+        for rule in rules:
+            current_rules.append(rule)
+
+        # Apply new rules
+        return await self.async_apply_port_forwarding_rules(current_rules)
 
     # <-- APPLY
 

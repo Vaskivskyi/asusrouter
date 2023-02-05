@@ -25,6 +25,7 @@ from .dataclass import (
     Firmware,
     Key,
     Monitor,
+    PortForwarding,
 )
 from .connection import Connection
 from .asusrouter import AsusRouter
