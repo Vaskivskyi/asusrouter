@@ -220,3 +220,15 @@ class FilterDevice:
     name: str | None = None
     type: int | None = None
     timemap: str = DEFAULT_PARENTAL_CONTROL_TIMEMAP
+
+
+@dataclass(frozen=True)
+class PortForwarding:
+    """Port forwarding class"""
+
+    name: str | None = None
+    ip: str | None = None
+    port: str | None = None
+    protocol: str | None = None
+    ip_external: str | None = None
+    port_external: str | None = None

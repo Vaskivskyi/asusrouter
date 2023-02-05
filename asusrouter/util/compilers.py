@@ -19,6 +19,7 @@ from asusrouter.const import (
     KEY_PARENTAL_CONTROL_NAME,
     KEY_PARENTAL_CONTROL_TIMEMAP,
     KEY_PARENTAL_CONTROL_TYPE,
+    KEY_PORT_FORWARDING_LIST,
     MAP_NVRAM,
     MAP_OVPN_STATUS,
     MAP_PARENTAL_CONTROL_TYPE,
@@ -33,7 +34,7 @@ from asusrouter.const import (
     WLAN,
     WLAN_TYPE,
 )
-from asusrouter.dataclass import AsusDevice, ConnectedDevice
+from asusrouter.dataclass import AsusDevice, ConnectedDevice, PortForwarding
 from asusrouter.error import AsusRouterValueError
 
 from .converters import int_from_str
@@ -152,6 +153,21 @@ def parental_control(data: dict[str, FilterDevice]) -> dict[str, str]:
         KEY_PARENTAL_CONTROL_NAME: names,
         KEY_PARENTAL_CONTROL_TIMEMAP: timemaps,
         KEY_PARENTAL_CONTROL_TYPE: types,
+    }
+
+
+def port_forwarding(data: list[PortForwarding]) -> dict[str, str]:
+    """Compile port forwarding rules"""
+
+    if not isinstance(data, list):
+        raise AsusRouterValueError(ERROR_VALUE_TYPE.format(data, type(data)))
+
+    result = ""
+    for rule in data:
+        result += f"<{rule.name}>{rule.port_external}>{rule.ip}>{rule.port}>{rule.protocol}>{rule.ip_external}"
+
+    return {
+        KEY_PORT_FORWARDING_LIST: result,
     }
 
 
