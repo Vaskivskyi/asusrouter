@@ -901,6 +901,9 @@ class AsusRouter:
                         data[port][key.get()] = key.method(data[port][key.value])
                         if key.get() != key.value:
                             data[port].pop(key.value)
+                # Temporary solution for USB
+                if port_type == USB and DEVICES in data[port]:
+                    data[port][STATE] = True
                 ports[port_type][port_id] = data[port]
         elif self.monitor[PORT_STATUS].ready and PORTS in self.monitor[PORT_STATUS]:
             ports = self.monitor[PORT_STATUS][PORTS]
