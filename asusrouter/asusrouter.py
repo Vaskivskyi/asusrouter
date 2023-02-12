@@ -637,15 +637,16 @@ class AsusRouter:
             LAN: {},
             WAN: {},
         }
-        data = raw["portSpeed"]
-        for port in data:
-            port_type = port[0:3].lower()
-            port_id = converters.int_from_str(port[3:])
-            value = SPEED_TYPES.get(data[port])
-            ports[port_type][port_id] = {
-                STATE: converters.bool_from_any(value),
-                LINK_RATE: value,
-            }
+        if "portSpeed" in raw:
+            data = raw["portSpeed"]
+            for port in data:
+                port_type = port[0:3].lower()
+                port_id = converters.int_from_str(port[3:])
+                value = SPEED_TYPES.get(data[port])
+                ports[port_type][port_id] = {
+                    STATE: converters.bool_from_any(value),
+                    LINK_RATE: value,
+                }
 
         return {
             PORTS: ports,
