@@ -226,9 +226,9 @@ class FilterDevice:
 class PortForwarding:
     """Port forwarding class"""
 
-    name: str | None = None
-    ip: str | None = None
-    port: str | None = None
-    protocol: str | None = None
-    ip_external: str | None = None
-    port_external: str | None = None
+    name: str = str()
+    ip: str = str()
+    port: str = str()
+    protocol: str = str()
+    ip_external: str = str()
+    port_external: str = str()
