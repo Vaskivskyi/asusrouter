@@ -141,7 +141,7 @@ def parental_control(data: dict[str, FilterDevice]) -> dict[str, str]:
         macs += f"{data[rule].mac}>"
         names += f"{data[rule].name}>"
         types += f"{types_lib[data[rule].type]}>"
-        timemaps += f"{data[rule].timemap.replace('&#60', '<')}>"
+        timemaps += f"{data[rule].timemap.replace('&#60', '<') if data[rule].timemap is not None else ''}>"
 
     macs = macs[:-1]
     names = names[:-1]
