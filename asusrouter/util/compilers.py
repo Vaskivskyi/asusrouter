@@ -183,7 +183,6 @@ def port_forwarding(data: list[PortForwarding]) -> dict[str, str]:
         if rule.ip_external is not None and rule.ip_external != "None":
             ip_external = rule.ip_external
 
-
         result += f"<{name}>{port_external}>{ip}>{port}>{protocol}>{ip_external}>"
 
     return {

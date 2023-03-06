@@ -25,6 +25,16 @@ class Merge(str, Enum):
     ANY = "any"
 
 
+# GENERAL CONSTANTS
+ANOTHER = "another"
+AUTHORIZATION = "authorization"
+CAPTCHA = "captcha"
+CREDENTIALS = "credentials"
+LOGOUT = "logout"
+RESET_REQUIRED = "reset_required"
+TRY_AGAIN = "try_again"
+
+
 ### API VALUES
 AR_USER_AGENT = "asusrouter--DUTUtil-"
 AR_API = [
@@ -33,10 +43,13 @@ AR_API = [
     "Httpd_AiHome_Ver",
 ]
 AR_ERROR_CODE = {
-    "authorization": 2,
-    "credentials": 3,
-    "try_again": 7,
-    "logout": 8,
+    AUTHORIZATION: 2,
+    CREDENTIALS: 3,
+    TRY_AGAIN: 7,
+    LOGOUT: 8,
+    ANOTHER: 9,
+    CAPTCHA: 10,
+    RESET_REQUIRED: 11,
 }
 
 ### VALUES
@@ -44,7 +57,6 @@ ACTION_MODE = "action_mode"
 AIMESH = "aimesh"
 APPLY = "apply"
 APPOBJ = "appobj"
-AUTHORIZATION = "authorization"
 BLOCK = "block"
 BOOTTIME = "boottime"
 BRIDGE = "bridge"
@@ -54,7 +66,6 @@ COMMAND = "command"
 CONNECTION_TYPE = "connection_type"
 CPU = "cpu"
 CPU_USAGE = "cpu_usage"
-CREDENTIALS = "credentials"
 DATA = "data"
 DEVICEMAP = "devicemap"
 DEVICES = "devices"
@@ -83,7 +94,6 @@ LIGHT = "light"
 LINK_RATE = "link_rate"
 LOAD_AVG = "load_avg"
 LOGIN = "login"
-LOGOUT = "logout"
 MAC = "mac"
 MAIN = "main"
 MEM = "mem"
@@ -125,7 +135,6 @@ TIME = "time"
 TIMEMAP = "timemap"
 TIMESTAMP = "timestamp"
 TOTAL = "total"
-TRY_AGAIN = "try_again"
 TX = "tx"
 TYPE = "type"
 UNKNOWN = "unknown"
