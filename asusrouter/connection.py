@@ -24,10 +24,12 @@ from asusrouter import (
     AsusRouterSSLError,
 )
 from asusrouter.const import (
+    ANOTHER,
     AR_API,
     AR_ERROR_CODE,
     AR_USER_AGENT,
     AUTHORIZATION,
+    CAPTCHA,
     CREDENTIALS,
     DEFAULT_PORT,
     DEFAULT_SLEEP_CONNECTING,
@@ -40,8 +42,14 @@ from asusrouter.const import (
     HTTP,
     HTTPS,
     LOGOUT,
+    RESET_REQUIRED,
     SUCCESS,
     TRY_AGAIN,
+)
+from asusrouter.error import (
+    AsusRouterLoginAnotherError,
+    AsusRouterLoginCaptchaError,
+    AsusRouterResetRequiredError,
 )
 from asusrouter.util import converters, parsers
 
@@ -192,6 +200,9 @@ class Connection:
                     # Not authorized
                     if error_code == AR_ERROR_CODE[AUTHORIZATION]:
                         raise AsusRouterAuthorizationError("Session is not authorized")
+                    # Captcha required
+                    if error_code == AR_ERROR_CODE[CAPTCHA]:
+                        raise AsusRouterLoginCaptchaError("Device requires captcha")
                     # Wrong crerdentials
                     if error_code == AR_ERROR_CODE[CREDENTIALS]:
                         raise AsusRouterLoginError("Wrong credentials")
@@ -202,6 +213,16 @@ class Connection:
                             timeout=converters.int_from_str(
                                 json_body["remaining_lock_time"]
                             ),
+                        )
+                    # 10 wrong attempts - device blocked
+                    if error_code == AR_ERROR_CODE[RESET_REQUIRED]:
+                        raise AsusRouterResetRequiredError(
+                            "Device is blocked of the number of failed logins. Reset the device"
+                        )
+                    # Another user should log out
+                    if error_code == AR_ERROR_CODE[ANOTHER]:
+                        raise AsusRouterLoginAnotherError(
+                            "Another user should log out first"
                         )
                     # Loged out
                     if error_code == AR_ERROR_CODE[LOGOUT]:
