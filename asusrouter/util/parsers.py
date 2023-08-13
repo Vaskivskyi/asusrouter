@@ -599,36 +599,46 @@ def firmware_string(raw: str) -> Firmware | None:
     if not isinstance(raw, str):
         raise AsusRouterValueError(ERROR_VALUE_TYPE.format(raw, type(raw)))
 
-    string = re.match(
-        "^([39].?0.?0.?[46])?[_.]?([0-9]{3})[_.]?([0-9]+)[_.-]?([a-zA-Z0-9-_]+)?$", raw
+    pattern = (
+        r"^(?P<major>[39].?0.?0.?[46])?[_.]?"
+        r"(?P<minor>[0-9]{3})[_.]?"
+        r"(?P<build>[0-9]+)[_.-]?"
+        r"(?P<build_more>[a-zA-Z0-9-_]+)?$"
     )
-    if not string:
+    match = re.match(pattern, raw)
+    if not match:
         _LOGGER.warning(
             "Firmware version cannot be parsed. Please report this. The original FW string is: %s",
             raw,
         )
         return Firmware()
 
-    major = string[1]
-    if major and not "." in major and len(major) == 4:
-        major = major[0] + "." + major[1] + "." + major[2] + "." + major[3]
+    major = match.group("major") or "3.0.0.4"
+    major = (
+        major[0] + "." + major[1] + "." + major[2] + "." + major[3]
+        if major and not "." in major and len(major) == 4
+        else major
+    )
 
-    minor = int(string[2])
-    build = int(string[3])
-    if not string[4]:
-        build_more = 0
-    elif string[4].isdigit():
-        build_more = int(string[4])
-    else:
-        build_more = string[4]
+    minor = int(match.group("minor"))
+
+    build = int(match.group("build"))
+
+    build_more = match.group("build_more")
+    build_more = (
+        int(build_more)
+        if build_more and build_more.isdigit()
+        else build_more
+        if build_more
+        else 0
+    )
 
     fw = Firmware(
+        major=major,
         minor=minor,
         build=build,
         build_more=build_more,
     )
-    if major:
-        fw.major = major
 
     return fw
 

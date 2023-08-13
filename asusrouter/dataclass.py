@@ -192,19 +192,30 @@ class Firmware:
     def __lt__(self, other: Firmware | None) -> bool:
         """Define less-than"""
 
-        if not other:
-            return False
-        if self.minor and other.minor and self.minor < other.minor:
-            return True
-        if self.build and other.build and self.build < other.build:
-            return True
-        if (
-            isinstance(self.build_more, int)
-            and type(self.build_more) is type(other.build_more)
-            and self.build_more < other.build_more
-        ):
-            return True
-        return False
+        result = False
+
+        if other:
+            if self.major and other.major:
+                # Check if the first character of either major version is the same
+                if self.major[0] == other.major[0]:
+                    # Split the major versions into lists of integers
+                    major1 = [int(x) for x in self.major.split('.')]
+                    major2 = [int(x) for x in other.major.split('.')]
+                    # Compare the major versions
+                    if major1 < major2:
+                        result = True
+                    # Proceed only if major is the same for both
+                    elif major1 == major2:
+                        if (
+                            (self.minor and other.minor and self.minor < other.minor)
+                            or (self.build and other.build and self.build < other.build)
+                            or (isinstance(self.build_more, int)
+                                and type(self.build_more) is type(other.build_more)
+                                and self.build_more < other.build_more)
+                            ):
+                                result = True
+
+        return result
 
     def __str__(self) -> str:
         """Define string"""
