@@ -6,6 +6,8 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Callable
 
+import asyncio
+
 from asusrouter.util.converters import none_or_any, none_or_str
 
 DEFAULT_PARENTAL_CONTROL_TIMEMAP = "W03E21000700<W04122000800"
@@ -152,16 +154,19 @@ class Monitor(dict):
     time: datetime | None = None
     ready: bool = True
     enabled: bool = True
+    inactive_event: asyncio.Event = asyncio.Event()
 
     def start(self) -> None:
         """Set to active"""
 
         self.active = True
+        self.inactive_event.clear()
 
     def stop(self) -> None:
         """Set to not-active"""
 
         self.active = False
+        self.inactive_event.set()
 
     def reset(self) -> None:
         """Reset time to utcnow"""
@@ -199,8 +204,8 @@ class Firmware:
                 # Check if the first character of either major version is the same
                 if self.major[0] == other.major[0]:
                     # Split the major versions into lists of integers
-                    major1 = [int(x) for x in self.major.split('.')]
-                    major2 = [int(x) for x in other.major.split('.')]
+                    major1 = [int(x) for x in self.major.split(".")]
+                    major2 = [int(x) for x in other.major.split(".")]
                     # Compare the major versions
                     if major1 < major2:
                         result = True
@@ -209,11 +214,13 @@ class Firmware:
                         if (
                             (self.minor and other.minor and self.minor < other.minor)
                             or (self.build and other.build and self.build < other.build)
-                            or (isinstance(self.build_more, int)
+                            or (
+                                isinstance(self.build_more, int)
                                 and type(self.build_more) is type(other.build_more)
-                                and self.build_more < other.build_more)
-                            ):
-                                result = True
+                                and self.build_more < other.build_more
+                            )
+                        ):
+                            result = True
 
         return result
 

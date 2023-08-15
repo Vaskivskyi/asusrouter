@@ -31,105 +31,59 @@ from asusrouter.const import (
     AR_LEDG_MODE,
     BOOTTIME,
     CLIENTS,
-    CLIENTS_HISTORIC,
     COMMAND,
-    CONNECTION_TYPE,
     CONST_REQUIRE_MONITOR,
-    CONVERTERS,
     CPU,
-    CPU_USAGE,
     DEFAULT_CACHE_TIME,
-    DEFAULT_SLEEP_TIME,
-    DELIMITER_PARENTAL_CONTROL_ITEM,
+    DEFAULT_TIMEOUT,
     DEVICEMAP,
     DEVICES,
     ENDHOOKS,
     ENDPOINT,
     ENDPOINTS,
-    ERRNO,
     ERROR_IDENTITY,
     ERROR_VALUE,
     ETHERNET_PORTS,
     FIRMWARE,
-    GUEST,
     GWLAN,
     HD_DATA,
     HOOK,
-    INFO,
-    IP,
-    ISO,
-    KEY_PARENTAL_CONTROL_MAC,
-    KEY_PARENTAL_CONTROL_STATE,
-    KEY_PARENTAL_CONTROL_TYPE,
-    KEY_PORT_FORWARDING_LIST,
-    KEY_PORT_FORWARDING_STATE,
-    LAN,
     LED,
     LED_VAL,
     LEDG,
     LIGHT,
-    LINK_RATE,
-    MAC,
     MAIN,
-    MAP_CONNECTED_DEVICE,
     MAP_IDENTITY,
-    MAP_NVRAM,
-    MAP_OVPN_STATUS,
-    MAP_PARENTAL_CONTROL_ITEM,
-    MAP_PARENTAL_CONTROL_TYPE,
-    MEMORY_USAGE,
     MONITOR_REQUIRE_CONST,
-    NAME,
-    NETDEV,
     NETWORK,
-    NODE,
     NVRAM,
     ONBOARDING,
-    ONLINE,
     PARAM_COLOR,
     PARAM_COUNT,
     PARAM_MODE,
     PARENTAL_CONTROL,
-    PORT,
     PORT_FORWARDING,
     PORT_STATUS,
-    PORT_TYPES,
     PORTS,
     RAM,
-    RANGE_GWLAN,
-    RANGE_OVPN_CLIENTS,
-    RSSI,
     RULES,
     SERVICE_COMMAND,
     SERVICE_MODIFY,
     SERVICE_REPLY,
     SERVICE_SET_LED,
-    SPEED_TYPES,
-    STATE,
-    STATUS,
-    SYS,
     SYSINFO,
     TEMPERATURE,
-    TIMEMAP,
-    TIMESTAMP,
-    TOTAL,
     TRACK_SERVICES_LED,
-    TYPE,
-    UNKNOWN,
     UPDATE_CLIENTS,
-    USB,
-    USED,
     VPN,
-    VPN_CLIENT,
     WAN,
-    WANLINK_STATE,
     WLAN,
     WLAN_TYPE,
     Merge,
 )
 from asusrouter.dataclass import AiMeshDevice, ConnectedDevice, PortForwarding
 from asusrouter.error import AsusRouterDataProcessError
-from asusrouter.util import calculators, compilers, converters, parsers
+from asusrouter.util import calculators, compilers, converters, parsers, process
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -199,20 +153,20 @@ class AsusRouter:
 
         self.monitor_method = {
             DEVICEMAP: self._process_monitor_devicemap,
-            DEVICES: self._process_monitor_devices,
-            ETHERNET_PORTS: self._process_monitor_ethernet_ports,
+            DEVICES: process.monitor_devices,
+            ETHERNET_PORTS: process.monitor_ethernet_ports,
             FIRMWARE: self._process_monitor_firmware,
-            LIGHT: self._process_monitor_light,
+            LIGHT: process.monitor_light,
             MAIN: self._process_monitor_main,
             NVRAM: self._process_monitor_nvram,
-            ONBOARDING: self._process_monitor_onboarding,
-            PARENTAL_CONTROL: self._process_monitor_parental_control,
+            ONBOARDING: process.monitor_onboarding,
+            PARENTAL_CONTROL: process.monitor_parental_control,
             PORT_STATUS: self._process_monitor_port_status,
-            PORT_FORWARDING: self._process_monitor_port_forwarding,
-            SYSINFO: self._process_monitor_sysinfo,
-            TEMPERATURE: self._process_monitor_temperature,
-            UPDATE_CLIENTS: self._process_monitor_update_clients,
-            VPN: self._process_monitor_vpn,
+            PORT_FORWARDING: process.monitor_port_forwarding,
+            SYSINFO: process.monitor_sysinfo,
+            TEMPERATURE: process.monitor_temperature,
+            UPDATE_CLIENTS: process.monitor_update_clients,
+            VPN: process.monitor_vpn,
         }
 
     def _init_monitor_requirements(self) -> None:
@@ -244,15 +198,20 @@ class AsusRouter:
         except (AsusRouter404, AsusRouterDataProcessError):
             return False
 
+    async def _handle_exception(self, ex: Exception) -> None:
+        """Handle exceptions raised by the connection methods."""
+
+        raise ex
+
     async def async_connect(self) -> bool:
         """Connect to the device"""
 
         try:
             await self.connection.async_connect()
-        except Exception as ex:
-            raise ex
+        except Exception as ex:  # pylint: disable=broad-except
+            await self._handle_exception(ex)
 
-        await self.async_identify()
+        await self._async_identify()
 
         return True
 
@@ -261,8 +220,8 @@ class AsusRouter:
 
         try:
             await self.connection.async_disconnect()
-        except Exception as ex:
-            raise ex
+        except Exception as ex:  # pylint: disable=broad-except
+            await self._handle_exception(ex)
 
         return True
 
@@ -271,28 +230,41 @@ class AsusRouter:
 
         try:
             await self.connection.async_drop_connection()
-        except Exception as ex:
-            raise ex
+        except Exception as ex:  # pylint: disable=broad-except
+            await self._handle_exception(ex)
 
         return True
+
+    # <-- MAIN CONTROL
+
+    # DEVICE IDENTITY -->
 
     async def async_get_identity(self, force: bool = False) -> AsusDevice:
         """Return device identity"""
 
         if not self._identity or force:
-            await self.async_identify()
+            await self._async_identify()
 
         return self._identity
 
-    async def async_identify(self) -> None:
+    async def _async_identify(self) -> None:
         """Identify the device"""
 
         _LOGGER.debug("Identifying the device")
 
+        # Collect data
+        raw = await self._async_collect_identity()
+
+        # Parse and save identity
+        self._identity = await self._async_parse_identity(raw)
+
+        _LOGGER.debug("Identity collected")
+
+    async def _async_collect_identity(self) -> dict:
+        """Collect identity-related data from the router's API"""
+
         # Compile
-        query = []
-        for item in MAP_IDENTITY:
-            query.append(item)
+        query = list(MAP_IDENTITY)
 
         # Collect data
         message = compilers.nvram(query)
@@ -303,42 +275,15 @@ class AsusRouter:
                 ERROR_IDENTITY.format(self._host, str(ex))
             ) from ex
 
-        # Parse
-        identity = {}
-        for item in MAP_IDENTITY:
-            key = item.get()
-            try:
-                data = item.method(raw[item.value]) if item.method else raw[item.value]
-                if key in identity:
-                    if isinstance(identity[key], list):
-                        identity[key].extend(data)
-                    else:
-                        identity[key] = data
-                else:
-                    identity[key] = data
-            except Exception as ex:
-                raise AsusRouterIdentityError(
-                    ERROR_IDENTITY.format(self._host, str(ex))
-                ) from ex
+        return raw
 
-        # Mac (for some Merlin devices missing label_mac)
-        if identity["mac"] is None or identity["mac"] == str():
-            if identity["lan_mac"] is not None:
-                identity["mac"] = identity["lan_mac"]
-            elif identity["wan_mac"] is not None:
-                identity["mac"] = identity["wan_mac"]
+    async def _async_parse_identity(self, raw: dict) -> AsusDevice:
+        """Parse identity-related data from the router's API"""
 
-        identity.pop("lan_mac")
-        identity.pop("wan_mac")
+        # Process static data
+        identity = process.device_identity(raw, self._host)
 
-        # Firmware
-        identity["firmware"] = parsers.firmware_string(
-            f"{identity['fw_major']}.{identity['fw_minor']}.{identity['fw_build']}"
-        )
-        identity.pop("fw_major")
-        identity.pop("fw_minor")
-        identity.pop("fw_build")
-
+        # Process dynamic data
         identity[ENDPOINTS] = {}
 
         # Check by page
@@ -354,12 +299,9 @@ class AsusRouter:
         if identity["firmware"].minor == 380:
             self._endpoint_devices = DEVICES
 
-        # Save identity
-        self._identity = AsusDevice(**identity)
+        return AsusDevice(**identity)
 
-        _LOGGER.debug("Identity collected")
-
-    # <-- MAIN CONTROL
+    # <-- DEVICE IDENTITY
 
     # API COMMUNICATIONS -->
 
@@ -424,7 +366,7 @@ class AsusRouter:
         if not await self.async_monitor_should_run(endpoint):
             return
 
-        process: Callable[[str], dict[str, Any]] = self.monitor_method.get(endpoint)
+        processor: Callable[[str], dict[str, Any]] = self.monitor_method.get(endpoint)
 
         try:
             # Start
@@ -439,8 +381,7 @@ class AsusRouter:
             monitor.reset()
 
             # Process data
-
-            result = process(raw, time=monitor.time)
+            result = processor(raw, time=monitor.time)
             for key, data in result.items():
                 monitor[key] = data
 
@@ -473,11 +414,11 @@ class AsusRouter:
     async def async_monitor_cached(self, monitor: str, value: Any) -> bool:
         """Check whether monitor has cached value"""
 
-        now = datetime.utcnow()
         if (
             not self.monitor[monitor].ready
             or value not in self.monitor[monitor]
-            or self._cache_time < (now - self.monitor[monitor].time).total_seconds()
+            or self._cache_time
+            < (datetime.utcnow() - self.monitor[monitor].time).total_seconds()
         ):
             _LOGGER.debug(
                 "Value `%s` is not in cache yet by monitor `%s` "
@@ -532,8 +473,12 @@ class AsusRouter:
 
         # Monitor is already running - wait to complete
         if self.monitor[monitor].active:
-            while self.monitor[monitor].active:
-                await asyncio.sleep(DEFAULT_SLEEP_TIME)
+            try:
+                await asyncio.wait_for(
+                    self.monitor[monitor].inactive_event.wait(), timeout=DEFAULT_TIMEOUT
+                )
+            except asyncio.TimeoutError:
+                return False
             return False
 
         return True
@@ -561,50 +506,16 @@ class AsusRouter:
         devicemap = raw
 
         # Boot time
-        boottime = {}
-        # Since precision is 1 second, could be that old and new are 1 sec different.
-        # In this case, we should not change the boot time,
-        # but keep the previous value to avoid regular changes
-        if SYS in devicemap and "uptimeStr" in devicemap[SYS]:
-            time = parsers.uptime(devicemap[SYS]["uptimeStr"])
-            timestamp = int(time.timestamp())
+        boottime, reboot = process.data_boottime(
+            devicemap, self.monitor[DEVICEMAP].get(BOOTTIME)
+        )
 
-            boottime[TIMESTAMP] = timestamp
-            boottime[ISO] = time.isoformat()
-
-            # If previous boot time exists
-            if BOOTTIME in self.monitor[DEVICEMAP]:
-                _timestamp = self.monitor[DEVICEMAP][BOOTTIME][TIMESTAMP]
-                _time = datetime.fromtimestamp(_timestamp)
-                # Leave the same boot time, since we don't know the new correct time
-                if (
-                    time == _time
-                    or abs(timestamp - _timestamp) < 2
-                    or timestamp - _timestamp < 0
-                ):
-                    boottime = self.monitor[DEVICEMAP][BOOTTIME]
-                # Boot time changed -> there was reboot
-                else:
-                    boottime[TIMESTAMP] = timestamp
-                    boottime[ISO] = time.isoformat()
-                    # Mark reboot
-                    self._mark_reboot()
+        # Mark reboot
+        if reboot:
+            self._mark_reboot()
 
         # VPN
-        vpn = {}
-        vpnmap = devicemap.get(VPN)
-        if vpnmap:
-            for num in RANGE_OVPN_CLIENTS:
-                key = f"{VPN_CLIENT}{num}"
-                vpn[key] = {}
-                if f"{key}_{STATE}" in vpnmap:
-                    status = converters.int_from_str(vpnmap[f"{key}_{STATE}"])
-                    vpn[key][STATE] = status > 0
-                    vpn[key][STATUS] = MAP_OVPN_STATUS.get(
-                        status, f"{UNKNOWN} ({status})"
-                    )
-                if f"{key}_{ERRNO}" in vpnmap:
-                    vpn[key][ERRNO] = converters.int_from_str(vpnmap[f"{key}_{ERRNO}"])
+        vpn = process.data_vpn(devicemap)
 
         return {
             DEVICEMAP: devicemap,
@@ -612,150 +523,42 @@ class AsusRouter:
             VPN: vpn,
         }
 
-    def _process_monitor_devices(self, raw: Any, time: datetime) -> dict[str, Any]:
-        """Process data from `devices` endpoint"""
-
-        # Clients
-        clients = {}
-        if "get_clientlist" in raw:
-            data = raw["get_clientlist"]
-            for mac, description in data.items():
-                if converters.is_mac_address(mac):
-                    clients[mac] = description
-
-        return {
-            CLIENTS: clients,
-        }
-
-    def _process_monitor_ethernet_ports(
-        self, raw: Any, time: datetime
-    ) -> dict[str, Any]:
-        """Process data from `ethernet ports` endpoint"""
-
-        # Ports info
-        ports = {
-            LAN: {},
-            WAN: {},
-        }
-        if "portSpeed" in raw:
-            data = raw["portSpeed"]
-            for port in data:
-                port_type = port[0:3].lower()
-                port_id = converters.int_from_str(port[3:])
-                value = SPEED_TYPES.get(data[port])
-                ports[port_type][port_id] = {
-                    STATE: converters.bool_from_any(value),
-                    LINK_RATE: value,
-                }
-
-        return {
-            PORTS: ports,
-        }
-
     def _process_monitor_firmware(self, raw: Any, time: datetime) -> dict[str, Any]:
         """Process data from `firmware` endpoint"""
 
         # Firmware
-        firmware = raw
-        fw_current = self._identity.firmware
-        fw_new = parsers.firmware_string(raw["webs_state_info"]) or fw_current
-
-        firmware[STATE] = fw_current < fw_new
-        firmware["current"] = str(fw_current)
-        firmware["available"] = str(fw_new)
+        firmware = process.data_firmware(raw, self._identity.firmware)
 
         return {
             FIRMWARE: firmware,
         }
 
-    def _process_monitor_light(self, raw: Any, time: datetime) -> dict[str, Any]:
-        """Process data from `light` endpoint"""
-
-        # LED
-        led = {}
-        if LED_VAL in raw:
-            led[STATE] = converters.bool_from_any(raw[LED_VAL])
-            self._state_led = led[STATE]
-
-        return {
-            LED: led,
-        }
-
     def _process_monitor_main(self, raw: Any, time: datetime) -> dict[str, Any]:
         """Process data from `main` endpoint"""
 
+        monitor_ready = self.monitor[MAIN].ready
+
         # CPU
-        cpu = {}
-        if CPU_USAGE in raw:
-
-            cpu = parsers.cpu_usage(raw=raw[CPU_USAGE])
-
-            # Calculate actual usage in percents and save it. Only if there was old data for CPU
-            if self.monitor[MAIN].ready and CPU in self.monitor[MAIN]:
-                for item in cpu:
-                    if item in self.monitor[MAIN][CPU]:
-                        cpu[item] = calculators.usage_in_dict(
-                            after=cpu[item],
-                            before=self.monitor[MAIN][CPU][item],
-                        )
-        # Keep last data
-        elif self.monitor[MAIN].ready and CPU in self.monitor[MAIN]:
-            cpu = self.monitor[MAIN][CPU]
+        prev_cpu = self.monitor[MAIN].get(CPU) if monitor_ready else None
+        cpu = process.data_cpu(raw, prev_cpu)
 
         # RAM
-        ram = {}
-        # Data is in KiB. To get MB as they are shown in the device Web-GUI,
-        # should be devided by 1024 (yes, those will be MiB)
-        if MEMORY_USAGE in raw:
-            # Populate RAM with known values
-            ram = parsers.ram_usage(raw=raw[MEMORY_USAGE])
-
-            # Calculate usage in percents
-            if USED in ram and TOTAL in ram:
-                ram = calculators.usage_in_dict(after=ram)
-        # Keep last data
-        elif self.monitor[MAIN].ready and RAM in self.monitor[MAIN]:
-            ram = self.monitor[MAIN][RAM]
+        prev_ram = self.monitor[MAIN].get(RAM) if monitor_ready else None
+        ram = process.data_ram(raw, prev_ram)
 
         # Network
-        network = {}
-        # Data in Bytes for traffic and bits/s for speeds
-        if NETDEV in raw:
-            # Calculate RX and TX from the HEX values.
-            # If there is no current value, but there was one before, get it from storage.
-            # Traffic resets only on device reboot or when above the limit.
-            # Device disconnect / reconnect does NOT reset it
-            network = parsers.network_usage(raw=raw[NETDEV])
+        prev_network = self.monitor[MAIN].get(NETWORK) if monitor_ready else None
+        time_delta = (time - self.monitor[MAIN].time).total_seconds() if prev_network else None
+        dualwan = "dualwan" in self._identity.services
+        network = process.data_network(raw, prev_network, time_delta, dualwan)
 
-            if self.monitor[MAIN].ready and NETWORK in self.monitor[MAIN]:
-                # Calculate speeds
-                time_delta = (time - self.monitor[MAIN].time).total_seconds()
-                network = parsers.network_speed(
-                    after=network,
-                    before=self.monitor[MAIN][NETWORK],
-                    time_delta=time_delta,
-                )
-        # Keep last data
-        elif self.monitor[MAIN].ready and NETWORK in self.monitor[MAIN]:
-            network = self.monitor[MAIN][NETWORK]
-
-        if USB not in network and "dualwan" in self._identity.services:
-            network[USB] = {}
-        # Save constant
-        constant = []
-        for interface in network:
-            if interface in WLAN_TYPE:
-                constant.append(interface)
+        # Save network constant
+        constant = [interface for interface in network if interface in WLAN_TYPE]
         self._init_constant(WLAN, constant)
 
         # WAN
-        wan = {}
-        if WANLINK_STATE in raw:
-            # Populate WAN with known values
-            wan = parsers.wan_state(raw=raw[WANLINK_STATE])
-        # Keep last data
-        elif self.monitor[MAIN].ready and WAN in self.monitor[MAIN]:
-            wan = self.monitor[MAIN][WAN]
+        prev_wan = self.monitor[MAIN].get(WAN) if monitor_ready else None
+        wan = process.data_wan(raw, prev_wan)
 
         return {
             CPU: cpu,
@@ -767,243 +570,26 @@ class AsusRouter:
     def _process_monitor_nvram(self, raw: Any, time: datetime) -> dict[str, Any]:
         """Process data from `nvram` endpoint"""
 
-        # Check whether data was received before trying to parse it
-        if not raw:
-            return {
-                GWLAN: {},
-                WLAN: {},
-            }
-
-        # WLAN
-        wlan = {}
-        dictionary = MAP_NVRAM.get(WLAN)
-        if dictionary:
-            for intf in self.constant[WLAN]:
-                interface = WLAN_TYPE.get(intf)
-                if interface is not None:
-                    wlan[intf] = {}
-                    for key in dictionary:
-                        key_to_use = (key.value.format(interface))[4:]
-                        wlan[intf][key_to_use] = key.method(
-                            raw[key.value.format(interface)]
-                        )
-
-        # GWLAN
-        gwlan = {}
-        dictionary = MAP_NVRAM.get(GWLAN)
-        if dictionary:
-            for intf in self.constant[WLAN]:
-                interface = WLAN_TYPE.get(intf)
-                if interface is not None:
-                    for gid in RANGE_GWLAN:
-                        gwlan[f"{intf}_{gid}"] = {}
-                        for key in dictionary:
-                            key_to_use = (key.value.format(interface))[4:]
-                            gwlan[f"{intf}_{gid}"][key_to_use] = key.method(
-                                raw[key.value.format(f"{interface}.{gid}")]
-                            )
+        available_wlan = self.constant[WLAN]
+        wlan, gwlan = process.data_wlan(raw, available_wlan)
 
         return {
             GWLAN: gwlan,
             WLAN: wlan,
         }
 
-    def _process_monitor_onboarding(self, raw: Any, time: datetime) -> dict[str, Any]:
-        """Process data from `onboarding` endpoint"""
-
-        # AiMesh nodes state
-        aimesh = {}
-        data = raw["get_cfg_clientlist"][0]
-        for device in data:
-            node = parsers.aimesh_node(device)
-            aimesh[node.mac] = node
-
-        # Client list
-        clients = {}
-        data = raw["get_allclientlist"][0]
-        for node in data:
-            for connection in data[node]:
-                for mac in data[node][connection]:
-                    convert = converters.onboarding_connection(connection)
-                    description = {
-                        CONNECTION_TYPE: convert[CONNECTION_TYPE],
-                        GUEST: convert[GUEST],
-                        IP: converters.none_or_str(
-                            data[node][connection][mac].get(IP, None)
-                        ),
-                        MAC: mac,
-                        NODE: node,
-                        ONLINE: True,
-                        RSSI: data[node][connection][mac].get(RSSI, None),
-                    }
-                    clients[mac] = description
-
-        return {
-            AIMESH: aimesh,
-            CLIENTS: clients,
-        }
-
-    def _process_monitor_parental_control(
-        self, raw: Any, time: datetime
-    ) -> dict[str, Any]:
-        """Process data from `parental control` endpoint"""
-
-        parental_control = {}
-
-        # State
-        parental_control[STATE] = None
-        if KEY_PARENTAL_CONTROL_STATE in raw:
-            parental_control[STATE] = converters.bool_from_any(
-                raw[KEY_PARENTAL_CONTROL_STATE]
-            )
-
-        # Rules
-        rules = {}
-
-        if raw.get(KEY_PARENTAL_CONTROL_MAC) != raw.get(KEY_PARENTAL_CONTROL_TYPE):
-            as_is = {}
-            for element in MAP_PARENTAL_CONTROL_ITEM:
-                temp = raw[element.value].split(DELIMITER_PARENTAL_CONTROL_ITEM)
-                as_is[element.get()] = []
-                for temp_element in temp:
-                    as_is[element.get()].append(element.method(temp_element))
-
-            number = len(as_is[MAC])
-            for i in range(0, number):
-                rules[as_is[MAC][i]] = FilterDevice(
-                    mac=as_is[MAC][i],
-                    name=as_is[NAME][i],
-                    type=MAP_PARENTAL_CONTROL_TYPE.get(as_is[TYPE][i], UNKNOWN),
-                    timemap=as_is[TIMEMAP][i] if i < len(as_is[TIMEMAP]) else None,
-                )
-
-        parental_control[RULES] = rules.copy()
-
-        return {PARENTAL_CONTROL: parental_control}
-
     def _process_monitor_port_status(self, raw: Any, time: datetime) -> dict[str, Any]:
         """Process data from `port status` endpoint"""
 
-        # Ports info
-        ports = {
-            LAN: {},
-            USB: {},
-            WAN: {},
-        }
-        if f"{PORT}_{INFO}" in raw:
-            data = raw[f"{PORT}_{INFO}"][self._identity.mac]
-            for port in data:
-                port_type = PORT_TYPES.get(port[0])
-                port_id = converters.int_from_str(port[1:])
-                # Replace needed key/value pairs
-                for key in CONVERTERS[PORT_STATUS]:
-                    if key.value in data[port]:
-                        data[port][key.get()] = key.method(data[port][key.value])
-                        if key.get() != key.value:
-                            data[port].pop(key.value)
-                # Temporary solution for USB
-                if port_type == USB and DEVICES in data[port]:
-                    data[port][STATE] = True
-                ports[port_type][port_id] = data[port]
-        elif self.monitor[PORT_STATUS].ready and PORTS in self.monitor[PORT_STATUS]:
-            ports = self.monitor[PORT_STATUS][PORTS]
+        prev_ports = (
+            self.monitor[PORT_STATUS].get(PORTS)
+            if self.monitor[PORT_STATUS].ready
+            else None
+        )
+        ports = process.data_port_status(raw, prev_ports, self._identity.mac)
 
         return {
             PORTS: ports,
-        }
-
-    def _process_monitor_port_forwarding(
-        self, raw: Any, time: datetime
-    ) -> dict[str, Any]:
-        """Process data from `port forwarding` endpoint"""
-
-        port_forwarding = {}
-
-        # State
-        port_forwarding[STATE] = None
-        if KEY_PORT_FORWARDING_STATE in raw:
-            port_forwarding[STATE] = converters.bool_from_any(
-                raw[KEY_PORT_FORWARDING_STATE]
-            )
-
-        # Rules
-        if KEY_PORT_FORWARDING_LIST in raw:
-            rules = []
-            data = raw[KEY_PORT_FORWARDING_LIST]
-            rule_list = data.split("&#60")
-            for rule in rule_list:
-                if rule == str():
-                    continue
-                part = rule.split("&#62")
-                rules.append(
-                    PortForwarding(
-                        name=converters.none_or_any(part[0]),
-                        ip=part[2],
-                        port=converters.none_or_any(part[3]),
-                        protocol=part[4],
-                        ip_external=converters.none_or_any(part[5]),
-                        port_external=part[1],
-                    )
-                )
-            port_forwarding[RULES] = rules.copy()
-
-        return {
-            PORT_FORWARDING: port_forwarding,
-        }
-
-    def _process_monitor_sysinfo(self, raw: Any, time: datetime) -> dict[str, Any]:
-        """Process data from `sysinfo` endpoint"""
-
-        # Sysinfo
-        sysinfo = raw
-
-        return {
-            SYSINFO: sysinfo,
-        }
-
-    def _process_monitor_temperature(self, raw: Any, time: datetime) -> dict[str, Any]:
-        """Process data from `temperature` endpoint"""
-
-        # Temperature
-        temperature = raw
-
-        return {
-            TEMPERATURE: temperature,
-        }
-
-    def _process_monitor_update_clients(
-        self, raw: Any, time: datetime
-    ) -> dict[str, Any]:
-        """Process data from `update_clients` endpoint"""
-
-        # Clients
-        clients_historic = {}
-        if "nmpClient" in raw:
-            data = raw["nmpClient"][0]
-            for mac, description in data.items():
-                if converters.is_mac_address(mac):
-                    clients_historic[mac] = description
-
-        clients = {}
-        if "fromNetworkmapd" in raw:
-            data = raw["fromNetworkmapd"][0]
-            for mac, description in data.items():
-                if converters.is_mac_address(mac):
-                    clients[mac] = description
-
-        return {
-            CLIENTS: clients,
-            CLIENTS_HISTORIC: clients_historic,
-        }
-
-    def _process_monitor_vpn(self, raw: Any, time: datetime) -> dict[str, Any]:
-        """Process data from `vpn` endpoint"""
-
-        # VPN
-        vpn = raw
-
-        return {
-            VPN: vpn,
         }
 
     # <-- MONITORS
@@ -1014,7 +600,7 @@ class AsusRouter:
         """Actions to be taken on connection error"""
 
         # Drop history dependent monitor values
-        for (monitor, data) in HD_DATA:
+        for monitor, data in HD_DATA:
             if monitor in self.monitor and data in self.monitor[monitor]:
                 self.monitor[monitor].pop(data)
 
@@ -1050,34 +636,6 @@ class AsusRouter:
 
         return raw
 
-    def _process_data_connected_devices(
-        self, raw: dict[str, Any]
-    ) -> dict[str, ConnectedDevice]:
-        """Process data for the connected devices"""
-
-        for mac, description in raw.items():
-            for attribute, keys in MAP_CONNECTED_DEVICE.items():
-                value = None
-
-                for key in keys:
-                    if description.get(key.value):
-                        value = key.method(description[key.value])
-                        break
-
-                if value:
-                    raw[mac][attribute] = value
-
-            # Remove unknown attributes
-            description = {
-                attribute: value
-                for attribute, value in description.items()
-                if attribute in MAP_CONNECTED_DEVICE
-            }
-
-            raw[mac] = ConnectedDevice(**description)
-
-        return raw
-
     # <-- PROCESS DATA
 
     # RETURN DATA -->
@@ -1087,7 +645,7 @@ class AsusRouter:
         data: str,
         monitor: str | list[str],
         merge: Merge = Merge.ANY,
-        process: Callable[[str], dict[str, Any]] | None = None,
+        processor: Callable[[str], dict[str, Any]] | None = None,
         use_cache: bool = True,
     ) -> dict[str, Any]:
         """Return data from the first available monitor in the list"""
@@ -1097,30 +655,23 @@ class AsusRouter:
         # Convert to list if only one monitor is set
         monitor = [monitor] if isinstance(monitor, str) else monitor
 
-        # Create a list of monitors
-        monitors = []
+        # Create a list of available monitors
+        monitors = [
+            item for item in monitor if await self.async_monitor_available(item)
+        ]
 
-        # Check if monitors are available
-        for item in monitor:
-            if await self.async_monitor_available(item):
-                monitors.append(item)
-
-                # In this mode we need only one of the monitors
-                if merge == Merge.ANY:
-                    break
-
-        # If monitor list is empty return empty dict
-        if len(monitors) == 0:
+        # Check if any monitors are available
+        if not monitors:
             return {}
+
+        # In this mode we need only one of the monitors
+        if merge == Merge.ANY:
+            monitors = monitors[:1]
 
         # Process monitors
         for _monitor in monitors:
-
             # Value is not cached or cache is disabled
-            if (
-                not await self.async_monitor_cached(_monitor, data)
-                or use_cache is False
-            ):
+            if not await self.async_monitor_cached(_monitor, data) or not use_cache:
                 await self.async_monitor(_monitor)
 
             # Receive data
@@ -1130,8 +681,8 @@ class AsusRouter:
             compilers.update_rec(result, part)
 
         # Process data
-        if process:
-            result = process(result)
+        if processor:
+            result = processor(result)
 
         # Return data
         return result
@@ -1160,7 +711,7 @@ class AsusRouter:
             monitor=[self._endpoint_devices, ONBOARDING],
             merge=Merge.ALL,
             use_cache=use_cache,
-            process=self._process_data_connected_devices,
+            processor=process.data_connected_devices,
         )
 
     async def async_get_cpu(self, use_cache: bool = True) -> dict[str, float]:
@@ -1309,7 +860,7 @@ class AsusRouter:
     ) -> dict[str, FilterDevice]:
         """Remove parental control rules"""
 
-        macs = [] if macs is None else converters.as_list(macs)
+        macs = set() if macs is None else set(converters.as_list(macs))
         rules = [] if rules is None else converters.as_list(rules)
 
         # Get current rules
@@ -1317,11 +868,9 @@ class AsusRouter:
 
         # Remove old rules for these MACs
         for mac in macs:
-            if mac in current_rules:
-                current_rules.pop(mac)
+            current_rules.pop(mac, None)
         for rule in rules:
-            if rule.mac in current_rules:
-                current_rules.pop(rule.mac)
+            current_rules.pop(rule.mac, None)
 
         # Apply new rules
         if apply:
@@ -1372,7 +921,7 @@ class AsusRouter:
     ) -> list[PortForwarding]:
         """Remove port forwarding rules"""
 
-        ips = [] if ips is None else converters.as_list(ips)
+        ips = set() if ips is None else set(converters.as_list(ips))
         rules = [] if rules is None else converters.as_list(rules)
 
         # Get current rules
@@ -1381,21 +930,22 @@ class AsusRouter:
         ]
 
         # Remove all rules for these IPs
-        for ip in ips:
-            current_rules = [rule for rule in current_rules if rule.ip != ip]
+        current_rules = [rule for rule in current_rules if rule.ip not in ips]
         # Remove exact rules
         for rule_to_find in rules:
             current_rules = [
                 rule
                 for rule in current_rules
-                if rule.ip != rule_to_find.ip
-                or rule.port_external != rule_to_find.port_external
-                or rule.protocol != rule_to_find.protocol
-                or (
-                    rule_to_find.ip_external is not None
-                    and rule.ip_external != rule_to_find.ip_external
+                if not (
+                    rule.ip == rule_to_find.ip
+                    and rule.port_external == rule_to_find.port_external
+                    and rule.protocol == rule_to_find.protocol
+                    and (
+                        rule_to_find.ip_external is None
+                        or rule.ip_external == rule_to_find.ip_external
+                    )
+                    and (rule_to_find.port is None or rule.port == rule_to_find.port)
                 )
-                or (rule_to_find.port is not None and rule.port != rule_to_find.port)
             ]
 
         # Apply new rules
@@ -1439,8 +989,7 @@ class AsusRouter:
         """Run generic service"""
 
         # Generate commands
-        # Should include service name to run
-        # and default mode to apply changes
+        # Should include service name to run and default mode to apply changes
         commands = {
             SERVICE_COMMAND: service,
         }
@@ -1516,11 +1065,8 @@ class AsusRouter:
     async def async_service_ledg_get(self) -> dict[str, Any] | None:
         """Return status of RGB LEDs in LEDG scheme"""
 
-        nvram = []
-        for mode in AR_LEDG_MODE:
-            nvram.append(AR_KEY_LEDG_RGB.format(mode))
-        nvram.append(AR_KEY_LEDG_SCHEME)
-        nvram.append(AR_KEY_LEDG_SCHEME_OLD)
+        nvram = [AR_KEY_LEDG_RGB.format(mode) for mode in AR_LEDG_MODE]
+        nvram.extend([AR_KEY_LEDG_SCHEME, AR_KEY_LEDG_SCHEME_OLD])
 
         data = await self.async_api_hook(compilers.nvram(nvram))
 
@@ -1559,12 +1105,13 @@ class AsusRouter:
             await self.async_service_ledg_get()
 
         colors = calculators.rgb(color)
-        for num in range(1, self._ledg_count + 1):
-            if num not in colors:
-                if self._ledg_color and num in self._ledg_color:
-                    colors[num] = self._ledg_color[num]
-                else:
-                    colors[num] = {}
+        colors.update(
+            {
+                num: self._ledg_color[num]
+                for num in range(1, self._ledg_count + 1)
+                if num not in colors and self._ledg_color and num in self._ledg_color
+            }
+        )
 
         color_to_set = compilers.rgb(colors)
 
