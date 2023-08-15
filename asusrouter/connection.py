@@ -133,6 +133,9 @@ class Connection:
         if headers is None:
             headers = self._headers
 
+        string_body: str = str()
+        reply_headers: dict[str, Any] = []
+
         try:
             async with self._session.post(
                 url=f"{self._http}://{self._host}:{self._port}/{endpoint}",

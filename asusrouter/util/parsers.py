@@ -140,7 +140,7 @@ def network_usage(raw: dict[str, Any]) -> dict[str, Any]:
 def network_speed(
     after: dict[str, dict[str, float]],
     before: dict[str, dict[str, float]],
-    time_delta: float,
+    time_delta: float | None,
 ) -> dict[str, dict[str, float]]:
     """
     Network speed calculator
