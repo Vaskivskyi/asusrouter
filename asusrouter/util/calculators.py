@@ -3,12 +3,9 @@
 from __future__ import annotations
 
 from asusrouter.const import (
-    CONST_PERCENTS,
     CONST_ZERO,
     TOTAL,
-    USAGE,
     USED,
-    DEFAULT_USAGE_DIGITS,
     ERROR_ZERO_DIVISION,
 )
 from asusrouter.error import AsusRouterValueError
@@ -22,14 +19,14 @@ DEFAULT_USAGE_NONE = {
 def usage(
     current_used: (int | float),
     current_total: (int | float),
-    previous_used: (int | float) = CONST_ZERO,
-    previous_total: (int | float) = CONST_ZERO,
+    previous_used: (int | float) = 0.0,
+    previous_total: (int | float) = 0.0,
 ) -> float | None:
     """Calculate usage in percents"""
 
     # Handle zero usage
     if current_used == previous_used or current_total == previous_total:
-        return CONST_ZERO
+        return 0.0
 
     # Calculate change
     used = current_used - previous_used
@@ -39,12 +36,11 @@ def usage(
     if used < 0 or total < 0 or used > total:
         return None
 
-    return round(
-        CONST_PERCENTS
-        * (current_used - previous_used)
-        / (current_total - previous_total),
-        DEFAULT_USAGE_DIGITS,
-    )
+    # Handle zero total
+    if total == 0:
+        return 0.0
+
+    return round(100 * used / total, 2)
 
 
 def usage_in_dict(
@@ -54,8 +50,8 @@ def usage_in_dict(
     """Calculate usage in percents in a dictionary"""
 
     if not before:
-        before = DEFAULT_USAGE_NONE
-    after[USAGE] = usage(after[USED], after[TOTAL], before[USED], before[TOTAL])
+        before = {"used": 0.0, "total": 0.0}
+    after["usage"] = usage(after["used"], after["total"], before["used"], before["total"])
 
     return after
 

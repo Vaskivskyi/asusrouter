@@ -1,4 +1,6 @@
-"""Convertors module for AsusRouter"""
+"""Convertors module for AsusRouter
+
+This module has methods to convert data between different formats"""
 
 from __future__ import annotations
 
@@ -80,11 +82,11 @@ def bool_or_int(raw: str | bool, base: int = 10) -> bool | int:
     try:
         return int_from_str(raw, base)
     except AsusRouterValueError:
-        """Do nothing"""
+        pass
     try:
         return bool_from_any(raw)
     except AsusRouterValueError:
-        """Do nothing"""
+        pass
 
     raise AsusRouterValueError(ERROR_VALUE.format(raw))
 

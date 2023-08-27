@@ -8,6 +8,7 @@ from typing import Any
 
 from asusrouter import (
     AsusRouterIdentityError,
+    AsusRouterValueError,
     ConnectedDevice,
     FilterDevice,
     PortForwarding,
@@ -17,8 +18,9 @@ from asusrouter.const import (
     CLIENTS,
     CLIENTS_HISTORIC,
     CONNECTION_TYPE,
-    CPU_USAGE,
+    CONVERTERS,
     DELIMITER_PARENTAL_CONTROL_ITEM,
+    DEVICES,
     ERRNO,
     ERROR_IDENTITY,
     GUEST,
@@ -35,18 +37,21 @@ from asusrouter.const import (
     LED_VAL,
     LINK_RATE,
     MAC,
+    MAP_CONNECTED_DEVICE,
     MAP_IDENTITY,
+    MAP_NETWORK,
     MAP_NVRAM,
     MAP_OVPN_STATUS,
     MAP_PARENTAL_CONTROL_ITEM,
     MAP_PARENTAL_CONTROL_TYPE,
-    MEMORY_USAGE,
+    MAP_WAN,
     NAME,
-    NETDEV,
     NODE,
     ONLINE,
     PARENTAL_CONTROL,
     PORT_FORWARDING,
+    PORT_STATUS,
+    PORT_TYPES,
     PORTS,
     RANGE_GWLAN,
     RANGE_OVPN_CLIENTS,
@@ -60,26 +65,16 @@ from asusrouter.const import (
     TEMPERATURE,
     TIMEMAP,
     TIMESTAMP,
-    TOTAL,
     TYPE,
     UNKNOWN,
     USB,
-    USED,
     VPN,
     VPN_CLIENT,
     WAN,
-    WANLINK_STATE,
     WLAN,
     WLAN_TYPE,
-    PORT,
-    INFO,
-    PORT_TYPES,
-    PORT_STATUS,
-    DEVICES,
-    CONVERTERS,
-    MAP_CONNECTED_DEVICE,
 )
-from asusrouter.util import calculators, converters, parsers
+from asusrouter.util import converters, parsers
 
 
 def data_boottime(
@@ -147,35 +142,53 @@ def data_connected_devices(raw: dict[str, Any]) -> dict[str, ConnectedDevice]:
     return raw
 
 
-def data_cpu(raw: dict[str, Any], prev_cpu: dict[str, Any] | None) -> dict[str, Any]:
+def data_cpu(cpu_usage: dict[str, Any], prev_cpu: dict[str, Any]) -> dict[str, Any]:
     """Process CPU data"""
 
-    cpu = {}
-    cpu_usage = raw.get(CPU_USAGE)
-    if cpu_usage:
-        cpu = parsers.cpu_usage(raw=cpu_usage)
+    cpu = data_cpu_usage(cpu_usage)
 
-        # Calculate actual usage in percents and save it. Only if there was old data for CPU
-        if prev_cpu:
-            for item in cpu:
-                if item in prev_cpu:
-                    cpu[item] = calculators.usage_in_dict(
-                        after=cpu[item],
-                        before=prev_cpu[item],
-                    )
-    # Keep last data
-    elif prev_cpu:
-        cpu = prev_cpu
+    # Safe calculate of actual usage if previous data is available
+    if prev_cpu:
+        for item, after in cpu.items():
+            if item in prev_cpu:
+                before = prev_cpu[item]
+                after["usage"] = safe_usage_historic(
+                    after["used"], after["total"], before["used"], before["total"]
+                )
 
     return cpu
 
 
-def data_firmware(raw, fw_current) -> dict[str, Any]:
+def data_cpu_usage(raw: dict[str, Any]) -> dict[str, Any]:
+    """CPU usage parser"""
+
+    # Populate total
+    cpu = {"total": {"total": 0.0, "used": 0.0}}
+
+    # Process each core
+    core = 1
+    while f"cpu{core}_total" in raw:
+        cpu[core] = {
+            "total": int(raw[f"cpu{core}_total"]),
+            "used": int(raw[f"cpu{core}_usage"]),
+        }
+        # Update the total
+        cpu["total"]["total"] += cpu[core]["total"]
+        cpu["total"]["used"] += cpu[core]["used"]
+
+        core += 1
+
+    return cpu
+
+
+def data_firmware(raw_firmware, fw_current) -> dict[str, Any]:
     """Process firmware data"""
 
     # Firmware
-    firmware = raw
-    fw_new = parsers.firmware_string(raw.get("webs_state_info", "")) or fw_current
+    firmware = raw_firmware
+    fw_new = (
+        parsers.firmware_string(raw_firmware.get("webs_state_info", "")) or fw_current
+    )
 
     firmware[STATE] = fw_current < fw_new
     firmware["current"] = str(fw_current)
@@ -185,42 +198,84 @@ def data_firmware(raw, fw_current) -> dict[str, Any]:
 
 
 def data_network(
-    raw: dict[str, Any],
+    netdev: dict[str, Any],
     prev_network: dict[str, Any],
     time_delta: int | None,
-    dualwan: bool,
 ) -> dict[str, Any]:
-    """Process network data"""
+    """Process network data.
 
-    network = {}
-    # Data in Bytes for traffic and bits/s for speeds
-    netdev = raw.get(NETDEV)
-    if netdev:
-        # Calculate RX and TX from the HEX values.
-        # If there is no current value, but there was one before, get it from storage.
-        # Traffic resets only on device reboot or when above the limit.
-        # Device disconnect / reconnect does NOT reset it
-        network = parsers.network_usage(raw=netdev)
-        if prev_network:
-            # Calculate speeds
-            network = parsers.network_speed(
-                after=network,
-                before=prev_network,
-                time_delta=time_delta,
-            )
-    # Keep last data
-    elif prev_network:
-        network = prev_network
+    The data is in Bytes for traffic and bits/s for speeds"""
 
-    if USB not in network and dualwan:
-        network[USB] = {}
+    # Calculate RX and TX from the HEX values.
+    network = data_network_usage(netdev)
+
+    # Calculate speeds if previous data is available
+    if prev_network:
+        network = data_network_speed(network, prev_network, time_delta)
 
     return network
 
 
-def data_port_status(
-    raw: dict[str, Any], prev_ports: dict[str, Any], mac: str
-) -> dict[str, Any]:
+def data_network_speed(
+    network: dict[str, dict[str, float]],
+    prev_network: dict[str, dict[str, float]],
+    time_delta: float | None,
+) -> dict[str, dict[str, float]]:
+    """Calculate network speed for a set period of time"""
+
+    # Check values one by one
+    for interface in network:
+        # Skip if there is no previous data
+        if interface not in prev_network:
+            continue
+
+        # Dictionary with speed values
+        interface_speed = {}
+
+        # Calculate speed for each traffic type
+        for traffic_type, traffic_value in network[interface].items():
+            prev_traffic_value = prev_network[interface].get(traffic_type)
+            # Calculate speed only if previous value is available
+            if prev_traffic_value:
+                interface_speed[f"{traffic_type}_speed"] = 8 * safe_speed(
+                    traffic_value,
+                    prev_traffic_value,
+                    time_delta,
+                )
+                continue
+            # Otherwise, set speed to 0
+            interface_speed[f"{traffic_type}_speed"] = 0.0
+
+        # Update interface with speed values
+        network[interface].update(interface_speed)
+
+    return network
+
+
+def data_network_usage(raw: dict[str, Any]) -> dict[str, Any]:
+    """Process network usage data"""
+
+    network = {}
+    for interface in MAP_NETWORK:
+        data = {}
+        for traffic_type in ("rx", "tx"):
+            try:
+                # Convert string with HEX value to int
+                value = converters.int_from_str(
+                    raw.get(f"{interface.value}_{traffic_type}"), base=16
+                )
+                # Check that value is integer
+                if isinstance(value, int):
+                    data[traffic_type] = value
+            except AsusRouterValueError:
+                continue
+        if len(data) > 0:
+            network[interface.get()] = data
+
+    return network
+
+
+def data_port_status(port_info: dict[str, Any], mac: str) -> dict[str, Any]:
     """Process port status data"""
 
     ports = {
@@ -228,9 +283,9 @@ def data_port_status(
         USB: {},
         WAN: {},
     }
-    port_info = raw.get(f"{PORT}_{INFO}")
-    if port_info:
-        data = port_info[mac]
+
+    data = port_info.get(mac)
+    if data:
         for port in data:
             port_type = PORT_TYPES.get(port[0])
             port_id = converters.int_from_str(port[1:])
@@ -244,30 +299,26 @@ def data_port_status(
             if port_type == USB and DEVICES in data[port]:
                 data[port][STATE] = True
             ports[port_type][port_id] = data[port]
-    # Keep last data
-    elif prev_ports:
-        port = prev_ports
 
     return ports
 
 
-def data_ram(raw: dict[str, Any], prev_ram: dict[str, Any]) -> dict[str, Any]:
+def data_ram(memory_usage: dict[str, Any]) -> dict[str, Any]:
     """Process RAM data"""
 
-    ram = {}
+    ram: dict[str, Any] = {}
     # Data is in KiB. To get MB as they are shown in the device Web-GUI,
     # should be devided by 1024 (yes, those will be MiB)
-    memory_usage = raw.get(MEMORY_USAGE)
-    if memory_usage:
-        # Populate RAM with known values
-        ram = parsers.ram_usage(raw=memory_usage)
 
-        # Calculate usage in percents
-        if USED in ram and TOTAL in ram:
-            ram = calculators.usage_in_dict(after=ram)
-    # Keep last data
-    elif prev_ram:
-        ram = prev_ram
+    # Populate RAM with known values
+    ram = {
+        "free": int(memory_usage["mem_free"]),
+        "total": int(memory_usage["mem_total"]),
+        "used": int(memory_usage["mem_used"]),
+    }
+    # Calculate usage in percents
+    if "used" in ram and "total" in ram:
+        ram["usage"] = safe_usage(ram["used"], ram["total"])
 
     return ram
 
@@ -293,17 +344,16 @@ def data_vpn(devicemap: dict[str, Any]) -> dict[str, Any]:
     return vpn
 
 
-def data_wan(raw: dict[str, Any], prev_wan: dict[str, Any]) -> dict[str, Any]:
+def data_wan(wanlink_state: dict[str, Any]) -> dict[str, Any]:
     """Process WAN data"""
 
     wan = {}
-    wanlink_state = raw.get(WANLINK_STATE)
-    if wanlink_state:
-        # Populate WAN with known values
-        wan = parsers.wan_state(raw=wanlink_state)
-    # Keep last data
-    elif prev_wan:
-        wan = prev_wan
+
+    for key in MAP_WAN:
+        key_value = key.value
+        state_value = wanlink_state.get(key_value)
+        if state_value:
+            wan[key.get()] = key.method(state_value) if key.method else state_value
 
     return wan
 
@@ -458,7 +508,7 @@ def monitor_onboarding(raw: Any, time: datetime) -> dict[str, Any]:
     # AiMesh nodes state
     aimesh = {
         node.mac: node
-        for device in raw["get_cfg_clientlist"][0]
+        for device in raw.get("get_cfg_clientlist", [[]])[0]
         for node in [parsers.aimesh_node(device)]
     }
 
@@ -619,3 +669,50 @@ def monitor_vpn(raw: Any, time: datetime) -> dict[str, Any]:
     return {
         VPN: vpn,
     }
+
+
+def safe_speed(
+    current: (int | float),
+    previous: (int | float),
+    time_delta: (int | float) | None = None,
+) -> float:
+    """Calculate speed
+
+    Allows calculation only of positive speed, otherwise returns 0.0"""
+
+    if time_delta is None or time_delta == 0.0:
+        return 0.0
+
+    diff = current - previous if current > previous else 0.0
+
+    return diff / time_delta
+
+
+def safe_usage(used: int | float, total: int | float) -> float:
+    """Calculate usage in percents
+
+    Allows calculation only of positive usage, otherwise returns 0.0"""
+
+    if total == 0:
+        return 0.0
+
+    usage = round(used / total * 100, 2)
+
+    # Don't allow negative usage
+    if usage < 0:
+        return 0.0
+
+    return usage
+
+
+def safe_usage_historic(
+    used: int | float,
+    total: int | float,
+    prev_used: int | float,
+    prev_total: int | float,
+) -> float:
+    """Calculate usage in percents for difference between current and previous values
+
+    This method is just an interface to calculate usage using `usage` method"""
+
+    return safe_usage(used - prev_used, total - prev_total)

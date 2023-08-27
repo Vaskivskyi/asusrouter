@@ -2,11 +2,10 @@
 
 from __future__ import annotations
 
+import asyncio
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Callable
-
-import asyncio
 
 from asusrouter.util.converters import none_or_any, none_or_str
 
@@ -216,7 +215,7 @@ class Firmware:
                             or (self.build and other.build and self.build < other.build)
                             or (
                                 isinstance(self.build_more, int)
-                                and type(self.build_more) is type(other.build_more)
+                                and isinstance(self.build_more, type(other.build_more))
                                 and self.build_more < other.build_more
                             )
                         ):

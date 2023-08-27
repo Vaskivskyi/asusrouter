@@ -534,31 +534,50 @@ class AsusRouter:
         }
 
     def _process_monitor_main(self, raw: Any, time: datetime) -> dict[str, Any]:
-        """Process data from `main` endpoint"""
+        """Process data from `main` endpoint.
+
+        This endpoint combines CPU, RAM, network and WAN data
+        which can be received with a single request.
+        This way we avoid quering small pieces of data separately."""
 
         monitor_ready = self.monitor[MAIN].ready
 
         # CPU
-        prev_cpu = self.monitor[MAIN].get(CPU) if monitor_ready else None
-        cpu = process.data_cpu(raw, prev_cpu)
+        prev_cpu = self.monitor[MAIN].get(CPU) if monitor_ready else {}
+        cpu_usage = raw.get("cpu_usage")
+        cpu = process.data_cpu(cpu_usage, prev_cpu) if cpu_usage else prev_cpu
 
         # RAM
-        prev_ram = self.monitor[MAIN].get(RAM) if monitor_ready else None
-        ram = process.data_ram(raw, prev_ram)
+        prev_ram = self.monitor[MAIN].get(RAM) if monitor_ready else {}
+        memory_usage = raw.get("memory_usage")
+        ram = process.data_ram(memory_usage) if memory_usage else prev_ram
 
         # Network
-        prev_network = self.monitor[MAIN].get(NETWORK) if monitor_ready else None
-        time_delta = (time - self.monitor[MAIN].time).total_seconds() if prev_network else None
-        dualwan = "dualwan" in self._identity.services
-        network = process.data_network(raw, prev_network, time_delta, dualwan)
+        prev_network = self.monitor[MAIN].get(NETWORK) if monitor_ready else {}
+        time_delta = (
+            (time - self.monitor[MAIN].time).total_seconds() if prev_network else None
+        )
+        netdev = raw.get("netdev")
+        network = (
+            process.data_network(netdev, prev_network, time_delta)
+            if netdev
+            else prev_network
+        )
+
+        # Check for the USB interface
+        # Checking identity should always be safe
+        # since we are obtaining it before any other request to the device
+        if "usb" not in network and "dualwan" in self._identity.services:
+            network["usb"] = {}
 
         # Save network constant
         constant = [interface for interface in network if interface in WLAN_TYPE]
         self._init_constant(WLAN, constant)
 
         # WAN
-        prev_wan = self.monitor[MAIN].get(WAN) if monitor_ready else None
-        wan = process.data_wan(raw, prev_wan)
+        prev_wan = self.monitor[MAIN].get(WAN) if monitor_ready else {}
+        wanlink_state = raw.get("wanlink_state")
+        wan = process.data_wan(wanlink_state) if wanlink_state else prev_wan
 
         return {
             CPU: cpu,
@@ -586,7 +605,12 @@ class AsusRouter:
             if self.monitor[PORT_STATUS].ready
             else None
         )
-        ports = process.data_port_status(raw, prev_ports, self._identity.mac)
+        port_info = raw.get("port_info")
+        ports = (
+            process.data_port_status(raw, self._identity.mac)
+            if port_info
+            else prev_ports
+        )
 
         return {
             PORTS: ports,
@@ -610,8 +634,13 @@ class AsusRouter:
         return
 
     def _init_constant(self, constant: str, value: Any) -> None:
-        """Initialize constant"""
+        """Initialize constant if not initialized yet"""
 
+        # Check that constant is not assigned yet
+        if constant in self.constant:
+            return
+
+        # Assign constant
         _LOGGER.debug("Initializing constant `%s`=`%s`", constant, value)
         self.constant[constant] = value
 
