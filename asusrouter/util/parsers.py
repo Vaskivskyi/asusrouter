@@ -17,10 +17,6 @@ from asusrouter.const import (
     AR_MAP_RGB,
     AR_MAP_SYSINFO,
     AR_MAP_TEMPERATURE,
-    CONST_BITSINBYTE,
-    CONST_ZERO,
-    CPU,
-    DATA_ADD_SPEED,
     DEVICEMAP,
     DEVICEMAP_BY_INDEX,
     DEVICEMAP_CLEAR,
@@ -30,18 +26,12 @@ from asusrouter.const import (
     ERROR_VALUE_TYPE,
     FIRMWARE,
     IP,
-    MAP_CPU,
-    MAP_NETWORK,
     MAP_OVPN_CLIENT,
     MAP_OVPN_SERVER,
-    MAP_RAM,
-    MAP_WAN,
-    MEM,
     ONBOARDING,
     PARAM_IP,
     PARAM_RIP,
     PARAM_STATE,
-    RANGE_CPU_CORES,
     RANGE_OVPN_CLIENTS,
     RANGE_OVPN_SERVERS,
     REGEX_VARIABLES,
@@ -49,8 +39,6 @@ from asusrouter.const import (
     STATE,
     STATUS,
     SYSINFO,
-    TOTAL,
-    TRAFFIC_TYPE,
     UPDATE_CLIENTS,
     VALUES_TO_IGNORE,
     VPN,
@@ -59,144 +47,9 @@ from asusrouter.const import (
 )
 from asusrouter.dataclass import AiMeshDevice, Firmware
 from asusrouter.error import AsusRouterDataProcessError, AsusRouterValueError
-from asusrouter.util import calculators, converters
+from asusrouter.util import converters
 
 _LOGGER = logging.getLogger(__name__)
-
-
-def cpu_usage(raw: dict[str, Any]) -> dict[str, Any]:
-    """CPU usage parser"""
-
-    cpu = {}
-
-    # Populate total
-    cpu[TOTAL] = {}
-    for item in MAP_CPU:
-        cpu[TOTAL][item.get()] = CONST_ZERO
-
-    # Data / core
-    for core in RANGE_CPU_CORES:
-        if not f"{CPU}{core}_{TOTAL}" in raw:
-            break
-
-        cpu[core] = {}
-
-        for item in MAP_CPU:
-            key = f"{CPU}{core}_{item}"
-            new_key = item.get()
-            if key in raw:
-                try:
-                    cpu[core][new_key] = int(raw[key])
-                except ValueError as ex:
-                    raise (
-                        AsusRouterValueError(ERROR_VALUE.format(raw[key], str(ex)))
-                    ) from ex
-                # Add this to total as well
-                cpu[TOTAL][new_key] += cpu[core][new_key]
-
-    return cpu
-
-
-def ram_usage(raw: dict[str, Any]) -> dict[str, Any]:
-    """RAM usage parser"""
-
-    ram = {}
-
-    for item in MAP_RAM:
-        if f"{MEM}_{item.value}" in raw:
-            try:
-                ram[item.get()] = int(raw[f"{MEM}_{item.value}"])
-            except ValueError as ex:
-                raise (
-                    AsusRouterValueError(
-                        ERROR_VALUE.format(raw[f"{MEM}_{item.value}"], str(ex))
-                    )
-                ) from ex
-
-    return ram
-
-
-def network_usage(raw: dict[str, Any]) -> dict[str, Any]:
-    """Network usage parser"""
-
-    network = {}
-    for interface in MAP_NETWORK:
-        data = {}
-        for traffic in TRAFFIC_TYPE:
-            try:
-                value = converters.int_from_str(
-                    raw.get(f"{interface.value}_{traffic}"), base=16
-                )
-                if value:
-                    data[traffic] = value
-            except Exception:
-                continue
-        if len(data) > 0:
-            network[interface.get()] = data
-
-    return network
-
-
-def network_speed(
-    after: dict[str, dict[str, float]],
-    before: dict[str, dict[str, float]],
-    time_delta: float | None,
-) -> dict[str, dict[str, float]]:
-    """
-    Network speed calculator
-
-    Parameters
-    -----
-    `after`: current values. Outer dictionary `(groups)` contains inner dictionary `(types)`.
-    On each `(type)` calculations are performed
-
-    `before`: previous values
-
-    `time_delta`: time between measurements
-
-    Returns
-    -----
-    `after` with speeds append to `(types)`
-    """
-
-    for group in after:
-        if group in before:
-            speed = {}
-            for type in after[group]:
-                if type in before[group]:
-                    speed[
-                        DATA_ADD_SPEED.format(type)
-                    ] = CONST_BITSINBYTE * calculators.speed(
-                        after=after[group][type],
-                        before=before[group][type],
-                        time_delta=time_delta,
-                    )
-                else:
-                    speed[DATA_ADD_SPEED.format(type)] = CONST_ZERO
-            after[group] |= speed
-
-    return after
-
-
-def wan_state(raw: dict[str, Any]) -> dict[str, Any]:
-    """WAN status parser"""
-
-    values = {}
-
-    for key in MAP_WAN:
-        if key.value in raw and raw[key.value] != str():
-            try:
-                values[key.get()] = (
-                    key.method(raw[key.value]) if key.method else raw[key.value]
-                )
-            except AsusRouterValueError as ex:
-                _LOGGER.warning(
-                    "Failed parsing value '%s'. Please report this issue. Exception summary: %s",
-                    key.value,
-                    str(ex),
-                )
-
-    return values
 
 
 def uptime(data: str) -> datetime:

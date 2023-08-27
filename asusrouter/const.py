@@ -17,7 +17,7 @@ from asusrouter.util.converters import (
 )
 
 
-### ENUMS
+# ENUMS
 class Merge(str, Enum):
     """Merge enumerator for getting data"""
 
@@ -35,7 +35,7 @@ RESET_REQUIRED = "reset_required"
 TRY_AGAIN = "try_again"
 
 
-### API VALUES
+# API VALUES
 AR_USER_AGENT = "asusrouter--DUTUtil-"
 AR_API = [
     "Model_Name",
@@ -52,7 +52,7 @@ AR_ERROR_CODE = {
     RESET_REQUIRED: 11,
 }
 
-### VALUES
+# VALUES
 ACTION_MODE = "action_mode"
 AIMESH = "aimesh"
 APPLY = "apply"
@@ -154,11 +154,11 @@ WLAN_5GHZ = "5ghz"
 WLAN_5GHZ2 = "5ghz2"
 WLAN_6GHZ = "6ghz"
 
-### ASUS DATA TYPES
+# ASUS DATA TYPES
 ETHERNET_PORTS = "ethernet_ports"
 PORT_STATUS = "port_status"
 
-### Keys & delimiters
+# Keys & delimiters
 KEY_PARENTAL_CONTROL_MAC = "MULTIFILTER_MAC"
 KEY_PARENTAL_CONTROL_NAME = "MULTIFILTER_DEVICENAME"
 KEY_PARENTAL_CONTROL_STATE = "MULTIFILTER_ALL"
@@ -170,7 +170,7 @@ KEY_PORT_FORWARDING_STATE = "vts_enable_x"
 DELIMITER_PARENTAL_CONTROL_ITEM = "&#62"
 
 
-### ENDPOINTS
+# ENDPOINTS
 ENDPOINT_LOGIN = "login.cgi"
 ENDPOINT_LOGOUT = "Logout.asp"
 
@@ -223,13 +223,13 @@ ENDPOINT_ARGS = {
     },
 }
 
-### History-dependent values in the monitor to be removed to prevent errors
+# History-dependent values in the monitor to be removed to prevent errors
 HD_DATA: tuple[tuple[str, ...], ...] = (
     (MAIN, CPU),
     (MAIN, NETWORK),
 )
 
-### REQUIREMENTS
+# REQUIREMENTS
 # Don't create loops
 CONST_REQUIRE_MONITOR = {
     WLAN: MAIN,
@@ -238,7 +238,7 @@ MONITOR_REQUIRE_CONST = {
     NVRAM: WLAN,
 }
 
-### ASUS NUMERICS, RANGES & MAPS
+# ASUS NUMERICS, RANGES & MAPS
 
 # Map of the parameters for connected device
 # value_to_find: [where_to_search, method to convert]
@@ -465,7 +465,7 @@ RANGE_OVPN_CLIENTS = range(1, 6)  # 5 Open VPN clients from 1 to 5
 RANGE_OVPN_SERVERS = range(1, 3)  # 2 Open VPN servers from 1 to 2
 RANGE_WLAN = range(0, 4)  # 4 WLANs from 0 to 3
 
-### TYPES
+# TYPES
 
 PORT_TYPES = {
     "L": LAN,
@@ -492,7 +492,7 @@ WLAN_TYPE: dict[str, str] = {
     WLAN_6GHZ: 3,
 }
 
-### CONVERTERS
+# CONVERTERS
 
 CONVERTERS = {
     PORT_STATUS: [
@@ -502,7 +502,7 @@ CONVERTERS = {
     ]
 }
 
-### CONSTANTS, DATA TYPES AND COMMON PARAMETERS
+# CONSTANTS, DATA TYPES AND COMMON PARAMETERS
 CONST_BITSINBYTE = 8
 CONST_PERCENTS = 100
 CONST_ZERO = 0.0
@@ -554,7 +554,7 @@ TRACK_SERVICES_LED = [
 ]
 
 
-### ASUSWRT KEYS, MAPS AND VALUES
+# ASUSWRT KEYS, MAPS AND VALUES
 AR_DEFAULT_LEDG = 8
 
 AR_KEY_AURARGB = "aurargb"
@@ -642,7 +642,7 @@ AR_MAP_TEMPERATURE: dict[str, list[str]] = {
     "cpu": ['curr_cpuTemp="([0-9.]+)"', 'curr_coreTmp_cpu="([0-9.]+)"'],
 }
 
-### ASUSWRT SERVICES
+# ASUSWRT SERVICES
 
 AR_FIRMWARE_CHECK_COMMAND = "firmware_check"
 AR_SERVICE_COMMAND: dict[str, str] = {
@@ -672,7 +672,7 @@ AR_SERVICE_DROP_CONNECTION: list[str] = {
     "httpd",
 }
 
-### ERRORS AND MESSAGES
+# ERRORS AND MESSAGES
 ERROR_IDENTITY = "Cannot obtain identity from the device {}. Exception summary{}"
 ERROR_PARSING = (
     "Failed parsing value '{}'. Please report this issue. Exception summary: {}"
@@ -903,7 +903,7 @@ KEY_HOOK = "hook"
 DEFAULT_ACTION_MODE = "apply"
 
 
-### DEVICEMAP
+# DEVICEMAP
 
 # These values are just stored directly in this order in the corresponding node
 DEVICEMAP_BY_INDEX = {
