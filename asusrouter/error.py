@@ -1,108 +1,54 @@
-"""Error module"""
+"""Error module."""
 
 from __future__ import annotations
 
-import asyncio
 from typing import Any, Optional
 
 import aiohttp
 
 
 class AsusRouterError(Exception):
-    """Base class for errors in AsusRouter library"""
+    """Base class for errors in AsusRouter library."""
 
     def __init__(
         self, *args: Any, message: Optional[str] = None, **_kwargs: Any
     ) -> None:
-        """Initialise base error"""
+        """Initialise base error."""
 
         super().__init__(*args, message)
 
 
-class AsusRouterAuthorizationError(AsusRouterError):
-    """Authorization error"""
+class AsusRouterDataError(AsusRouterError):
+    """Any error with received data."""
 
 
 class AsusRouterConnectionError(AsusRouterError, aiohttp.ClientConnectionError):
-    """Error connecting to the router"""
+    """Connection error."""
 
 
-class AsusRouterConnectionTimeoutError(
-    AsusRouterError, aiohttp.ServerTimeoutError, asyncio.TimeoutError
-):
-    """Timeout error on communication"""
+class AsusRouterTimeoutError(AsusRouterError):
+    """Timeout error."""
 
 
-class AsusRouterServerDisconnectedError(AsusRouterError):
-    """Server disconnected error"""
+class AsusRouterSessionError(AsusRouterError):
+    """Session error."""
 
 
-class AsusRouterSSLError(AsusRouterError):
-    """SSL error"""
-
-
-class AsusRouterLoginError(AsusRouterError):
-    """Login error / credentials error"""
-
-
-class AsusRouterLoginAnotherError(AsusRouterError):
-    """Login is blocked until another user logs out"""
-
-
-class AsusRouterLoginBlockError(AsusRouterError):
-    """Too many attempts error on device side"""
-
-    def __init__(
-        self,
-        *args: Any,
-        message: Optional[str] = None,
-        timeout: Optional[int] = None,
-        **_kwargs: Any,
-    ) -> None:
-        """Initialise base error"""
-
-        self._timeout = timeout
-
-        super().__init__(*args, message)
-
-    @property
-    def timeout(self) -> int | None:
-        """Return timeout"""
-
-        return self._timeout
-
-
-class AsusRouterLoginCaptchaError(AsusRouterError):
-    """Captcha is required from device"""
-
-
-class AsusRouterResetRequiredError(AsusRouterError):
-    """Too many attempts to use wrong credentials. Reset required"""
-
-
-class AsusRouterResponseError(AsusRouterError):
-    """Error on communication"""
-
-
-class AsusRouterServiceError(AsusRouterError):
-    """Error on calling a service"""
-
-
-class AsusRouterDataProcessError(AsusRouterError):
-    """Error on processing data"""
-
-
-class AsusRouterValueError(AsusRouterError, ValueError):
-    """Invalid value received"""
-
-
-class AsusRouterNotImplementedError(AsusRouterError, NotImplementedError):
-    """Not implemented error"""
+class AsusRouter404Error(AsusRouterError):
+    """Page not found error."""
 
 
 class AsusRouterIdentityError(AsusRouterError):
-    """Error of collecting device identity"""
+    """Identity error."""
 
 
-class AsusRouter404(AsusRouterError):
-    """Error on page not found"""
+class AsusRouterAccessError(AsusRouterError):
+    """Access error."""
+
+
+class AsusRouterLogoutError(AsusRouterError):
+    """Logout error."""
+
+
+class AsusRouterServiceError(AsusRouterError):
+    """Service error."""
