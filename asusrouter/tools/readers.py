@@ -142,7 +142,7 @@ def read_json_content(content: Optional[str]) -> dict[str, Any]:
     # Return the json content
     try:
         return json.loads(content.encode().decode("utf-8-sig"))
-    except json.JSONDecodeError as ex:
+    except (json.JSONDecodeError, UnicodeDecodeError) as ex:
         _LOGGER.error(
             "Unable to decode json content with exception `%s`. Please, copy this end fill in a bug report: %s",
             ex,
