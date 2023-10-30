@@ -3,11 +3,29 @@
 from __future__ import annotations
 
 import json
+import logging
 import re
 from typing import Any, Optional
 
 from asusrouter.const import ContentType
 from asusrouter.tools.converters import clean_string
+
+_LOGGER = logging.getLogger(__name__)
+
+
+# Random symbols to avoid json errors
+RANDOM_SYMBOLS: list[str] = [
+    "\u0000",
+    "\u0001",
+    "\u0002",
+    "\u0003",
+    "\u0004",
+    "\u0005",
+    "\u0006",
+    "\u0007",
+    "\u0008",
+    "\u0009",
+]
 
 
 def merge_dicts(data: dict[Any, Any], merge_data: dict[Any, Any]) -> dict[Any, Any]:
@@ -117,8 +135,20 @@ def read_json_content(content: Optional[str]) -> dict[str, Any]:
     if not content:
         return {}
 
+    # Random control characters to avoid json errors
+    for symbol in RANDOM_SYMBOLS:
+        content = content.replace(symbol, "")
+
     # Return the json content
-    return json.loads(content.encode().decode("utf-8-sig"))
+    try:
+        return json.loads(content.encode().decode("utf-8-sig"))
+    except json.JSONDecodeError as ex:
+        _LOGGER.error(
+            "Unable to decode json content with exception `%s`. Please, copy this end fill in a bug report: %s",
+            ex,
+            content,
+        )
+        return {}
 
 
 def readable_mac(raw: str) -> bool:

@@ -141,7 +141,6 @@ def convert_to_ha_string(data: Any) -> str:
     # Check whether value is an enum or a string
     # If string, return it, if enum, go recursive
     if isinstance(data, Enum):
-        print("Enum")
         return convert_to_ha_string(data.value)
 
     # Check if we have string
