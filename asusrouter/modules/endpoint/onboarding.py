@@ -32,6 +32,9 @@ def read(content: str) -> dict[str, Any]:
     )
     content = '{"' + content[:-3] + "}"
 
+    # In case we have a trailing comma inside a dict
+    content = content.replace(",}", "}")
+
     # Read the json content
     onboarding: dict[str, Any] = read_json_content(content)
 
