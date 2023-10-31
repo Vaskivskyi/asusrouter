@@ -13,7 +13,7 @@ from asusrouter.modules.connection import (
     get_connection_type,
     get_internet_mode,
 )
-from asusrouter.modules.ip_address import read_ip_address_type
+from asusrouter.modules.ip_address import IPAddressType, read_ip_address_type
 from asusrouter.modules.vendor import replace_vendor
 from asusrouter.tools.converters import (
     safe_bool,
@@ -151,8 +151,8 @@ class AsusClientConnection:
 class AsusClientConnectionWlan(AsusClientConnection):
     """WLAN connection class."""
 
-    guest: bool = False
-    guest_id: int = 0
+    guest: Optional[bool] = None
+    guest_id: Optional[int] = None
     rssi: Optional[int] = None
     since: Optional[datetime] = None
     rx_speed: Optional[float] = None
@@ -279,13 +279,23 @@ CLIENT_MAP_CONNECTION_WLAN = {
 }
 
 
-def process_client(data: dict[str, Any]) -> AsusClient:
+def process_client(
+    data: dict[str, Any], history: Optional[AsusClient] = None
+) -> AsusClient:
     """Process client data."""
 
     description = process_client_description(data)
     connection = process_client_connection(data)
 
     state = process_client_state(connection)
+
+    # Clean disconnected client
+    if state != ConnectionState.CONNECTED:
+        connection = process_disconnected(connection)
+
+    # Check history for the oscillating values
+    if history is not None and history.connection is not None:
+        connection = process_history(connection, history.connection)
 
     return AsusClient(state=state, description=description, connection=connection)
 
@@ -353,8 +363,7 @@ def process_client_connection_wlan(
                 break
 
     # Mark `guest` attribute if `guest_id` is non-zero
-    if connection.guest_id != 0:
-        connection.guest = True
+    connection.guest = connection.guest_id != 0 and connection.guest_id is not None
 
     return connection
 
@@ -372,3 +381,39 @@ def process_client_state(
         return ConnectionState.CONNECTED
 
     return ConnectionState.DISCONNECTED
+
+
+def process_disconnected(connection: AsusClientConnection) -> AsusClientConnection:
+    """Process disconnected client."""
+
+    # We keep values set by the user:
+    # - internet mode
+    # - ip method
+    # - ip address if ip method is static
+    return AsusClientConnection(
+        type=ConnectionType.DISCONNECTED,
+        ip_address=connection.ip_address
+        if connection.ip_method == IPAddressType.STATIC
+        else None,
+        ip_method=connection.ip_method,
+        internet_mode=connection.internet_mode,
+    )
+
+
+def process_history(
+    connection: AsusClientConnection, history: AsusClientConnection
+) -> AsusClientConnection:
+    """Process values from history to avoid oscillating values."""
+
+    # Wireless connection
+    if isinstance(connection, AsusClientConnectionWlan) and isinstance(
+        history, AsusClientConnectionWlan
+    ):
+        # Fix the oscillating connection time ignore any value less than 10 seconds
+        # This comes from the device itself and cannot be fixed from AsusRouter side
+        if connection.since is not None and history.since is not None:
+            diff = abs((history.since - connection.since).total_seconds())
+            if diff < 10:
+                connection.since = history.since
+
+    return connection
