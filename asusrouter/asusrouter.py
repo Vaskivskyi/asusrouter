@@ -379,8 +379,14 @@ class AsusRouter:
             if not "dualwan" in _services:
                 return data
 
-            # Add usb network if not available
             network = data.copy()
+            # Add speed if not available - fix first empty value round
+            for interface in network:
+                for speed in ("rx_speed", "tx_speed"):
+                    if not speed in network[interface]:
+                        network[interface][speed] = 0.0
+
+            # Add usb network if not available
             if not "usb" in network:
                 # Check history
                 history = self._state.get(AsusData.NETWORK)
