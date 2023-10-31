@@ -274,7 +274,11 @@ class Connection:  # pylint: disable=too-many-instance-attributes
             resp_headers = response.headers
 
             # Read the response
-            resp_content = await response.text()
+            try:
+                resp_content = await response.text()
+            except UnicodeDecodeError:
+                _LOGGER.debug("Cannot decode response. Will ignore errors")
+                resp_content = await response.text(errors="ignore")
 
             # Return the response
             return (resp_status, resp_headers, resp_content)
