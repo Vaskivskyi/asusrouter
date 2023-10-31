@@ -29,6 +29,7 @@ from asusrouter.modules.data_finder import (
     AsusDataFinder,
     AsusDataMerge,
 )
+from asusrouter.modules.data_transform import transform_clients, transform_network
 from asusrouter.modules.endpoint import Endpoint, EndpointControl, process, read
 from asusrouter.modules.endpoint.error import AccessError
 from asusrouter.modules.flags import Flag
@@ -356,56 +357,15 @@ class AsusRouter:
 
         if datatype == AsusData.CLIENTS:
             _LOGGER.debug("Transforming clients data")
-            clients = {}
-            for mac, client in data.items():
-                if readable_mac(mac):
-                    # Check client history
-                    history = self._state.get(AsusData.CLIENTS)
-                    client_history = (
-                        history.data.get(mac) if history and history.data else None
-                    )
-                    # Process the client
-                    clients[mac] = process_client(client, client_history)
-
-            return clients
+            return transform_clients(data, self._state.get(AsusData.CLIENTS))
 
         if datatype == AsusData.NETWORK:
             _LOGGER.debug("Transforming network data")
-
-            # Check if the device has dualwan support
-            _services = self._identity.services if self._identity else []
-            if not _services:
-                return data
-            if not "dualwan" in _services:
-                return data
-
-            network = data.copy()
-            # Add speed if not available - fix first empty value round
-            for interface in network:
-                for speed in ("rx_speed", "tx_speed"):
-                    if not speed in network[interface]:
-                        network[interface][speed] = 0.0
-
-            # Add usb network if not available
-            if not "usb" in network:
-                # Check history
-                history = self._state.get(AsusData.NETWORK)
-                usb_history = (
-                    history.data.get("usb") if history and history.data else None
-                )
-                # Revert to history if available
-                if usb_history:
-                    network["usb"] = usb_history
-                    network["usb"]["rx_speed"] = 0.0
-                    network["usb"]["tx_speed"] = 0.0
-                else:
-                    network["usb"] = {
-                        "rx": 0,
-                        "tx": 0,
-                        "rx_speed": 0.0,
-                        "tx_speed": 0.0,
-                    }
-            return network
+            return transform_network(
+                data,
+                self._identity.services if self._identity else [],
+                self._state.get(AsusData.NETWORK),
+            )
 
         return data
 

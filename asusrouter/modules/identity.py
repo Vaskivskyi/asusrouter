@@ -54,7 +54,7 @@ class AsusDevice:  # pylint: disable=too-many-instance-attributes
     firmware: Optional[Firmware] = None
     wlan: Optional[list[Wlan]] = None
     endpoints: Optional[dict[Endpoint, bool]] = None
-    services: Optional[str] = None
+    services: Optional[list[str]] = None
 
     # Flags for device features
     led: bool = False
