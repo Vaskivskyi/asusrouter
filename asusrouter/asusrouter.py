@@ -356,11 +356,17 @@ class AsusRouter:
 
         if datatype == AsusData.CLIENTS:
             _LOGGER.debug("Transforming clients data")
-            clients = {
-                mac: process_client(client)
-                for mac, client in data.items()
-                if readable_mac(mac)
-            }
+            clients = {}
+            for mac, client in data.items():
+                if readable_mac(mac):
+                    # Check client history
+                    history = self._state.get(AsusData.CLIENTS)
+                    client_history = (
+                        history.data.get(mac) if history and history.data else None
+                    )
+                    # Process the client
+                    clients[mac] = process_client(client, client_history)
+
             return clients
 
         return data
