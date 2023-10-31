@@ -369,6 +369,38 @@ class AsusRouter:
 
             return clients
 
+        if datatype == AsusData.NETWORK:
+            _LOGGER.debug("Transforming network data")
+
+            # Check if the device has dualwan support
+            _services = self._identity.services if self._identity else []
+            if not _services:
+                return data
+            if not "dualwan" in _services:
+                return data
+
+            # Add usb network if not available
+            network = data.copy()
+            if not "usb" in network:
+                # Check history
+                history = self._state.get(AsusData.NETWORK)
+                usb_history = (
+                    history.data.get("usb") if history and history.data else None
+                )
+                # Revert to history if available
+                if usb_history:
+                    network["usb"] = usb_history
+                    network["usb"]["rx_speed"] = 0.0
+                    network["usb"]["tx_speed"] = 0.0
+                else:
+                    network["usb"] = {
+                        "rx": 0,
+                        "tx": 0,
+                        "rx_speed": 0.0,
+                        "tx_speed": 0.0,
+                    }
+            return network
+
         return data
 
     def _check_state(self, datatype: Optional[AsusData]) -> None:

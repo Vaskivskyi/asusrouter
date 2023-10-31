@@ -26,7 +26,6 @@ from asusrouter.modules.port_forwarding import (
 )
 from asusrouter.modules.wlan import MAP_GWLAN, MAP_WLAN, Wlan
 from asusrouter.tools.converters import (
-    safe_bool,
     safe_int,
     safe_return,
     safe_speed,
@@ -38,8 +37,6 @@ from asusrouter.tools.converters import (
 from asusrouter.tools.readers import read_json_content
 
 from .hook_const import MAP_NETWORK, MAP_WAN
-
-_LOGGER = logging.getLogger(__name__)
 
 REQUIRE_HISTORY = True
 REQUIRE_WLAN = True
