@@ -25,7 +25,7 @@ from asusrouter.error import (
     AsusRouterTimeoutError,
 )
 from asusrouter.modules.endpoint import Endpoint, EndpointControl, EndpointService
-from asusrouter.modules.endpoint.error import handle_access_error
+from asusrouter.modules.endpoint.error import AccessError, handle_access_error
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -113,6 +113,18 @@ class Connection:  # pylint: disable=too-many-instance-attributes
                     EndpointService.LOGIN, payload, headers
                 )
                 _LOGGER.debug("Received authorization response")
+            except AsusRouterAccessError as ex:
+                # Check the AccessError
+                if ex.args[1] == AccessError.TRY_AGAIN:
+                    # Get the timeout
+                    timeout = ex.args[2].get("timeout") + 5
+                    if timeout:
+                        _LOGGER.debug("Will try again in %s seconds", timeout)
+                        await asyncio.sleep(timeout)
+                        return await self.async_connect(retry, asyncio.Lock())
+                    raise ex
+                # In case of any other error, switch to the next except block
+                raise ex
             except AsusRouterError as ex:
                 _LOGGER.debug("Connection failed")
                 if retry < len(DEFAULT_TIMEOUTS) - 1:
