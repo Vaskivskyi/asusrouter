@@ -28,21 +28,21 @@ def read(content: str) -> dict[str, Any]:
     # Read WLAN temperatures
     # If there is curr_coreTmp_5_raw, we have type 1
     if "curr_coreTmp_5_raw" in variables:
-        temperature[Wlan.FREQ_2G] = variables["curr_coreTmp_2_raw"]
-        temperature[Wlan.FREQ_5G] = variables["curr_coreTmp_5_raw"]
-        temperature[Wlan.FREQ_5G2] = variables["curr_coreTmp_52_raw"]
+        temperature[Wlan.FREQ_2G] = variables.get("curr_coreTmp_2_raw")
+        temperature[Wlan.FREQ_5G] = variables.get("curr_coreTmp_5_raw")
+        temperature[Wlan.FREQ_5G2] = variables.get("curr_coreTmp_52_raw")
     # If there is curr_coreTmp_0_raw, we have type 2
     elif "curr_coreTmp_0_raw" in variables:
-        temperature[Wlan.FREQ_2G] = variables["curr_coreTmp_0_raw"]
-        temperature[Wlan.FREQ_5G] = variables["curr_coreTmp_1_raw"]
-        temperature[Wlan.FREQ_5G2] = variables["curr_coreTmp_2_raw"]
-        temperature[Wlan.FREQ_6G] = variables["curr_coreTmp_3_raw"]
+        temperature[Wlan.FREQ_2G] = variables.get("curr_coreTmp_0_raw")
+        temperature[Wlan.FREQ_5G] = variables.get("curr_coreTmp_1_raw")
+        temperature[Wlan.FREQ_5G2] = variables.get("curr_coreTmp_2_raw")
+        temperature[Wlan.FREQ_6G] = variables.get("curr_coreTmp_3_raw")
     # If there is curr_coreTmp_wl0_raw, we have type 3
     elif "curr_coreTmp_wl0_raw" in variables:
-        temperature[Wlan.FREQ_2G] = variables["curr_coreTmp_wl0_raw"]
-        temperature[Wlan.FREQ_5G] = variables["curr_coreTmp_wl1_raw"]
-        temperature[Wlan.FREQ_5G2] = variables["curr_coreTmp_wl2_raw"]
-        temperature[Wlan.FREQ_6G] = variables["curr_coreTmp_wl3_raw"]
+        temperature[Wlan.FREQ_2G] = variables.get("curr_coreTmp_wl0_raw")
+        temperature[Wlan.FREQ_5G] = variables.get("curr_coreTmp_wl1_raw")
+        temperature[Wlan.FREQ_5G2] = variables.get("curr_coreTmp_wl2_raw")
+        temperature[Wlan.FREQ_6G] = variables.get("curr_coreTmp_wl3_raw")
 
     # Clean the temperature values from `&deg;C`
     for key, value in temperature.items():
@@ -51,10 +51,10 @@ def read(content: str) -> dict[str, Any]:
     # Read CPU temperature
     # If there is curr_coreTmp_cpu
     if "curr_coreTmp_cpu" in variables:
-        temperature["cpu"] = variables["curr_coreTmp_cpu"]
+        temperature["cpu"] = variables.get("curr_coreTmp_cpu")
     # If there is curr_cpuTemp
     elif "curr_cpuTemp" in variables:
-        temperature["cpu"] = variables["curr_cpuTemp"]
+        temperature["cpu"] = variables.get("curr_cpuTemp")
 
     # Convert the temperature values to float or remove them if they have "disabled"
     temperature = {
