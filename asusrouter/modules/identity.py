@@ -94,12 +94,6 @@ async def collect_identity(
     identity["endpoints"] = endpoints
     _LOGGER.debug("Endpoints checked")
 
-    # TODO: Remove legacy
-    # Mark endpoint for FW 380
-    if identity["firmware"].minor == 380:
-        identity["endpoint_devices"] = "devices"
-        _LOGGER.debug("Legacy endpoint marked")
-
     # Return the identity convered from a dict
     return AsusDevice(**identity)
 
