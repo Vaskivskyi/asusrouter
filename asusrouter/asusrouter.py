@@ -8,7 +8,7 @@ import asyncio
 import json
 import logging
 from datetime import datetime, timedelta, timezone
-from typing import Any, Optional
+from typing import Any, Optional, Tuple
 
 import aiohttp
 
@@ -62,6 +62,8 @@ class AsusRouter:
     _state: dict[AsusData, AsusDataState] = {}
 
     _flags: Flag = Flag()
+    # Time for change to take effect before available to fetch
+    _needed_time: Optional[int] = None
 
     def __init__(
         self,
@@ -510,7 +512,7 @@ class AsusRouter:
         _LOGGER.debug("Triggered method async_run_service")
 
         # Run the service
-        result = await async_call_service(
+        result, self._needed_time = await async_call_service(
             self.async_api_command,
             service,
             arguments,
@@ -548,7 +550,7 @@ class AsusRouter:
             # Check if we have a state object for this data
             self._check_state(get_datatype(state))
             # Save the state
-            save_state(state, self._state)
+            save_state(state, self._state, self._needed_time)
 
         return result
 

@@ -3,7 +3,13 @@
 # Network
 
 from asusrouter.modules.ip_address import read_dns_ip_address, read_ip_address_type
-from asusrouter.tools.converters import safe_bool, safe_int
+from asusrouter.modules.wireguard import AsusWireGuardServer
+from asusrouter.tools.converters import (
+    safe_bool,
+    safe_int,
+    safe_list_csv,
+    safe_list_from_string,
+)
 
 MAP_NETWORK: dict[str, str] = {
     "INTERNET": "wan",
@@ -40,4 +46,26 @@ MAP_WAN = (
     ("wanlink_xdns", "xdns", read_dns_ip_address),
     ("wanlink_xlease", "xlease", safe_int),
     ("wanlink_xexpires", "xexpires", safe_int),
+)
+
+MAP_WIREGUARD = (
+    ("wgs_enable", "state", [safe_int, AsusWireGuardServer]),
+    ("wgs_lanaccess", "lan_access", safe_bool),
+    ("wgs_addr", "address"),
+    ("wgs_port", "port", safe_int),
+    ("wgs_dns", "dns", safe_bool),
+    ("wgs_nat6", "nat6", safe_bool),
+    ("wgs_psk", "psk", safe_bool),
+    ("wgs_alive", "keep_alive", safe_int),
+    ("wgs_priv", "private_key"),
+    ("wgs_pub", "public_key"),
+    ("get_wgsc_status", "status"),
+)
+
+MAP_WIREGUARD_CLIENT = (
+    ("enable", "enabled", safe_bool),
+    ("name", "name"),
+    ("addr", "address"),
+    ("aips", "allowed_ips", safe_list_csv),
+    ("caips", "client_allowed_ips", safe_list_csv),
 )
