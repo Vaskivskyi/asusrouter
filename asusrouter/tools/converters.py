@@ -65,6 +65,22 @@ def nvram_get(content: Optional[list[str] | str]) -> Optional[list[tuple[str, ..
     return [("nvram_get", value) for value in content]
 
 
+def run_method(
+    value: Any, method: Optional[Callable[..., Any] | list[Callable[..., Any]]]
+) -> Any:
+    """Run a method or a list of methods on a value and return the result."""
+
+    if not method:
+        return value
+
+    if isinstance(method, list):
+        for func in method:
+            value = func(value)
+        return value
+
+    return method(value)
+
+
 def safe_bool(content: Optional[str | int | float | bool]) -> Optional[bool]:
     """Read the content as boolean or return None."""
 
@@ -158,6 +174,12 @@ def safe_list(content: Any) -> list[Any]:
     return [content]
 
 
+def safe_list_csv(content: Optional[str]) -> list[str]:
+    """Read the list as comma separated values."""
+
+    return safe_list_from_string(content, ",")
+
+
 def safe_list_from_string(content: Optional[str], delimiter: str = " ") -> list[str]:
     """Read the content as list or return empty list."""
 
@@ -233,7 +255,7 @@ def safe_timedelta_long(content: Optional[str]) -> timedelta:
 
 
 def safe_unpack_key(
-    content: tuple[str, Optional[Callable[..., Any]]] | str
+    content: tuple[str, Optional[Callable[..., Any]] | list[Callable[..., Any]]] | str
 ) -> tuple[str, Optional[Callable[..., Any]]]:
     """Method to unpack key/method tuple
     even if some values are missing."""
@@ -248,7 +270,9 @@ def safe_unpack_key(
 
 
 def safe_unpack_keys(
-    content: tuple[str, str, Callable[..., Any]] | tuple[str, str] | str
+    content: tuple[str, str, Callable[..., Any] | list[Callable[..., Any]]]
+    | tuple[str, str]
+    | str
 ) -> tuple[Any, ...]:
     """Method to unpack key/key_to_use/method tuple
     even if some values are missing."""

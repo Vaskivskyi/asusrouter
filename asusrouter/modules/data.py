@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 from typing import Any, Optional
 
@@ -32,6 +32,7 @@ class AsusData(str, Enum):
     SYSTEM = "system"
     TEMPERATURE = "temperature"
     WAN = "wan"
+    WIREGUARD = "wireguard"
     WLAN = "wlan"
 
 
@@ -73,3 +74,12 @@ class AsusDataState:
             return
 
         self.data = {"state": state}
+
+    def offset_time(self, offset: Optional[int]) -> None:
+        """Offset the timestamp."""
+
+        if offset is None:
+            self.timestamp = datetime.now(timezone.utc)
+            return
+
+        self.timestamp = datetime.now(timezone.utc) + timedelta(seconds=offset)

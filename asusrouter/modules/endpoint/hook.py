@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timezone
-from typing import Any, Optional
+from typing import Any, Callable, Optional
 
+from asusrouter.modules.connection import ConnectionState
 from asusrouter.modules.data import AsusData, AsusDataState
 from asusrouter.modules.endpoint import data_get
 from asusrouter.modules.led import AsusLED
@@ -26,6 +27,7 @@ from asusrouter.modules.port_forwarding import (
 )
 from asusrouter.modules.wlan import MAP_GWLAN, MAP_WLAN, Wlan
 from asusrouter.tools.converters import (
+    run_method,
     safe_int,
     safe_return,
     safe_speed,
@@ -36,7 +38,7 @@ from asusrouter.tools.converters import (
 )
 from asusrouter.tools.readers import read_json_content
 
-from .hook_const import MAP_NETWORK, MAP_WAN
+from .hook_const import MAP_NETWORK, MAP_WAN, MAP_WIREGUARD, MAP_WIREGUARD_CLIENT
 
 REQUIRE_HISTORY = True
 REQUIRE_WLAN = True
@@ -119,6 +121,10 @@ def process(data: dict[str, Any]) -> dict[AsusData, Any]:
     if "wanlink_state" in data:
         wanlink_state = data.get("wanlink_state", {})
         state[AsusData.WAN] = process_wan(wanlink_state) if wanlink_state else {}
+
+    # WireGuard
+    if "get_wgsc_status" in data:
+        state[AsusData.WIREGUARD] = process_wireguard(data)
 
     # WLAN
     if (
@@ -365,9 +371,48 @@ def process_wan(wanlink_state: dict[str, Any]) -> dict[str, Any]:
         key, key_to_use, method = safe_unpack_keys(keys)
         state_value = wanlink_state.get(key)
         if state_value:
-            wan[key_to_use] = method(state_value) if method else state_value
+            wan[key_to_use] = run_method(state_value, method)
 
     return wan
+
+
+def process_wireguard(data: dict[str, Any]) -> dict[str, Any]:
+    """Process WireGuard data."""
+
+    wireguard = {}
+
+    # Server data
+    for keys in MAP_WIREGUARD:
+        key, key_to_use, method = safe_unpack_keys(keys)
+        state_value = data.get(key)
+        if state_value:
+            wireguard[key_to_use] = run_method(state_value, method)
+
+    # Per-client data
+    wireguard["clients"] = {}
+    for num in range(1, 11):
+        client = {}
+        for keys in MAP_WIREGUARD_CLIENT:
+            key, key_to_use, method = safe_unpack_keys(keys)
+            state_value = data.get(f"wgs1_c{num}_{key}")
+            if state_value:
+                client[key_to_use] = run_method(state_value, method)
+        if client:
+            wireguard["clients"][num] = client
+
+    if "status" in wireguard:
+        status = wireguard["status"].get("client_status")
+        if status:
+            for client in status:
+                if client.get("index") in wireguard["clients"]:
+                    wireguard["clients"][client.get("index")][
+                        "state"
+                    ] = ConnectionState(client.get("status"))
+
+    # Remove the `status` value
+    wireguard.pop("status")
+
+    return wireguard
 
 
 def process_wlan(data: dict[str, Any], wlan_list: list[Wlan]) -> dict[str, Any]:
