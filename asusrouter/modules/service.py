@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Awaitable, Callable, Optional
+from typing import Any, Awaitable, Callable, Optional, Tuple
 
 from asusrouter.error import AsusRouterServiceError
-from asusrouter.tools.converters import safe_bool
+from asusrouter.tools.converters import safe_bool, safe_int
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -17,7 +17,7 @@ async def async_call_service(
     arguments: Optional[dict[str, Any]] = None,
     apply: bool = False,
     expect_modify: bool = True,
-) -> bool:
+) -> Tuple[bool, Optional[int]]:
     """Call a service."""
 
     # Generate commands
@@ -50,7 +50,9 @@ async def async_call_service(
         "Service `%s` run with arguments `%s`. Result: `%s`", service, arguments, result
     )
 
-    if expect_modify:
-        return safe_bool(result.get("modify")) or False
+    needed_time = safe_int(result.get("restart_needed_time"))
 
-    return True
+    if expect_modify:
+        return (safe_bool(result.get("modify")) or False, needed_time)
+
+    return (True, needed_time)

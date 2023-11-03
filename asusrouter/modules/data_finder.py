@@ -8,6 +8,7 @@ from typing import Callable, Optional
 from asusrouter.modules.attributes import AsusRouterAttribute
 from asusrouter.modules.data import AsusData
 from asusrouter.modules.endpoint import Endpoint
+from asusrouter.modules.endpoint.hook_const import MAP_WIREGUARD, MAP_WIREGUARD_CLIENT
 from asusrouter.modules.parental_control import (
     KEY_PARENTAL_CONTROL_MAC,
     KEY_PARENTAL_CONTROL_NAME,
@@ -62,15 +63,18 @@ class AsusDataFinder:
 
 # A constant list of requests for fetching data
 ASUSDATA_REQUEST = {
-    "devices": {
+    "devices": [
         ("get_clientlist", ""),
-    },
-    "main": {
+    ],
+    "main": [
         ("cpu_usage", "appobj"),
         ("memory_usage", "appobj"),
         ("netdev", "appobj"),
         ("wanlink_state", "appobj"),
-    },
+    ],
+    "wireguard": [
+        ("get_wgsc_status", ""),
+    ],
 }
 
 ASUSDATA_NVRAM = {
@@ -86,7 +90,21 @@ ASUSDATA_NVRAM = {
         "vts_rulelist",
         "vts_enable_x",
     ],
+    "wireguard": [
+        key
+        for element in MAP_WIREGUARD
+        for key, _, _ in [converters.safe_unpack_keys(element)]
+        if key != "get_wgsc_status"
+    ],
 }
+ASUSDATA_NVRAM["wireguard"].extend(
+    [
+        f"wgs1_c{num}_{key}"
+        for num in range(1, 11)
+        for element in MAP_WIREGUARD_CLIENT
+        for key, _, _ in [converters.safe_unpack_keys(element)]
+    ]
+)
 
 ASUSDATA_ENDPOINT_APPEND = {
     Endpoint.PORT_STATUS: {
@@ -127,6 +145,11 @@ ASUSDATA_MAP = {
     AsusData.SYSINFO: AsusDataFinder(Endpoint.SYSINFO),
     AsusData.TEMPERATURE: AsusDataFinder(Endpoint.TEMPERATURE),
     AsusData.WAN: AsusDataFinder(Endpoint.HOOK, request=ASUSDATA_REQUEST["main"]),
+    AsusData.WIREGUARD: AsusDataFinder(
+        Endpoint.HOOK,
+        nvram=ASUSDATA_NVRAM["wireguard"],
+        request=ASUSDATA_REQUEST["wireguard"],
+    ),
     AsusData.WLAN: AsusDataFinder(
         Endpoint.HOOK,
         method=wlan_nvram_request,

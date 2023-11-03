@@ -14,6 +14,7 @@ from asusrouter.modules.identity import AsusDevice
 from asusrouter.modules.parental_control import AsusParentalControl
 from asusrouter.modules.port_forwarding import AsusPortForwarding
 from asusrouter.modules.system import AsusSystem
+from asusrouter.modules.wireguard import AsusWireGuardServer
 from asusrouter.modules.wlan import AsusWLAN
 
 from .led import AsusLED
@@ -42,6 +43,7 @@ class AsusState(Enum):
     PARENTAL_CONTROL = AsusParentalControl
     PORT_FORWARDING = AsusPortForwarding
     SYSTEM = AsusSystem
+    WIREGUARD_SERVER = AsusWireGuardServer
     WLAN = AsusWLAN
 
 
@@ -54,6 +56,7 @@ AsusStateMap: dict[AsusState, Optional[AsusData]] = {
     AsusState.PARENTAL_CONTROL: AsusData.PARENTAL_CONTROL,
     AsusState.PORT_FORWARDING: AsusData.PORT_FORWARDING,
     AsusState.SYSTEM: AsusData.SYSTEM,
+    AsusState.WIREGUARD_SERVER: AsusData.WIREGUARD,
     AsusState.WLAN: AsusData.WLAN,
 }
 
@@ -127,6 +130,7 @@ async def set_state(
 def save_state(
     state: AsusState,
     library: dict[AsusData, AsusDataState],
+    needed_time: Optional[int] = None,
 ) -> None:
     """Save the state."""
 
@@ -138,6 +142,7 @@ def save_state(
     # Save the state
     if datatype:
         library[datatype].update_state(state)
+        library[datatype].offset_time(needed_time)
 
 
 async def keep_state(
