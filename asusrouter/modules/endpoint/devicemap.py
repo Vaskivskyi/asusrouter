@@ -101,7 +101,7 @@ def read_key(xml_content: dict[str, Any]) -> dict[str, Any]:
         # Go through the input values and fill the dict
         for input_value in input_values:
             # Check if the input group is a string
-            if isinstance(xml_content[input_group], str):
+            if isinstance(xml_content.get(input_group), str):
                 # Check if the input value is in the input group
                 if input_value in xml_content[input_group]:
                     # Add the input value to the output group data and remove the key
@@ -111,7 +111,10 @@ def read_key(xml_content: dict[str, Any]) -> dict[str, Any]:
             # Check if the input group is a list
             else:
                 # Go through the input group and check if the input value is in it
-                for value in xml_content[input_group]:
+                xml_input_group = xml_content.get(input_group)
+                if not xml_input_group:
+                    continue
+                for value in xml_input_group:
                     if input_value in value:
                         # Add the input value to the output group data
                         output_group_data[input_value] = value.replace(
