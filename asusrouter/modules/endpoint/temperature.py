@@ -46,7 +46,8 @@ def read(content: str) -> dict[str, Any]:
 
     # Clean the temperature values from `&deg;C`
     for key, value in temperature.items():
-        temperature[key] = value.replace("&deg;C", "")
+        if value:
+            temperature[key] = value.replace("&deg;C", "")
 
     # Read CPU temperature
     # If there is curr_coreTmp_cpu
@@ -60,7 +61,7 @@ def read(content: str) -> dict[str, Any]:
     temperature = {
         key: safe_float(value)
         for key, value in temperature.items()
-        if "disabled" not in value
+        if value and "disabled" not in value
     }
 
     return temperature
