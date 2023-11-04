@@ -109,6 +109,8 @@ def read_legacy_as_json(content: str) -> dict[str, Any]:
     # Keep the content inside the brackets as is
     # Stop the regex search on the first occurence of the `]` so that we don't match the last `]`
     data = re.sub(r'"wlList_2g": \[([^\]]*)\]', r'"wlList_2g": {\1}', data, count=1)
+    data = re.sub(r'"wlList_5g": \[([^\]]*)\]', r'"wlList_5g": {\1}', data, count=1)
+    data = re.sub(r'"wlList_5g_2": \[([^\]]*)\]', r'"wlList_5g_2": {\1}', data, count=1)
 
     data = "{" + data + "}"
     try:
