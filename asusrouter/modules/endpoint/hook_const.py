@@ -69,3 +69,17 @@ MAP_WIREGUARD_CLIENT = (
     ("aips", "allowed_ips", safe_list_csv),
     ("caips", "client_allowed_ips", safe_list_csv),
 )
+
+MAP_VPNC_WIREGUARD = (
+    ("nat", "nat", safe_bool),
+    ("priv", "private_key"),
+    ("addr", "address"),
+    ("dns", "dns", safe_bool),
+    ("mtu", "mtu", safe_int),
+    ("ppub", "public_key"),
+    ("psk", "psk"),
+    ("aips", "allowed_ips", safe_list_csv),
+    ("ep_addr", "endpoint_address"),
+    ("ep_port", "endpoint_port", safe_int),
+    ("alive", "keep_alive", safe_int),
+)

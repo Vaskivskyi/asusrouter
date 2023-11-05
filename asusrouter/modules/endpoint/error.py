@@ -20,6 +20,7 @@ class AccessError(IntEnum):
 
     UNKNOWN = -999
 
+    NO_ERROR = 0
     AUTHORIZATION = 2
     CREDENTIALS = 3
     TRY_AGAIN = 7

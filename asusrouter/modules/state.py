@@ -6,7 +6,7 @@ import importlib
 import logging
 from enum import Enum
 from types import ModuleType
-from typing import Any, Awaitable, Callable, Optional
+from typing import Any, Awaitable, Callable, Optional, Tuple
 
 from asusrouter.modules.connection import ConnectionState
 from asusrouter.modules.data import AsusData, AsusDataState
@@ -14,7 +14,8 @@ from asusrouter.modules.identity import AsusDevice
 from asusrouter.modules.parental_control import AsusParentalControl
 from asusrouter.modules.port_forwarding import AsusPortForwarding
 from asusrouter.modules.system import AsusSystem
-from asusrouter.modules.wireguard import AsusWireGuardServer
+from asusrouter.modules.vpnc import AsusVPNC
+from asusrouter.modules.wireguard import AsusWireGuardClient, AsusWireGuardServer
 from asusrouter.modules.wlan import AsusWLAN
 
 from .led import AsusLED
@@ -43,6 +44,8 @@ class AsusState(Enum):
     PARENTAL_CONTROL = AsusParentalControl
     PORT_FORWARDING = AsusPortForwarding
     SYSTEM = AsusSystem
+    VPNC = AsusVPNC
+    WIREGUARD_CLIENT = AsusWireGuardClient
     WIREGUARD_SERVER = AsusWireGuardServer
     WLAN = AsusWLAN
 
@@ -56,9 +59,18 @@ AsusStateMap: dict[AsusState, Optional[AsusData]] = {
     AsusState.PARENTAL_CONTROL: AsusData.PARENTAL_CONTROL,
     AsusState.PORT_FORWARDING: AsusData.PORT_FORWARDING,
     AsusState.SYSTEM: AsusData.SYSTEM,
+    AsusState.VPNC: AsusData.VPNC,
+    AsusState.WIREGUARD_CLIENT: AsusData.WIREGUARD,
     AsusState.WIREGUARD_SERVER: AsusData.WIREGUARD,
     AsusState.WLAN: AsusData.WLAN,
 }
+
+
+def add_conditional_state(state: AsusState, data: AsusData) -> None:
+    """A callback to add / change AsusStateMap."""
+
+    AsusStateMap[state] = data
+    _LOGGER.debug("Added conditional state rule: %s -> %s", state, data)
 
 
 def get_datatype(state: Optional[Any]) -> Optional[AsusData]:
@@ -114,6 +126,7 @@ async def set_state(
     state: AsusState,
     arguments: Optional[dict[str, Any]] = None,
     expect_modify: bool = False,
+    router_state: Optional[dict[AsusData, AsusDataState]] = None,
 ) -> bool:
     """Set the state."""
 
@@ -122,6 +135,13 @@ async def set_state(
 
     # Process the data if module found
     if submodule and _has_method(submodule, "set_state"):
+        # Does it require state?
+        require_state = getattr(submodule, "REQUIRE_STATE", False)
+        if require_state:
+            return await submodule.set_state(
+                callback, state, arguments, expect_modify, router_state
+            )
+
         return await submodule.set_state(callback, state, arguments, expect_modify)
 
     return False
