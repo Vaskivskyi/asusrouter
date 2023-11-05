@@ -245,7 +245,7 @@ class AsusRouter:
         self,
         endpoint: Endpoint | EndpointControl,
         request: str = "",
-        retry: bool = False,
+        retry: int = 0,
     ) -> dict[str, Any]:
         """Load API endpoint with optional request."""
 
@@ -261,8 +261,10 @@ class AsusRouter:
             # Check whether we are not connected
             args = ex.args
             if args[1] == AccessError.AUTHORIZATION:
-                # Reconnect
-                await self.async_connect()
+                # Mark the connection as dropped
+                await self._async_drop_connection()
+                # Wait before repeating the request
+                await asyncio.sleep(1 + retry * 3)
                 # Repeat request once more and see what happens
                 return await self.async_api_load(endpoint, request, True)
             # Otherwise just raise the exception
