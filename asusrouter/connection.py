@@ -114,16 +114,6 @@ class Connection:  # pylint: disable=too-many-instance-attributes
                 )
                 _LOGGER.debug("Received authorization response")
             except AsusRouterAccessError as ex:
-                # Check the AccessError
-                if ex.args[1] == AccessError.TRY_AGAIN:
-                    # Get the timeout
-                    timeout = ex.args[2].get("timeout") + 5
-                    if timeout:
-                        _LOGGER.debug("Will try again in %s seconds", timeout)
-                        await asyncio.sleep(timeout)
-                        return await self.async_connect(retry, asyncio.Lock())
-                    raise ex
-                # In case of any other error, switch to the next except block
                 raise ex
             except AsusRouterError as ex:
                 _LOGGER.debug("Connection failed")
