@@ -2,13 +2,18 @@
 
 from __future__ import annotations
 
+import logging
 from enum import Enum
 from typing import Callable, Optional
 
 from asusrouter.modules.attributes import AsusRouterAttribute
 from asusrouter.modules.data import AsusData
 from asusrouter.modules.endpoint import Endpoint
-from asusrouter.modules.endpoint.hook_const import MAP_WIREGUARD, MAP_WIREGUARD_CLIENT
+from asusrouter.modules.endpoint.hook_const import (
+    MAP_VPNC_WIREGUARD,
+    MAP_WIREGUARD,
+    MAP_WIREGUARD_CLIENT,
+)
 from asusrouter.modules.parental_control import (
     KEY_PARENTAL_CONTROL_MAC,
     KEY_PARENTAL_CONTROL_NAME,
@@ -18,6 +23,8 @@ from asusrouter.modules.parental_control import (
 )
 from asusrouter.modules.wlan import gwlan_nvram_request, wlan_nvram_request
 from asusrouter.tools import converters
+
+_LOGGER = logging.getLogger(__name__)
 
 
 class AsusDataMerge(str, Enum):
@@ -72,6 +79,9 @@ ASUSDATA_REQUEST = {
         ("netdev", "appobj"),
         ("wanlink_state", "appobj"),
     ],
+    "vpnc": [
+        ("get_vpnc_status", ""),
+    ],
     "wireguard": [
         ("get_wgsc_status", ""),
     ],
@@ -90,6 +100,9 @@ ASUSDATA_NVRAM = {
         "vts_rulelist",
         "vts_enable_x",
     ],
+    "vpnc": [
+        "vpnc_clientlist",
+    ],
     "wireguard": [
         key
         for element in MAP_WIREGUARD
@@ -97,6 +110,14 @@ ASUSDATA_NVRAM = {
         if key != "get_wgsc_status"
     ],
 }
+ASUSDATA_NVRAM["vpnc"].extend(
+    [
+        f"wgc{num}_{key}"
+        for num in range(1, 6)
+        for element in MAP_VPNC_WIREGUARD
+        for key, _, _ in [converters.safe_unpack_keys(element)]
+    ]
+)
 ASUSDATA_NVRAM["wireguard"].extend(
     [
         f"wgs1_c{num}_{key}"
@@ -114,9 +135,9 @@ ASUSDATA_ENDPOINT_APPEND = {
 
 
 # A map of endptoins to get data from
-ASUSDATA_MAP = {
+ASUSDATA_MAP: dict[AsusData, AsusData | AsusDataFinder] = {
     AsusData.AIMESH: AsusDataFinder(Endpoint.ONBOARDING),
-    AsusData.BOOTTIME: AsusDataFinder(Endpoint.DEVICEMAP),
+    AsusData.BOOTTIME: AsusData.DEVICEMAP,
     AsusData.CLIENTS: AsusDataFinder(
         [Endpoint.ONBOARDING, Endpoint.UPDATE_CLIENTS], AsusDataMerge.ALL
     ),
@@ -129,11 +150,13 @@ ASUSDATA_MAP = {
         arguments=AsusRouterAttribute.WLAN_LIST,
     ),
     AsusData.LED: AsusDataFinder(Endpoint.HOOK, nvram=ASUSDATA_NVRAM["light"]),
-    AsusData.NETWORK: AsusDataFinder(Endpoint.HOOK, request=ASUSDATA_REQUEST["main"]),
+    AsusData.NETWORK: AsusData.CPU,
     AsusData.NODE_INFO: AsusDataFinder(Endpoint.PORT_STATUS),
     AsusData.OPENVPN: AsusDataFinder(
         [Endpoint.VPN, Endpoint.DEVICEMAP], AsusDataMerge.ANY
     ),
+    AsusData.OPENVPN_CLIENT: AsusData.OPENVPN,
+    AsusData.OPENVPN_SERVER: AsusData.OPENVPN,
     AsusData.PARENTAL_CONTROL: AsusDataFinder(
         Endpoint.HOOK, nvram=ASUSDATA_NVRAM["parental_control"]
     ),
@@ -141,18 +164,44 @@ ASUSDATA_MAP = {
         Endpoint.HOOK, nvram=ASUSDATA_NVRAM["port_forwarding"]
     ),
     AsusData.PORTS: AsusDataFinder([Endpoint.PORT_STATUS, Endpoint.ETHERNET_PORTS]),
-    AsusData.RAM: AsusDataFinder(Endpoint.HOOK, request=ASUSDATA_REQUEST["main"]),
+    AsusData.RAM: AsusData.CPU,
     AsusData.SYSINFO: AsusDataFinder(Endpoint.SYSINFO),
     AsusData.TEMPERATURE: AsusDataFinder(Endpoint.TEMPERATURE),
-    AsusData.WAN: AsusDataFinder(Endpoint.HOOK, request=ASUSDATA_REQUEST["main"]),
+    AsusData.VPNC: AsusDataFinder(
+        Endpoint.HOOK, nvram=ASUSDATA_NVRAM["vpnc"], request=ASUSDATA_REQUEST["vpnc"]
+    ),
+    AsusData.VPNC_CLIENTLIST: AsusData.VPNC,
+    AsusData.WAN: AsusData.CPU,
     AsusData.WIREGUARD: AsusDataFinder(
         Endpoint.HOOK,
         nvram=ASUSDATA_NVRAM["wireguard"],
         request=ASUSDATA_REQUEST["wireguard"],
     ),
+    AsusData.WIREGUARD_SERVER: AsusData.WIREGUARD,
     AsusData.WLAN: AsusDataFinder(
         Endpoint.HOOK,
         method=wlan_nvram_request,
         arguments=AsusRouterAttribute.WLAN_LIST,
     ),
 }
+
+
+def add_conditional_data_rule(data: AsusData, rule: AsusDataFinder) -> None:
+    """A callback to add / change rule for ASUSDATA_MAP."""
+
+    ASUSDATA_MAP[data] = rule
+    _LOGGER.debug("Added conditional data rule: %s -> %s", data, rule)
+
+
+def add_conditional_data_alias(data: AsusData, origin: AsusData) -> None:
+    """A callback to add / change rule for ASUSDATA_MAP."""
+
+    ASUSDATA_MAP[data] = origin
+    _LOGGER.debug("Added data alias: %s -> %s", origin, data)
+
+
+def remove_data_rule(data: AsusData) -> None:
+    """A callback to remove rule for ASUSDATA_MAP."""
+
+    ASUSDATA_MAP.pop(data, None)
+    _LOGGER.debug("Removed data rule: %s", data)

@@ -6,6 +6,14 @@ from enum import IntEnum
 from typing import Any, Awaitable, Callable, Optional
 
 
+class AsusWireGuardClient(IntEnum):
+    """Asus WireGuard client state."""
+
+    UNKNOWN = -999
+    OFF = 0
+    ON = 1
+
+
 class AsusWireGuardServer(IntEnum):
     """Asus WireGuard server state."""
 

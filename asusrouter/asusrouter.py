@@ -28,10 +28,13 @@ from asusrouter.modules.data_finder import (
     ASUSDATA_MAP,
     AsusDataFinder,
     AsusDataMerge,
+    add_conditional_data_alias,
+    remove_data_rule,
 )
 from asusrouter.modules.data_transform import transform_clients, transform_network
 from asusrouter.modules.endpoint import Endpoint, EndpointControl, process, read
 from asusrouter.modules.endpoint.error import AccessError
+from asusrouter.modules.firmware import Firmware
 from asusrouter.modules.flags import Flag
 from asusrouter.modules.identity import AsusDevice, collect_identity
 from asusrouter.modules.parental_control import ParentalControlRule
@@ -39,6 +42,7 @@ from asusrouter.modules.port_forwarding import PortForwardingRule
 from asusrouter.modules.service import async_call_service
 from asusrouter.modules.state import (
     AsusState,
+    add_conditional_state,
     get_datatype,
     keep_state,
     save_state,
@@ -178,6 +182,27 @@ class AsusRouter:
             api_hook=self.async_api_hook,
             api_query=self.async_api_query,
         )
+
+        # Add conditional data rules
+        if self._identity:
+            firmware = self._identity.firmware
+            merlin = self._identity.merlin
+            fw_388 = Firmware(major="3.0.0.4", minor=388, build=0)
+            # Stock
+            if not merlin:
+                _LOGGER.debug("Adding conditional rules for stock firmware")
+                if fw_388 < firmware:
+                    add_conditional_state(AsusState.OPENVPN_CLIENT, AsusData.VPNC)
+                    add_conditional_state(AsusState.WIREGUARD_CLIENT, AsusData.VPNC)
+                    add_conditional_data_alias(AsusData.OPENVPN_CLIENT, AsusData.VPNC)
+                    add_conditional_data_alias(AsusData.WIREGUARD_CLIENT, AsusData.VPNC)
+            # Merlin
+            else:
+                _LOGGER.debug("Adding conditional rules for Merlin firmware")
+            # Before 388
+            if firmware < fw_388:
+                # Remove WireGuard rule
+                remove_data_rule(AsusData.WIREGUARD)
 
         # Return new identity
         return self._identity
@@ -337,6 +362,10 @@ class AsusRouter:
 
         # Get the map
         data_map = ASUSDATA_MAP.get(datatype)
+        # Consider aliases
+        while isinstance(data_map, AsusData):
+            data_map = ASUSDATA_MAP.get(data_map)
+        # Check if we have a map
         if not data_map:
             return None
 
@@ -545,7 +574,7 @@ class AsusRouter:
         )
 
         result = await set_state(
-            self.async_run_service, state, arguments, expect_modify
+            self.async_run_service, state, arguments, expect_modify, self._state
         )
 
         if result is True:
