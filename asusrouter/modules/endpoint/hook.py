@@ -4,11 +4,12 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timezone
-from typing import Any, Callable, Optional
+from typing import Any, Callable, Optional, Tuple
 
 from asusrouter.modules.connection import ConnectionState
 from asusrouter.modules.data import AsusData, AsusDataState
 from asusrouter.modules.endpoint import data_get
+from asusrouter.modules.endpoint.error import AccessError
 from asusrouter.modules.led import AsusLED
 from asusrouter.modules.parental_control import (
     KEY_PARENTAL_CONTROL_MAC,
@@ -25,9 +26,11 @@ from asusrouter.modules.port_forwarding import (
     AsusPortForwarding,
     PortForwardingRule,
 )
+from asusrouter.modules.vpnc import AsusVPNC, AsusVPNType
 from asusrouter.modules.wlan import MAP_GWLAN, MAP_WLAN, Wlan
 from asusrouter.tools.converters import (
     run_method,
+    safe_bool,
     safe_int,
     safe_return,
     safe_speed,
@@ -36,9 +39,15 @@ from asusrouter.tools.converters import (
     safe_usage,
     safe_usage_historic,
 )
-from asusrouter.tools.readers import read_json_content
+from asusrouter.tools.readers import merge_dicts, read_json_content
 
-from .hook_const import MAP_NETWORK, MAP_WAN, MAP_WIREGUARD, MAP_WIREGUARD_CLIENT
+from .hook_const import (
+    MAP_NETWORK,
+    MAP_VPNC_WIREGUARD,
+    MAP_WAN,
+    MAP_WIREGUARD,
+    MAP_WIREGUARD_CLIENT,
+)
 
 REQUIRE_HISTORY = True
 REQUIRE_WLAN = True
@@ -117,6 +126,14 @@ def process(data: dict[str, Any]) -> dict[AsusData, Any]:
         memory_usage = data.get("memory_usage", {})
         state[AsusData.RAM] = process_ram(memory_usage) if memory_usage else {}
 
+    # VPNC
+    if "get_vpnc_status" in data:
+        vpnc, vpnc_clientlist = process_vpnc(data)
+        state[AsusData.OPENVPN_CLIENT] = vpnc[AsusVPNType.OPENVPN]
+        state[AsusData.VPNC] = vpnc
+        state[AsusData.VPNC_CLIENTLIST] = vpnc_clientlist
+        state[AsusData.WIREGUARD_CLIENT] = vpnc[AsusVPNType.WIREGUARD]
+
     # WAN
     if "wanlink_state" in data:
         wanlink_state = data.get("wanlink_state", {})
@@ -124,7 +141,7 @@ def process(data: dict[str, Any]) -> dict[AsusData, Any]:
 
     # WireGuard
     if "get_wgsc_status" in data:
-        state[AsusData.WIREGUARD] = process_wireguard(data)
+        state[AsusData.WIREGUARD_SERVER] = process_wireguard_server(data)
 
     # WLAN
     if (
@@ -362,6 +379,109 @@ def process_ram(memory_usage: dict[str, Any]) -> dict[str, Any]:
     return ram
 
 
+def process_vpnc(data: dict[str, Any]) -> Tuple[dict[AsusVPNType, dict[int, Any]], str]:
+    """Process VPNC data."""
+
+    vpnc = {}
+
+    # Get client list
+    vpnc_clientlist = (
+        data.get("vpnc_clientlist", "").replace("&#62", ">").replace("&#60", "<")
+    )
+    if vpnc_clientlist != "":
+        clients = vpnc_clientlist.split("<")
+        vpnc_unit = 0
+        for client in clients:
+            if client == str():
+                continue
+            part = client.split(">")
+            # Format: name, type, id, login, password, active, vpnc_id, ?, ?, ?, ?, `Web`
+            vpnc_id = safe_int(part[6])
+            vpnc[vpnc_id] = {
+                "type": AsusVPNType(part[1])
+                if part[1] in [e.value for e in AsusVPNType]
+                else AsusVPNType.UNKNOWN,
+                "id": safe_int(part[2]),
+                "name": safe_return(part[0]),
+                "login": safe_return(part[3]),
+                "password": safe_return(part[4]),
+                "active": safe_bool(part[5]),
+                "vpnc_unit": vpnc_unit,
+            }
+            vpnc_unit += 1
+
+    # Get clients status
+    get_vpnc_status = data.get("get_vpnc_status")
+    if get_vpnc_status:
+        clients = get_vpnc_status.split("<")
+        for client in clients:
+            if client == str():
+                continue
+            part = client.split(">")
+            vpnc_id = safe_int(part[2])
+            state_code = safe_int(part[0])
+            error_code = safe_int(part[1])
+            vpnc[vpnc_id].update(
+                {
+                    "state": AsusVPNC(state_code)
+                    if state_code in [e.value for e in AsusVPNC]
+                    else AsusVPNC.UNKNOWN,
+                    "error": AccessError(error_code)
+                    if error_code in [e.value for e in AccessError]
+                    else AccessError.UNKNOWN,
+                }
+            )
+
+    # Re-sort the data by VPN type / id
+    vpn: dict[AsusVPNType, dict[int, Any]] = {
+        AsusVPNType.OPENVPN: {},
+        AsusVPNType.WIREGUARD: {},
+    }
+
+    for vpnc_id, info in vpnc.items():
+        sorted_id = info.pop("id")
+        sorted_type = info.pop("type")
+        info["vpnc_id"] = vpnc_id
+        vpn[sorted_type][sorted_id] = info
+
+    # Process WireGuard data
+    vpn[AsusVPNType.WIREGUARD] = merge_dicts(
+        vpn[AsusVPNType.WIREGUARD], process_vpnc_wireguard(data)
+    )
+    # Fill missing clients with unknown state
+    for num in range(1, 6):
+        if num not in vpn[AsusVPNType.WIREGUARD]:
+            vpn[AsusVPNType.WIREGUARD][num] = {
+                "state": AsusVPNC.UNKNOWN,
+                "error": AccessError.NO_ERROR,
+            }
+        if num not in vpn[AsusVPNType.OPENVPN]:
+            vpn[AsusVPNType.OPENVPN][num] = {
+                "state": AsusVPNC.UNKNOWN,
+                "error": AccessError.NO_ERROR,
+            }
+
+    return vpn, vpnc_clientlist
+
+
+def process_vpnc_wireguard(data: dict[str, Any]) -> dict[int, dict[str, Any]]:
+    """Process VPNC WireGuard data."""
+
+    wireguard = {}
+
+    for num in range(1, 6):
+        client = {}
+        for keys in MAP_VPNC_WIREGUARD:
+            key, key_to_use, method = safe_unpack_keys(keys)
+            state_value = data.get(f"wgc{num}_{key}")
+            if state_value:
+                client[key_to_use] = run_method(state_value, method)
+        if client:
+            wireguard[num] = client
+
+    return wireguard
+
+
 def process_wan(wanlink_state: dict[str, Any]) -> dict[str, Any]:
     """Process WAN data."""
 
@@ -376,7 +496,7 @@ def process_wan(wanlink_state: dict[str, Any]) -> dict[str, Any]:
     return wan
 
 
-def process_wireguard(data: dict[str, Any]) -> dict[str, Any]:
+def process_wireguard_server(data: dict[str, Any]) -> dict[int, dict[str, Any]]:
     """Process WireGuard data."""
 
     wireguard = {}
@@ -412,7 +532,7 @@ def process_wireguard(data: dict[str, Any]) -> dict[str, Any]:
     # Remove the `status` value
     wireguard.pop("status")
 
-    return wireguard
+    return {1: wireguard}
 
 
 def process_wlan(data: dict[str, Any], wlan_list: list[Wlan]) -> dict[str, Any]:

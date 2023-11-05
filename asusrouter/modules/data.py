@@ -24,6 +24,8 @@ class AsusData(str, Enum):
     NETWORK = "network"
     NODE_INFO = "node_info"
     OPENVPN = "openvpn"
+    OPENVPN_CLIENT = "openvpn_client"
+    OPENVPN_SERVER = "openvpn_server"
     PARENTAL_CONTROL = "parental_control"
     PORT_FORWARDING = "port_forwarding"
     PORTS = "ports"
@@ -31,8 +33,12 @@ class AsusData(str, Enum):
     SYSINFO = "sysinfo"
     SYSTEM = "system"
     TEMPERATURE = "temperature"
+    VPNC = "vpnc"
+    VPNC_CLIENTLIST = "vpnc_clientlist"
     WAN = "wan"
     WIREGUARD = "wireguard"
+    WIREGUARD_CLIENT = "wireguard_client"
+    WIREGUARD_SERVER = "wireguard_server"
     WLAN = "wlan"
 
 
