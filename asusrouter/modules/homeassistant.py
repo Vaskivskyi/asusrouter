@@ -14,6 +14,7 @@ from typing import Any, Optional
 
 from asusrouter.modules.data import AsusData
 from asusrouter.modules.state import AsusState
+from asusrouter.modules.vpnc import AsusVPNC
 from asusrouter.tools.converters import as_dict, flatten_dict, list_from_dict
 
 _LOGGER = logging.getLogger(__name__)
@@ -57,6 +58,32 @@ def convert_to_ha_sensors(data: dict[str, Any], datatype: AsusData) -> list[str]
             sensors = convert_to_ha_sensors_list(data)
 
     return sensors
+
+
+def convert_to_ha_data(data: dict[str, Any], datatype: AsusData) -> dict[str, Any]:
+    """Convert available data to the HA-compatible dictionary."""
+
+    output: dict[str, Any] = {}
+
+    # First go through all the data (including nested)
+    # and convert it to the HA-compatible format, e.g.
+    # `state` values using `convert_to_ha_state_bool`
+    for key, value in data.items():
+        # Check if the value is a dict
+        if isinstance(value, dict):
+            # If the value is a dict, go recursive
+            output[key] = convert_to_ha_data(value, datatype)
+            continue
+        # If the value is not a dict, convert it to the HA-compatible format
+        if key == "state":
+            output[key] = convert_to_ha_state_bool(value)
+        else:
+            output[key] = value
+
+    # Flatten the dictionary
+    output = as_dict(flatten_dict(output))
+
+    return output
 
 
 def convert_to_ha_sensors_by_map(
@@ -117,6 +144,16 @@ def convert_to_ha_state_bool(data: AsusState | Optional[bool]) -> Optional[bool]
     # Check whether the state is already a bool
     if isinstance(data, bool):
         return data
+
+    # Special cases
+    if isinstance(data, AsusVPNC):
+        match data:
+            case a if a in (AsusVPNC.CONNECTED, AsusVPNC.CONNECTING, AsusVPNC.ON):
+                return True
+            case a if a in (AsusVPNC.OFF, AsusVPNC.DISCONNECTED, AsusVPNC.ERROR):
+                return False
+            case _:
+                return None
 
     # Check whether the state is based on (int, Enum)
     if isinstance(data, int) and isinstance(data, Enum):
