@@ -8,7 +8,7 @@ import asyncio
 import json
 import logging
 from datetime import datetime, timedelta, timezone
-from typing import Any, Optional, Tuple
+from typing import Any, Optional
 
 import aiohttp
 
@@ -21,7 +21,6 @@ from asusrouter.error import (
     AsusRouterDataError,
 )
 from asusrouter.modules.attributes import AsusRouterAttribute
-from asusrouter.modules.client import process_client
 from asusrouter.modules.data import AsusData, AsusDataState
 from asusrouter.modules.data_finder import (
     ASUSDATA_ENDPOINT_APPEND,
@@ -50,7 +49,7 @@ from asusrouter.modules.state import (
 )
 from asusrouter.tools import legacy
 from asusrouter.tools.converters import safe_list
-from asusrouter.tools.readers import merge_dicts, readable_mac
+from asusrouter.tools.readers import merge_dicts
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -556,6 +555,19 @@ class AsusRouter:
 
         return result
 
+    async def _async_check_state_dependency(self, state: AsusState) -> None:
+        """Check and queue state dependencies. Required for some states."""
+
+        _LOGGER.debug("Triggered method _async_check_state_dependency")
+
+        dependency = get_datatype(state)
+
+        if dependency == AsusData.VPNC:
+            # VPNC state change requires the correct previous state
+            await self.async_get_data(AsusData.VPNC, force=True)
+
+        return
+
     async def async_set_state(
         self,
         state: AsusState,
@@ -572,6 +584,9 @@ class AsusRouter:
             arguments,
             expect_modify,
         )
+
+        # Check dependencies
+        await self._async_check_state_dependency(state)
 
         result = await set_state(
             self.async_run_service, state, arguments, expect_modify, self._state
