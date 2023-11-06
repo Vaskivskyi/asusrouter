@@ -593,10 +593,16 @@ class AsusRouter:
         )
 
         if result is True:
-            # Check if we have a state object for this data
-            self._check_state(get_datatype(state))
-            # Save the state
-            save_state(state, self._state, self._needed_time)
+            if get_datatype(state) == AsusData.VPNC:
+                # The only way to make it work with VPN Fusion
+                await asyncio.sleep(1)
+                await self._async_check_state_dependency(state)
+            else:
+                # Check if we have a state object for this data
+                self._check_state(get_datatype(state))
+                # Save the state
+                _LOGGER.debug("Saving state `%s`", state)
+                save_state(state, self._state, self._needed_time)
 
         return result
 
