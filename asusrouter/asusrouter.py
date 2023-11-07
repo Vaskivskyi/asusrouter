@@ -30,7 +30,11 @@ from asusrouter.modules.data_finder import (
     add_conditional_data_alias,
     remove_data_rule,
 )
-from asusrouter.modules.data_transform import transform_clients, transform_network
+from asusrouter.modules.data_transform import (
+    transform_clients,
+    transform_cpu,
+    transform_network,
+)
 from asusrouter.modules.endpoint import Endpoint, EndpointControl, process, read
 from asusrouter.modules.endpoint.error import AccessError
 from asusrouter.modules.firmware import Firmware
@@ -390,6 +394,10 @@ class AsusRouter:
         if datatype == AsusData.CLIENTS:
             _LOGGER.debug("Transforming clients data")
             return transform_clients(data, self._state.get(AsusData.CLIENTS))
+
+        if datatype == AsusData.CPU:
+            _LOGGER.debug("Transforming CPU data")
+            return transform_cpu(data)
 
         if datatype == AsusData.NETWORK:
             _LOGGER.debug("Transforming network data")
