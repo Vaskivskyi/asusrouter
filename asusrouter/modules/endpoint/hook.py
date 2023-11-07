@@ -43,6 +43,7 @@ from asusrouter.tools.readers import merge_dicts, read_json_content
 
 from .hook_const import (
     MAP_NETWORK,
+    MAP_OVPN_SERVER_388,
     MAP_VPNC_WIREGUARD,
     MAP_WAN,
     MAP_WIREGUARD,
@@ -112,6 +113,10 @@ def process(data: dict[str, Any]) -> dict[AsusData, Any]:
             if isinstance(prev_network, AsusDataState)
             else {}
         )
+
+    # OpenVPN Server
+    if "vpn_serverx_clientlist" in data:
+        state[AsusData.OPENVPN_SERVER] = process_openvpn_server(data)
 
     # Parental control
     if KEY_PARENTAL_CONTROL_STATE in data:
@@ -241,7 +246,7 @@ def process_network_speed(
     prev_network: dict[str, dict[str, float]],
     time_delta: float | None,
 ) -> dict[str, dict[str, float]]:
-    """Calculate network speed for a set period of time"""
+    """Calculate network speed for a set period of time."""
 
     # Check values one by one
     for interface in network:
@@ -273,7 +278,7 @@ def process_network_speed(
 
 
 def process_network_usage(raw: dict[str, Any]) -> dict[str, Any]:
-    """Process network usage data"""
+    """Process network usage data."""
 
     network = {}
     for key, key_to_use in MAP_NETWORK.items():
@@ -290,8 +295,29 @@ def process_network_usage(raw: dict[str, Any]) -> dict[str, Any]:
     return network
 
 
+def process_openvpn_server(data: dict[str, Any]) -> dict[int, Any]:
+    """Process OpenVPN server data."""
+
+    server = {}
+
+    # Server data
+    for keys in MAP_OVPN_SERVER_388:
+        key, key_to_use, method = safe_unpack_keys(keys)
+        state_value = data.get(key)
+        if state_value:
+            server[key_to_use] = run_method(state_value, method)
+
+    # Clients
+    clients = server.get("clients", "")
+    clients = clients.replace("&#62", ">").replace("&#60", "<")
+    clients = clients[1:-1].split("><")
+    server["clients"] = clients
+
+    return {1: server}
+
+
 def process_parental_control(data: dict[str, Any]) -> dict[str, Any]:
-    """Process parental control data"""
+    """Process parental control data."""
 
     parental_control: dict[str, Any] = {}
 

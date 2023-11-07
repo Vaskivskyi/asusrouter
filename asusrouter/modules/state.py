@@ -127,6 +127,7 @@ async def set_state(
     arguments: Optional[dict[str, Any]] = None,
     expect_modify: bool = False,
     router_state: Optional[dict[AsusData, AsusDataState]] = None,
+    identity: Optional[AsusDevice] = None,
 ) -> bool:
     """Set the state."""
 
@@ -135,14 +136,17 @@ async def set_state(
 
     # Process the data if module found
     if submodule and _has_method(submodule, "set_state"):
-        # Does it require state?
-        require_state = getattr(submodule, "REQUIRE_STATE", False)
-        if require_state:
-            return await submodule.set_state(
-                callback, state, arguments, expect_modify, router_state
-            )
+        # Determine the extra parameter
+        extra_param: Optional[dict[AsusData, AsusDataState] | AsusDevice] = None
+        if getattr(submodule, "REQUIRE_STATE", False):
+            extra_param = router_state
+        elif getattr(submodule, "REQUIRE_IDENTITY", False):
+            extra_param = identity
 
-        return await submodule.set_state(callback, state, arguments, expect_modify)
+        # Call the function with the determined parameters
+        return await submodule.set_state(
+            callback, state, arguments, expect_modify, extra_param
+        )
 
     return False
 

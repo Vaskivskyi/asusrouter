@@ -25,9 +25,11 @@ from asusrouter.modules.data import AsusData, AsusDataState
 from asusrouter.modules.data_finder import (
     ASUSDATA_ENDPOINT_APPEND,
     ASUSDATA_MAP,
+    ASUSDATA_NVRAM,
     AsusDataFinder,
     AsusDataMerge,
     add_conditional_data_alias,
+    add_conditional_data_rule,
     remove_data_rule,
 )
 from asusrouter.modules.data_transform import (
@@ -199,6 +201,13 @@ class AsusRouter:
                     add_conditional_state(AsusState.WIREGUARD_CLIENT, AsusData.VPNC)
                     add_conditional_data_alias(AsusData.OPENVPN_CLIENT, AsusData.VPNC)
                     add_conditional_data_alias(AsusData.WIREGUARD_CLIENT, AsusData.VPNC)
+                    add_conditional_data_rule(
+                        AsusData.OPENVPN_SERVER,
+                        AsusDataFinder(
+                            Endpoint.HOOK,
+                            nvram=ASUSDATA_NVRAM["openvpn_server_388"],
+                        ),
+                    )
             # Merlin
             else:
                 _LOGGER.debug("Adding conditional rules for Merlin firmware")
@@ -597,7 +606,12 @@ class AsusRouter:
         await self._async_check_state_dependency(state)
 
         result = await set_state(
-            self.async_run_service, state, arguments, expect_modify, self._state
+            self.async_run_service,
+            state,
+            arguments,
+            expect_modify,
+            self._state,
+            self._identity,
         )
 
         if result is True:
