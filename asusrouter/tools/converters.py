@@ -10,15 +10,9 @@ it should be in the Readers module"""
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
-from typing import Any, Callable, Optional
+from typing import Any, Callable, Iterable, Optional, Tuple
 
 from dateutil.parser import parse as dtparse
-
-
-def as_dict(pyobj):
-    """Return generator object as dictionary."""
-
-    return dict(pyobj)
 
 
 def clean_string(content: Optional[str]) -> Optional[str]:
@@ -36,15 +30,38 @@ def clean_string(content: Optional[str]) -> Optional[str]:
     return content
 
 
-def flatten_dict(obj: Any, keystring: str = "", delimiter: str = "_"):
-    """Flatten dictionary."""
+def flatten_dict(
+    d: Optional[dict[Any, Any]],
+    parent_key: str = "",
+    sep: str = "_",
+    exclude: Optional[str | Iterable[str]] = None,
+) -> Optional[dict[str, Any]]:
+    """Flatten a nested dictionary."""
 
-    if isinstance(obj, dict):
-        keystring = keystring + delimiter if keystring else keystring
-        for key in obj:
-            yield from flatten_dict(obj[key], keystring + str(key))
-    else:
-        yield keystring, obj
+    if d is None:
+        return None
+
+    if not isinstance(d, dict):
+        return {}
+
+    items = []
+    exclude = tuple(exclude or [])
+    for k, v in d.items():
+        new_key = f"{parent_key}{sep}{k}" if parent_key else k
+        # We have a dict - check it
+        if isinstance(v, dict):
+            # This key should be skipped
+            if isinstance(new_key, str) and new_key.endswith(exclude):
+                items.append((new_key, v))
+                continue
+            # Go recursive
+            flattened = flatten_dict(v, new_key, sep, exclude)
+            if flattened is not None:
+                items.extend(flattened.items())
+            continue
+        # Not a dict - add it
+        items.append((new_key, v))
+    return dict(items)
 
 
 def list_from_dict(raw: dict[str, Any]) -> list[str]:
