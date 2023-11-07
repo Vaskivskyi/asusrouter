@@ -15,7 +15,7 @@ from typing import Any, Optional
 from asusrouter.modules.data import AsusData
 from asusrouter.modules.state import AsusState
 from asusrouter.modules.vpnc import AsusVPNC
-from asusrouter.tools.converters import as_dict, flatten_dict, list_from_dict
+from asusrouter.tools.converters import flatten_dict, list_from_dict
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -60,30 +60,30 @@ def convert_to_ha_sensors(data: dict[str, Any], datatype: AsusData) -> list[str]
     return sensors
 
 
-def convert_to_ha_data(data: dict[str, Any], datatype: AsusData) -> dict[str, Any]:
+def convert_to_ha_data(data: dict[str, Any]) -> dict[str, Any]:
     """Convert available data to the HA-compatible dictionary."""
 
-    output: dict[str, Any] = {}
-
-    # First go through all the data (including nested)
-    # and convert it to the HA-compatible format, e.g.
-    # `state` values using `convert_to_ha_state_bool`
-    for key, value in data.items():
-        # Check if the value is a dict
-        if isinstance(value, dict):
-            # If the value is a dict, go recursive
-            output[key] = convert_to_ha_data(value, datatype)
-            continue
-        # If the value is not a dict, convert it to the HA-compatible format
-        if key == "state":
-            output[key] = convert_to_ha_state_bool(value)
-        else:
-            output[key] = value
+    def convert_recursive(data: dict[str, Any]) -> dict[str, Any]:
+        """Convert data to the HA-compatible dictionary recursively."""
+        return {
+            key: convert_recursive(value)
+            if isinstance(value, dict)
+            else convert_to_ha_state_bool(value)
+            if key.endswith("state")
+            else value
+            for key, value in data.items()
+        }
 
     # Flatten the dictionary
-    output = as_dict(flatten_dict(output))
+    # Skip all the `list`, `clients` etc keys - this data should be preserved
+    output = flatten_dict(data, exclude=["list", "clients", "rules"])
 
-    return output
+    # Convert values to HA-compatible format
+    if output is not None:
+        output = convert_recursive(output)
+        return output
+
+    return {}
 
 
 def convert_to_ha_sensors_by_map(
@@ -130,8 +130,7 @@ def convert_to_ha_sensors_group(data: dict[str, Any]) -> list[str]:
 def convert_to_ha_sensors_list(data: dict[str, Any]) -> list[str]:
     """Convert all the available data to the list of sensors."""
 
-    flat = as_dict(flatten_dict(data))
-    return list_from_dict(flat)
+    return list_from_dict(convert_to_ha_data(data))
 
 
 def convert_to_ha_state_bool(data: AsusState | Optional[bool]) -> Optional[bool]:
