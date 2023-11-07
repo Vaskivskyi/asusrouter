@@ -10,6 +10,7 @@ from asusrouter.modules.attributes import AsusRouterAttribute
 from asusrouter.modules.data import AsusData
 from asusrouter.modules.endpoint import Endpoint
 from asusrouter.modules.endpoint.hook_const import (
+    MAP_OVPN_SERVER_388,
     MAP_VPNC_WIREGUARD,
     MAP_WIREGUARD,
     MAP_WIREGUARD_CLIENT,
@@ -89,6 +90,11 @@ ASUSDATA_REQUEST = {
 
 ASUSDATA_NVRAM = {
     "light": ["led_val"],
+    "openvpn_server_388": [
+        key
+        for element in MAP_OVPN_SERVER_388
+        for key, _, _ in [converters.safe_unpack_keys(element)]
+    ],
     "parental_control": [
         KEY_PARENTAL_CONTROL_MAC,
         KEY_PARENTAL_CONTROL_NAME,
