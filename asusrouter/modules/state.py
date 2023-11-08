@@ -61,7 +61,7 @@ AsusStateMap: dict[AsusState, Optional[AsusData]] = {
     AsusState.SYSTEM: AsusData.SYSTEM,
     AsusState.VPNC: AsusData.VPNC,
     AsusState.WIREGUARD_CLIENT: AsusData.WIREGUARD,
-    AsusState.WIREGUARD_SERVER: AsusData.WIREGUARD,
+    AsusState.WIREGUARD_SERVER: AsusData.WIREGUARD_SERVER,
     AsusState.WLAN: AsusData.WLAN,
 }
 
@@ -102,6 +102,9 @@ def _get_module(state: AsusState) -> Optional[ModuleType]:
     if not module_name:
         return None
 
+    if module_name == "wireguard_server":
+        module_name = "wireguard"
+
     # Module path
     module_path = f"asusrouter.modules.{module_name}"
 
@@ -111,7 +114,7 @@ def _get_module(state: AsusState) -> Optional[ModuleType]:
         # Return the module
         return submodule
     except ModuleNotFoundError:
-        _LOGGER.debug("No module found for state %s", AsusState)
+        _LOGGER.debug("No module found for state %s", state)
         return None
 
 
@@ -155,6 +158,7 @@ def save_state(
     state: AsusState,
     library: dict[AsusData, AsusDataState],
     needed_time: Optional[int] = None,
+    last_id: Optional[int] = None,
 ) -> None:
     """Save the state."""
 
@@ -164,9 +168,8 @@ def save_state(
         return
 
     # Save the state
-    if datatype:
-        library[datatype].update_state(state)
-        library[datatype].offset_time(needed_time)
+    library[datatype].update_state(state, last_id)
+    library[datatype].offset_time(needed_time)
 
 
 async def keep_state(

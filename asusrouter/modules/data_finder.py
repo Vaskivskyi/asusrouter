@@ -12,8 +12,8 @@ from asusrouter.modules.endpoint import Endpoint
 from asusrouter.modules.endpoint.hook_const import (
     MAP_OVPN_SERVER_388,
     MAP_VPNC_WIREGUARD,
-    MAP_WIREGUARD,
     MAP_WIREGUARD_CLIENT,
+    MAP_WIREGUARD_SERVER,
 )
 from asusrouter.modules.parental_control import (
     KEY_PARENTAL_CONTROL_MAC,
@@ -83,7 +83,7 @@ ASUSDATA_REQUEST = {
     "vpnc": [
         ("get_vpnc_status", ""),
     ],
-    "wireguard": [
+    "wireguard_server": [
         ("get_wgsc_status", ""),
     ],
 }
@@ -109,9 +109,9 @@ ASUSDATA_NVRAM = {
     "vpnc": [
         "vpnc_clientlist",
     ],
-    "wireguard": [
+    "wireguard_server": [
         key
-        for element in MAP_WIREGUARD
+        for element in MAP_WIREGUARD_SERVER
         for key, _, _ in [converters.safe_unpack_keys(element)]
         if key != "get_wgsc_status"
     ],
@@ -124,7 +124,7 @@ ASUSDATA_NVRAM["vpnc"].extend(
         for key, _, _ in [converters.safe_unpack_keys(element)]
     ]
 )
-ASUSDATA_NVRAM["wireguard"].extend(
+ASUSDATA_NVRAM["wireguard_server"].extend(
     [
         f"wgs1_c{num}_{key}"
         for num in range(1, 11)
@@ -178,12 +178,12 @@ ASUSDATA_MAP: dict[AsusData, AsusData | AsusDataFinder] = {
     ),
     AsusData.VPNC_CLIENTLIST: AsusData.VPNC,
     AsusData.WAN: AsusData.CPU,
-    AsusData.WIREGUARD: AsusDataFinder(
+    AsusData.WIREGUARD: AsusData.WIREGUARD_SERVER,
+    AsusData.WIREGUARD_SERVER: AsusDataFinder(
         Endpoint.HOOK,
-        nvram=ASUSDATA_NVRAM["wireguard"],
-        request=ASUSDATA_REQUEST["wireguard"],
+        nvram=ASUSDATA_NVRAM["wireguard_server"],
+        request=ASUSDATA_REQUEST["wireguard_server"],
     ),
-    AsusData.WIREGUARD_SERVER: AsusData.WIREGUARD,
     AsusData.WLAN: AsusDataFinder(
         Endpoint.HOOK,
         method=wlan_nvram_request,
