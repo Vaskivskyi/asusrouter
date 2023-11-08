@@ -132,7 +132,7 @@ def process(data: dict[str, Any]) -> dict[AsusData, Any]:
         state[AsusData.RAM] = process_ram(memory_usage) if memory_usage else {}
 
     # VPNC
-    if "get_vpnc_status" in data:
+    if "vpnc_clientlist" in data:
         vpnc, vpnc_clientlist = process_vpnc(data)
         state[AsusData.OPENVPN_CLIENT] = vpnc[AsusVPNType.OPENVPN]
         state[AsusData.VPNC] = vpnc

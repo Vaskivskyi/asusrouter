@@ -213,6 +213,14 @@ class AsusRouter:
             # Merlin
             else:
                 _LOGGER.debug("Adding conditional rules for Merlin firmware")
+                if fw_388 < firmware:
+                    add_conditional_data_rule(
+                        AsusData.VPNC,
+                        AsusDataFinder(
+                            Endpoint.HOOK,
+                            nvram=ASUSDATA_NVRAM["vpnc"],
+                        ),
+                    )
             # Before 388
             if firmware < fw_388:
                 # Remove WireGuard rule
