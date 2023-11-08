@@ -625,7 +625,12 @@ class AsusRouter:
                 # Check if we have a state object for this data
                 self._check_state(get_datatype(state))
                 # Save the state
-                _LOGGER.debug("Saving state `%s`", state)
+                _LOGGER.debug(
+                    "Saving state `%s` for `%s` s with id=`%s`",
+                    state,
+                    self._needed_time,
+                    self._last_id,
+                )
                 save_state(state, self._state, self._needed_time, self._last_id)
                 # Reset the needed time and last id
                 self._needed_time = None
