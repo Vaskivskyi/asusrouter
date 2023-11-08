@@ -54,13 +54,13 @@ AsusStateMap: dict[AsusState, Optional[AsusData]] = {
     AsusState.NONE: None,
     AsusState.CONNECTION: None,
     AsusState.LED: AsusData.LED,
-    AsusState.OPENVPN_CLIENT: AsusData.OPENVPN,
-    AsusState.OPENVPN_SERVER: AsusData.OPENVPN,
+    AsusState.OPENVPN_CLIENT: AsusData.OPENVPN_CLIENT,
+    AsusState.OPENVPN_SERVER: AsusData.OPENVPN_SERVER,
     AsusState.PARENTAL_CONTROL: AsusData.PARENTAL_CONTROL,
     AsusState.PORT_FORWARDING: AsusData.PORT_FORWARDING,
     AsusState.SYSTEM: AsusData.SYSTEM,
     AsusState.VPNC: AsusData.VPNC,
-    AsusState.WIREGUARD_CLIENT: AsusData.WIREGUARD,
+    AsusState.WIREGUARD_CLIENT: AsusData.WIREGUARD_CLIENT,
     AsusState.WIREGUARD_SERVER: AsusData.WIREGUARD_SERVER,
     AsusState.WLAN: AsusData.WLAN,
 }
@@ -102,8 +102,8 @@ def _get_module(state: AsusState) -> Optional[ModuleType]:
     if not module_name:
         return None
 
-    if module_name == "wireguard_server":
-        module_name = "wireguard"
+    if module_name.endswith(("_client", "_server")):
+        module_name = module_name[:-7]
 
     # Module path
     module_path = f"asusrouter.modules.{module_name}"
