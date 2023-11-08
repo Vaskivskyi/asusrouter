@@ -59,6 +59,8 @@ async def set_state(
         _LOGGER.debug("No VPN id found in arguments")
         return False
 
+    service_map: dict[Any, str]
+
     # Get the correct service call
     # This will be firmware dependent
     if (
@@ -67,12 +69,12 @@ async def set_state(
         or identity.firmware < Firmware(major="3.0.0.4", minor=388, build=0)
     ):
         service_map = {
-            AsusOVPNClient.ON: f"start_vpnclient{vpn_id}",
-            AsusOVPNClient.OFF: f"stop_vpnclient{vpn_id}",
-            AsusOVPNServer.ON: f"start_vpnserver{vpn_id}",
-            AsusOVPNServer.OFF: f"stop_vpnserver{vpn_id}",
+            (AsusOVPNClient, AsusOVPNClient.ON): f"start_vpnclient{vpn_id}",
+            (AsusOVPNClient, AsusOVPNClient.OFF): f"stop_vpnclient{vpn_id}",
+            (AsusOVPNServer, AsusOVPNServer.ON): f"start_vpnserver{vpn_id}",
+            (AsusOVPNServer, AsusOVPNServer.OFF): f"stop_vpnserver{vpn_id}",
         }
-        service = service_map.get(state)
+        service = service_map.get((type(state), state))
     else:
         service_map = {
             AsusOVPNServer.ON: (

@@ -179,6 +179,7 @@ ASUSDATA_MAP: dict[AsusData, AsusData | AsusDataFinder] = {
     AsusData.VPNC_CLIENTLIST: AsusData.VPNC,
     AsusData.WAN: AsusData.CPU,
     AsusData.WIREGUARD: AsusData.WIREGUARD_SERVER,
+    AsusData.WIREGUARD_CLIENT: AsusData.VPNC,
     AsusData.WIREGUARD_SERVER: AsusDataFinder(
         Endpoint.HOOK,
         nvram=ASUSDATA_NVRAM["wireguard_server"],
