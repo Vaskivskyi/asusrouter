@@ -60,7 +60,7 @@ async def set_state(
         return False
 
     # Get the correct service call
-    # This will be wirmware dependent
+    # This will be firmware dependent
     if (
         not identity
         or identity.merlin
@@ -73,7 +73,6 @@ async def set_state(
             AsusOVPNServer.OFF: f"stop_vpnserver{vpn_id}",
         }
         service = service_map.get(state)
-        arguments = {}
     else:
         service_map = {
             AsusOVPNServer.ON: (
@@ -82,7 +81,12 @@ async def set_state(
             AsusOVPNServer.OFF: "stop_openvpnd;restart_samba;restart_dnsmasq;",
         }
         service = service_map.get(state) if isinstance(state, AsusOVPNServer) else None
-        arguments = {"VPNServer_enable": "1" if state == AsusOVPNServer.ON else "0"}
+        arguments = {
+            "VPNServer_enable": "1" if state == AsusOVPNServer.ON else "0",
+        }
+
+    # Add `id` to arguments for proper state save
+    arguments["id"] = vpn_id
 
     if not service:
         _LOGGER.debug("Unknown state %s", state)

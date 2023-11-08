@@ -75,13 +75,13 @@ class AsusDataState:
     def update_state(self, state: Any, last_id: Optional[int] = None) -> None:
         """Update a state variable in the data dict."""
 
+        if last_id is not None:
+            if not isinstance(self.data, dict):
+                self.data = {}
+            self.data.setdefault(last_id, {})["state"] = state
+            return
+
         if isinstance(self.data, dict):
-            if last_id is not None and last_id in self.data:
-                if isinstance(self.data[last_id], dict):
-                    self.data[last_id]["state"] = state
-                    return
-                self.data[last_id] = {"state": state}
-                return
             self.data["state"] = state
             return
 
