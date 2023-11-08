@@ -73,6 +73,8 @@ class AsusRouter:
     _flags: Flag = Flag()
     # Time for change to take effect before available to fetch
     _needed_time: Optional[int] = None
+    # ID from the last called service
+    _last_id: Optional[int] = None
 
     def __init__(
         self,
@@ -559,7 +561,7 @@ class AsusRouter:
         _LOGGER.debug("Triggered method async_run_service")
 
         # Run the service
-        result, self._needed_time = await async_call_service(
+        result, self._needed_time, self._last_id = await async_call_service(
             self.async_api_command,
             service,
             arguments,
@@ -624,7 +626,10 @@ class AsusRouter:
                 self._check_state(get_datatype(state))
                 # Save the state
                 _LOGGER.debug("Saving state `%s`", state)
-                save_state(state, self._state, self._needed_time)
+                save_state(state, self._state, self._needed_time, self._last_id)
+                # Reset the needed time and last id
+                self._needed_time = None
+                self._last_id = None
 
         return result
 

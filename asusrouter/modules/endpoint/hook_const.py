@@ -81,7 +81,7 @@ MAP_WAN = (
     ("wanlink_xexpires", "xexpires", safe_int),
 )
 
-MAP_WIREGUARD = (
+MAP_WIREGUARD_SERVER = (
     ("wgs_enable", "state", [safe_int, AsusWireGuardServer]),
     ("wgs_lanaccess", "lan_access", safe_bool),
     ("wgs_addr", "address"),

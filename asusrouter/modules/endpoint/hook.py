@@ -46,8 +46,8 @@ from .hook_const import (
     MAP_OVPN_SERVER_388,
     MAP_VPNC_WIREGUARD,
     MAP_WAN,
-    MAP_WIREGUARD,
     MAP_WIREGUARD_CLIENT,
+    MAP_WIREGUARD_SERVER,
 )
 
 REQUIRE_HISTORY = True
@@ -528,7 +528,7 @@ def process_wireguard_server(data: dict[str, Any]) -> dict[int, dict[str, Any]]:
     wireguard = {}
 
     # Server data
-    for keys in MAP_WIREGUARD:
+    for keys in MAP_WIREGUARD_SERVER:
         key, key_to_use, method = safe_unpack_keys(keys)
         state_value = data.get(key)
         if state_value:

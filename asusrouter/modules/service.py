@@ -17,7 +17,7 @@ async def async_call_service(
     arguments: Optional[dict[str, Any]] = None,
     apply: bool = False,
     expect_modify: bool = True,
-) -> Tuple[bool, Optional[int]]:
+) -> Tuple[bool, Optional[int], Optional[int]]:
     """Call a service."""
 
     # Generate commands
@@ -50,9 +50,16 @@ async def async_call_service(
         "Service `%s` run with arguments `%s`. Result: `%s`", service, arguments, result
     )
 
+    last_id = result.get("id") or arguments.get("id")
+    last_id = safe_int(last_id)
+
     needed_time = safe_int(result.get("restart_needed_time"))
+    # For all the services with setting ID we better wait
+    # before we will get actual state change
+    if needed_time is None and last_id is not None:
+        needed_time = 5
 
     if expect_modify:
-        return (safe_bool(result.get("modify")) or False, needed_time)
+        return (safe_bool(result.get("modify")) or False, needed_time, last_id)
 
-    return (True, needed_time)
+    return (True, needed_time, last_id)
