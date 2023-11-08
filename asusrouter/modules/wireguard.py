@@ -27,7 +27,7 @@ class AsusWireGuardServer(IntEnum):
 
 async def set_state(
     callback: Callable[..., Awaitable[bool]],
-    state: AsusWireGuardServer,
+    state: AsusWireGuardClient | AsusWireGuardServer,
     arguments: Optional[dict[str, Any]] = None,
     expect_modify: bool = False,
     _: Optional[Any] = None,
@@ -43,11 +43,26 @@ async def set_state(
     if arguments["id"] == 1:
         _LOGGER.debug("Using default id 1")
 
-    arguments["wgs_enable"] = 1 if state == AsusWireGuardServer.ON else 0
-    arguments["wgs_unit"] = arguments["id"]
+    wg_unit = "wgs" if isinstance(state, AsusWireGuardServer) else "wgc"
+
+    arguments[f"{wg_unit}_enable"] = (
+        1 if state in (AsusWireGuardClient.ON, AsusWireGuardServer.ON) else 0
+    )
+    arguments[f"{wg_unit}_unit"] = arguments["id"]
 
     # Get the correct service call
-    service = "restart_wgs;restart_dnsmasq"
+    service_map: dict[Any, str] = {
+        (AsusWireGuardClient, AsusWireGuardClient.ON): f"start_wgc {arguments['id']}",
+        (AsusWireGuardClient, AsusWireGuardClient.OFF): f"stop_wgc {arguments['id']}",
+        (AsusWireGuardServer, AsusWireGuardServer.ON): "restart_wgs;restart_dnsmasq",
+        (AsusWireGuardServer, AsusWireGuardServer.OFF): "restart_wgs;restart_dnsmasq",
+    }
+
+    service = service_map.get((type(state), state))
+
+    if not service:
+        _LOGGER.debug("Unknown state %s", state)
+        return False
 
     # Call the service
     return await callback(
