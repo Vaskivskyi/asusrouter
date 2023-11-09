@@ -428,6 +428,19 @@ class AsusRouter:
 
         return data
 
+    def _drop_data(self, datatype: AsusData, endpoint: Endpoint) -> bool:
+        """Check whether data should be dropped. This is required
+        for some data obtained from multiple endpoints."""
+
+        if not self._identity:
+            return False
+
+        if datatype == AsusData.OPENVPN_CLIENT:
+            if self._identity.merlin is True:
+                return endpoint == Endpoint.HOOK
+
+        return False
+
     def _check_state(self, datatype: Optional[AsusData]) -> None:
         """Make sure the state object is available."""
 
@@ -513,16 +526,23 @@ class AsusRouter:
                 if not self._identity:
                     self._identity = await self.async_get_identity()
 
-                result = merge_dicts(
-                    result,
-                    process(
-                        endpoint,
-                        data,
-                        self._state,
-                        self._identity.firmware,
-                        self._identity.wlan,
-                    ),
+                processed = process(
+                    endpoint,
+                    data,
+                    self._state,
+                    self._identity.firmware,
+                    self._identity.wlan,
                 )
+
+                # Check whether data should be dropped
+                to_drop = []
+                for key, value in processed.items():
+                    if self._drop_data(key, endpoint):
+                        to_drop.append(key)
+                for key in to_drop:
+                    processed.pop(key, None)
+
+                result = merge_dicts(result, processed)
 
                 # Check if we have data and data finder merge is ANY
                 if result and data_finder.merge == AsusDataMerge.ANY:
