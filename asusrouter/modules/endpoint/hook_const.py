@@ -4,7 +4,7 @@
 
 from asusrouter.modules.ip_address import read_dns_ip_address, read_ip_address_type
 from asusrouter.modules.openvpn import AsusOVPNServer
-from asusrouter.modules.wireguard import AsusWireGuardServer
+from asusrouter.modules.wireguard import AsusWireGuardClient, AsusWireGuardServer
 from asusrouter.tools.converters import (
     safe_bool,
     safe_int,
