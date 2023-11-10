@@ -131,13 +131,13 @@ def read_legacy_networmap(output: dict[str, Any], networkmap: Optional[str]) -> 
         if client_line == "":
             continue
         client = client_line.split(">")
-        mac = client[3].upper()
-        if not readable_mac(mac):
+        if len(client) < 4 or not readable_mac(client[3].upper()):
             continue
+        mac = client[3].upper()
         output[mac] = {
             "mac": mac,
-            "name": client[1],
-            "ip": client[2],
+            "name": client[1] if len(client) > 1 else None,
+            "ip": client[2] if len(client) > 2 else None,
             "ipMethod": "dhcp",
             "isWL": 0,
             "isOnline": 1,
@@ -151,22 +151,26 @@ def read_legacy_nmpclient(output: dict[str, Any], nmp_client: Optional[str]) -> 
         return
 
     client_list = nmp_client.split("<")
-    for client in client_list:
+    for client_info in client_list:
         # Skip empty strings
-        if client == "":
+        if client_info == "":
             continue
         # Split the string into a list by `>`
-        client = client.split(">")
+        client = client_info.split(">")
+        # Check if client has enough elements
+        if len(client) < 5:
+            continue
         # 0 element is the MAC address written in lowercase and without `:`
         # We need to convert it to uppercase and add `:`
         mac = ":".join([client[0][i : i + 2].upper() for i in range(0, 12, 2)])
+        client_type = client[4] if len(client) > 4 else None
         if mac in output:
-            output[mac]["type"] = client[4]
+            output[mac]["type"] = client_type
             continue
         output[mac] = {
             "mac": mac,
-            "name": client[2],
-            "type": client[4],
+            "name": client[2] if len(client) > 2 else None,
+            "type": client_type,
             "isOnline": 0,
         }
 
@@ -190,8 +194,8 @@ def read_legacy_staticlist(output: dict[str, Any], static_list: Optional[str]) -
             continue
         output[mac] = {
             "mac": mac,
-            "name": client[2],
-            "ip": client[1],
+            "name": client[2] if len(client) > 2 else None,
+            "ip": client[1] if len(client) > 1 else None,
             "ipMethod": "static",
             "isWL": 0,
             "isOnline": 0,
@@ -210,16 +214,19 @@ def read_legacy_wlan_info(output: dict[str, Any], data: dict[str, Any]) -> None:
             mac = client[0].upper()
             if not readable_mac(mac):
                 continue
+            curTx = client[1] if len(client) > 1 else None
+            curRx = client[2] if len(client) > 2 else None
+            wlConnectTime = client[3] if len(client) > 3 else None
             if mac in output:
-                output[mac]["curTx"] = client[1]
-                output[mac]["curRx"] = client[2]
-                output[mac]["wlConnectTime"] = client[3]
+                output[mac]["curTx"] = curTx
+                output[mac]["curRx"] = curRx
+                output[mac]["wlConnectTime"] = wlConnectTime
                 continue
             output[mac] = {
                 "mac": mac,
-                "curTx": client[1],
-                "curRx": client[2],
-                "wlConnectTime": client[3],
+                "curTx": curTx,
+                "curRx": curRx,
+                "wlConnectTime": wlConnectTime,
             }
 
 
@@ -234,15 +241,16 @@ def read_legacy_wlan_list(output: dict[str, Any], data: dict[str, Any]) -> None:
         for mac, client in wlan_list.items():
             if not readable_mac(mac):
                 continue
+            rssi = client.get("rssi")
             if mac in output:
                 output[mac]["isWL"] = wid
-                output[mac]["rssi"] = client["rssi"]
+                output[mac]["rssi"] = rssi
                 output[mac]["isOnline"] = 1
                 continue
             output[mac] = {
                 "mac": mac,
                 "isWL": wid,
-                "rssi": client["rssi"],
+                "rssi": rssi,
                 "isOnline": 1,
             }
 
