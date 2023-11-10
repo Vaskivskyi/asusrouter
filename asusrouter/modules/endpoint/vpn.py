@@ -155,8 +155,8 @@ def process(data: dict[str, Any]) -> dict[AsusData, Any]:
     """Process VPN data."""
 
     vpn: dict[AsusData, Any] = {
-        AsusData.OPENVPN_CLIENT: data["client"],
-        AsusData.OPENVPN_SERVER: data["server"],
+        AsusData.OPENVPN_CLIENT: data.get("client"),
+        AsusData.OPENVPN_SERVER: data.get("server"),
     }
 
     return vpn

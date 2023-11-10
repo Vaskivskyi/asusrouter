@@ -394,9 +394,9 @@ def process_ram(memory_usage: dict[str, Any]) -> dict[str, Any]:
 
     # Populate RAM with known values
     ram = {
-        "free": int(memory_usage["mem_free"]),
-        "total": int(memory_usage["mem_total"]),
-        "used": int(memory_usage["mem_used"]),
+        "free": safe_int(memory_usage.get("mem_free")),
+        "total": safe_int(memory_usage.get("mem_total")),
+        "used": safe_int(memory_usage.get("mem_used")),
     }
     # Calculate usage in percents
     if "used" in ram and "total" in ram:
