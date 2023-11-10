@@ -120,7 +120,7 @@ class Connection:  # pylint: disable=too-many-instance-attributes
             except AsusRouterAccessError as ex:
                 raise ex
             except AsusRouterError as ex:
-                _LOGGER.debug("Connection failed")
+                _LOGGER.debug("Connection failed with error: %s", ex)
                 if retry < len(DEFAULT_TIMEOUTS) - 1:
                     _LOGGER.debug(
                         "Will try again in %s seconds", DEFAULT_TIMEOUTS[retry]
