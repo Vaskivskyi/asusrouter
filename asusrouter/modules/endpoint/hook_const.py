@@ -104,6 +104,7 @@ MAP_WIREGUARD_CLIENT = (
 )
 
 MAP_VPNC_WIREGUARD = (
+    ("enable", "state", safe_bool),
     ("nat", "nat", safe_bool),
     ("priv", "private_key"),
     ("addr", "address"),
