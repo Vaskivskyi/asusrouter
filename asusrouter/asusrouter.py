@@ -8,7 +8,7 @@ import asyncio
 import json
 import logging
 from datetime import datetime, timedelta, timezone
-from typing import Any, Optional
+from typing import Any, Awaitable, Callable, Optional
 
 import aiohttp
 
@@ -85,6 +85,7 @@ class AsusRouter:
         use_ssl: bool = False,
         cache_time: Optional[float] = None,
         session: Optional[aiohttp.ClientSession] = None,
+        dumpback: Optional[Callable[..., Awaitable[None]]] = None,
     ):  # pylint: disable=too-many-arguments
         """Initialize the interface."""
 
@@ -105,6 +106,7 @@ class AsusRouter:
             port=port,
             use_ssl=use_ssl,
             session=session,
+            dumpback=dumpback,
         )
 
     # ---------------------------
