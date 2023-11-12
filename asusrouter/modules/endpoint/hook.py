@@ -6,7 +6,7 @@ import logging
 from datetime import datetime, timezone
 from typing import Any, Callable, Optional, Tuple
 
-from asusrouter.modules.connection import ConnectionState
+from asusrouter.modules.connection import ConnectionState, ConnectionStatus
 from asusrouter.modules.data import AsusData, AsusDataState
 from asusrouter.modules.endpoint import data_get
 from asusrouter.modules.endpoint.error import AccessError
@@ -46,6 +46,8 @@ from .hook_const import (
     MAP_OVPN_SERVER_388,
     MAP_VPNC_WIREGUARD,
     MAP_WAN,
+    MAP_WAN_ITEM,
+    MAP_WAN_ITEM_X,
     MAP_WIREGUARD_CLIENT,
     MAP_WIREGUARD_SERVER,
 )
@@ -140,9 +142,8 @@ def process(data: dict[str, Any]) -> dict[AsusData, Any]:
         state[AsusData.WIREGUARD_CLIENT] = vpnc[AsusVPNType.WIREGUARD]
 
     # WAN
-    if "wanlink_state" in data:
-        wanlink_state = data.get("wanlink_state", {})
-        state[AsusData.WAN] = process_wan(wanlink_state) if wanlink_state else {}
+    if "get_wan_unit" in data:
+        state[AsusData.WAN] = process_wan(data)
 
     # WireGuard
     if "get_wgsc_status" in data:
@@ -508,16 +509,71 @@ def process_vpnc_wireguard(data: dict[str, Any]) -> dict[int, dict[str, Any]]:
     return wireguard
 
 
-def process_wan(wanlink_state: dict[str, Any]) -> dict[str, Any]:
+def process_wan(data: dict[str, Any]) -> dict[Any, dict[str, Any]]:
     """Process WAN data."""
 
-    wan = {}
+    wan: dict[str | int, dict[str, Any]] = {}
 
+    # General data
+    wan["internet"] = {}
     for keys in MAP_WAN:
         key, key_to_use, method = safe_unpack_keys(keys)
-        state_value = wanlink_state.get(key)
-        if state_value:
-            wan[key_to_use] = run_method(state_value, method)
+        state_value = data.get(key)
+        if state_value is not None:
+            wan["internet"][key_to_use] = run_method(state_value, method)
+
+    # Per-interface data
+    for num in (0, 1):
+        interface = {}
+        for keys in MAP_WAN_ITEM:
+            key, key_to_use, method = safe_unpack_keys(keys)
+            state_value = data.get(f"wan{num}_{key}")
+            if state_value is not None:
+                interface[key_to_use] = run_method(state_value, method)
+        for extra, extra_key in zip(("", "x"), ("main", "extra")):
+            interface[extra_key] = {}
+            for keys in MAP_WAN_ITEM_X:
+                key, key_to_use, method = safe_unpack_keys(keys)
+                state_value = data.get(f"wan{num}_{extra}{key}")
+                if state_value is not None:
+                    interface[extra_key][key_to_use] = run_method(state_value, method)
+        if interface:
+            wan[num] = interface
+
+    # Re-sort needed values
+    wan[0]["link"] = wan["internet"].pop("link_0", None)
+    wan[1]["link"] = wan["internet"].pop("link_1", None)
+
+    # Check state on links
+    for num in (0, 1):
+        if wan[num].get("link") == ConnectionState.DISCONNECTED:
+            wan[num]["state"] = ConnectionStatus.DISCONNECTED
+
+    # WAN aggregation
+    aggregation_state = wan["internet"].pop("aggregation_state", None)
+    if aggregation_state is not None:
+        wan["aggregation"] = {
+            "state": aggregation_state,
+            "ports": wan["internet"].pop("aggregation_ports", None),
+        }
+
+    # Dual WAN
+    dualwan_mode = wan["internet"].pop("dualwan_mode", None)
+    dualwan_priority = wan["internet"].pop("dualwan_priority", None)
+    if dualwan_mode is not None and dualwan_priority is not None:
+        wan["dualwan"] = {
+            "mode": dualwan_mode,
+            "priority": dualwan_priority,
+        }
+        # Check whether it is actually active
+        if wan["dualwan"]["priority"][1] == "none":
+            wan["dualwan"]["priority"][1] = None
+            wan["dualwan"]["state"] = False
+        else:
+            wan["dualwan"]["state"] = True
+
+    # Assign main IP address
+    wan["internet"]["ip_address"] = wan[wan["internet"]["unit"]]["main"]["ip_address"]
 
     return wan
 

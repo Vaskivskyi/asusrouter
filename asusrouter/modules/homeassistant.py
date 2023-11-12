@@ -69,7 +69,7 @@ def convert_to_ha_data(data: dict[str, Any]) -> dict[str, Any]:
             key: convert_recursive(value)
             if isinstance(value, dict)
             else convert_to_ha_state_bool(value)
-            if key.endswith("state")
+            if key.endswith("state") or key.endswith("link")
             else value
             for key, value in data.items()
         }

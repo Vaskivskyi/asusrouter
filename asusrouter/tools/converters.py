@@ -10,6 +10,7 @@ it should be in the Readers module"""
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
+from enum import Enum
 from typing import Any, Callable, Iterable, Optional, Tuple
 
 from dateutil.parser import parse as dtparse
@@ -47,7 +48,7 @@ def flatten_dict(
     items = []
     exclude = tuple(exclude or [])
     for k, v in d.items():
-        new_key = f"{parent_key}{sep}{k}" if parent_key else k
+        new_key = f"{parent_key}{sep}{k}" if parent_key not in ("", None) else k
         # We have a dict - check it
         if isinstance(v, dict):
             # This key should be skipped
@@ -62,6 +63,10 @@ def flatten_dict(
         # Not a dict - add it
         items.append((new_key, v))
     return dict(items)
+
+
+def is_enum(v):
+    return isinstance(v, type) and issubclass(v, Enum)
 
 
 def list_from_dict(raw: dict[str, Any]) -> list[str]:
@@ -90,12 +95,19 @@ def run_method(
     if not method:
         return value
 
-    if isinstance(method, list):
-        for func in method:
-            value = func(value)
-        return value
+    if not isinstance(method, list):
+        method = [method]
 
-    return method(value)
+    for func in method:
+        if is_enum(func):
+            try:
+                value = func(value)
+            except ValueError:
+                value = func.UNKNOWN if hasattr(func, "UNKNOWN") else None
+        else:
+            value = func(value)
+
+    return value
 
 
 def safe_bool(content: Optional[str | int | float | bool]) -> Optional[bool]:
