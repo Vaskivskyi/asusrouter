@@ -251,7 +251,7 @@ class Connection:  # pylint: disable=too-many-instance-attributes
         """Make a post request to the device."""
 
         # Check if a session is available
-        if self._session is None:
+        if self._session is None or self._session.closed:
             # If no session is available, we cannot be connected to the device
             # So we don't try to make any requests
             raise AsusRouterSessionError("No session available for this connection")
