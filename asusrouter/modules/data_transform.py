@@ -74,3 +74,23 @@ def transform_cpu(
         info.setdefault("usage", None)
 
     return data
+
+
+def transform_wan(
+    data: dict[str, Any],
+    services: Optional[list[str]],
+) -> dict[str, Any]:
+    """Transform WAN data."""
+
+    wan = data.copy()
+
+    if not services:
+        return wan
+
+    service_keys = {"dualwan": "dualwan", "wanbonding": "aggregation"}
+
+    for service, key in service_keys.items():
+        if service not in services:
+            wan.pop(key, None)
+
+    return wan

@@ -2,9 +2,11 @@
 
 # Network
 
+from asusrouter.modules.connection import ConnectionState, ConnectionStatus
+from asusrouter.modules.endpoint.wan import AsusDualWAN
 from asusrouter.modules.ip_address import read_dns_ip_address, read_ip_address_type
 from asusrouter.modules.openvpn import AsusOVPNServer
-from asusrouter.modules.wireguard import AsusWireGuardClient, AsusWireGuardServer
+from asusrouter.modules.wireguard import AsusWireGuardServer
 from asusrouter.tools.converters import (
     safe_bool,
     safe_int,
@@ -58,27 +60,33 @@ MAP_OVPN_SERVER_388 = (
 )
 
 MAP_WAN = (
-    ("wanstate", "state"),
-    ("wansbstate", "bstate"),
-    ("wanauxstate", "aux"),
-    ("autodet_state"),
-    ("autodet_auxstate"),
-    ("wanlink_status", "status", safe_bool),
-    ("wanlink_type", "ip_type", read_ip_address_type),
-    ("wanlink_ipaddr", "ip_address"),
-    ("wanlink_netmask", "mask"),
-    ("wanlink_gateway", "gateway"),
-    ("wanlink_dns", "dns", read_dns_ip_address),
-    ("wanlink_lease", "lease", safe_int),
-    ("wanlink_expires", "expires", safe_int),
-    ("is_private_subnet", "private_subnet", safe_int),
-    ("wanlink_xtype", "xtype", read_ip_address_type),
-    ("wanlink_xipaddr", "xip"),
-    ("wanlink_xnetmask", "xmask"),
-    ("wanlink_xgateway", "xgateway"),
-    ("wanlink_xdns", "xdns", read_dns_ip_address),
-    ("wanlink_xlease", "xlease", safe_int),
-    ("wanlink_xexpires", "xexpires", safe_int),
+    ("get_wan_unit", "unit", safe_int),
+    ("link_internet", "link", [safe_int, ConnectionStatus]),
+    ("link_wan", "link_0", [safe_int, ConnectionState]),
+    ("link_wan1", "link_1", [safe_int, ConnectionState]),
+    ("wans_mode", "dualwan_mode", AsusDualWAN),
+    ("wans_dualwan", "dualwan_priority", safe_list_from_string),
+    ("bond_wan", "aggregation_state", safe_bool),
+    ("wanports_bond", "aggregation_ports", safe_list_from_string),
+)
+
+MAP_WAN_ITEM = (
+    ("auxstate_t", "auxstate", [safe_int, ConnectionStatus]),
+    ("primary", "primary", safe_bool),
+    ("proto", "protocol", read_ip_address_type),
+    ("realip_ip", "real_ip"),
+    ("realip_state", "real_ip_state", safe_bool),
+    ("state_t", "state", [safe_int, ConnectionStatus]),
+    ("sbstate_t", "bstate", [safe_int, ConnectionStatus]),
+)
+
+MAP_WAN_ITEM_X = (
+    ("dns", "dns", read_dns_ip_address),
+    ("expires", "expires", safe_int),
+    ("gateway", "gateway"),
+    ("ipaddr", "ip_address"),
+    ("lease", "lease", safe_int),
+    ("netmask", "mask"),
 )
 
 MAP_WIREGUARD_SERVER = (
