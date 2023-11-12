@@ -52,6 +52,7 @@ class AsusDevice:  # pylint: disable=too-many-instance-attributes
 
     # Device information
     firmware: Optional[Firmware] = None
+    merlin: bool = False
     wlan: Optional[list[Wlan]] = None
     endpoints: Optional[dict[Endpoint, bool]] = None
     services: Optional[list[str]] = None
@@ -93,6 +94,11 @@ async def collect_identity(
     endpoints = await _check_endpoints(api_query)
     identity["endpoints"] = endpoints
     _LOGGER.debug("Endpoints checked")
+
+    # Check if Merlin
+    if endpoints[Endpoint.SYSINFO] is True:
+        identity["merlin"] = True
+        _LOGGER.debug("Merlin FW detected")
 
     # Return the identity convered from a dict
     return AsusDevice(**identity)

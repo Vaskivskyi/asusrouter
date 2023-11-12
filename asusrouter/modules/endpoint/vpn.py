@@ -30,7 +30,7 @@ def read(content: str) -> dict[str, Any]:
 
     # Read the OpenVPN data
     for party in ("client", "server"):
-        for num in range(1, 10):
+        for num in range(1, 11):
             key = f"vpn_{party}{num}_status"
             if key not in values:
                 break
@@ -48,9 +48,9 @@ def read(content: str) -> dict[str, Any]:
 
             # Read additional data
             for add_key in ("ip", "rip"):
-                key = f"vpn_{party}{num}_{add_key}"
-                if key in values and values[key] not in _to_ignore:
-                    vpn[party][num][add_key] = values[key]
+                add_key = f"vpn_{party}{num}_{add_key}"
+                if add_key in values and values[add_key] not in _to_ignore:
+                    vpn[party][num][add_key] = values[add_key]
 
     return vpn
 
@@ -71,10 +71,9 @@ def read_ovpn_client(content: str) -> dict[str, Any]:
 
     for value in MAP_OVPN_CLIENT:
         key_old, key_new, method = value
-        if key_old in content:
-            value = re.search(f"{key_old},(.*?)(?=>)", content)
-            if value:
-                ovpn_client[key_new] = method(value[1]) if method else value[1]
+        value = re.search(f"{key_old},(.*?)(?=>)", content)
+        if value:
+            ovpn_client[key_new] = method(value[1]) if method else value[1]
 
     # --------------------
     # <-- THIS PART IS LEGACY AND CAN BE REMOVED IN THE FUTURE
@@ -86,11 +85,14 @@ def read_ovpn_client(content: str) -> dict[str, Any]:
 def read_ovpn_remote(content: str) -> dict[str, Any]:
     """Read OpenVPN remote data."""
 
-    parts = content.split(",")
-    auth = parts[1]
-    parts = parts[0].split(":")
-    ip_address = parts[0]
-    port = safe_int(parts[1])
+    try:
+        parts = content.split(",")
+        auth = parts[1]
+        parts = parts[0].split(":")
+        ip_address = parts[0]
+        port = safe_int(parts[1])
+    except IndexError:
+        return {}
 
     return {
         "ip": ip_address,
@@ -137,12 +139,8 @@ def read_ovpn_server(content: str) -> dict[str, Any]:
                     break
                 if flag:
                     cut = value[1].split(",")
-                    i = 0
-                    array = {}
-                    while i < len(cut) and i < len(keys):
-                        array[keys[i]] = cut[i]
-                        i += 1
-                    ovpn_server[key_new].append(array.copy())
+                    array = {k: v for k, v in zip(keys, cut)}
+                    ovpn_server[key_new].append(array)
                 else:
                     ovpn_server[key_new].append(value[1])
                 content = content.replace(f"{key_old},{value[1]}", "USED-")
@@ -157,7 +155,8 @@ def process(data: dict[str, Any]) -> dict[AsusData, Any]:
     """Process VPN data."""
 
     vpn: dict[AsusData, Any] = {
-        AsusData.OPENVPN: data,
+        AsusData.OPENVPN_CLIENT: data.get("client"),
+        AsusData.OPENVPN_SERVER: data.get("server"),
     }
 
     return vpn

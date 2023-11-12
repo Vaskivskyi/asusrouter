@@ -63,3 +63,34 @@ def transform_clients(
             clients[mac] = process_client(client, client_history)
 
     return clients
+
+
+def transform_cpu(
+    data: dict[str, dict[str, Any]],
+) -> dict[str, Any]:
+    """Transform cpu data."""
+
+    for info in data.values():
+        info.setdefault("usage", None)
+
+    return data
+
+
+def transform_wan(
+    data: dict[str, Any],
+    services: Optional[list[str]],
+) -> dict[str, Any]:
+    """Transform WAN data."""
+
+    wan = data.copy()
+
+    if not services:
+        return wan
+
+    service_keys = {"dualwan": "dualwan", "wanbonding": "aggregation"}
+
+    for service, key in service_keys.items():
+        if service not in services:
+            wan.pop(key, None)
+
+    return wan

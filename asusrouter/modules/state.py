@@ -6,7 +6,7 @@ import importlib
 import logging
 from enum import Enum
 from types import ModuleType
-from typing import Any, Awaitable, Callable, Optional
+from typing import Any, Awaitable, Callable, Optional, Tuple
 
 from asusrouter.modules.connection import ConnectionState
 from asusrouter.modules.data import AsusData, AsusDataState
@@ -14,6 +14,8 @@ from asusrouter.modules.identity import AsusDevice
 from asusrouter.modules.parental_control import AsusParentalControl
 from asusrouter.modules.port_forwarding import AsusPortForwarding
 from asusrouter.modules.system import AsusSystem
+from asusrouter.modules.vpnc import AsusVPNC
+from asusrouter.modules.wireguard import AsusWireGuardClient, AsusWireGuardServer
 from asusrouter.modules.wlan import AsusWLAN
 
 from .led import AsusLED
@@ -42,6 +44,9 @@ class AsusState(Enum):
     PARENTAL_CONTROL = AsusParentalControl
     PORT_FORWARDING = AsusPortForwarding
     SYSTEM = AsusSystem
+    VPNC = AsusVPNC
+    WIREGUARD_CLIENT = AsusWireGuardClient
+    WIREGUARD_SERVER = AsusWireGuardServer
     WLAN = AsusWLAN
 
 
@@ -49,13 +54,23 @@ AsusStateMap: dict[AsusState, Optional[AsusData]] = {
     AsusState.NONE: None,
     AsusState.CONNECTION: None,
     AsusState.LED: AsusData.LED,
-    AsusState.OPENVPN_CLIENT: AsusData.OPENVPN,
-    AsusState.OPENVPN_SERVER: AsusData.OPENVPN,
+    AsusState.OPENVPN_CLIENT: AsusData.OPENVPN_CLIENT,
+    AsusState.OPENVPN_SERVER: AsusData.OPENVPN_SERVER,
     AsusState.PARENTAL_CONTROL: AsusData.PARENTAL_CONTROL,
     AsusState.PORT_FORWARDING: AsusData.PORT_FORWARDING,
     AsusState.SYSTEM: AsusData.SYSTEM,
+    AsusState.VPNC: AsusData.VPNC,
+    AsusState.WIREGUARD_CLIENT: AsusData.WIREGUARD_CLIENT,
+    AsusState.WIREGUARD_SERVER: AsusData.WIREGUARD_SERVER,
     AsusState.WLAN: AsusData.WLAN,
 }
+
+
+def add_conditional_state(state: AsusState, data: AsusData) -> None:
+    """A callback to add / change AsusStateMap."""
+
+    AsusStateMap[state] = data
+    _LOGGER.debug("Added conditional state rule: %s -> %s", state, data)
 
 
 def get_datatype(state: Optional[Any]) -> Optional[AsusData]:
@@ -87,6 +102,9 @@ def _get_module(state: AsusState) -> Optional[ModuleType]:
     if not module_name:
         return None
 
+    if module_name.endswith(("_client", "_server")):
+        module_name = module_name[:-7]
+
     # Module path
     module_path = f"asusrouter.modules.{module_name}"
 
@@ -96,7 +114,7 @@ def _get_module(state: AsusState) -> Optional[ModuleType]:
         # Return the module
         return submodule
     except ModuleNotFoundError:
-        _LOGGER.debug("No module found for state %s", AsusState)
+        _LOGGER.debug("No module found for state %s", state)
         return None
 
 
@@ -111,6 +129,8 @@ async def set_state(
     state: AsusState,
     arguments: Optional[dict[str, Any]] = None,
     expect_modify: bool = False,
+    router_state: Optional[dict[AsusData, AsusDataState]] = None,
+    identity: Optional[AsusDevice] = None,
 ) -> bool:
     """Set the state."""
 
@@ -119,7 +139,17 @@ async def set_state(
 
     # Process the data if module found
     if submodule and _has_method(submodule, "set_state"):
-        return await submodule.set_state(callback, state, arguments, expect_modify)
+        # Determine the extra parameter
+        extra_param: Optional[dict[AsusData, AsusDataState] | AsusDevice] = None
+        if getattr(submodule, "REQUIRE_STATE", False):
+            extra_param = router_state
+        elif getattr(submodule, "REQUIRE_IDENTITY", False):
+            extra_param = identity
+
+        # Call the function with the determined parameters
+        return await submodule.set_state(
+            callback, state, arguments, expect_modify, extra_param
+        )
 
     return False
 
@@ -127,6 +157,8 @@ async def set_state(
 def save_state(
     state: AsusState,
     library: dict[AsusData, AsusDataState],
+    needed_time: Optional[int] = None,
+    last_id: Optional[int] = None,
 ) -> None:
     """Save the state."""
 
@@ -136,8 +168,8 @@ def save_state(
         return
 
     # Save the state
-    if datatype:
-        library[datatype].update_state(state)
+    library[datatype].update_state(state, last_id)
+    library[datatype].offset_time(needed_time)
 
 
 async def keep_state(

@@ -8,7 +8,7 @@ import asyncio
 import json
 import logging
 from datetime import datetime, timedelta, timezone
-from typing import Any, Optional
+from typing import Any, Awaitable, Callable, Optional
 
 import aiohttp
 
@@ -21,17 +21,26 @@ from asusrouter.error import (
     AsusRouterDataError,
 )
 from asusrouter.modules.attributes import AsusRouterAttribute
-from asusrouter.modules.client import process_client
 from asusrouter.modules.data import AsusData, AsusDataState
 from asusrouter.modules.data_finder import (
     ASUSDATA_ENDPOINT_APPEND,
     ASUSDATA_MAP,
+    ASUSDATA_NVRAM,
     AsusDataFinder,
     AsusDataMerge,
+    add_conditional_data_alias,
+    add_conditional_data_rule,
+    remove_data_rule,
 )
-from asusrouter.modules.data_transform import transform_clients, transform_network
+from asusrouter.modules.data_transform import (
+    transform_clients,
+    transform_cpu,
+    transform_network,
+    transform_wan,
+)
 from asusrouter.modules.endpoint import Endpoint, EndpointControl, process, read
 from asusrouter.modules.endpoint.error import AccessError
+from asusrouter.modules.firmware import Firmware
 from asusrouter.modules.flags import Flag
 from asusrouter.modules.identity import AsusDevice, collect_identity
 from asusrouter.modules.parental_control import ParentalControlRule
@@ -39,6 +48,7 @@ from asusrouter.modules.port_forwarding import PortForwardingRule
 from asusrouter.modules.service import async_call_service
 from asusrouter.modules.state import (
     AsusState,
+    add_conditional_state,
     get_datatype,
     keep_state,
     save_state,
@@ -46,7 +56,7 @@ from asusrouter.modules.state import (
 )
 from asusrouter.tools import legacy
 from asusrouter.tools.converters import safe_list
-from asusrouter.tools.readers import merge_dicts, readable_mac
+from asusrouter.tools.readers import merge_dicts
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -62,6 +72,10 @@ class AsusRouter:
     _state: dict[AsusData, AsusDataState] = {}
 
     _flags: Flag = Flag()
+    # Time for change to take effect before available to fetch
+    _needed_time: Optional[int] = None
+    # ID from the last called service
+    _last_id: Optional[int] = None
 
     def __init__(
         self,
@@ -72,6 +86,7 @@ class AsusRouter:
         use_ssl: bool = False,
         cache_time: Optional[float] = None,
         session: Optional[aiohttp.ClientSession] = None,
+        dumpback: Optional[Callable[..., Awaitable[None]]] = None,
     ):  # pylint: disable=too-many-arguments
         """Initialize the interface."""
 
@@ -92,6 +107,7 @@ class AsusRouter:
             port=port,
             use_ssl=use_ssl,
             session=session,
+            dumpback=dumpback,
         )
 
     # ---------------------------
@@ -176,6 +192,42 @@ class AsusRouter:
             api_hook=self.async_api_hook,
             api_query=self.async_api_query,
         )
+
+        # Add conditional data rules
+        if self._identity:
+            firmware = self._identity.firmware
+            merlin = self._identity.merlin
+            fw_388 = Firmware(major="3.0.0.4", minor=388, build=0)
+            # Stock
+            if not merlin:
+                _LOGGER.debug("Adding conditional rules for stock firmware")
+                if fw_388 < firmware:
+                    add_conditional_state(AsusState.OPENVPN_CLIENT, AsusData.VPNC)
+                    add_conditional_state(AsusState.WIREGUARD_CLIENT, AsusData.VPNC)
+                    add_conditional_data_alias(AsusData.OPENVPN_CLIENT, AsusData.VPNC)
+                    add_conditional_data_alias(AsusData.WIREGUARD_CLIENT, AsusData.VPNC)
+                    add_conditional_data_rule(
+                        AsusData.OPENVPN_SERVER,
+                        AsusDataFinder(
+                            Endpoint.HOOK,
+                            nvram=ASUSDATA_NVRAM["openvpn_server_388"],
+                        ),
+                    )
+            # Merlin
+            else:
+                _LOGGER.debug("Adding conditional rules for Merlin firmware")
+                if fw_388 < firmware:
+                    add_conditional_data_rule(
+                        AsusData.VPNC,
+                        AsusDataFinder(
+                            Endpoint.HOOK,
+                            nvram=ASUSDATA_NVRAM["vpnc"],
+                        ),
+                    )
+            # Before 388
+            if firmware < fw_388:
+                # Remove WireGuard rule
+                remove_data_rule(AsusData.WIREGUARD)
 
         # Return new identity
         return self._identity
@@ -335,6 +387,10 @@ class AsusRouter:
 
         # Get the map
         data_map = ASUSDATA_MAP.get(datatype)
+        # Consider aliases
+        while isinstance(data_map, AsusData):
+            data_map = ASUSDATA_MAP.get(data_map)
+        # Check if we have a map
         if not data_map:
             return None
 
@@ -361,6 +417,10 @@ class AsusRouter:
             _LOGGER.debug("Transforming clients data")
             return transform_clients(data, self._state.get(AsusData.CLIENTS))
 
+        if datatype == AsusData.CPU:
+            _LOGGER.debug("Transforming CPU data")
+            return transform_cpu(data)
+
         if datatype == AsusData.NETWORK:
             _LOGGER.debug("Transforming network data")
             return transform_network(
@@ -369,7 +429,27 @@ class AsusRouter:
                 self._state.get(AsusData.NETWORK),
             )
 
+        if datatype == AsusData.WAN:
+            _LOGGER.debug("Transforming WAN data")
+            return transform_wan(
+                data,
+                self._identity.services if self._identity else [],
+            )
+
         return data
+
+    def _drop_data(self, datatype: AsusData, endpoint: Endpoint) -> bool:
+        """Check whether data should be dropped. This is required
+        for some data obtained from multiple endpoints."""
+
+        if not self._identity:
+            return False
+
+        if datatype == AsusData.OPENVPN_CLIENT:
+            if self._identity.merlin is True:
+                return endpoint == Endpoint.HOOK
+
+        return False
 
     def _check_state(self, datatype: Optional[AsusData]) -> None:
         """Make sure the state object is available."""
@@ -456,16 +536,23 @@ class AsusRouter:
                 if not self._identity:
                     self._identity = await self.async_get_identity()
 
-                result = merge_dicts(
-                    result,
-                    process(
-                        endpoint,
-                        data,
-                        self._state,
-                        self._identity.firmware,
-                        self._identity.wlan,
-                    ),
+                processed = process(
+                    endpoint,
+                    data,
+                    self._state,
+                    self._identity.firmware,
+                    self._identity.wlan,
                 )
+
+                # Check whether data should be dropped
+                to_drop = []
+                for key, value in processed.items():
+                    if self._drop_data(key, endpoint):
+                        to_drop.append(key)
+                for key in to_drop:
+                    processed.pop(key, None)
+
+                result = merge_dicts(result, processed)
 
                 # Check if we have data and data finder merge is ANY
                 if result and data_finder.merge == AsusDataMerge.ANY:
@@ -512,7 +599,7 @@ class AsusRouter:
         _LOGGER.debug("Triggered method async_run_service")
 
         # Run the service
-        result = await async_call_service(
+        result, self._needed_time, self._last_id = await async_call_service(
             self.async_api_command,
             service,
             arguments,
@@ -524,6 +611,19 @@ class AsusRouter:
             await self._async_drop_connection()
 
         return result
+
+    async def _async_check_state_dependency(self, state: AsusState) -> None:
+        """Check and queue state dependencies. Required for some states."""
+
+        _LOGGER.debug("Triggered method _async_check_state_dependency")
+
+        dependency = get_datatype(state)
+
+        if dependency == AsusData.VPNC:
+            # VPNC state change requires the correct previous state
+            await self.async_get_data(AsusData.VPNC, force=True)
+
+        return
 
     async def async_set_state(
         self,
@@ -542,15 +642,37 @@ class AsusRouter:
             expect_modify,
         )
 
+        # Check dependencies
+        await self._async_check_state_dependency(state)
+
         result = await set_state(
-            self.async_run_service, state, arguments, expect_modify
+            self.async_run_service,
+            state,
+            arguments,
+            expect_modify,
+            self._state,
+            self._identity,
         )
 
         if result is True:
-            # Check if we have a state object for this data
-            self._check_state(get_datatype(state))
-            # Save the state
-            save_state(state, self._state)
+            if get_datatype(state) == AsusData.VPNC:
+                # The only way to make it work with VPN Fusion
+                await asyncio.sleep(1)
+                await self._async_check_state_dependency(state)
+            else:
+                # Check if we have a state object for this data
+                self._check_state(get_datatype(state))
+                # Save the state
+                _LOGGER.debug(
+                    "Saving state `%s` for `%s` s with id=`%s`",
+                    state,
+                    self._needed_time,
+                    self._last_id,
+                )
+                save_state(state, self._state, self._needed_time, self._last_id)
+                # Reset the needed time and last id
+                self._needed_time = None
+                self._last_id = None
 
         return result
 

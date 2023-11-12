@@ -9,7 +9,7 @@ import asyncio
 import base64
 import json
 import logging
-from typing import Any, Optional, Tuple
+from typing import Any, Awaitable, Callable, Optional, Tuple
 from urllib.parse import quote
 
 import aiohttp
@@ -64,6 +64,7 @@ class Connection:  # pylint: disable=too-many-instance-attributes
         port: Optional[int] = None,
         use_ssl: bool = False,
         session: Optional[aiohttp.ClientSession] = None,
+        dumpback: Optional[Callable[..., Awaitable[None]]] = None,
     ):
         """Initialize connection."""
 
@@ -82,6 +83,9 @@ class Connection:  # pylint: disable=too-many-instance-attributes
         self._http = "https" if use_ssl else "http"
         self._port = port or (8443 if use_ssl else 80)
         _LOGGER.debug("Using `%s` and port `%s`", self._http, self._port)
+
+        # Callback for dumping data
+        self._dumpback = dumpback
 
     async def async_connect(
         self, retry: int = 0, lock: Optional[asyncio.Lock] = None
@@ -116,7 +120,7 @@ class Connection:  # pylint: disable=too-many-instance-attributes
             except AsusRouterAccessError as ex:
                 raise ex
             except AsusRouterError as ex:
-                _LOGGER.debug("Connection failed")
+                _LOGGER.debug("Connection failed with error: %s", ex)
                 if retry < len(DEFAULT_TIMEOUTS) - 1:
                     _LOGGER.debug(
                         "Will try again in %s seconds", DEFAULT_TIMEOUTS[retry]
@@ -247,7 +251,7 @@ class Connection:  # pylint: disable=too-many-instance-attributes
         """Make a post request to the device."""
 
         # Check if a session is available
-        if self._session is None:
+        if self._session is None or self._session.closed:
             # If no session is available, we cannot be connected to the device
             # So we don't try to make any requests
             raise AsusRouterSessionError("No session available for this connection")
@@ -281,6 +285,12 @@ class Connection:  # pylint: disable=too-many-instance-attributes
             except UnicodeDecodeError:
                 _LOGGER.debug("Cannot decode response. Will ignore errors")
                 resp_content = await response.text(errors="ignore")
+
+            # Call the dumpback if available
+            if self._dumpback is not None:
+                await self._dumpback(
+                    endpoint, payload, resp_status, resp_headers, resp_content
+                )
 
             # Return the response
             return (resp_status, resp_headers, resp_content)

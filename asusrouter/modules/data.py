@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 from typing import Any, Optional
 
@@ -24,6 +24,8 @@ class AsusData(str, Enum):
     NETWORK = "network"
     NODE_INFO = "node_info"
     OPENVPN = "openvpn"
+    OPENVPN_CLIENT = "openvpn_client"
+    OPENVPN_SERVER = "openvpn_server"
     PARENTAL_CONTROL = "parental_control"
     PORT_FORWARDING = "port_forwarding"
     PORTS = "ports"
@@ -31,7 +33,12 @@ class AsusData(str, Enum):
     SYSINFO = "sysinfo"
     SYSTEM = "system"
     TEMPERATURE = "temperature"
+    VPNC = "vpnc"
+    VPNC_CLIENTLIST = "vpnc_clientlist"
     WAN = "wan"
+    WIREGUARD = "wireguard"
+    WIREGUARD_CLIENT = "wireguard_client"
+    WIREGUARD_SERVER = "wireguard_server"
     WLAN = "wlan"
 
 
@@ -65,11 +72,26 @@ class AsusDataState:
         # Set to inactive
         self.stop()
 
-    def update_state(self, state: Any) -> None:
+    def update_state(self, state: Any, last_id: Optional[int] = None) -> None:
         """Update a state variable in the data dict."""
 
+        if last_id is not None:
+            if not isinstance(self.data, dict):
+                self.data = {}
+            self.data.setdefault(last_id, {})["state"] = state
+            return
+
         if isinstance(self.data, dict):
-            self.data.update({"state": state})
+            self.data["state"] = state
             return
 
         self.data = {"state": state}
+
+    def offset_time(self, offset: Optional[int]) -> None:
+        """Offset the timestamp."""
+
+        if offset is None:
+            self.timestamp = datetime.now(timezone.utc)
+            return
+
+        self.timestamp = datetime.now(timezone.utc) + timedelta(seconds=offset)

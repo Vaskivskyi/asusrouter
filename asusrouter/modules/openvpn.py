@@ -6,7 +6,12 @@ import logging
 from enum import IntEnum
 from typing import Any, Awaitable, Callable, Optional
 
+from asusrouter.modules.firmware import Firmware
+from asusrouter.modules.identity import AsusDevice
+
 _LOGGER = logging.getLogger(__name__)
+
+REQUIRE_IDENTITY = True
 
 
 class AsusOVPNClient(IntEnum):
@@ -40,6 +45,7 @@ async def set_state(
     state: AsusOVPNClient | AsusOVPNServer,
     arguments: Optional[dict[str, Any]] = None,
     expect_modify: bool = False,
+    identity: Optional[AsusDevice] = None,
 ) -> bool:
     """Set the OpenVPN state."""
 
@@ -53,19 +59,40 @@ async def set_state(
         _LOGGER.debug("No VPN id found in arguments")
         return False
 
-    # Get the correct service call
-    party = "client" if isinstance(state, AsusOVPNClient) else "server"
-    match state:
-        case AsusOVPNClient.ON:
-            service = f"start_vpn{party}{vpn_id}"
-        case AsusOVPNClient.OFF:
-            service = f"stop_vpn{party}{vpn_id}"
-        case _:
-            _LOGGER.debug("Unknown state %s", state)
-            return False
+    service_map: dict[Any, str]
 
-    # Prepare the arguments
-    arguments = {}
+    # Get the correct service call
+    # This will be firmware dependent
+    if (
+        not identity
+        or identity.merlin
+        or identity.firmware < Firmware(major="3.0.0.4", minor=388, build=0)
+    ):
+        service_map = {
+            (AsusOVPNClient, AsusOVPNClient.ON): f"start_vpnclient{vpn_id}",
+            (AsusOVPNClient, AsusOVPNClient.OFF): f"stop_vpnclient{vpn_id}",
+            (AsusOVPNServer, AsusOVPNServer.ON): f"start_vpnserver{vpn_id}",
+            (AsusOVPNServer, AsusOVPNServer.OFF): f"stop_vpnserver{vpn_id}",
+        }
+        service = service_map.get((type(state), state))
+    else:
+        service_map = {
+            AsusOVPNServer.ON: (
+                "restart_openvpnd;restart_chpass;restart_samba;restart_dnsmasq;"
+            ),
+            AsusOVPNServer.OFF: "stop_openvpnd;restart_samba;restart_dnsmasq;",
+        }
+        service = service_map.get(state) if isinstance(state, AsusOVPNServer) else None
+        arguments = {
+            "VPNServer_enable": "1" if state == AsusOVPNServer.ON else "0",
+        }
+
+    # Add `id` to arguments for proper state save
+    arguments["id"] = vpn_id
+
+    if not service:
+        _LOGGER.debug("Unknown state %s", state)
+        return False
 
     _LOGGER.debug(
         "Triggering state set with parameters: service=%s, arguments=%s",

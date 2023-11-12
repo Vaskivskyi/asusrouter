@@ -31,10 +31,8 @@ class Firmware:
     def __lt__(self, other: Firmware | None) -> bool:
         """Compare two firmware versions."""
 
-        result = False
-
         if other:
-            if self.major and other.major:
+            if self.major is not None and other.major is not None:
                 # Check if the first character of either major version is the same
                 if self.major[0] == other.major[0]:
                     # Split the major versions into lists of integers
@@ -46,10 +44,18 @@ class Firmware:
                     # Proceed only if major is the same for both
                     if major1 == major2:
                         # Compare the minor versions
-                        if self.minor and other.minor and self.minor < other.minor:
+                        if (
+                            self.minor is not None
+                            and other.minor is not None
+                            and self.minor < other.minor
+                        ):
                             return True
                         # Compare the build versions
-                        if self.build and other.build and self.build < other.build:
+                        if (
+                            self.build is not None
+                            and other.build is not None
+                            and self.build < other.build
+                        ):
                             return True
                         # Compare the revision versions
                         if (
@@ -59,7 +65,7 @@ class Firmware:
                         ):
                             return True
 
-        return result
+        return False
 
     # Define more-than
     def __gt__(self, other: Firmware | None) -> bool:

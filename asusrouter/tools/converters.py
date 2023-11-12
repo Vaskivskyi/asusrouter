@@ -10,15 +10,10 @@ it should be in the Readers module"""
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
-from typing import Any, Callable, Optional
+from enum import Enum
+from typing import Any, Callable, Iterable, Optional, Tuple
 
 from dateutil.parser import parse as dtparse
-
-
-def as_dict(pyobj):
-    """Return generator object as dictionary."""
-
-    return dict(pyobj)
 
 
 def clean_string(content: Optional[str]) -> Optional[str]:
@@ -36,15 +31,42 @@ def clean_string(content: Optional[str]) -> Optional[str]:
     return content
 
 
-def flatten_dict(obj: Any, keystring: str = "", delimiter: str = "_"):
-    """Flatten dictionary."""
+def flatten_dict(
+    d: Optional[dict[Any, Any]],
+    parent_key: str = "",
+    sep: str = "_",
+    exclude: Optional[str | Iterable[str]] = None,
+) -> Optional[dict[str, Any]]:
+    """Flatten a nested dictionary."""
 
-    if isinstance(obj, dict):
-        keystring = keystring + delimiter if keystring else keystring
-        for key in obj:
-            yield from flatten_dict(obj[key], keystring + str(key))
-    else:
-        yield keystring, obj
+    if d is None:
+        return None
+
+    if not isinstance(d, dict):
+        return {}
+
+    items = []
+    exclude = tuple(exclude or [])
+    for k, v in d.items():
+        new_key = f"{parent_key}{sep}{k}" if parent_key not in ("", None) else k
+        # We have a dict - check it
+        if isinstance(v, dict):
+            # This key should be skipped
+            if isinstance(new_key, str) and new_key.endswith(exclude):
+                items.append((new_key, v))
+                continue
+            # Go recursive
+            flattened = flatten_dict(v, new_key, sep, exclude)
+            if flattened is not None:
+                items.extend(flattened.items())
+            continue
+        # Not a dict - add it
+        items.append((new_key, v))
+    return dict(items)
+
+
+def is_enum(v):
+    return isinstance(v, type) and issubclass(v, Enum)
 
 
 def list_from_dict(raw: dict[str, Any]) -> list[str]:
@@ -63,6 +85,29 @@ def nvram_get(content: Optional[list[str] | str]) -> Optional[list[tuple[str, ..
         content = [content]
 
     return [("nvram_get", value) for value in content]
+
+
+def run_method(
+    value: Any, method: Optional[Callable[..., Any] | list[Callable[..., Any]]]
+) -> Any:
+    """Run a method or a list of methods on a value and return the result."""
+
+    if not method:
+        return value
+
+    if not isinstance(method, list):
+        method = [method]
+
+    for func in method:
+        if is_enum(func):
+            try:
+                value = func(value)
+            except ValueError:
+                value = func.UNKNOWN if hasattr(func, "UNKNOWN") else None
+        else:
+            value = func(value)
+
+    return value
 
 
 def safe_bool(content: Optional[str | int | float | bool]) -> Optional[bool]:
@@ -158,6 +203,12 @@ def safe_list(content: Any) -> list[Any]:
     return [content]
 
 
+def safe_list_csv(content: Optional[str]) -> list[str]:
+    """Read the list as comma separated values."""
+
+    return safe_list_from_string(content, ",")
+
+
 def safe_list_from_string(content: Optional[str], delimiter: str = " ") -> list[str]:
     """Read the content as list or return empty list."""
 
@@ -233,7 +284,7 @@ def safe_timedelta_long(content: Optional[str]) -> timedelta:
 
 
 def safe_unpack_key(
-    content: tuple[str, Optional[Callable[..., Any]]] | str
+    content: tuple[str, Optional[Callable[..., Any]] | list[Callable[..., Any]]] | str
 ) -> tuple[str, Optional[Callable[..., Any]]]:
     """Method to unpack key/method tuple
     even if some values are missing."""
@@ -248,7 +299,9 @@ def safe_unpack_key(
 
 
 def safe_unpack_keys(
-    content: tuple[str, str, Callable[..., Any]] | tuple[str, str] | str
+    content: tuple[str, str, Callable[..., Any] | list[Callable[..., Any]]]
+    | tuple[str, str]
+    | str
 ) -> tuple[Any, ...]:
     """Method to unpack key/key_to_use/method tuple
     even if some values are missing."""
