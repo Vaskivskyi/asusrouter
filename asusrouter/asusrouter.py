@@ -36,6 +36,7 @@ from asusrouter.modules.data_transform import (
     transform_clients,
     transform_cpu,
     transform_network,
+    transform_wan,
 )
 from asusrouter.modules.endpoint import Endpoint, EndpointControl, process, read
 from asusrouter.modules.endpoint.error import AccessError
@@ -426,6 +427,13 @@ class AsusRouter:
                 data,
                 self._identity.services if self._identity else [],
                 self._state.get(AsusData.NETWORK),
+            )
+
+        if datatype == AsusData.WAN:
+            _LOGGER.debug("Transforming WAN data")
+            return transform_wan(
+                data,
+                self._identity.services if self._identity else [],
             )
 
         return data

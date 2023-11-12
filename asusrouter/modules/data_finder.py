@@ -12,6 +12,9 @@ from asusrouter.modules.endpoint import Endpoint
 from asusrouter.modules.endpoint.hook_const import (
     MAP_OVPN_SERVER_388,
     MAP_VPNC_WIREGUARD,
+    MAP_WAN,
+    MAP_WAN_ITEM,
+    MAP_WAN_ITEM_X,
     MAP_WIREGUARD_CLIENT,
     MAP_WIREGUARD_SERVER,
 )
@@ -78,10 +81,12 @@ ASUSDATA_REQUEST = {
         ("cpu_usage", "appobj"),
         ("memory_usage", "appobj"),
         ("netdev", "appobj"),
-        ("wanlink_state", "appobj"),
     ],
     "vpnc": [
         ("get_vpnc_status", ""),
+    ],
+    "wan": [
+        ("get_wan_unit", ""),
     ],
     "wireguard_server": [
         ("get_wgsc_status", ""),
@@ -109,6 +114,12 @@ ASUSDATA_NVRAM = {
     "vpnc": [
         "vpnc_clientlist",
     ],
+    "wan": [
+        key
+        for element in MAP_WAN
+        for key, _, _ in [converters.safe_unpack_keys(element)]
+        if key != "get_wan_unit"
+    ],
     "wireguard_server": [
         key
         for element in MAP_WIREGUARD_SERVER
@@ -121,6 +132,23 @@ ASUSDATA_NVRAM["vpnc"].extend(
         f"wgc{num}_{key}"
         for num in range(1, 6)
         for element in MAP_VPNC_WIREGUARD
+        for key, _, _ in [converters.safe_unpack_keys(element)]
+    ]
+)
+ASUSDATA_NVRAM["wan"].extend(
+    [
+        f"wan{num}_{key}"
+        for num in (0, 1)
+        for element in MAP_WAN_ITEM
+        for key, _, _ in [converters.safe_unpack_keys(element)]
+    ]
+)
+ASUSDATA_NVRAM["wan"].extend(
+    [
+        f"wan{num}_{extra}{key}"
+        for num in (0, 1)
+        for extra in ("", "x")
+        for element in MAP_WAN_ITEM_X
         for key, _, _ in [converters.safe_unpack_keys(element)]
     ]
 )
@@ -177,7 +205,9 @@ ASUSDATA_MAP: dict[AsusData, AsusData | AsusDataFinder] = {
         Endpoint.HOOK, nvram=ASUSDATA_NVRAM["vpnc"], request=ASUSDATA_REQUEST["vpnc"]
     ),
     AsusData.VPNC_CLIENTLIST: AsusData.VPNC,
-    AsusData.WAN: AsusData.CPU,
+    AsusData.WAN: AsusDataFinder(
+        Endpoint.HOOK, nvram=ASUSDATA_NVRAM["wan"], request=ASUSDATA_REQUEST["wan"]
+    ),
     AsusData.WIREGUARD: AsusData.WIREGUARD_SERVER,
     AsusData.WIREGUARD_CLIENT: AsusData.VPNC,
     AsusData.WIREGUARD_SERVER: AsusDataFinder(
