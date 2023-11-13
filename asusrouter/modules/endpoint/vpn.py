@@ -13,6 +13,8 @@ from asusrouter.tools.readers import read_as_snake_case, read_js_variables
 
 from .vpn_const import MAP_OVPN_CLIENT, MAP_OVPN_SERVER
 
+_TO_IGNORE = ("", "None", "0.0.0.0")
+
 
 def read(content: str) -> dict[str, Any]:
     """Read VPN data."""
@@ -26,21 +28,20 @@ def read(content: str) -> dict[str, Any]:
     values: dict[str, Any] = read_js_variables(clean_content(content))
 
     # Values to ignore
-    _to_ignore = ("", "None", "0.0.0.0")
 
     # Read the OpenVPN data
     for party in ("client", "server"):
+        # Select proper method and state
+        method = read_ovpn_client if party == "client" else read_ovpn_server
+        state = AsusOVPNClient if party == "client" else AsusOVPNServer
+
         for num in range(1, 11):
             key = f"vpn_{party}{num}_status"
             if key not in values:
                 break
 
-            # Select proper method and state
-            method = read_ovpn_client if party == "client" else read_ovpn_server
-            state = AsusOVPNClient if party == "client" else AsusOVPNServer
-
             # Read the data
-            if values[key] not in _to_ignore:
+            if values[key] not in _TO_IGNORE:
                 vpn[party][num] = method(values[key])
                 vpn[party][num]["state"] = state.CONNECTED
             else:
@@ -48,9 +49,14 @@ def read(content: str) -> dict[str, Any]:
 
             # Read additional data
             for add_key in ("ip", "rip"):
-                add_key = f"vpn_{party}{num}_{add_key}"
-                if add_key in values and values[add_key] not in _to_ignore:
-                    vpn[party][num][add_key] = values[add_key]
+                search_value = values.get(f"vpn_{party}{num}_{add_key}")
+                if search_value and search_value not in _TO_IGNORE:
+                    vpn[party][num][add_key] = search_value
+
+            # Read remote
+            search_value = vpn[party][num].get("remote")
+            if search_value:
+                vpn[party][num]["remote"] = read_ovpn_remote(search_value)
 
     return vpn
 
