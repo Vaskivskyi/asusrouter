@@ -466,8 +466,8 @@ def process_vpnc(data: dict[str, Any]) -> Tuple[dict[AsusVPNType, dict[int, Any]
     }
 
     for vpnc_id, info in vpnc.items():
-        sorted_id = info.pop("id")
-        sorted_type = info.pop("type")
+        sorted_id = info.pop("id", None)
+        sorted_type = info.pop("type", None)
         info["vpnc_id"] = vpnc_id
         vpn[sorted_type][sorted_id] = info
 
@@ -612,7 +612,7 @@ def process_wireguard_server(data: dict[str, Any]) -> dict[int, dict[str, Any]]:
                     ] = ConnectionState(client.get("status"))
 
     # Remove the `status` value
-    wireguard.pop("status")
+    wireguard.pop("status", None)
 
     return {1: wireguard}
 
