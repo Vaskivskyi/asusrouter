@@ -53,6 +53,7 @@ async def set_state(
     state: AsusParentalControl,
     arguments: Optional[dict[str, Any]] = None,
     expect_modify: bool = False,
+    _: Optional[dict[Any, Any]] = None,
 ) -> bool:
     """Set the parental control state."""
 
