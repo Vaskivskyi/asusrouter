@@ -22,6 +22,7 @@ async def set_state(
     state: AsusLED,
     arguments: Optional[dict[str, Any]] = None,
     expect_modify: bool = False,
+    _: Optional[dict[Any, Any]] = None,
 ) -> bool:
     """Set the LED state."""
 
