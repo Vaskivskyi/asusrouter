@@ -7,9 +7,13 @@ from enum import Enum
 class ContentType(str, Enum):
     """Content type enum."""
 
+    UNKNOWN = "unknown"
+
+    BINARY = "application/octet-stream"
+    HTML = "text/html"
     JSON = "application/json"
     TEXT = "text/plain"
-    HTML = "text/html"
+    XML = "application/xml"
 
 
 # Asus constants
