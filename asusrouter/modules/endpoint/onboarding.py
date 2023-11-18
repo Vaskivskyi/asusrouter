@@ -8,7 +8,7 @@ from typing import Any
 from asusrouter.modules.aimesh import AiMeshDevice
 from asusrouter.modules.data import AsusData
 from asusrouter.tools.cleaners import clean_content
-from asusrouter.tools.converters import safe_bool, safe_int, safe_none_or_str
+from asusrouter.tools.converters import safe_bool, safe_int, safe_return
 from asusrouter.tools.readers import read_json_content
 
 CONNECTION_TYPE = {
@@ -63,7 +63,7 @@ def process(data: dict[str, Any]) -> dict[AsusData, Any]:
                 description = {
                     "connection_type": convert["connection_type"],
                     "guest": convert["guest"],
-                    "ip": safe_none_or_str(
+                    "ip": safe_return(
                         client_list[node][connection][mac].get("ip", None)
                     ),
                     "mac": mac,
@@ -105,8 +105,8 @@ def process_aimesh_node(data: dict[str, Any]) -> AiMeshDevice:
         if f"pap{el}" in data and data[f"pap{el}"] is not str():
             parent["connection"] = const_ap[el]
             parent["mac"] = data[f"pap{el}"]
-            parent["rssi"] = safe_none_or_str(data.get(f"rssi{el}"))
-            parent["ssid"] = safe_none_or_str(data.get(f"pap{el}_ssid"))
+            parent["rssi"] = safe_return(data.get(f"rssi{el}"))
+            parent["ssid"] = safe_return(data.get(f"pap{el}_ssid"))
 
     level = safe_int(data.get("level", "0"))
     node_type = "router" if level == 0 else "node"
@@ -118,7 +118,7 @@ def process_aimesh_node(data: dict[str, Any]) -> AiMeshDevice:
         product_id=data.get("product_id"),
         ip=data.get("ip"),
         fw=data.get("fwver", None),
-        fw_new=safe_none_or_str(data.get("newfwver")),
+        fw_new=safe_return(data.get("newfwver")),
         mac=data.get("mac", None),
         ap=ap,
         parent=parent,
