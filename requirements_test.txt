@@ -1,0 +1,2 @@
+# Pytest for running tests
+pytest>=6.2.5

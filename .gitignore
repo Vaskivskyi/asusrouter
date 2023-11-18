@@ -5,10 +5,12 @@ __pycache__/
 dist/
 *.egg-info
 
+# Pytest
+.coverage
 
 ### Other
 # Test
-test*.py
+local_test*.py
 local/
 
 # VS Code
