@@ -33,3 +33,8 @@ dependencies    = [
 
 [tool.setuptools.packages.find]
 include = ["asusrouter*"]
+
+[tool.pytest.ini_options]
+testpaths = [
+    "tests",
+]

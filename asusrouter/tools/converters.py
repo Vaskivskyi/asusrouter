@@ -11,9 +11,26 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 from enum import Enum
-from typing import Any, Callable, Iterable, Optional, Tuple
+from typing import Any, Callable, Iterable, Optional, TypeVar, cast
 
 from dateutil.parser import parse as dtparse
+
+true_values = {"true", "allow", "1", "on", "enabled"}
+false_values = {"false", "block", "0", "off", "disabled"}
+
+
+_T = TypeVar("_T")
+
+
+def clean_input(func: Callable[..., Any]) -> Callable[..., Any]:
+    """Decorator to clean input data."""
+
+    def wrapper(content: Any, *args, **kwargs) -> Any:
+        if isinstance(content, str):
+            return func(clean_string(content), *args, **kwargs)
+        return func(content, *args, **kwargs)
+
+    return wrapper
 
 
 def clean_string(content: Optional[str]) -> Optional[str]:
@@ -46,7 +63,7 @@ def flatten_dict(
         return {}
 
     items = []
-    exclude = tuple(exclude or [])
+    exclude = (exclude,) if isinstance(exclude, str) else tuple(exclude or [])
     for k, v in d.items():
         new_key = f"{parent_key}{sep}{k}" if parent_key not in ("", None) else k
         # We have a dict - check it
@@ -65,12 +82,28 @@ def flatten_dict(
     return dict(items)
 
 
-def is_enum(v):
+def handle_none_content(content: Optional[_T], default: Optional[_T]) -> Optional[_T]:
+    """Return the default value if content is None, else return the content."""
+
+    if content is None:
+        return default
+    return content
+
+
+def is_enum(v) -> bool:
+    """Check if the value is an enum."""
+
     return isinstance(v, type) and issubclass(v, Enum)
 
 
-def list_from_dict(raw: dict[str, Any]) -> list[str]:
+def list_from_dict(raw: Optional[dict[Any, Any] | list[Any]]) -> list[str]:
     """Return dictionary keys as list."""
+
+    if isinstance(raw, list):
+        return raw
+
+    if not isinstance(raw, dict):
+        return []
 
     return list(raw.keys())
 
@@ -80,6 +113,9 @@ def nvram_get(content: Optional[list[str] | str]) -> Optional[list[tuple[str, ..
 
     if not content:
         return None
+
+    if not isinstance(content, (list, str)):
+        content = str(content)
 
     if isinstance(content, str):
         content = [content]
@@ -110,85 +146,94 @@ def run_method(
     return value
 
 
+@clean_input
 def safe_bool(content: Optional[str | int | float | bool]) -> Optional[bool]:
     """Read the content as boolean or return None."""
 
-    result = None
+    if content is None:
+        return None
 
-    if content:
-        if isinstance(content, bool):
-            result = content
-        elif isinstance(content, (int, float)):
-            result = content != 0
-        else:
-            content = clean_string(content)
-            if content:
-                content = content.lower()
-                if content in ("true", "allow", "1", "on", "enabled"):
-                    result = True
-                elif content in ("false", "block", "0", "off", "disabled"):
-                    result = False
+    if isinstance(content, bool):
+        return content
+    if isinstance(content, (int, float)):
+        return content != 0
+    if isinstance(content, str):
+        content = content.lower()
+        if content in true_values:
+            return True
+        if content in false_values:
+            return False
 
-    return result
+    return None
 
 
+def safe_convert(
+    convert_func: Callable[[str | int | float], _T],
+    content: Optional[str | int | float],
+    default: Optional[_T] = None,
+    fallback_func: Optional[Callable[[Any], _T]] = None,
+) -> Optional[_T]:
+    """Try to convert the content using the conversion function,
+    return the default value if it fails."""
+
+    if content is None:
+        return default
+    try:
+        return convert_func(content)
+    except ValueError:
+        if fallback_func is not None and isinstance(content, str):
+            try:
+                return fallback_func(content)
+            except ValueError:
+                pass
+        return default
+
+
+@clean_input
 def safe_datetime(content: Optional[str]) -> Optional[datetime]:
     """Read the content as datetime or return None."""
 
-    content = clean_string(content)
     if not content:
         return None
 
     try:
         return dtparse(content)
-    except Exception:  # pylint: disable=broad-except
+    except (ValueError, TypeError):
         return None
 
 
+@clean_input
 def safe_exists(content: Optional[str]) -> bool:
     """Read the content as boolean or return None."""
 
-    content = clean_string(content)
-    if not content:
+    if content is None:
         return False
 
     return True
 
 
+@clean_input
 def safe_float(
     content: Optional[str | int | float], default: Optional[float] = None
 ) -> Optional[float]:
     """Read the content as float or return None."""
 
-    if isinstance(content, (int, float)):
-        return float(content)
-
-    content = clean_string(content)
-    if not content:
-        return default
-
-    try:
-        return float(content)
-    except ValueError:
-        return default
+    content = cast(Optional[str | int | float], handle_none_content(content, default))
+    return safe_convert(float, content, default)
 
 
+@clean_input
 def safe_int(
-    content: Optional[str | int], default: Optional[int] = None, base: int = 10
+    content: Optional[str | int | float], default: Optional[int] = None, base: int = 10
 ) -> Optional[int]:
     """Read the content as int or return the default value (None if not specified)."""
 
-    if isinstance(content, int):
-        return content
-
-    content = clean_string(content)
-    if not content:
-        return default if isinstance(default, int) else None
-
-    try:
-        return int(content, base=base)
-    except ValueError:
-        return default if isinstance(default, int) else None
+    content = cast(Optional[str | int | float], handle_none_content(content, default))
+    if isinstance(content, str):
+        return safe_convert(
+            lambda x: int(x, base=base), content, default, lambda x: int(float(x))
+        )
+    return safe_convert(int, content, default if isinstance(default, int) else None)
 
 
 def safe_list(content: Any) -> list[Any]:
@@ -209,34 +254,19 @@ def safe_list_csv(content: Optional[str]) -> list[str]:
     return safe_list_from_string(content, ",")
 
 
+@clean_input
 def safe_list_from_string(content: Optional[str], delimiter: str = " ") -> list[str]:
     """Read the content as list or return empty list."""
 
-    content = clean_string(content)
-    if not content:
+    if not isinstance(content, str):
         return []
 
     return content.split(delimiter)
 
 
-def safe_none_or_str(content: Optional[str]) -> Optional[str]:
-    """Read the content as string or return None if it is empty."""
-
-    if content is None or not isinstance(content, str):
-        return None
-
-    content = content.strip()
-    if content == str():
-        return None
-
-    return content
-
-
+@clean_input
 def safe_return(content: Any) -> Any:
     """Return the content."""
-
-    if isinstance(content, str):
-        return clean_string(content)
 
     return content
 
@@ -261,16 +291,16 @@ def safe_speed(
 def safe_time_from_delta(content: str) -> datetime:
     """Transform time delta to the date in the past."""
 
-    return datetime.utcnow().replace(
+    return datetime.now(timezone.utc).replace(
         microsecond=0, tzinfo=timezone.utc
     ) - safe_timedelta_long(content)
 
 
+@clean_input
 def safe_timedelta_long(content: Optional[str]) -> timedelta:
     """Transform connection timedelta of the device to a proper
     datetime object when the device was connected"""
 
-    content = clean_string(content)
     if not content:
         return timedelta()
 
@@ -279,27 +309,54 @@ def safe_timedelta_long(content: Optional[str]) -> timedelta:
         return timedelta(
             hours=int(part[-3]), minutes=int(part[-2]), seconds=int(part[-1])
         )
-    except ValueError:
+    except (ValueError, IndexError):
         return timedelta()
 
 
 def safe_unpack_key(
-    content: tuple[str, Optional[Callable[..., Any]] | list[Callable[..., Any]]] | str
-) -> tuple[str, Optional[Callable[..., Any]]]:
-    """Method to unpack key/method tuple
-    even if some values are missing."""
+    content: tuple[str, Optional[Callable[..., Any]] | list[Callable[..., Any]]]
+    | str
+    | tuple[str]
+) -> tuple[str, Optional[Callable[..., Any] | list[Callable[..., Any]]]]:
+    """
+    Unpacks a tuple containing a key and a method.
+
+    The input can be a tuple of a string and a method, a single string,
+    or a single-item tuple with a string.
+    If the input is a string or a single-item tuple, the returned method is None.
+    If the input is a tuple of a string and a method, both are returned as is.
+
+    Args:
+        content: A tuple of a string and a method, a single string,
+        or a single-item tuple with a string.
+
+    Returns:
+        A tuple containing a string and a method.
+        If no method was provided in the input, None is returned as the method.
+    """
 
     if isinstance(content, tuple):
-        # All 2 values are present
-        if len(content) == 2:
-            return content
+        key = content[0]
+        if len(content) > 1:
+            content = cast(
+                tuple[str, Optional[Callable[..., Any]] | list[Callable[..., Any]]],
+                content,
+            )
+            methods = content[1]
+            if methods is not None and not (
+                callable(methods) or isinstance(methods, Iterable)
+            ):
+                methods = None
+        else:
+            methods = None
+        return key, methods
 
     # No method selected
-    return (content, None)
+    return content, None
 
 
 def safe_unpack_keys(
-    content: tuple[str, str, Callable[..., Any] | list[Callable[..., Any]]]
+    content: tuple[str, str, Optional[Callable[..., Any]] | list[Callable[..., Any]]]
     | tuple[str, str]
     | str
 ) -> tuple[Any, ...]:
@@ -317,8 +374,8 @@ def safe_unpack_keys(
 
     # No method and key_to_use selected
     # We need to replace key_to_use with key
-    content = (content, content)
-    return content + (None,)
+    new_content = (content, content)
+    return new_content + (None,)
 
 
 def safe_usage(used: int | float, total: int | float) -> float:
@@ -348,4 +405,11 @@ def safe_usage_historic(
 
     This method is just an interface to calculate usage using `usage` method"""
 
-    return safe_usage(used - prev_used, total - prev_total)
+    used_diff = used - prev_used
+    total_diff = total - prev_total
+
+    # Don't allow negative differences
+    if used_diff < 0 or total_diff < 0:
+        return 0.0
+
+    return safe_usage(used_diff, total_diff)
