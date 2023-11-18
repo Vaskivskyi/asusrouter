@@ -30,12 +30,12 @@ jobs:
 
       - name: Get pip cache directory path
         id: pip-cache
-        run: echo "::set-output name=dir::$(pip cache dir)"
+        run: echo "PIP_CACHE_DIR=$(pip cache dir)" >> $GITHUB_ENV
 
       - name: Cache pip dependencies
         uses: actions/cache@v3.3.2
         with:
-          path: ${{ steps.pip-cache.outputs.dir }}
+          path: ${{ env.PIP_CACHE_DIR }}
           key: ${{ runner.os }}-pip-${{ hashFiles('**/pyproject.toml') }}
           restore-keys: |
             ${{ runner.os }}-pip-
