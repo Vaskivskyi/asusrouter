@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 from enum import Enum
-from typing import Any, Callable, Iterable, Optional, TypeVar, cast
+from typing import Any, Callable, Iterable, Optional, Type, TypeVar, cast
 
 from dateutil.parser import parse as dtparse
 
@@ -20,6 +20,7 @@ false_values = {"false", "block", "0", "off", "disabled"}
 
 
 _T = TypeVar("_T")
+_E = TypeVar("_E", bound=Enum)
 
 
 def clean_input(func: Callable[..., Any]) -> Callable[..., Any]:
@@ -80,6 +81,22 @@ def flatten_dict(
         # Not a dict - add it
         items.append((new_key, v))
     return dict(items)
+
+
+def get_enum_key_by_value(
+    enum: Type[_E], value: Any, default: Optional[_E] = None
+) -> _E:
+    """Get the enum key by value"""
+
+    if issubclass(enum, Enum):
+        for enum_value in enum:
+            if enum_value.value == value:
+                return enum_value
+
+    if default is not None:
+        return default
+
+    raise ValueError(f"Invalid value: {value}")
 
 
 def handle_none_content(content: Optional[_T], default: Optional[_T]) -> Optional[_T]:
