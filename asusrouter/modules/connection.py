@@ -4,8 +4,7 @@ from enum import Enum, IntEnum
 from typing import Optional
 
 from asusrouter.modules.wlan import Wlan
-from asusrouter.tools import get_enum_key_by_value
-from asusrouter.tools.converters import safe_int
+from asusrouter.tools.converters import get_enum_key_by_value, safe_int
 
 
 class ConnectionState(IntEnum):
@@ -69,4 +68,4 @@ def get_connection_type(value: Optional[int]) -> ConnectionType:
     # Check that it's actually an int
     value = safe_int(value) or 0
 
-    return CONNECTION_TYPE.get(value, ConnectionType.WIRED)
+    return get_enum_key_by_value(ConnectionType, value, ConnectionType.WIRED)

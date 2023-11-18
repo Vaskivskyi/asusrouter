@@ -45,6 +45,29 @@ def test_flatten_dict():
     assert converters.flatten_dict(nested_dict, exclude="b") == expected_output
 
 
+class EnumForTest(Enum):
+    """Enum class."""
+
+    A = 1
+    B = 2
+
+
+def test_get_enum_key_by_value():
+    """Test get_enum_key_by_value method."""
+
+    assert (
+        converters.get_enum_key_by_value(EnumForTest, 1, EnumForTest.B) == EnumForTest.A
+    )
+    assert (
+        converters.get_enum_key_by_value(EnumForTest, 2, EnumForTest.A) == EnumForTest.B
+    )
+    assert (
+        converters.get_enum_key_by_value(EnumForTest, 3, EnumForTest.A) == EnumForTest.A
+    )
+    with pytest.raises(ValueError):
+        converters.get_enum_key_by_value(EnumForTest, 3)
+
+
 def test_is_enum():
     """Test is_enum method."""
 
