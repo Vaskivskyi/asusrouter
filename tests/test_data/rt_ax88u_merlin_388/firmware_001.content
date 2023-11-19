@@ -1,0 +1,25 @@
+﻿webs_state_update = '1';
+webs_state_error = '0';
+webs_state_info = '3004_388_4_0';
+webs_state_info_beta = '';
+webs_state_REQinfo = '';
+webs_state_flag = '0';
+webs_state_upgrade = '';
+webs_state_level = '0';
+sig_state_flag = '1';
+sig_state_update = '0';
+sig_state_upgrade = '1';
+sig_state_error = '0';
+sig_ver = '2.380';
+if(cfg_sync_support){
+cfg_check = '';
+cfg_upgrade = '';
+}
+if(pipefw_support || urlfw_support){
+hndwr_status = '99';
+}
+if(rbkfw_support){
+_rollback_info = JSON.parse('');
+rbk_count = Object.keys(_rollback_info).length;
+}
+

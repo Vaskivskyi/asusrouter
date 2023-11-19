@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import re
 from datetime import datetime, timedelta
 from typing import Any, Optional, Tuple
@@ -18,6 +19,8 @@ from asusrouter.tools.readers import merge_dicts
 
 from .devicemap_const import DEVICEMAP_BY_INDEX, DEVICEMAP_BY_KEY, DEVICEMAP_CLEAR
 
+_LOGGER = logging.getLogger(__name__)
+
 REQUIRE_HISTORY = True
 
 
@@ -31,8 +34,10 @@ def read(content: str) -> dict[str, Any]:
     try:
         xml_content: dict[str, Any] = xmltodict.parse(content).get("devicemap", {})
         if not xml_content:
+            _LOGGER.debug("Received empty devicemap XML")
             return devicemap
-    except xmltodict.expat.ExpatError:  # type: ignore
+    except xmltodict.expat.ExpatError as ex:  # type: ignore
+        _LOGGER.debug("Received invalid devicemap XML: %s", ex)
         return devicemap
 
     # Go through the data and fill the dict

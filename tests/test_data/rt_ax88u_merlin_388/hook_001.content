@@ -1,0 +1,5 @@
+{
+"cpu_usage":{"cpu1_total":"52557468","cpu1_usage":"4733197","cpu2_total":"52587131","cpu2_usage":"1731814","cpu3_total":"52621020","cpu3_usage":"1821047","cpu4_total":"52620879","cpu4_usage":"1720689"},
+"memory_usage":{"mem_total":"1048576","mem_free":"235464","mem_used":"813112"},
+"netdev":{ "BRIDGE_rx":"0x30a0b6bba","BRIDGE_tx":"0x134ce06712","INTERNET_rx":"0xe5d193f41","INTERNET_tx":"0x2000941dd","INTERNET_rx":"0xeb9a134fe","INTERNET_tx":"0x227d6b665","WIRED_rx":"0x39ddba16c","WIRED_tx":"0x80c855eba","WIRELESS0_rx":"0x1d09911e","WIRELESS0_tx":"0x610f01c4","WIRELESS1_rx":"0x2f570951","WIRELESS1_tx":"0x32ed23b8c","LACP1_rx":"0x0","LACP1_tx":"0x5e9c7a8c","LACP2_rx":"0xf5b08c18","LACP2_tx":"0x4408840"}
+}

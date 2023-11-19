@@ -269,8 +269,6 @@ class AsusRouter:
         ):
             flags = state_flags.data
 
-        print("FLAGS: ", flags)
-
         if flags.get("reboot", False) is True:
             _LOGGER.debug("Reboot flag is set")
             await self._async_handle_reboot()
