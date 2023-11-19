@@ -48,12 +48,17 @@ jobs:
         run: |
           pip install -r requirements_test.txt
 
-      - name: Run tests
+      - name: Run unit tests
         run: |
-          pytest --cov=asusrouter --cov-report term-missing
+          pytest --cov=asusrouter --cov-report=xml:unit-tests-cov.xml -k 'not test_devices'
+
+      - name: Run real-data tests
+        run: |
+          pytest --cov=asusrouter --cov-report=xml:real-data-tests-cov.xml tests/test_devices.py --log-cli-level=INFO
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3.1.4
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: true
+          files: unit-tests-cov.xml,real-data-tests-cov.xml
