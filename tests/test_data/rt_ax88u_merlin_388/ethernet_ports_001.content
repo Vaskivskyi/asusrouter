@@ -1,0 +1,2 @@
+﻿get_wan_lan_status = { "portSpeed": { "WAN 0": "G", "LAN 1": "G", "LAN 2": "G", "LAN 3": "G", "LAN 4": "X", "LAN 5": "X", "LAN 6": "X", "LAN 7": "X", "LAN 8": "G" }, "portCount": { "wanCount": 1, "lanCount": 8 } };
+

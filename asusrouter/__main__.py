@@ -9,6 +9,7 @@ import logging
 import aiohttp
 
 from asusrouter import AsusRouter, AsusRouterDump, AsusRouterError
+from asusrouter.modules.data import AsusData
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -42,6 +43,13 @@ async def _connect_and_dump(args: argparse.Namespace) -> None:
                 return
 
             _LOGGER.debug("Connected and identified")
+
+            _LOGGER.debug("Checking all known data...")
+
+            for datatype in AsusData:
+                await router.async_get_data(datatype)
+
+            _LOGGER.debug("Finished checking all known data")
 
             # Disconnect from the router
             await router.async_disconnect()
