@@ -1,1 +1,1 @@
-"""Tests for AsusRouter"""
+"""Tests for AsusRouter."""
