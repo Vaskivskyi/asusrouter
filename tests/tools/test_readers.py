@@ -24,6 +24,7 @@ from asusrouter.tools import readers
 )
 def test_merge_dicts(dict1, dict2, expected):
     """Test merge_dicts method."""
+
     assert readers.merge_dicts(dict1, dict2) == expected
 
 
@@ -141,11 +142,12 @@ def test_read_js_variables(content, expected):
 )
 def test_read_json_content(content, expected):
     """Test read_json_content method."""
+
     assert readers.read_json_content(content) == expected
 
 
 @pytest.mark.parametrize(
-    "input, expected",
+    "content, expected",
     [
         # Test valid MAC addresses
         ("01:23:45:67:89:AB", True),
@@ -160,6 +162,7 @@ def test_read_json_content(content, expected):
         (None, False),
     ],
 )
-def test_readable_mac(input, expected):
+def test_readable_mac(content, expected):
     """Test readable_mac method."""
-    assert readers.readable_mac(input) == expected
+
+    assert readers.readable_mac(content) == expected
