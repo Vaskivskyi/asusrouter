@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import re
 from datetime import datetime, timedelta
 from typing import Any, Optional, Tuple
@@ -18,6 +19,8 @@ from asusrouter.tools.readers import merge_dicts
 
 from .devicemap_const import DEVICEMAP_BY_INDEX, DEVICEMAP_BY_KEY, DEVICEMAP_CLEAR
 
+_LOGGER = logging.getLogger(__name__)
+
 REQUIRE_HISTORY = True
 
 
@@ -28,8 +31,13 @@ def read(content: str) -> dict[str, Any]:
     devicemap: dict[str, Any] = {}
 
     # Parse the XML data
-    xml_content: dict[str, Any] = xmltodict.parse(content).get("devicemap", {})
-    if not xml_content:
+    try:
+        xml_content: dict[str, Any] = xmltodict.parse(content).get("devicemap", {})
+        if not xml_content:
+            _LOGGER.debug("Received empty devicemap XML")
+            return devicemap
+    except xmltodict.expat.ExpatError as ex:  # type: ignore
+        _LOGGER.debug("Received invalid devicemap XML: %s", ex)
         return devicemap
 
     # Go through the data and fill the dict
@@ -42,6 +50,8 @@ def read(content: str) -> dict[str, Any]:
 
     # Clear values from useless symbols
     for output_group, clear_map in DEVICEMAP_CLEAR.items():
+        if output_group not in devicemap:
+            continue
         for key, clear_value in clear_map.items():
             # If the key is not in the devicemap, continue
             if key not in devicemap[output_group]:
@@ -61,22 +71,30 @@ def read(content: str) -> dict[str, Any]:
     return devicemap
 
 
-# This method performs reading of the devicemap by index
-# to simplify the original read_devicemap method
 def read_index(xml_content: dict[str, Any]) -> dict[str, Any]:
-    """Read devicemap by index."""
+    """Read devicemap by index.
+
+    This method performs reading of the devicemap by index
+    to simplify the original read_devicemap method."""
 
     # Create a dict to store the data
     devicemap: dict[str, Any] = {}
 
     # Get values for which we only know their order (index)
     for output_group, input_group, input_values in DEVICEMAP_BY_INDEX:
-        # Create a dict to store the data
-        output_group_data: dict[str, Any] = {}
+        # Create an empty dictionary for the output group
+        devicemap[output_group] = {}
 
-        # Go through the input values and fill the dict
-        for index, input_value in enumerate(input_values):
-            output_group_data[input_value] = xml_content[input_group][index]
+        # Check that the input group is in the xml content
+        if input_group not in xml_content:
+            continue
+
+        # Use dict comprehension to build output_group_data
+        output_group_data = {
+            input_value: xml_content[input_group][index]
+            for index, input_value in enumerate(input_values)
+            if index < len(xml_content[input_group])
+        }
 
         # Add the output group data to the devicemap
         devicemap[output_group] = output_group_data
@@ -85,10 +103,11 @@ def read_index(xml_content: dict[str, Any]) -> dict[str, Any]:
     return devicemap
 
 
-# This method performs reading of the devicemap by key
-# to simplify the original read_devicemap method
 def read_key(xml_content: dict[str, Any]) -> dict[str, Any]:
-    """Read devicemap by key."""
+    """Read devicemap by key.
+
+    This method performs reading of the devicemap by key
+    to simplify the original read_devicemap method."""
 
     # Create a dict to store the data
     devicemap: dict[str, Any] = {}
@@ -100,27 +119,25 @@ def read_key(xml_content: dict[str, Any]) -> dict[str, Any]:
 
         # Go through the input values and fill the dict
         for input_value in input_values:
-            # Check if the input group is a string
-            if isinstance(xml_content.get(input_group), str):
-                # Check if the input value is in the input group
-                if input_value in xml_content[input_group]:
-                    # Add the input value to the output group data and remove the key
-                    output_group_data[input_value] = xml_content[input_group].replace(
+            # Get the input group data
+            xml_input_group = xml_content.get(input_group)
+
+            # If the input group data is None, skip this iteration
+            if xml_input_group is None:
+                continue
+
+            # If the input group data is a string, convert it to a list
+            if isinstance(xml_input_group, str):
+                xml_input_group = [xml_input_group]
+
+            # Go through the input group data and check if the input value is in it
+            for value in xml_input_group:
+                if input_value in value:
+                    # Add the input value to the output group data
+                    output_group_data[input_value] = value.replace(
                         f"{input_value}=", ""
                     )
-            # Check if the input group is a list
-            else:
-                # Go through the input group and check if the input value is in it
-                xml_input_group = xml_content.get(input_group)
-                if not xml_input_group:
-                    continue
-                for value in xml_input_group:
-                    if input_value in value:
-                        # Add the input value to the output group data
-                        output_group_data[input_value] = value.replace(
-                            f"{input_value}=", ""
-                        )
-                        break
+                    break
 
         # Add the output group data to the devicemap
         devicemap[output_group] = output_group_data
@@ -142,16 +159,23 @@ def read_special(xml_content: dict[str, Any]) -> dict[str, Any]:
 def read_uptime_string(content: str) -> datetime | None:
     """Read uptime string and return proper datetime object."""
 
+    # Split the content into the date/time part and the seconds part
+    uptime_parts = content.split("(")
+    if len(uptime_parts) < 2:
+        return None
+
+    # Extract the number of seconds from the seconds part
+    seconds_match = re.search("([0-9]+)", uptime_parts[1])
+    if not seconds_match:
+        return None
+
     try:
-        part = content.split("(")
-        match = re.search("([0-9]+)", part[1])
-        if not match:
-            return None
-        seconds = int(match.group())
-        when = dtparse(part[0])
-        uptime = when - timedelta(seconds=seconds)
+        seconds = int(seconds_match.group())
+        when = dtparse(uptime_parts[0])
     except ValueError:
         return None
+
+    uptime = when - timedelta(seconds=seconds)
 
     return uptime
 

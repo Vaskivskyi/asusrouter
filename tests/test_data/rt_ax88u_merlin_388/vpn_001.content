@@ -1,0 +1,21 @@
+﻿vpn_server1_status = "TITLE,OpenVPN 2.6.5 arm-buildroot-linux-gnueabi [SSL (OpenSSL)] [LZO] [LZ4] [EPOLL] [MH/PKTINFO] [AEAD]>TIME,2023-11-19 15:51:05,1700405465>HEADER,CLIENT_LIST,Common Name,Real Address,Virtual Address,Virtual IPv6 Address,Bytes Received,Bytes Sent,Connected Since,Connected Since (time_t),Username,Client ID,Peer ID,Data Channel Cipher>HEADER,ROUTING_TABLE,Virtual Address,Common Name,Real Address,Last Ref,Last Ref (time_t)>GLOBAL_STATS,Max bcast/mcast queue length,0>GLOBAL_STATS,dco_enabled,0>END>";
+vpn_server2_status = "None";
+vpn_client1_status = "None";
+vpn_client2_status = "None";
+vpn_client3_status = "None";
+vpn_client4_status = "None";
+vpn_client5_status = "None";
+server1pid = "2663";
+server2pid = "-1";
+pptpdpid = "-1";
+vpn_client1_ip = "0.0.0.0";
+vpn_client2_ip = "0.0.0.0";
+vpn_client3_ip = "0.0.0.0";
+vpn_client4_ip = "0.0.0.0";
+vpn_client5_ip = "0.0.0.0";
+vpn_client1_rip = "";
+vpn_client2_rip = "";
+vpn_client3_rip = "";
+vpn_client4_rip = "";
+vpn_client5_rip = "";
+

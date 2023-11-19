@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+  pull_request: ~
+  schedule:
+    - cron: '0 0 * * *'
+
+env:
+  DEFAULT_PYTHON: 3.11
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4.1.1
+
+      - name: Set up Python ${{ env.DEFAULT_PYTHON }}
+        uses: actions/setup-python@v4.7.1
+        with:
+          python-version: ${{ env.DEFAULT_PYTHON }}
+
+      - name: Get pip cache directory path
+        id: pip-cache
+        run: echo "PIP_CACHE_DIR=$(pip cache dir)" >> $GITHUB_ENV
+
+      - name: Cache pip dependencies
+        uses: actions/cache@v3.3.2
+        with:
+          path: ${{ env.PIP_CACHE_DIR }}
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/pyproject.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install project dependencies
+        run: |
+          pip install .
+
+      - name: Install test dependencies
+        run: |
+          pip install -r requirements_test.txt
+
+      - name: Run unit tests
+        run: |
+          pytest --cov=asusrouter --cov-report=xml:unit-tests-cov.xml -k 'not test_devices'
+
+      - name: Run real-data tests
+        run: |
+          pytest --cov=asusrouter --cov-report=xml:real-data-tests-cov.xml tests/test_devices.py --log-cli-level=INFO
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3.1.4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: true
+          files: unit-tests-cov.xml,real-data-tests-cov.xml

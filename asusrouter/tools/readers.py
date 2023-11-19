@@ -8,7 +8,7 @@ import re
 from typing import Any, Optional
 
 from asusrouter.const import ContentType
-from asusrouter.tools.converters import clean_string
+from asusrouter.tools.converters import clean_input
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -92,7 +92,7 @@ def read_content_type(headers: dict[str, str]) -> ContentType:
             return content_type_enum
 
     # If the content type is not found, return the content type as text
-    return ContentType.TEXT
+    return ContentType.UNKNOWN
 
 
 def read_js_variables(content: str) -> dict[str, Any]:
@@ -127,10 +127,9 @@ def read_js_variables(content: str) -> dict[str, Any]:
     return js_variables
 
 
+@clean_input
 def read_json_content(content: Optional[str]) -> dict[str, Any]:
     """Get the json content"""
-
-    content = clean_string(content)
 
     if not content:
         return {}
@@ -142,7 +141,7 @@ def read_json_content(content: Optional[str]) -> dict[str, Any]:
     # Return the json content
     try:
         return json.loads(content.encode().decode("utf-8-sig"))
-    except (json.JSONDecodeError, UnicodeDecodeError) as ex:
+    except json.JSONDecodeError as ex:
         _LOGGER.error(
             "Unable to decode json content with exception `%s`. Please, copy this end fill in a bug report: %s",
             ex,
@@ -151,18 +150,12 @@ def read_json_content(content: Optional[str]) -> dict[str, Any]:
         return {}
 
 
-def readable_mac(raw: str) -> bool:
+@clean_input
+def readable_mac(raw: Optional[str]) -> bool:
     """Checks if string is MAC address"""
 
-    if not isinstance(raw, str):
-        return False
-
-    raw = raw.strip()
-
-    if raw == str():
-        return False
-
-    if re.search(re.compile("^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})"), raw):
-        return True
+    if isinstance(raw, str):
+        if re.search(re.compile("^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$"), raw):
+            return True
 
     return False
