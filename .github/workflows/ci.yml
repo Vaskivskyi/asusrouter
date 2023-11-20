@@ -7,7 +7,7 @@ on:
       - dev
   pull_request: ~
   schedule:
-    - cron: '0 0 * * *'
+    - cron: "0 0 * * *"
 
 env:
   DEFAULT_PYTHON: 3.11
@@ -17,7 +17,41 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  test:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      pip_cache_dir: ${{ steps.pip-cache.outputs.dir }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4.1.1
+
+      - name: Set up Python ${{ env.DEFAULT_PYTHON }}
+        uses: actions/setup-python@v4.7.1
+        with:
+          python-version: ${{ env.DEFAULT_PYTHON }}
+
+      - name: Get pip cache directory path
+        id: pip-cache
+        run: echo "dir=$(pip cache dir)" >> $GITHUB_ENV
+
+      - name: Cache pip dependencies
+        uses: actions/cache@v3.3.2
+        with:
+          path: ${{ env.dir }}
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt', '**/requirements_test.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install project dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Install test dependencies
+        run: |
+          pip install -r requirements_test.txt
+
+  unit-tests:
+    needs: prepare
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -30,19 +64,19 @@ jobs:
 
       - name: Get pip cache directory path
         id: pip-cache
-        run: echo "PIP_CACHE_DIR=$(pip cache dir)" >> $GITHUB_ENV
+        run: echo "dir=$(pip cache dir)" >> $GITHUB_ENV
 
       - name: Cache pip dependencies
         uses: actions/cache@v3.3.2
         with:
-          path: ${{ env.PIP_CACHE_DIR }}
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/pyproject.toml') }}
+          path: ${{ env.dir }}
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt', '**/requirements_test.txt') }}
           restore-keys: |
             ${{ runner.os }}-pip-
 
       - name: Install project dependencies
         run: |
-          pip install .
+          pip install -r requirements.txt
 
       - name: Install test dependencies
         run: |
@@ -52,9 +86,70 @@ jobs:
         run: |
           pytest --cov=asusrouter --cov-report=xml:unit-tests-cov.xml -k 'not test_devices'
 
+      - name: Upload coverage to artifacts
+        uses: actions/upload-artifact@v3.1.3
+        with:
+          name: unit-tests-cov
+          path: unit-tests-cov.xml
+
+  device-tests:
+    needs: prepare
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4.1.1
+
+      - name: Set up Python ${{ env.DEFAULT_PYTHON }}
+        uses: actions/setup-python@v4.7.1
+        with:
+          python-version: ${{ env.DEFAULT_PYTHON }}
+
+      - name: Get pip cache directory path
+        id: pip-cache
+        run: echo "dir=$(pip cache dir)" >> $GITHUB_ENV
+
+      - name: Cache pip dependencies
+        uses: actions/cache@v3.3.2
+        with:
+          path: ${{ env.dir }}
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt', '**/requirements_test.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install project dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Install test dependencies
+        run: |
+          pip install -r requirements_test.txt
+
       - name: Run real-data tests
         run: |
           pytest --cov=asusrouter --cov-report=xml:real-data-tests-cov.xml tests/test_devices.py --log-cli-level=INFO
+
+      - name: Upload coverage to artifacts
+        uses: actions/upload-artifact@v3.1.3
+        with:
+          name: real-data-tests-cov
+          path: real-data-tests-cov.xml
+
+  codecov:
+    needs: [unit-tests, device-tests]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4.1.1
+
+      - name: Download coverage from artifacts
+        uses: actions/download-artifact@v3.0.2
+        with:
+          name: unit-tests-cov
+          path: .
+      - uses: actions/download-artifact@v3.0.2
+        with:
+          name: real-data-tests-cov
+          path: .
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3.1.4
