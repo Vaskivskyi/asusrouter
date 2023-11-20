@@ -13,7 +13,7 @@ _LOGGER = logging.getLogger(__name__)
 
 async def async_call_service(
     callback: Callable[..., Awaitable[dict[str, Any]]],
-    service: str,
+    service: Optional[str],
     arguments: Optional[dict[str, Any]] = None,
     apply: bool = False,
     expect_modify: bool = True,
@@ -21,9 +21,11 @@ async def async_call_service(
     """Call a service."""
 
     # Generate commands
-    commands = {
-        "rc_service": service,
-    }
+    commands = {}
+
+    # Service call provided
+    if service is not None:
+        commands["rc_service"] = service
 
     # Check arguments
     if not arguments:
@@ -42,9 +44,11 @@ async def async_call_service(
     except Exception as ex:  # pylint: disable=broad-except
         raise ex
 
-    run_service = result.get("run_service", None)
-    if run_service != service:
-        raise AsusRouterServiceError(f"Service not run. Raw result: {result}")
+    if service is not None:
+        # Check if the service is run
+        run_service = result.get("run_service", None)
+        if run_service != service:
+            raise AsusRouterServiceError(f"Service not run. Raw result: {result}")
 
     _LOGGER.debug(
         "Service `%s` run with arguments `%s`. Result: `%s`", service, arguments, result
@@ -58,6 +62,10 @@ async def async_call_service(
     # before we will get actual state change
     if needed_time is None and last_id is not None:
         needed_time = 5
+
+    # Special services that won't return any result
+    if arguments.get("action_mode") == "update_client_list":
+        return (True, needed_time, last_id)
 
     if expect_modify:
         return (safe_bool(result.get("modify")) or False, needed_time, last_id)

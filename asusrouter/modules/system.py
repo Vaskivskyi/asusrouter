@@ -13,6 +13,7 @@ class AsusSystem(str, Enum):
     RESTART_FIREWALL = "restart_firewall"
     RESTART_HTTPD = "restart_httpd"
     RESTART_WIRELESS = "restart_wireless"
+    UPDATE_CLIENTS = "update_clients"
 
 
 async def set_state(
@@ -27,6 +28,15 @@ async def set_state(
     # Check if arguments are available
     if not arguments:
         arguments = {}
+
+    # Special cases
+    if state == AsusSystem.UPDATE_CLIENTS:
+        return await callback(
+            service=None,
+            arguments={"action_mode": "update_client_list"},
+            apply=False,
+            expect_modify=False,
+        )
 
     # Run the service
     return await callback(
