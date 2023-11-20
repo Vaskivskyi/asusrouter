@@ -586,7 +586,7 @@ class AsusRouter:
 
     async def async_run_service(
         self,
-        service: str,
+        service: Optional[str],
         arguments: Optional[dict[str, Any]] = None,
         apply: bool = False,
         expect_modify: bool = True,
