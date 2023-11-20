@@ -44,9 +44,18 @@ async def callback(arguments: dict[str, str]) -> dict[str, str]:
             None,
         ),  # Don't apply, don't expect
         ("restart_httpd", {"id": "1"}, True, True, True, 5, 1),  # Provided ID
+        (
+            None,
+            {"action_mode": "update_client_list"},
+            False,
+            False,
+            True,
+            None,
+            None,
+        ),  # Special service
     ],
 )
-async def test_async_call_service(
+async def test_async_call_service(  # pylint: disable=too-many-arguments
     service,
     arguments,
     apply,
@@ -80,7 +89,7 @@ async def test_async_call_service(
 async def test_async_call_service_failing_callback(exception):
     """Test the async_call_service method with a failing callback."""
 
-    async def failing_callback(arguments):
+    async def failing_callback(_):
         raise exception("Test exception")
 
     with pytest.raises(exception):
@@ -91,7 +100,7 @@ async def test_async_call_service_failing_callback(exception):
 async def test_async_call_service_with_invalid_service():
     """Test the async_call_service method with an invalid service."""
 
-    async def invalid_callback(arguments):
+    async def invalid_callback(_):
         return {"run_service": "invalid_service"}
 
     with pytest.raises(AsusRouterServiceError):
