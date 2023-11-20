@@ -32,12 +32,12 @@ jobs:
 
       - name: Get pip cache directory path
         id: pip-cache
-        run: echo "pip_cache_dir=$(pip cache dir)" >> $GITHUB_ENV
+        run: echo "dir=$(pip cache dir)" >> $GITHUB_ENV
 
       - name: Cache pip dependencies
         uses: actions/cache@v3.3.2
         with:
-          path: ${{ steps.pip-cache.outputs.dir }}
+          path: ${{ env.dir }}
           key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt', '**/requirements_test.txt') }}
           restore-keys: |
             ${{ runner.os }}-pip-
@@ -65,7 +65,7 @@ jobs:
       - name: Cache pip dependencies
         uses: actions/cache@v3.3.2
         with:
-          path: ${{ needs.prepare.outputs.pip_cache_dir }}
+          path: ${{ env.dir }}
           key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt', '**/requirements_test.txt') }}
           restore-keys: |
             ${{ runner.os }}-pip-
@@ -97,7 +97,7 @@ jobs:
       - name: Cache pip dependencies
         uses: actions/cache@v3.3.2
         with:
-          path: ${{ needs.prepare.outputs.pip_cache_dir }}
+          path: ${{ env.dir }}
           key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt', '**/requirements_test.txt') }}
           restore-keys: |
             ${{ runner.os }}-pip-
