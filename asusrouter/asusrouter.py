@@ -226,8 +226,13 @@ class AsusRouter:
                     )
             # Before 388
             if firmware < fw_388:
-                # Remove WireGuard rule
+                # Remove VPNC rules
+                remove_data_rule(AsusData.VPNC)
+                remove_data_rule(AsusData.VPNC_CLIENTLIST)
+                # Remove WireGuard rules
                 remove_data_rule(AsusData.WIREGUARD)
+                remove_data_rule(AsusData.WIREGUARD_CLIENT)
+                remove_data_rule(AsusData.WIREGUARD_SERVER)
 
         # Return new identity
         return self._identity
