@@ -86,6 +86,12 @@ jobs:
         run: |
           pytest --cov=asusrouter --cov-report=xml:unit-tests-cov.xml -k 'not test_devices'
 
+      - name: Upload coverage to artifacts
+        uses: actions/upload-artifact@v3.0.2
+        with:
+          name: unit-tests-cov
+          path: unit-tests-cov.xml
+
   device-tests:
     needs: prepare
     runs-on: ubuntu-latest
@@ -122,12 +128,28 @@ jobs:
         run: |
           pytest --cov=asusrouter --cov-report=xml:real-data-tests-cov.xml tests/test_devices.py --log-cli-level=INFO
 
+      - name: Upload coverage to artifacts
+        uses: actions/upload-artifact@v3.0.2
+        with:
+          name: real-data-tests-cov
+          path: real-data-tests-cov.xml
+
   codecov:
     needs: [unit-tests, device-tests]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4.1.1
+
+      - name: Download coverage from artifacts
+        uses: actions/download-artifact@v3.0.2
+        with:
+          name: unit-tests-cov
+          path: .
+      - uses: actions/download-artifact@v3.0.2
+        with:
+          name: real-data-tests-cov
+          path: .
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3.1.4
