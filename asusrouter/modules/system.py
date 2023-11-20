@@ -34,7 +34,7 @@ async def set_state(
     expect_modify: bool = False,
     _: Optional[dict[Any, Any]] = None,
 ) -> bool:
-    """Set the LED state."""
+    """Set the system state."""
 
     # Check if arguments are available
     if not arguments:
