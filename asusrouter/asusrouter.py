@@ -13,7 +13,11 @@ from typing import Any, Awaitable, Callable, Optional
 import aiohttp
 
 from asusrouter.connection import Connection
-from asusrouter.const import DEFAULT_CACHE_TIME, DEFAULT_TIMEOUT
+from asusrouter.const import (
+    DEFAULT_CACHE_TIME,
+    DEFAULT_CLIENTS_WAITTIME,
+    DEFAULT_TIMEOUT,
+)
 from asusrouter.error import (
     AsusRouter404Error,
     AsusRouterAccessError,
@@ -54,6 +58,7 @@ from asusrouter.modules.state import (
     save_state,
     set_state,
 )
+from asusrouter.modules.system import AsusSystem
 from asusrouter.tools import legacy
 from asusrouter.tools.converters import safe_list
 from asusrouter.tools.readers import merge_dicts
@@ -76,6 +81,10 @@ class AsusRouter:
     _needed_time: Optional[int] = None
     # ID from the last called service
     _last_id: Optional[int] = None
+
+    # Force clients
+    _force_clients: bool = False
+    _force_clients_waittime: float = DEFAULT_CLIENTS_WAITTIME
 
     def __init__(
         self,
@@ -478,6 +487,20 @@ class AsusRouter:
 
         return False
 
+    async def _check_prerequisites(self, datatype: AsusData) -> None:
+        """Check prerequisites before fetching data."""
+
+        # Allow forcing clients update if set by the user
+        if datatype == AsusData.CLIENTS:
+            if self._force_clients:
+                _LOGGER.debug("Forcing clients update")
+                await self.async_set_state(AsusSystem.UPDATE_CLIENTS)
+                _LOGGER.debug(
+                    "Waiting for clients to be updated: %s s",
+                    self._force_clients_waittime,
+                )
+                await asyncio.sleep(self._force_clients_waittime)
+
     def _check_state(self, datatype: Optional[AsusData]) -> None:
         """Make sure the state object is available."""
 
@@ -527,6 +550,9 @@ class AsusRouter:
 
         # Mark the data as active
         self._state[datatype].start()
+
+        # Check prerequisites
+        await self._check_prerequisites(datatype)
 
         # Get the data finder
         data_finder = self._where_to_get_data(datatype)
@@ -875,6 +901,23 @@ class AsusRouter:
 
     # ---------------------------
     # <-- Properties
+    # ---------------------------
+
+    # ---------------------------
+    # Additional settings -->
+    # ---------------------------
+
+    def set_force_clients(
+        self, value: bool = True, waittime: Optional[float] = None
+    ) -> None:
+        """Set force clients."""
+
+        self._force_clients = value
+        if waittime:
+            self._force_clients_waittime = waittime
+
+    # ---------------------------
+    # <-- Additional settings
     # ---------------------------
 
     # ---------------------------
