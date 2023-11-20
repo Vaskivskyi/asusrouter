@@ -487,3 +487,63 @@ def test_safe_usage_historic(used, total, prev_used, prev_total, result):
     """Test safe_usage_historic method."""
 
     assert converters.safe_usage_historic(used, total, prev_used, prev_total) == result
+
+
+@pytest.mark.parametrize(
+    ("value", "result"),
+    [
+        # Actual timestamp in milliseconds
+        (1700515143689, datetime(2023, 11, 20, 21, 19, 3, 689000, tzinfo=timezone.utc)),
+        # None
+        (None, None),
+        # The beginning of the epoch
+        (0, datetime(1970, 1, 1, 0, 0, 0, tzinfo=timezone.utc)),
+        # Random string
+        ("test", None),
+    ],
+)
+def test_safe_timestamp_to_utc(value, result):
+    """Test safe_timestamp_to_utc method."""
+
+    assert converters.safe_timestamp_to_utc(value) == result
+
+
+@pytest.mark.parametrize(
+    ("value", "result"),
+    [
+        # Actual datetime
+        (
+            datetime(2023, 11, 20, 21, 19, 3, 689000, tzinfo=timezone.utc),
+            1700515143.689,
+        ),
+        # None
+        (None, None),
+        # The beginning of the epoch
+        (datetime(1970, 1, 1, 0, 0, 0, tzinfo=timezone.utc), 0),
+        # Random string
+        ("test", None),
+    ],
+)
+def test_safe_utc_to_timestamp(value, result):
+    """Test safe_utc_to_timestamp method."""
+
+    assert converters.safe_utc_to_timestamp(value) == result
+
+
+@pytest.mark.parametrize(
+    ("value", "result"),
+    [
+        # Actual datetime
+        (datetime(2023, 11, 20, 21, 19, 3, 689000, tzinfo=timezone.utc), 1700515143689),
+        # None
+        (None, None),
+        # The beginning of the epoch
+        (datetime(1970, 1, 1, 0, 0, 0, tzinfo=timezone.utc), 0),
+        # Random string
+        ("test", None),
+    ],
+)
+def test_safe_utc_to_timestamp_milli(value, result):
+    """Test safe_utc_to_timestamp_milli method."""
+
+    assert converters.safe_utc_to_timestamp_milli(value) == result
