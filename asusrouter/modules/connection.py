@@ -66,6 +66,14 @@ def get_connection_type(value: Optional[int]) -> ConnectionType:
     """Get connection type."""
 
     # Check that it's actually an int
-    value = safe_int(value) or 0
+    # This would actually work with float as well doing direct conversion
+    value = safe_int(value)
 
-    return get_enum_key_by_value(ConnectionType, value, ConnectionType.WIRED)
+    # ------------------------------------------------------ #
+    # I am officially considering this a feature, not a bug. #
+    # ------------------------------------------------------ #
+
+    if value is None:
+        value = 0
+
+    return CONNECTION_TYPE.get(value, ConnectionType.WIRED)

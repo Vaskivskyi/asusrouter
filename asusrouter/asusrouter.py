@@ -170,6 +170,30 @@ class AsusRouter:
                 self.async_run_service, led_state.data["state"], self._identity
             )
 
+        # Reset the reboot flag
+        self._reset_flag("reboot")
+
+    def _reset_flag(self, flag: str) -> None:
+        """Reset a flag."""
+
+        _LOGGER.debug("Triggered method _reset_flag")
+
+        # Check that AsusData.FLAGS is available
+        if AsusData.FLAGS not in self._state:
+            return
+
+        # Get the data from the state
+        data = self._state[AsusData.FLAGS].data
+
+        # Check that data is a dict
+        if not isinstance(data, dict):
+            return
+
+        # Reset the flag
+        data.pop(flag, None)
+
+        _LOGGER.debug("Flag `%s` reset", flag)
+
     # ---------------------------
     # <-- Connection-related methods
     # ---------------------------
