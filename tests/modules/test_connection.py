@@ -46,7 +46,9 @@ def test_get_internet_mode(value, result):
         # Values of the wrong type
         (None, ConnectionType.WIRED),
         ("", ConnectionType.WIRED),
-        (1.0, ConnectionType.WIRED),
+        # Special cases which would still work
+        (1.0, ConnectionType.WLAN_2G),
+        (2.3, ConnectionType.WLAN_5G),
     ],
 )
 def test_get_connection_type(value, result):

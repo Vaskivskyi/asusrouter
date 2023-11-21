@@ -66,7 +66,12 @@ def get_connection_type(value: Optional[int]) -> ConnectionType:
     """Get connection type."""
 
     # Check that it's actually an int
+    # This would actually work with float as well doing direct conversion
     value = safe_int(value)
+
+    # ------------------------------------------------------ #
+    # I am officially considering this a feature, not a bug. #
+    # ------------------------------------------------------ #
 
     if value is None:
         value = 0
