@@ -12,6 +12,7 @@ from asusrouter.tools.converters import (
     safe_int,
     safe_list_csv,
     safe_list_from_string,
+    safe_timestamp_to_utc,
 )
 
 MAP_NETWORK: dict[str, str] = {
@@ -57,6 +58,13 @@ MAP_OVPN_SERVER_388 = (
     ("vpn_server_ccd_val", "specific_clients"),
     ("vpn_serverx_clientlist", "clients"),
     ("VPNServer_enable", "state", [safe_int, AsusOVPNServer]),
+)
+
+MAP_SPEEDTEST = (
+    ("ookla_state", "state", safe_int),
+    ("ookla_speedtest_get_history", "history"),
+    ("ookla_speedtest_get_servers", "servers"),
+    ("ookla_speedtest_get_result", "result"),
 )
 
 MAP_WAN = (

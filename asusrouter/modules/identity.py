@@ -58,9 +58,10 @@ class AsusDevice:  # pylint: disable=too-many-instance-attributes
     services: Optional[list[str]] = None
 
     # Flags for device features
+    aura: bool = False
     led: bool = False
     ledg: bool = False
-    aura: bool = False
+    ookla: bool = False
     vpn_status: bool = False
 
 
@@ -158,6 +159,10 @@ def _read_nvram(data: dict[str, Any]) -> dict[str, Any]:
     for value in identity["services"]:
         if value in WLAN_TYPE:
             identity["wlan"].append(WLAN_TYPE[value])
+
+    # OOKLA Speedtest
+    if "ookla" in identity["services"]:
+        identity["ookla"] = True
 
     return identity
 
