@@ -31,6 +31,7 @@ from asusrouter.modules.wlan import MAP_GWLAN, MAP_WLAN, Wlan
 from asusrouter.tools.converters import (
     run_method,
     safe_bool,
+    safe_datetime,
     safe_int,
     safe_return,
     safe_speed,
@@ -44,6 +45,7 @@ from asusrouter.tools.readers import merge_dicts, read_json_content
 from .hook_const import (
     MAP_NETWORK,
     MAP_OVPN_SERVER_388,
+    MAP_SPEEDTEST,
     MAP_VPNC_WIREGUARD,
     MAP_WAN,
     MAP_WAN_ITEM,
@@ -132,6 +134,12 @@ def process(data: dict[str, Any]) -> dict[AsusData, Any]:
     if "memory_usage" in data:
         memory_usage = data.get("memory_usage", {})
         state[AsusData.RAM] = process_ram(memory_usage) if memory_usage else {}
+
+    # Speedtest
+    if "ookla_state" in data:
+        speedtest = process_speedtest(data)
+        state[AsusData.SPEEDTEST_RESULT] = speedtest.get("result")
+        state[AsusData.SPEEDTEST] = speedtest.get("data")
 
     # VPNC
     if "vpnc_clientlist" in data:
@@ -404,6 +412,64 @@ def process_ram(memory_usage: dict[str, Any]) -> dict[str, Any]:
         ram["usage"] = safe_usage(ram["used"], ram["total"])
 
     return ram
+
+
+def process_speedtest(data: dict[str, Any]) -> dict[str, Any]:
+    """Process Speedtest data."""
+
+    speedtest: dict[str, Any] = {}
+
+    # Convert the data
+    for keys in MAP_SPEEDTEST:
+        key, key_to_use, method = safe_unpack_keys(keys)
+        state_value = data.get(key)
+        if state_value:
+            speedtest[key_to_use] = run_method(state_value, method)
+
+    # Get detailed result
+    test_result = speedtest.pop("result", None)
+
+    # Get the last speedtest step
+    last_run_step: Optional[dict[str, Any]] = process_speedtest_last_step(test_result)
+
+    # Save the last tested data directly in the speedtest dict
+    for key, value in last_run_step.items():
+        speedtest[key] = value
+
+    # Convert the timestamp to UTC
+    speedtest["timestamp"] = safe_datetime(speedtest.get("timestamp"))
+
+    # Rename servers list
+    if "download" in speedtest:
+        speedtest["download"]["server_list"] = speedtest["download"].pop("servers", None)
+
+    # Remove extra values
+    speedtest.pop("type", None)
+
+    return {
+        "data": speedtest,
+        "result": test_result,
+    }
+
+
+def process_speedtest_last_step(data: Optional[list[dict[str, Any]]]) -> dict[str, Any]:
+    """Process Speedtest progress data."""
+
+    last_step: dict[str, Any] = {}
+
+    # Check the length of the data
+    if not data or len(data) < 2:
+        return last_step
+
+    # Check the last step
+    last_step = data[-2]
+
+    # If the last step is a result, then the test is finished
+    # and we already have all the data
+    if last_step.get("type") != "result":
+        return {}
+
+    return last_step
 
 
 def process_vpnc(data: dict[str, Any]) -> Tuple[dict[AsusVPNType, dict[int, Any]], str]:
