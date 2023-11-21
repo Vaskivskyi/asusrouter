@@ -309,7 +309,7 @@ def process_client_description(data: dict[str, Any]) -> AsusClientDescription:
         for pair in value:
             key_to_find, converter = safe_unpack_key(pair)
             item = data.get(key_to_find)
-            if item and item != str():
+            if item is not None and item != str():
                 setattr(
                     description,
                     key,
