@@ -441,7 +441,14 @@ def process_speedtest(data: dict[str, Any]) -> dict[str, Any]:
 
     # Rename servers list
     if "download" in speedtest:
-        speedtest["download"]["server_list"] = speedtest["download"].pop("servers", None)
+        speedtest["download"]["server_list"] = speedtest["download"].pop(
+            "servers", None
+        )
+
+    # convert bandwidth from Bps to bps
+    for speed in ("download", "upload"):
+        if speed in speedtest:
+            speedtest[speed]["bandwidth"] = 8 * speedtest[speed].get("bandwidth", 0)
 
     # Remove extra values
     speedtest.pop("type", None)
