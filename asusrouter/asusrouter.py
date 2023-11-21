@@ -267,6 +267,13 @@ class AsusRouter:
                 remove_data_rule(AsusData.WIREGUARD_CLIENT)
                 remove_data_rule(AsusData.WIREGUARD_SERVER)
 
+            # Ookla Speedtest
+            if self._identity.ookla is False:
+                remove_data_rule(AsusData.SPEEDTEST)
+                # remove_data_rule(AsusData.SPEEDTEST_HISTORY)
+                remove_data_rule(AsusData.SPEEDTEST_RESULT)
+                # remove_data_rule(AsusData.SPEEDTEST_SERVERS)
+
         # Return new identity
         return self._identity
 
