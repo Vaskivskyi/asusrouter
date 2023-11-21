@@ -66,6 +66,9 @@ def get_connection_type(value: Optional[int]) -> ConnectionType:
     """Get connection type."""
 
     # Check that it's actually an int
-    value = safe_int(value) or 0
+    value = safe_int(value)
 
-    return get_enum_key_by_value(ConnectionType, value, ConnectionType.WIRED)
+    if value is None:
+        value = 0
+
+    return CONNECTION_TYPE.get(value, ConnectionType.WIRED)
