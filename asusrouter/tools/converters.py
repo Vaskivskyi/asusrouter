@@ -430,3 +430,38 @@ def safe_usage_historic(
         return 0.0
 
     return safe_usage(used_diff, total_diff)
+
+
+def safe_timestamp_to_utc(value: Optional[int]) -> Optional[datetime]:
+    """Convert timestamp to UTC datetime."""
+
+    if value is None:
+        return None
+
+    try:
+        return datetime.fromtimestamp(value, timezone.utc)
+    except (ValueError, TypeError, OSError):
+        try:
+            return datetime.fromtimestamp(value / 1000, timezone.utc)
+        except (ValueError, TypeError, OSError):
+            return None
+
+
+def safe_utc_to_timestamp(value: Optional[datetime]) -> Optional[float]:
+    """Convert UTC datetime to timestamp."""
+
+    if value is None or not isinstance(value, datetime):
+        return None
+
+    return value.timestamp()
+
+
+def safe_utc_to_timestamp_milli(value: Optional[datetime]) -> Optional[int]:
+    """Convert UTC datetime to timestamp in milliseconds."""
+
+    _timestamp = safe_utc_to_timestamp(value)
+
+    if _timestamp is None:
+        return None
+
+    return int(_timestamp * 1000)

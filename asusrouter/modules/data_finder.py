@@ -82,6 +82,15 @@ ASUSDATA_REQUEST = {
         ("memory_usage", "appobj"),
         ("netdev", "appobj"),
     ],
+    "speedtest": [
+        ("ookla_speedtest_get_result", ""),
+    ],
+    # "speedtest_history": [
+    #     ("ookla_speedtest_get_history", ""),
+    # ],
+    # "speedtest_servers": [
+    #     ("ookla_speedtest_get_servers", ""),
+    # ],
     "vpnc": [
         ("get_vpnc_status", ""),
     ],
@@ -111,6 +120,7 @@ ASUSDATA_NVRAM = {
         "vts_rulelist",
         "vts_enable_x",
     ],
+    "speedtest": ["ookla_state"],
     "vpnc": [
         "vpnc_clientlist",
     ],
@@ -199,6 +209,18 @@ ASUSDATA_MAP: dict[AsusData, AsusData | AsusDataFinder] = {
     ),
     AsusData.PORTS: AsusDataFinder([Endpoint.PORT_STATUS, Endpoint.ETHERNET_PORTS]),
     AsusData.RAM: AsusData.CPU,
+    AsusData.SPEEDTEST: AsusDataFinder(
+        Endpoint.HOOK,
+        nvram=ASUSDATA_NVRAM["speedtest"],
+        request=ASUSDATA_REQUEST["speedtest"],
+    ),
+    # AsusData.SPEEDTEST_HISTORY: AsusDataFinder(
+    #     Endpoint.HOOK, request=ASUSDATA_REQUEST["speedtest_history"]
+    # ),
+    AsusData.SPEEDTEST_RESULT: AsusData.SPEEDTEST,
+    # AsusData.SPEEDTEST_SERVERS: AsusDataFinder(
+    #     Endpoint.HOOK, request=ASUSDATA_REQUEST["speedtest_servers"]
+    # ),
     AsusData.SYSINFO: AsusDataFinder(Endpoint.SYSINFO),
     AsusData.TEMPERATURE: AsusDataFinder(Endpoint.TEMPERATURE),
     AsusData.VPNC: AsusDataFinder(

@@ -118,7 +118,9 @@ class Connection:  # pylint: disable=too-many-instance-attributes
                 )
                 _LOGGER.debug("Received authorization response")
             except AsusRouterAccessError as ex:
-                raise ex
+                raise AsusRouterAccessError(
+                    f"Cannot access {EndpointService.LOGIN}. Failed in `async_connect`"
+                ) from ex
             except AsusRouterError as ex:
                 _LOGGER.debug("Connection failed with error: %s", ex)
                 if retry < len(DEFAULT_TIMEOUTS) - 1:
@@ -215,9 +217,13 @@ class Connection:  # pylint: disable=too-many-instance-attributes
             return (resp_status, resp_headers, resp_content)
         except aiohttp.ClientConnectorError as ex:
             self.reset_connection()
-            raise AsusRouterConnectionError from ex
+            raise AsusRouterConnectionError(
+                f"Cannot connect to {self._hostname}. Failed in `_send_request`"
+            ) from ex
         except (aiohttp.ClientConnectionError, aiohttp.ClientOSError) as ex:
-            raise AsusRouterConnectionError from ex
+            raise AsusRouterConnectionError(
+                f"Cannot connect to {self._hostname}. Failed in `_send_request`"
+            ) from ex
         except Exception as ex:  # pylint: disable=broad-except
             raise ex
 
