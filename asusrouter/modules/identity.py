@@ -84,7 +84,9 @@ async def collect_identity(
     try:
         identity_map = await api_hook(request)
     except Exception as ex:  # pylint: disable=broad-except
-        raise AsusRouterIdentityError from ex
+        raise AsusRouterIdentityError(
+            "Failed to collect identity data from the router"
+        ) from ex
     _LOGGER.debug("Identity collected")
 
     # Read the identity
@@ -111,7 +113,7 @@ def _read_nvram(data: dict[str, Any]) -> dict[str, Any]:
 
     # Check the input data
     if not data:
-        raise AsusRouterIdentityError("No data received")
+        raise AsusRouterIdentityError("No nvram data received")
 
     # Create the identity dictionary
     identity: dict[str, Any] = {}
