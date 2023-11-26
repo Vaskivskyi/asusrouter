@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import Any, Awaitable, Callable, Optional
+from typing import Any, Awaitable, Callable
 
 
 class AsusSystem(str, Enum):
@@ -27,32 +27,34 @@ class AsusSystem(str, Enum):
     UPDATE_CLIENTS = "update_clients"
 
 
+# Map AsusSystem special cases to service calls
+STATE_MAP: dict[AsusSystem, dict[str, Any]] = {
+    AsusSystem.UPDATE_CLIENTS: {
+        "service": None,
+        "arguments": {"action_mode": "update_client_list"},
+        "apply": False,
+        "expect_modify": False,
+    },
+}
+
+
 async def set_state(
     callback: Callable[..., Awaitable[bool]],
     state: AsusSystem,
-    arguments: Optional[dict[str, Any]] = None,
-    expect_modify: bool = False,
-    _: Optional[dict[Any, Any]] = None,
+    **kwargs: Any,
 ) -> bool:
     """Set the system state."""
 
-    # Check if arguments are available
-    if not arguments:
-        arguments = {}
-
-    # Special cases
-    if state == AsusSystem.UPDATE_CLIENTS:
-        return await callback(
-            service=None,
-            arguments={"action_mode": "update_client_list"},
-            apply=False,
-            expect_modify=False,
-        )
+    # Get the arguments for the callback function based on the state
+    callback_args = STATE_MAP.get(
+        state,
+        {
+            "service": state.value,
+            "arguments": kwargs.get("arguments", {}),
+            "apply": True,
+            "expect_modify": kwargs.get("expect_modify", False),
+        },
+    )
 
     # Run the service
-    return await callback(
-        service=state.value,
-        arguments={},
-        apply=True,
-        expect_modify=expect_modify,
-    )
+    return await callback(**callback_args)
