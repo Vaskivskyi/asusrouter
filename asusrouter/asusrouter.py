@@ -706,12 +706,12 @@ class AsusRouter:
         await self._async_check_state_dependency(state)
 
         result = await set_state(
-            self.async_run_service,
-            state,
-            arguments,
-            expect_modify,
-            self._state,
-            self._identity,
+            callback=self.async_run_service,
+            state=state,
+            arguments=arguments,
+            expect_modify=expect_modify,
+            router_state=self._state,
+            identity=self._identity,
         )
 
         if result is True:
