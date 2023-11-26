@@ -6,17 +6,17 @@ import importlib
 import logging
 from enum import Enum
 from types import ModuleType
-from typing import Any, Awaitable, Callable, Optional, Tuple
+from typing import Any, Awaitable, Callable, Optional
 
 from asusrouter.modules.connection import ConnectionState
 from asusrouter.modules.data import AsusData, AsusDataState
-from asusrouter.modules.identity import AsusDevice
 from asusrouter.modules.parental_control import AsusParentalControl
 from asusrouter.modules.port_forwarding import AsusPortForwarding
 from asusrouter.modules.system import AsusSystem
 from asusrouter.modules.vpnc import AsusVPNC
 from asusrouter.modules.wireguard import AsusWireGuardClient, AsusWireGuardServer
 from asusrouter.modules.wlan import AsusWLAN
+from asusrouter.tools.converters import get_enum_key_by_value
 
 from .led import AsusLED
 from .openvpn import AsusOVPNClient, AsusOVPNServer
@@ -69,6 +69,10 @@ AsusStateMap: dict[AsusState, Optional[AsusData]] = {
 def add_conditional_state(state: AsusState, data: AsusData) -> None:
     """A callback to add / change AsusStateMap."""
 
+    if not isinstance(state, AsusState) or not isinstance(data, AsusData):
+        _LOGGER.debug("Invalid state or data type: %s -> %s", state, data)
+        return
+
     AsusStateMap[state] = data
     _LOGGER.debug("Added conditional state rule: %s -> %s", state, data)
 
@@ -76,12 +80,9 @@ def add_conditional_state(state: AsusState, data: AsusData) -> None:
 def get_datatype(state: Optional[Any]) -> Optional[AsusData]:
     """Get the datatype."""
 
-    asus_state = AsusState(type(state))
+    asus_state = get_enum_key_by_value(AsusState, type(state), default=AsusState.NONE)
 
-    if state is not None:
-        return AsusStateMap.get(asus_state)
-
-    return None
+    return AsusStateMap.get(asus_state)
 
 
 def _get_module_name(state: AsusState) -> Optional[str]:
@@ -127,10 +128,7 @@ def _has_method(module: ModuleType, method: str) -> bool:
 async def set_state(
     callback: Callable[..., Awaitable[bool]],
     state: AsusState,
-    arguments: Optional[dict[str, Any]] = None,
-    expect_modify: bool = False,
-    router_state: Optional[dict[AsusData, AsusDataState]] = None,
-    identity: Optional[AsusDevice] = None,
+    **kwargs: Any,
 ) -> bool:
     """Set the state."""
 
@@ -140,19 +138,16 @@ async def set_state(
     # Process the data if module found
     if submodule and _has_method(submodule, "set_state"):
         # Determine the extra parameter
-        extra_param: Optional[dict[AsusData, AsusDataState] | AsusDevice] = None
         if getattr(submodule, "REQUIRE_STATE", False):
-            extra_param = router_state
-        elif getattr(submodule, "REQUIRE_IDENTITY", False):
-            extra_param = identity
+            kwargs["extra_param"] = kwargs.get("router_state")
+        if getattr(submodule, "REQUIRE_IDENTITY", False):
+            kwargs["extra_param"] = kwargs.get("identity")
 
         # Call the function with the determined parameters
         return await submodule.set_state(
             callback=callback,
             state=state,
-            arguments=arguments,
-            expect_modify=expect_modify,
-            extra_param=extra_param,
+            **kwargs,
         )
 
     return False
@@ -168,7 +163,7 @@ def save_state(
 
     # Get the correct data key
     datatype = get_datatype(state)
-    if datatype is None:
+    if datatype is None or datatype not in library:
         return
 
     # Save the state
@@ -179,7 +174,7 @@ def save_state(
 async def keep_state(
     callback: Callable[..., Awaitable[Any]],
     states: Optional[AsusState | list[AsusState]],
-    identity: Optional[AsusDevice],
+    **kwargs: Any,
 ) -> None:
     """Keep the state."""
 
@@ -187,14 +182,15 @@ async def keep_state(
         return
 
     # Make sure the state is a list
-    if not isinstance(states, list):
-        states = [states]
+    states = [states] if not isinstance(states, list) else states
 
     # Process each state
-    for state in states:
-        # Get the module
-        submodule = _get_module(state)
+    awaitables = [
+        submodule.keep_state(callback, state, **kwargs)
+        for state in states
+        if (submodule := _get_module(state)) and _has_method(submodule, "keep_state")
+    ]
 
-        # Process the data if module found
-        if submodule and _has_method(submodule, "keep_state"):
-            await submodule.keep_state(callback, state, identity)
+    # Execute all awaitables
+    for awaitable in awaitables:
+        await awaitable
