@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Callable, Optional
+from typing import Any, Optional
 
 from asusrouter.modules.connection import (
     ConnectionState,
@@ -13,6 +13,7 @@ from asusrouter.modules.connection import (
     get_connection_type,
     get_internet_mode,
 )
+from asusrouter.modules.const import MapValueType
 from asusrouter.modules.ip_address import IPAddressType, read_ip_address_type
 from asusrouter.modules.vendor import replace_vendor
 from asusrouter.tools.converters import (
@@ -69,9 +70,6 @@ class AsusClientDescription:
 
     vendor: Optional[str] = None
 
-
-MapConverterType = Callable[..., Any] | list[Callable[..., Any]]
-MapValueType = str | tuple[str] | tuple[str, MapConverterType]
 
 CLIENT_MAP: dict[str, list[MapValueType]] = {
     "connected_since": [
