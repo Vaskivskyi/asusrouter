@@ -5,6 +5,7 @@ from __future__ import annotations
 from enum import Enum, IntEnum
 from typing import Any, Awaitable, Callable, Optional
 
+from asusrouter.modules.const import MapValueType
 from asusrouter.tools.converters import safe_bool, safe_int, safe_unpack_key
 from asusrouter.tools.writers import nvram
 
@@ -42,7 +43,7 @@ WLAN_TYPE: dict[str | int, Wlan] = {
 }
 
 # A map of NVRAM values for a GWLAN
-MAP_GWLAN = (
+MAP_GWLAN: list[MapValueType] = [
     ("wl{}_akm"),
     ("wl{}_ap_isolate"),
     ("wl{}_auth"),
@@ -98,10 +99,11 @@ MAP_GWLAN = (
     ("wl{}_wpa_gtk_rekey"),
     ("wl{}_wpa_psk"),  # Password
     ("wl{}_wps_mode"),
-)
+]
+
 
 # A map of NVRAM values for a WLAN
-MAP_WLAN = (
+MAP_WLAN: list[MapValueType] = [
     ("wl{}_auth_mode_x"),
     ("wl{}_bw"),
     ("wl{}_channel"),
@@ -123,7 +125,7 @@ MAP_WLAN = (
     ("wl{}_ssid"),
     ("wl{}_wpa_gtk_rekey"),
     ("wl{}_wpa_psk"),
-)
+]
 
 
 class AsusWLAN(IntEnum):
@@ -134,8 +136,10 @@ class AsusWLAN(IntEnum):
     ON = 1
 
 
-def wlan_nvram_request(wlan: list[Wlan] | None) -> str | None:
-    """Create an NVRAM request for WLAN."""
+def _nvram_request(
+    wlan: list[Wlan] | None, mapping: list[MapValueType], guest: bool = False
+) -> str | None:
+    """Create an NVRAM request."""
 
     if not wlan:
         return None
@@ -143,67 +147,94 @@ def wlan_nvram_request(wlan: list[Wlan] | None) -> str | None:
     request = []
 
     for interface in wlan:
-        for pair in MAP_WLAN:
+        for pair in mapping:
             key, _ = safe_unpack_key(pair)
             index = list(Wlan).index(interface)
-            request.append(key.format(index))
+            if guest:
+                for gid in range(1, 4):
+                    request.append(key.format(f"{index}.{gid}"))
+            else:
+                request.append(key.format(index))
 
     return nvram(request)
+
+
+def wlan_nvram_request(wlan: list[Wlan] | None) -> str | None:
+    """Create an NVRAM request for WLAN."""
+
+    return _nvram_request(wlan, MAP_WLAN)
 
 
 def gwlan_nvram_request(wlan: list[Wlan] | None) -> str | None:
     """Create an NVRAM request for GWLAN."""
 
-    if not wlan:
-        return None
+    return _nvram_request(wlan, MAP_GWLAN, guest=True)
 
-    request = []
 
-    for interface in wlan:
-        for pair in MAP_GWLAN:
-            key, _ = safe_unpack_key(pair)
-            index = list(Wlan).index(interface)
-            for gid in range(1, 4):
-                request.append(key.format(f"{index}.{gid}"))
+def get_api_values(
+    arguments: dict, kwargs: dict
+) -> tuple[Optional[str], Optional[str]]:
+    """Get the api_type and api_id from arguments or kwargs."""
 
-    return nvram(request)
+    api_type = (
+        arguments.get("api_type")
+        if arguments and "api_type" in arguments
+        else kwargs.get("api_type")
+    )
+    api_id = (
+        arguments.get("api_id")
+        if arguments and "api_id" in arguments
+        else kwargs.get("api_id")
+    )
+    return api_type, api_id
 
 
 async def set_state(
     callback: Callable[..., Awaitable[bool]],
     state: AsusWLAN,
-    arguments: Optional[dict[str, Any]] = None,
-    expect_modify: bool = False,
+    **kwargs: Any,
 ) -> bool:
     """Set the parental control state."""
 
-    # Check if arguments are available
-    if not arguments:
+    # Get the arguments dictionary from kwargs
+    arguments = kwargs.get("arguments", {})
+
+    # Get the api_type and api_id
+    api_type, api_id = get_api_values(arguments, kwargs)
+
+    # Get the expect_modify argument
+    expect_modify = kwargs.get("expect_modify", False)
+
+    # Check if the api_type and api_id are available
+    if api_type is None or api_id is None:
         return False
 
-    # Get the wlan type and id from arguments
-    wlan_type = arguments.get("api_type")
-    wlan_id = arguments.get("api_id")
+    # Define the service and callback arguments for each api_type
+    api_values = {
+        "wlan": {
+            "service": "restart_wireless",
+            "callback_arguments": {
+                f"wl{api_id}_radio": 1 if state == AsusWLAN.ON else 0
+            },
+        },
+        "gwlan": {
+            "service": "restart_wireless;restart_firewall",
+            "callback_arguments": {
+                f"wl{api_id}_bss_enabled": 1 if state == AsusWLAN.ON else 0,
+                **({f"wl{api_id}_expire": 0} if state == AsusWLAN.ON else {}),
+            },
+        },
+    }
 
-    # Prepare the arguments
-    arguments = {}
-
-    service = None
-
-    # Check wlan type
-    if wlan_type == "wlan":
-        service = "restart_wireless"
-        arguments[f"wl{wlan_id}_radio"] = 1 if state == AsusWLAN.ON else 0
-    elif wlan_type == "gwlan":
-        service = "restart_wireless;restart_firewall"
-        arguments[f"wl{wlan_id}_bss_enabled"] = 1 if state == AsusWLAN.ON else 0
-        if state == AsusWLAN.ON:
-            arguments[f"wl{wlan_id}_expire"] = 0
-
-    if not service:
+    # Get the service and callback arguments for the given api_type
+    api_value = api_values.get(api_type)
+    if not api_value:
         return False
 
     # Call the service
     return await callback(
-        service, arguments=arguments, apply=True, expect_modify=expect_modify
+        api_value["service"],
+        arguments=api_value["callback_arguments"],
+        apply=True,
+        expect_modify=expect_modify,
     )
