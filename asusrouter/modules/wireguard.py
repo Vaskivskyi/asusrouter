@@ -25,35 +25,49 @@ class AsusWireGuardServer(IntEnum):
     ON = 1
 
 
+def _get_arguments(**kwargs: Any) -> Optional[int]:
+    """Get the arguments from kwargs."""
+
+    arguments = kwargs.get("arguments", {})
+
+    # Get the id from arguments
+    wlan_id = arguments.get("id") if arguments else kwargs.get("id")
+    if wlan_id is None:
+        wlan_id = 1
+        _LOGGER.debug("Using default id 1")
+
+    return wlan_id
+
+
 async def set_state(
     callback: Callable[..., Awaitable[bool]],
     state: AsusWireGuardClient | AsusWireGuardServer,
-    arguments: Optional[dict[str, Any]] = None,
-    expect_modify: bool = False,
-    _: Optional[Any] = None,
+    **kwargs: Any,
 ) -> bool:
     """Set the WireGuard state."""
 
-    # Check if arguments are available
-    if not arguments:
-        arguments = {}
+    # Get the arguments
+    wlan_id = _get_arguments(**kwargs)
 
-    # Get the id from arguments
-    arguments["id"] = arguments.get("id", 1)
-    if arguments["id"] == 1:
-        _LOGGER.debug("Using default id 1")
-
+    # WireGuard unit type (server or client)
     wg_unit = "wgs" if isinstance(state, AsusWireGuardServer) else "wgc"
 
-    arguments[f"{wg_unit}_enable"] = (
-        1 if state in (AsusWireGuardClient.ON, AsusWireGuardServer.ON) else 0
-    )
-    arguments[f"{wg_unit}_unit"] = arguments["id"]
+    # Callback arguments
+    callback_arguments = {
+        "id": wlan_id,
+        f"{wg_unit}_enable": 1
+        if state in (AsusWireGuardClient.ON, AsusWireGuardServer.ON)
+        else 0,
+        f"{wg_unit}_unit": wlan_id,
+    }
+
+    # Get the expect_modify argument
+    expect_modify = kwargs.get("expect_modify", False)
 
     # Get the correct service call
     service_map: dict[Any, str] = {
-        (AsusWireGuardClient, AsusWireGuardClient.ON): f"start_wgc {arguments['id']}",
-        (AsusWireGuardClient, AsusWireGuardClient.OFF): f"stop_wgc {arguments['id']}",
+        (AsusWireGuardClient, AsusWireGuardClient.ON): f"start_wgc {wlan_id}",
+        (AsusWireGuardClient, AsusWireGuardClient.OFF): f"stop_wgc {wlan_id}",
         (AsusWireGuardServer, AsusWireGuardServer.ON): "restart_wgs;restart_dnsmasq",
         (AsusWireGuardServer, AsusWireGuardServer.OFF): "restart_wgs;restart_dnsmasq",
     }
@@ -66,5 +80,8 @@ async def set_state(
 
     # Call the service
     return await callback(
-        service, arguments=arguments, apply=True, expect_modify=expect_modify
+        service=service,
+        arguments=callback_arguments,
+        apply=True,
+        expect_modify=expect_modify,
     )
