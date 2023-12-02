@@ -10,7 +10,6 @@ from asusrouter.modules.wlan import (
     AsusWLAN,
     Wlan,
     _nvram_request,
-    get_api_values,
     gwlan_nvram_request,
     set_state,
     wlan_nvram_request,
@@ -73,22 +72,6 @@ def test_gwlan_nvram_request():
     with patch("asusrouter.modules.wlan._nvram_request", new=mock):
         gwlan_nvram_request([Wlan.FREQ_2G])
         mock.assert_called_with([Wlan.FREQ_2G], MAP_GWLAN, guest=True)
-
-
-@pytest.mark.parametrize(
-    "arguments, kwargs, expected",
-    [
-        ({"api_type": "wlan", "api_id": 0}, {}, ("wlan", 0)),
-        (None, {"api_type": "gwlan", "api_id": 1}, ("gwlan", 1)),
-        (None, {}, (None, None)),
-        ({"api_type": "wlan"}, {"api_id": 0}, ("wlan", 0)),
-        ({"api_id": 0}, {"api_type": "wlan"}, ("wlan", 0)),
-    ],
-)
-def test_get_api_values(arguments, kwargs, expected):
-    """Test get_api_values."""
-
-    assert get_api_values(arguments, kwargs) == expected
 
 
 @pytest.mark.asyncio

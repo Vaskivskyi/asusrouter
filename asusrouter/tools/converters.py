@@ -85,7 +85,7 @@ def flatten_dict(
 
 def get_arguments(
     args: str | tuple[str, ...], **kwargs: Any
-) -> Optional[Any] | tuple[Optional[Any], ...]:
+) -> Any | tuple[Optional[Any], ...]:
     """Get the arguments from kwargs."""
 
     # Make sure args is a tuple
