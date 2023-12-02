@@ -9,6 +9,7 @@ from typing import Any, Awaitable, Callable, Optional
 from asusrouter.modules.data import AsusData, AsusDataState
 from asusrouter.modules.openvpn import AsusOVPNClient
 from asusrouter.modules.wireguard import AsusWireGuardClient
+from asusrouter.tools.converters import get_arguments
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -60,33 +61,6 @@ async def set_state(
             return False
 
 
-def _get_arguments(
-    args: str | tuple[str, ...], **kwargs: Any
-) -> Optional[Any] | tuple[Optional[Any], ...]:
-    """Get the arguments from kwargs."""
-
-    # Make sure args is a tuple
-    if not isinstance(args, tuple):
-        args = (args,)
-
-    arguments = kwargs.get("arguments", {})
-
-    found_args: list[Optional[Any]] = []
-
-    for arg in args:
-        # Skip if not a string
-        if not isinstance(arg, str):
-            continue
-        # Get the arg and save to found_args
-        arg_value = arguments.get(arg) if arguments else kwargs.get(arg)
-        found_args.append(arg_value)
-
-    if len(found_args) == 1:
-        return found_args[0]
-
-    return tuple(found_args) if found_args else None
-
-
 VPNC_STATE_MAPPING = {
     AsusVPNC.ON: ("restart_vpnc", 1),
     AsusVPNC.OFF: ("stop_vpnc", 0),
@@ -106,7 +80,7 @@ async def set_state_vpnc(
         return False
 
     # Get the arguments
-    vpnc_unit = _get_arguments("vpnc_unit", **kwargs)
+    vpnc_unit = get_arguments("vpnc_unit", **kwargs)
 
     if not isinstance(vpnc_unit, int):
         _LOGGER.debug("No VPN Fusion unit found in arguments")
@@ -177,7 +151,7 @@ async def set_state_other(
         return False
 
     # Get the arguments
-    vpn_id = _get_arguments("id", **kwargs)
+    vpn_id = get_arguments("id", **kwargs)
 
     if not isinstance(vpn_id, int):
         _LOGGER.debug("No VPN id found in arguments")

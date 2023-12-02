@@ -52,6 +52,40 @@ class EnumForTest(Enum):
     B = 2
 
 
+@pytest.mark.parametrize(
+    "args, kwargs, expected_result",
+    [
+        # Single string - should return single value
+        ("vpnc_unit", {"vpnc_unit": 1}, 1),
+        ("vpnc_unit", {"arguments": {"vpnc_unit": 1}}, 1),
+        # Tuple with single string - should return single value
+        (("vpnc_unit",), {"vpnc_unit": 1}, 1),
+        (("vpnc_unit",), {"arguments": {"vpnc_unit": 1}}, 1),
+        # Tuple with multiple strings and all are found
+        # - should return tuple with values
+        (
+            ("vpnc_unit", "vpnc_clientlist"),
+            {"vpnc_unit": 1, "vpnc_clientlist": "list"},
+            (1, "list"),
+        ),
+        # Tuple with multiple strings and not all are found
+        # - should return tuple with values, missing values should be None
+        (("vpnc_unit", "vpnc_clientlist"), {"vpnc_unit": 1}, (1, None)),
+        # Args issues - should return None
+        (None, {"vpnc_unit": 1}, None),
+        (1, {"vpnc_unit": 1}, None),
+    ],
+)
+def test_get_arguments(args, kwargs, expected_result):
+    """Test _get_arguments."""
+
+    # Get the result
+    result = converters.get_arguments(args, **kwargs)
+
+    # Check the result
+    assert result == expected_result
+
+
 def test_get_enum_key_by_value():
     """Test get_enum_key_by_value method."""
 
