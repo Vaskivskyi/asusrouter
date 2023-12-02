@@ -12,7 +12,6 @@ from asusrouter.modules.vpnc import (
     AsusVPNType,
     _find_vpnc_unit,
     _get_argument_clientlist,
-    _get_arguments,
     set_state,
     set_state_other,
     set_state_vpnc,
@@ -66,40 +65,6 @@ async def test_set_state(state, expected_function):
         else:
             set_state_vpnc_mock.assert_not_called()
             set_state_other_mock.assert_not_called()
-
-
-@pytest.mark.parametrize(
-    "args, kwargs, expected_result",
-    [
-        # Single string - should return single value
-        ("vpnc_unit", {"vpnc_unit": 1}, 1),
-        ("vpnc_unit", {"arguments": {"vpnc_unit": 1}}, 1),
-        # Tuple with single string - should return single value
-        (("vpnc_unit",), {"vpnc_unit": 1}, 1),
-        (("vpnc_unit",), {"arguments": {"vpnc_unit": 1}}, 1),
-        # Tuple with multiple strings and all are found
-        # - should return tuple with values
-        (
-            ("vpnc_unit", "vpnc_clientlist"),
-            {"vpnc_unit": 1, "vpnc_clientlist": "list"},
-            (1, "list"),
-        ),
-        # Tuple with multiple strings and not all are found
-        # - should return tuple with values, missing values should be None
-        (("vpnc_unit", "vpnc_clientlist"), {"vpnc_unit": 1}, (1, None)),
-        # Args issues - should return None
-        (None, {"vpnc_unit": 1}, None),
-        (1, {"vpnc_unit": 1}, None),
-    ],
-)
-def test_get_arguments(args, kwargs, expected_result):
-    """Test _get_arguments."""
-
-    # Get the result
-    result = _get_arguments(args, **kwargs)
-
-    # Check the result
-    assert result == expected_result
 
 
 @pytest.mark.asyncio
@@ -192,7 +157,7 @@ async def test_set_state_vpnc_failing(
         kwargs["router_state"] = router_state
 
     with mock.patch(
-        "asusrouter.modules.vpnc._get_arguments", return_value=vpnc_unit
+        "asusrouter.modules.vpnc.get_arguments", return_value=vpnc_unit
     ) as get_arguments_mock, mock.patch(
         "asusrouter.modules.vpnc._get_argument_clientlist", return_value=clientlist
     ) as get_argument_clientlist_mock, mock.patch.dict(
@@ -206,7 +171,7 @@ async def test_set_state_vpnc_failing(
         assert result is expected_result
 
         # Check the calls
-        # _get_arguments
+        # get_arguments
         if get_arguments_call:
             get_arguments_mock.assert_called_once_with("vpnc_unit", **kwargs)
         else:
@@ -307,7 +272,7 @@ async def test_set_state_other(
         kwargs["router_state"] = router_state
 
     with mock.patch(
-        "asusrouter.modules.vpnc._get_arguments", return_value=vpn_id
+        "asusrouter.modules.vpnc.get_arguments", return_value=vpn_id
     ) as get_arguments_mock, mock.patch(
         "asusrouter.modules.vpnc._find_vpnc_unit"
     ) as find_vpnc_unit_mock, mock.patch.dict(
@@ -323,7 +288,7 @@ async def test_set_state_other(
         assert result is expected_result
 
         # Check the calls
-        # _get_arguments
+        # get_arguments
         if get_arguments_call:
             get_arguments_mock.assert_called_once_with("id", **kwargs)
         else:
