@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import logging
 from enum import IntEnum
-from typing import Any, Awaitable, Callable, Optional
+from typing import Any, Awaitable, Callable
 
 from asusrouter.modules.firmware import Firmware
-from asusrouter.modules.identity import AsusDevice
+from asusrouter.tools.converters import get_arguments
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -43,21 +43,26 @@ class AsusOVPNServer(IntEnum):
 async def set_state(
     callback: Callable[..., Awaitable[bool]],
     state: AsusOVPNClient | AsusOVPNServer,
-    arguments: Optional[dict[str, Any]] = None,
-    expect_modify: bool = False,
-    identity: Optional[AsusDevice] = None,
+    **kwargs: Any,
 ) -> bool:
     """Set the OpenVPN state."""
 
-    # Check if arguments are available
-    if not arguments:
-        arguments = {}
+    # Check if state is available
+    if not isinstance(state, (AsusOVPNClient, AsusOVPNServer)) or not state.value in (
+        0,
+        1,
+    ):
+        _LOGGER.debug("No state found in arguments")
+        return False
 
-    # Get the id from arguments
-    vpn_id = arguments.get("id")
+    # Get the arguments
+    vpn_id, identity = get_arguments(("id", "identity"), **kwargs)
+
     if not vpn_id:
         _LOGGER.debug("No VPN id found in arguments")
         return False
+
+    service_arguments = {"id": vpn_id}
 
     service_map: dict[Any, str]
 
@@ -83,12 +88,9 @@ async def set_state(
             AsusOVPNServer.OFF: "stop_openvpnd;restart_samba;restart_dnsmasq;",
         }
         service = service_map.get(state) if isinstance(state, AsusOVPNServer) else None
-        arguments = {
-            "VPNServer_enable": "1" if state == AsusOVPNServer.ON else "0",
-        }
-
-    # Add `id` to arguments for proper state save
-    arguments["id"] = vpn_id
+        service_arguments["VPNServer_enable"] = (
+            "1" if state == AsusOVPNServer.ON else "0"
+        )
 
     if not service:
         _LOGGER.debug("Unknown state %s", state)
@@ -97,13 +99,13 @@ async def set_state(
     _LOGGER.debug(
         "Triggering state set with parameters: service=%s, arguments=%s",
         service,
-        arguments,
+        service_arguments,
     )
 
     # Run the service
     return await callback(
         service=service,
-        arguments=arguments,
+        arguments=service_arguments,
         apply=True,
-        expect_modify=expect_modify,
+        expect_modify=kwargs.get("expect_modify", False),
     )
