@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from enum import IntEnum
 from typing import Any, Awaitable, Callable, Optional
 
 from asusrouter.tools.converters import safe_int, safe_return
+
+_LOGGER = logging.getLogger(__name__)
 
 KEY_PARENTAL_CONTROL_MAC = "MULTIFILTER_MAC"
 KEY_PARENTAL_CONTROL_NAME = "MULTIFILTER_DEVICENAME"
@@ -51,22 +54,26 @@ class AsusParentalControl(IntEnum):
 async def set_state(
     callback: Callable[..., Awaitable[bool]],
     state: AsusParentalControl,
-    arguments: Optional[dict[str, Any]] = None,
-    expect_modify: bool = False,
-    _: Optional[dict[Any, Any]] = None,
+    **kwargs: Any,
 ) -> bool:
     """Set the parental control state."""
 
-    # Check if arguments are available
-    if not arguments:
-        arguments = {}
+    # Check if state is available and valid
+    if not isinstance(state, AsusParentalControl) or not state.value in (0, 1):
+        _LOGGER.debug("No state found in arguments")
+        return False
 
-    arguments[KEY_PARENTAL_CONTROL_STATE] = 1 if state == AsusParentalControl.ON else 0
+    arguments = {
+        KEY_PARENTAL_CONTROL_STATE: 1 if state == AsusParentalControl.ON else 0
+    }
 
     # Get the correct service call
     service = "restart_firewall"
 
     # Call the service
     return await callback(
-        service, arguments=arguments, apply=True, expect_modify=expect_modify
+        service=service,
+        arguments=arguments,
+        apply=True,
+        expect_modify=kwargs.get("expect_modify", False),
     )
