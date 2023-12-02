@@ -3,10 +3,15 @@
 from __future__ import annotations
 
 from enum import Enum, IntEnum
-from typing import Any, Awaitable, Callable, Optional
+from typing import Any, Awaitable, Callable
 
 from asusrouter.modules.const import MapValueType
-from asusrouter.tools.converters import safe_bool, safe_int, safe_unpack_key
+from asusrouter.tools.converters import (
+    get_arguments,
+    safe_bool,
+    safe_int,
+    safe_unpack_key,
+)
 from asusrouter.tools.writers import nvram
 
 
@@ -171,24 +176,6 @@ def gwlan_nvram_request(wlan: list[Wlan] | None) -> str | None:
     return _nvram_request(wlan, MAP_GWLAN, guest=True)
 
 
-def get_api_values(
-    arguments: dict, kwargs: dict
-) -> tuple[Optional[str], Optional[str]]:
-    """Get the api_type and api_id from arguments or kwargs."""
-
-    api_type = (
-        arguments.get("api_type")
-        if arguments and "api_type" in arguments
-        else kwargs.get("api_type")
-    )
-    api_id = (
-        arguments.get("api_id")
-        if arguments and "api_id" in arguments
-        else kwargs.get("api_id")
-    )
-    return api_type, api_id
-
-
 async def set_state(
     callback: Callable[..., Awaitable[bool]],
     state: AsusWLAN,
@@ -196,14 +183,8 @@ async def set_state(
 ) -> bool:
     """Set the parental control state."""
 
-    # Get the arguments dictionary from kwargs
-    arguments = kwargs.get("arguments", {})
-
-    # Get the api_type and api_id
-    api_type, api_id = get_api_values(arguments, kwargs)
-
-    # Get the expect_modify argument
-    expect_modify = kwargs.get("expect_modify", False)
+    # Get the arguments
+    api_type, api_id = get_arguments(("api_type", "api_id"), **kwargs)
 
     # Check if the api_type and api_id are available
     if api_type is None or api_id is None:
@@ -236,5 +217,5 @@ async def set_state(
         api_value["service"],
         arguments=api_value["callback_arguments"],
         apply=True,
-        expect_modify=expect_modify,
+        expect_modify=kwargs.get("expect_modify", False),
     )
