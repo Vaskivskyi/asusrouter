@@ -688,8 +688,8 @@ class AsusRouter:
     async def async_set_state(
         self,
         state: AsusState,
-        arguments: Optional[dict[str, Any]] = None,
         expect_modify: bool = False,
+        **kwargs: Any,
     ) -> bool:
         """Set the state."""
 
@@ -698,7 +698,7 @@ class AsusRouter:
         _LOGGER.debug(
             "Setting state `%s` with arguments `%s`. Expecting modify: `%s`",
             state,
-            arguments,
+            kwargs,
             expect_modify,
         )
 
@@ -708,10 +708,10 @@ class AsusRouter:
         result = await set_state(
             callback=self.async_run_service,
             state=state,
-            arguments=arguments,
             expect_modify=expect_modify,
             router_state=self._state,
             identity=self._identity,
+            **kwargs,
         )
 
         if result is True:
