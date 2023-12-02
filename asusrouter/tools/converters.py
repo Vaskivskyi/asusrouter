@@ -83,6 +83,33 @@ def flatten_dict(
     return dict(items)
 
 
+def get_arguments(
+    args: str | tuple[str, ...], **kwargs: Any
+) -> Optional[Any] | tuple[Optional[Any], ...]:
+    """Get the arguments from kwargs."""
+
+    # Make sure args is a tuple
+    if not isinstance(args, tuple):
+        args = (args,)
+
+    arguments = kwargs.get("arguments", {})
+
+    found_args: list[Optional[Any]] = []
+
+    for arg in args:
+        # Skip if not a string
+        if not isinstance(arg, str):
+            continue
+        # Get the arg and save to found_args
+        arg_value = arguments.get(arg) if arguments else kwargs.get(arg)
+        found_args.append(arg_value)
+
+    if len(found_args) == 1:
+        return found_args[0]
+
+    return tuple(found_args) if found_args else None
+
+
 def get_enum_key_by_value(
     enum: Type[_E], value: Any, default: Optional[_E] = None
 ) -> _E:
