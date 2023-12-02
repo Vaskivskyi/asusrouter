@@ -1,8 +1,11 @@
 """Port forwarding module."""
 
+import logging
 from dataclasses import dataclass
 from enum import IntEnum
-from typing import Any, Awaitable, Callable, Optional
+from typing import Any, Awaitable, Callable
+
+_LOGGER = logging.getLogger(__name__)
 
 KEY_PORT_FORWARDING_LIST = "vts_rulelist"
 KEY_PORT_FORWARDING_STATE = "vts_enable_x"
@@ -31,22 +34,24 @@ class AsusPortForwarding(IntEnum):
 async def set_state(
     callback: Callable[..., Awaitable[bool]],
     state: AsusPortForwarding,
-    arguments: Optional[dict[str, Any]] = None,
-    expect_modify: bool = False,
-    _: Optional[dict[Any, Any]] = None,
+    **kwargs: Any,
 ) -> bool:
     """Set the parental control state."""
 
-    # Check if arguments are available
-    if not arguments:
-        arguments = {}
+    # Check if state is available and valid
+    if not isinstance(state, AsusPortForwarding) or not state.value in (0, 1):
+        _LOGGER.debug("No state found in arguments")
+        return False
 
-    arguments[KEY_PORT_FORWARDING_STATE] = 1 if state == AsusPortForwarding.ON else 0
+    arguments = {KEY_PORT_FORWARDING_STATE: 1 if state == AsusPortForwarding.ON else 0}
 
     # Get the correct service call
     service = "restart_firewall"
 
     # Call the service
     return await callback(
-        service, arguments=arguments, apply=True, expect_modify=expect_modify
+        service=service,
+        arguments=arguments,
+        apply=True,
+        expect_modify=kwargs.get("expect_modify", False),
     )
