@@ -176,7 +176,9 @@ class AsusRouter:
         if led_state and led_state.data:
             _LOGGER.debug("Restoring LED state")
             await keep_state(
-                self.async_run_service, led_state.data["state"], self._identity
+                callback=self.async_run_service,
+                states=led_state.data["state"],
+                identity=self._identity,
             )
 
         # Reset the reboot flag
