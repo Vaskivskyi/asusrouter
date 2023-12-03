@@ -5,7 +5,9 @@ from unittest.mock import AsyncMock
 import pytest
 
 from asusrouter.modules.parental_control import (
+    KEY_PARENTAL_CONTROL_BLOCK_ALL,
     KEY_PARENTAL_CONTROL_STATE,
+    AsusBlockAll,
     AsusParentalControl,
     set_state,
 )
@@ -20,6 +22,8 @@ async_callback = AsyncMock()
         # Correct states
         (AsusParentalControl.ON, True, True, {KEY_PARENTAL_CONTROL_STATE: 1}),
         (AsusParentalControl.OFF, False, True, {KEY_PARENTAL_CONTROL_STATE: 0}),
+        (AsusBlockAll.ON, True, True, {KEY_PARENTAL_CONTROL_BLOCK_ALL: 1}),
+        (AsusBlockAll.OFF, False, True, {KEY_PARENTAL_CONTROL_BLOCK_ALL: 0}),
         # Wrong states
         (AsusParentalControl.UNKNOWN, False, False, {}),
         (None, False, False, {}),

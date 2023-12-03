@@ -1,10 +1,15 @@
 """Result of processing hook_003.content."""
 
 from asusrouter import AsusData
-from asusrouter.modules.parental_control import AsusParentalControl, ParentalControlRule
+from asusrouter.modules.parental_control import (
+    AsusBlockAll,
+    AsusParentalControl,
+    ParentalControlRule,
+)
 
 expected_result = {
     AsusData.PARENTAL_CONTROL: {
+        "block_all": AsusBlockAll.OFF,
         "state": AsusParentalControl.ON,
         "rules": {
             "00:00:00:00:00:01": ParentalControlRule(

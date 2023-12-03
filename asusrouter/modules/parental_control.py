@@ -11,6 +11,7 @@ from asusrouter.tools.converters import safe_int, safe_return
 
 _LOGGER = logging.getLogger(__name__)
 
+KEY_PARENTAL_CONTROL_BLOCK_ALL = "MULTIFILTER_BLOCK_ALL"
 KEY_PARENTAL_CONTROL_MAC = "MULTIFILTER_MAC"
 KEY_PARENTAL_CONTROL_NAME = "MULTIFILTER_DEVICENAME"
 KEY_PARENTAL_CONTROL_STATE = "MULTIFILTER_ALL"
@@ -51,21 +52,38 @@ class AsusParentalControl(IntEnum):
     ON = 1
 
 
+class AsusBlockAll(IntEnum):
+    """Asus block all state."""
+
+    UNKNOWN = -999
+    OFF = 0
+    ON = 1
+
+
 async def set_state(
     callback: Callable[..., Awaitable[bool]],
-    state: AsusParentalControl,
+    state: AsusParentalControl | AsusBlockAll,
     **kwargs: Any,
 ) -> bool:
     """Set the parental control state."""
 
     # Check if state is available and valid
-    if not isinstance(state, AsusParentalControl) or not state.value in (0, 1):
-        _LOGGER.debug("No state found in arguments")
+    if not isinstance(
+        state, (AsusParentalControl, AsusBlockAll)
+    ) or not state.value in (0, 1):
         return False
 
-    arguments = {
-        KEY_PARENTAL_CONTROL_STATE: 1 if state == AsusParentalControl.ON else 0
-    }
+    service_arguments = {}
+
+    match state:
+        case a if isinstance(a, AsusParentalControl):
+            service_arguments = {
+                KEY_PARENTAL_CONTROL_STATE: 1 if state == AsusParentalControl.ON else 0
+            }
+        case a if isinstance(a, AsusBlockAll):
+            service_arguments = {
+                KEY_PARENTAL_CONTROL_BLOCK_ALL: 1 if state == AsusBlockAll.ON else 0
+            }
 
     # Get the correct service call
     service = "restart_firewall"
@@ -73,7 +91,7 @@ async def set_state(
     # Call the service
     return await callback(
         service=service,
-        arguments=arguments,
+        arguments=service_arguments,
         apply=True,
         expect_modify=kwargs.get("expect_modify", False),
     )
