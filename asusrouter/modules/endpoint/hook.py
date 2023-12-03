@@ -12,11 +12,13 @@ from asusrouter.modules.endpoint import data_get
 from asusrouter.modules.endpoint.error import AccessError
 from asusrouter.modules.led import AsusLED
 from asusrouter.modules.parental_control import (
+    KEY_PARENTAL_CONTROL_BLOCK_ALL,
     KEY_PARENTAL_CONTROL_MAC,
     KEY_PARENTAL_CONTROL_STATE,
     KEY_PARENTAL_CONTROL_TYPE,
     MAP_PARENTAL_CONTROL_ITEM,
     MAP_PARENTAL_CONTROL_TYPE,
+    AsusBlockAll,
     AsusParentalControl,
     ParentalControlRule,
 )
@@ -333,6 +335,11 @@ def process_parental_control(data: dict[str, Any]) -> dict[str, Any]:
     # State
     parental_control["state"] = AsusParentalControl(
         safe_int(data.get(KEY_PARENTAL_CONTROL_STATE), default=-999)
+    )
+
+    # Block all
+    parental_control["block_all"] = AsusBlockAll(
+        safe_int(data.get(KEY_PARENTAL_CONTROL_BLOCK_ALL), default=-999)
     )
 
     # Rules

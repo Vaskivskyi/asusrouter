@@ -19,6 +19,7 @@ from asusrouter.modules.endpoint.hook_const import (
     MAP_WIREGUARD_SERVER,
 )
 from asusrouter.modules.parental_control import (
+    KEY_PARENTAL_CONTROL_BLOCK_ALL,
     KEY_PARENTAL_CONTROL_MAC,
     KEY_PARENTAL_CONTROL_NAME,
     KEY_PARENTAL_CONTROL_STATE,
@@ -110,6 +111,7 @@ ASUSDATA_NVRAM = {
         for key, _, _ in [converters.safe_unpack_keys(element)]
     ],
     "parental_control": [
+        KEY_PARENTAL_CONTROL_BLOCK_ALL,
         KEY_PARENTAL_CONTROL_MAC,
         KEY_PARENTAL_CONTROL_NAME,
         KEY_PARENTAL_CONTROL_STATE,
