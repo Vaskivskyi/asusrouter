@@ -34,7 +34,10 @@ class AsusVPNType(str, Enum):
     """Asus VPN Fusion type."""
 
     UNKNOWN = "Unknown"
+    L2TP = "L2TP"
     OPENVPN = "OpenVPN"
+    PPTP = "PPTP"
+    SURFSHARK = "Surfshark"
     WIREGUARD = "WireGuard"
 
 

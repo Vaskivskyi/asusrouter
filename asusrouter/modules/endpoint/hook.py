@@ -534,8 +534,12 @@ def process_vpnc(data: dict[str, Any]) -> Tuple[dict[AsusVPNType, dict[int, Any]
 
     # Re-sort the data by VPN type / id
     vpn: dict[AsusVPNType, dict[int, Any]] = {
+        AsusVPNType.L2TP: {},
         AsusVPNType.OPENVPN: {},
+        AsusVPNType.PPTP: {},
+        AsusVPNType.SURFSHARK: {},
         AsusVPNType.WIREGUARD: {},
+        AsusVPNType.UNKNOWN: {},
     }
 
     for vpnc_id, info in vpnc.items():
@@ -560,6 +564,10 @@ def process_vpnc(data: dict[str, Any]) -> Tuple[dict[AsusVPNType, dict[int, Any]
                 "state": AsusVPNC.UNKNOWN,
                 "error": AccessError.NO_ERROR,
             }
+
+    # Remove UNKNOWN VPN type if it's empty
+    if not vpn[AsusVPNType.UNKNOWN]:
+        vpn.pop(AsusVPNType.UNKNOWN, None)
 
     return vpn, vpnc_clientlist
 

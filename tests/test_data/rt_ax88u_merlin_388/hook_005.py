@@ -13,6 +13,7 @@ expected_result = {
         5: {"state": AsusVPNC.UNKNOWN, "error": AccessError.NO_ERROR},
     },
     AsusData.VPNC: {
+        AsusVPNType.L2TP: {},
         AsusVPNType.OPENVPN: {
             1: {"state": AsusVPNC.UNKNOWN, "error": AccessError.NO_ERROR},
             2: {"state": AsusVPNC.UNKNOWN, "error": AccessError.NO_ERROR},
@@ -20,6 +21,8 @@ expected_result = {
             4: {"state": AsusVPNC.UNKNOWN, "error": AccessError.NO_ERROR},
             5: {"state": AsusVPNC.UNKNOWN, "error": AccessError.NO_ERROR},
         },
+        AsusVPNType.PPTP: {},
+        AsusVPNType.SURFSHARK: {},
         AsusVPNType.WIREGUARD: {
             5: {
                 "state": True,
