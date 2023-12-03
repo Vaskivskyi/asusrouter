@@ -3,10 +3,9 @@
 from __future__ import annotations
 
 from enum import IntEnum
-from typing import Any, Awaitable, Callable, Optional
+from typing import Any, Awaitable, Callable
 
 from asusrouter.modules.endpoint import Endpoint
-from asusrouter.modules.identity import AsusDevice
 
 
 class AsusLED(IntEnum):
@@ -20,9 +19,7 @@ class AsusLED(IntEnum):
 async def set_state(
     callback: Callable[..., Awaitable[bool]],
     state: AsusLED,
-    arguments: Optional[dict[str, Any]] = None,
-    expect_modify: bool = False,
-    _: Optional[dict[Any, Any]] = None,
+    **kwargs: Any,
 ) -> bool:
     """Set the LED state."""
 
@@ -34,16 +31,18 @@ async def set_state(
         service="start_ctrl_led",
         arguments=arguments,
         apply=True,
-        expect_modify=expect_modify,
+        expect_modify=kwargs.get("expect_modify", False),
     )
 
 
 async def keep_state(
     callback: Callable[..., Awaitable[bool]],
     state: AsusLED = AsusLED.ON,
-    identity: Optional[AsusDevice] = None,
+    **kwargs: Any,
 ) -> bool:
     """Keep the LED state."""
+
+    identity = kwargs.get("identity")
 
     # Check if identity is available and if endpoints are defined
     if identity is None or not identity.endpoints:
@@ -57,7 +56,7 @@ async def keep_state(
         return False
 
     # Toggle the LED
-    await set_state(callback, AsusLED.ON)
-    await set_state(callback, AsusLED.OFF)
+    await set_state(callback, AsusLED.ON, **kwargs)
+    await set_state(callback, AsusLED.OFF, **kwargs)
 
     return True

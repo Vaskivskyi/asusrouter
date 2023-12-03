@@ -45,6 +45,17 @@ def transform_network(
                 "rx_speed": 0.0,
                 "tx_speed": 0.0,
             }
+
+    # Check if we have 5GHz2 available in the network data
+    if "5ghz2" in network:
+        # Check interfaces for 5Ghz2/6Ghz
+        support_5ghz2 = "5G-2" in services
+        support_6ghz = "wifi6e" in services
+
+        if support_5ghz2 is False and support_6ghz is True:
+            # Rename 5Ghz2 to 6Ghz
+            network["6ghz"] = network.pop("5ghz2")
+
     return network
 
 

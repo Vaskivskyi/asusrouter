@@ -12,11 +12,13 @@ from asusrouter.modules.endpoint import data_get
 from asusrouter.modules.endpoint.error import AccessError
 from asusrouter.modules.led import AsusLED
 from asusrouter.modules.parental_control import (
+    KEY_PARENTAL_CONTROL_BLOCK_ALL,
     KEY_PARENTAL_CONTROL_MAC,
     KEY_PARENTAL_CONTROL_STATE,
     KEY_PARENTAL_CONTROL_TYPE,
     MAP_PARENTAL_CONTROL_ITEM,
     MAP_PARENTAL_CONTROL_TYPE,
+    AsusBlockAll,
     AsusParentalControl,
     ParentalControlRule,
 )
@@ -335,6 +337,11 @@ def process_parental_control(data: dict[str, Any]) -> dict[str, Any]:
         safe_int(data.get(KEY_PARENTAL_CONTROL_STATE), default=-999)
     )
 
+    # Block all
+    parental_control["block_all"] = AsusBlockAll(
+        safe_int(data.get(KEY_PARENTAL_CONTROL_BLOCK_ALL), default=-999)
+    )
+
     # Rules
     rules = {}
 
@@ -534,8 +541,12 @@ def process_vpnc(data: dict[str, Any]) -> Tuple[dict[AsusVPNType, dict[int, Any]
 
     # Re-sort the data by VPN type / id
     vpn: dict[AsusVPNType, dict[int, Any]] = {
+        AsusVPNType.L2TP: {},
         AsusVPNType.OPENVPN: {},
+        AsusVPNType.PPTP: {},
+        AsusVPNType.SURFSHARK: {},
         AsusVPNType.WIREGUARD: {},
+        AsusVPNType.UNKNOWN: {},
     }
 
     for vpnc_id, info in vpnc.items():
@@ -560,6 +571,10 @@ def process_vpnc(data: dict[str, Any]) -> Tuple[dict[AsusVPNType, dict[int, Any]
                 "state": AsusVPNC.UNKNOWN,
                 "error": AccessError.NO_ERROR,
             }
+
+    # Remove UNKNOWN VPN type if it's empty
+    if not vpn[AsusVPNType.UNKNOWN]:
+        vpn.pop(AsusVPNType.UNKNOWN, None)
 
     return vpn, vpnc_clientlist
 

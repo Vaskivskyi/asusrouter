@@ -13,6 +13,7 @@ from asusrouter.modules.connection import (
     get_connection_type,
     get_internet_mode,
 )
+from asusrouter.modules.const import MapValueType
 from asusrouter.modules.ip_address import IPAddressType, read_ip_address_type
 from asusrouter.modules.vendor import replace_vendor
 from asusrouter.tools.converters import (
@@ -70,7 +71,7 @@ class AsusClientDescription:
     vendor: Optional[str] = None
 
 
-CLIENT_MAP = {
+CLIENT_MAP: dict[str, list[MapValueType]] = {
     "connected_since": [
         ("wlConnectTime", safe_time_from_delta),
     ],
@@ -120,7 +121,7 @@ CLIENT_MAP = {
     ],
 }
 
-CLIENT_MAP_DESCRIPTION = {
+CLIENT_MAP_DESCRIPTION: dict[str, list[MapValueType]] = {
     "name": [
         ("nickName"),
         ("name"),
@@ -134,7 +135,7 @@ CLIENT_MAP_DESCRIPTION = {
     ],
 }
 
-CLIENT_MAP_CONNECTION = {
+CLIENT_MAP_CONNECTION: dict[str, list[MapValueType]] = {
     "type": [
         ("connection_type", get_connection_type),
         ("isWL", get_connection_type),
@@ -160,7 +161,7 @@ CLIENT_MAP_CONNECTION = {
     ],
 }
 
-CLIENT_MAP_CONNECTION_WLAN = {
+CLIENT_MAP_CONNECTION_WLAN: dict[str, list[MapValueType]] = {
     "guest_id": [
         ("guest"),
         ("isGN", safe_int),
@@ -183,12 +184,23 @@ CLIENT_MAP_CONNECTION_WLAN = {
 def process_client(
     data: dict[str, Any], history: Optional[AsusClient] = None
 ) -> AsusClient:
-    """Process client data."""
+    """
+    Process client data.
 
-    description = process_client_description(data)
-    connection = process_client_connection(data)
+    Parameters:
+    data (dict[str, Any]): The client data to process.
+    history (Optional[AsusClient]): The previous state of the client, if any.
 
-    state = process_client_state(connection)
+    Returns:
+    AsusClient: The processed client data.
+    """
+
+    description: AsusClientDescription = process_client_description(data)
+    connection: AsusClientConnection | AsusClientConnectionWlan = (
+        process_client_connection(data)
+    )
+
+    state: ConnectionState = process_client_state(connection)
 
     # Clean disconnected client
     if state != ConnectionState.CONNECTED:
@@ -201,42 +213,46 @@ def process_client(
     return AsusClient(state=state, description=description, connection=connection)
 
 
+def process_data(data: dict[str, Any], mapping: dict[str, Any], obj: Any) -> Any:
+    """Process data based on a mapping and set attributes on an object."""
+
+    # Go through all keys in mapping
+    for key, value in mapping.items():
+        for pair in value:
+            # Get the search key and converter(s)
+            key_to_find, converters = safe_unpack_key(pair)
+            # Get the value from the data
+            item = data.get(key_to_find)
+
+            # Process the value if it's an actual value
+            if item is not None and item != str():
+                # Apply converters one by one if there are multiple
+                if isinstance(converters, list):
+                    for converter in converters:
+                        item = converter(item)
+                # Apply single converter
+                elif converters:
+                    item = converters(item)
+
+                # Set the attribute on the object
+                setattr(obj, key, item)
+
+                # We found the value, no need to continue searching
+                break
+
+    return obj
+
+
 def process_client_description(data: dict[str, Any]) -> AsusClientDescription:
     """Process client description data."""
 
-    description = AsusClientDescription()
-
-    for key, value in CLIENT_MAP_DESCRIPTION.items():
-        for pair in value:
-            key_to_find, converter = safe_unpack_key(pair)
-            item = data.get(key_to_find)
-            if item is not None and item != str():
-                setattr(
-                    description,
-                    key,
-                    converter(item) if converter else item,
-                )
-                break
-
-    return description
+    return process_data(data, CLIENT_MAP_DESCRIPTION, AsusClientDescription())
 
 
 def process_client_connection(data: dict[str, Any]) -> AsusClientConnection:
     """Process client connection data."""
 
-    connection = AsusClientConnection()
-
-    for key, value in CLIENT_MAP_CONNECTION.items():
-        for pair in value:
-            key_to_find, converter = safe_unpack_key(pair)
-            item = data.get(key_to_find)
-            if item and item != str():
-                setattr(
-                    connection,
-                    key,
-                    converter(item) if converter else item,
-                )
-                break
+    connection = process_data(data, CLIENT_MAP_CONNECTION, AsusClientConnection())
 
     if not connection.type in (ConnectionType.WIRED, ConnectionType.DISCONNECTED):
         connection = process_client_connection_wlan(data, connection)
@@ -245,28 +261,19 @@ def process_client_connection(data: dict[str, Any]) -> AsusClientConnection:
 
 
 def process_client_connection_wlan(
-    data: dict[str, Any], connection: AsusClientConnection
+    data: dict[str, Any], base_connection: AsusClientConnection
 ) -> AsusClientConnectionWlan:
     """Process WLAN client connection data."""
 
-    connection = AsusClientConnectionWlan(**connection.__dict__)
-
-    for key, value in CLIENT_MAP_CONNECTION_WLAN.items():
-        for pair in value:
-            key_to_find, converter = safe_unpack_key(pair)
-            item = data.get(key_to_find)
-            if item and item != str():
-                setattr(
-                    connection,
-                    key,
-                    converter(item) if converter else item,
-                )
-                break
+    wlan_connection = AsusClientConnectionWlan(**base_connection.__dict__)
+    wlan_connection = process_data(data, CLIENT_MAP_CONNECTION_WLAN, wlan_connection)
 
     # Mark `guest` attribute if `guest_id` is non-zero
-    connection.guest = connection.guest_id != 0 and connection.guest_id is not None
+    wlan_connection.guest = (
+        wlan_connection.guest_id != 0 and wlan_connection.guest_id is not None
+    )
 
-    return connection
+    return wlan_connection
 
 
 def process_client_state(

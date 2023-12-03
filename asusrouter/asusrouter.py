@@ -176,7 +176,9 @@ class AsusRouter:
         if led_state and led_state.data:
             _LOGGER.debug("Restoring LED state")
             await keep_state(
-                self.async_run_service, led_state.data["state"], self._identity
+                callback=self.async_run_service,
+                states=led_state.data["state"],
+                identity=self._identity,
             )
 
         # Reset the reboot flag
@@ -688,8 +690,8 @@ class AsusRouter:
     async def async_set_state(
         self,
         state: AsusState,
-        arguments: Optional[dict[str, Any]] = None,
         expect_modify: bool = False,
+        **kwargs: Any,
     ) -> bool:
         """Set the state."""
 
@@ -698,7 +700,7 @@ class AsusRouter:
         _LOGGER.debug(
             "Setting state `%s` with arguments `%s`. Expecting modify: `%s`",
             state,
-            arguments,
+            kwargs,
             expect_modify,
         )
 
@@ -706,12 +708,12 @@ class AsusRouter:
         await self._async_check_state_dependency(state)
 
         result = await set_state(
-            self.async_run_service,
-            state,
-            arguments,
-            expect_modify,
-            self._state,
-            self._identity,
+            callback=self.async_run_service,
+            state=state,
+            expect_modify=expect_modify,
+            router_state=self._state,
+            identity=self._identity,
+            **kwargs,
         )
 
         if result is True:
