@@ -36,7 +36,7 @@ WLAN_TYPE: dict[str | int, Wlan] = {
     "2.4G": Wlan.FREQ_2G,
     "5G": Wlan.FREQ_5G,
     "5G-2": Wlan.FREQ_5G2,
-    "6G": Wlan.FREQ_6G,
+    "wifi6e": Wlan.FREQ_6G,
     "wlc_0": Wlan.FREQ_2G,
     "wlc_1": Wlan.FREQ_5G,
     "wlc_2": Wlan.FREQ_5G2,
