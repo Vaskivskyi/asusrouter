@@ -10,7 +10,7 @@ from typing import Any, Awaitable, Callable, Optional
 
 from asusrouter.modules.connection import ConnectionState
 from asusrouter.modules.data import AsusData, AsusDataState
-from asusrouter.modules.parental_control import AsusParentalControl
+from asusrouter.modules.parental_control import AsusBlockAll, AsusParentalControl
 from asusrouter.modules.port_forwarding import AsusPortForwarding
 from asusrouter.modules.system import AsusSystem
 from asusrouter.modules.vpnc import AsusVPNC
@@ -37,6 +37,7 @@ class AsusState(Enum):
     """Asus state."""
 
     NONE = AsusStateNone
+    BLOCK_ALL = AsusBlockAll
     CONNECTION = ConnectionState
     LED = AsusLED
     OPENVPN_CLIENT = AsusOVPNClient
@@ -52,6 +53,7 @@ class AsusState(Enum):
 
 AsusStateMap: dict[AsusState, Optional[AsusData]] = {
     AsusState.NONE: None,
+    AsusState.BLOCK_ALL: AsusData.PARENTAL_CONTROL,
     AsusState.CONNECTION: None,
     AsusState.LED: AsusData.LED,
     AsusState.OPENVPN_CLIENT: AsusData.OPENVPN_CLIENT,
