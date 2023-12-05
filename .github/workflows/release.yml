@@ -19,7 +19,7 @@ jobs:
         ref: ${{ github.event.release.target_commitish }}
 
     - name: Setup Python ${{ env.DEFAULT_PYTHON }}
-      uses: actions/setup-python@v4.7.1
+      uses: actions/setup-python@v4.8.0
       with:
         python-version: ${{ env.DEFAULT_PYTHON }}
 
