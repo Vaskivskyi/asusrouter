@@ -94,8 +94,8 @@ jobs:
       - name: Upload coverage to artifacts
         uses: actions/upload-artifact@v4.0.0
         with:
-          name: unit-tests-cov
-          path: unit-tests-cov.xml
+          name: unit-tests-cov-${{ matrix.python-version }}
+          path: unit-tests-cov-${{ matrix.python-version }}.xml
 
   device-tests:
     name: Device Tests
@@ -140,25 +140,30 @@ jobs:
       - name: Upload coverage to artifacts
         uses: actions/upload-artifact@v4.0.0
         with:
-          name: real-data-tests-cov
-          path: real-data-tests-cov.xml
+          name: real-data-tests-cov-${{ matrix.python-version }}
+          path: real-data-tests-cov-${{ matrix.python-version }}.xml
 
   codecov:
     name: Codecov
     needs: [unit-tests, device-tests]
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.11, 3.12]
     steps:
       - name: Checkout
         uses: actions/checkout@v4.1.1
 
-      - name: Download coverage from artifacts
+      - name: Download unit-tests coverage from artifacts
         uses: actions/download-artifact@v4.0.0
         with:
-          name: unit-tests-cov
+          name: unit-tests-cov-${{ matrix.python-version }}
           path: .
-      - uses: actions/download-artifact@v4.0.0
+
+      - name: Download real-data-tests coverage from artifacts
+        uses: actions/download-artifact@v4.0.0
         with:
-          name: real-data-tests-cov
+          name: real-data-tests-cov-${{ matrix.python-version }}
           path: .
 
       - name: Upload coverage to Codecov
@@ -166,4 +171,4 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: true
-          files: unit-tests-cov.xml,real-data-tests-cov.xml
+          files: unit-tests-cov-${{ matrix.python-version }}.xml,real-data-tests-cov-${{ matrix.python-version }}.xml
