@@ -472,6 +472,7 @@ class AsusRouter:
                 data,
                 self._identity.services if self._identity else [],
                 self._state.get(AsusData.NETWORK),
+                model=self._identity.model if self._identity else None,
             )
 
         if datatype == AsusData.WAN:

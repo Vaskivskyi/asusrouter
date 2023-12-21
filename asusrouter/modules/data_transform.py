@@ -8,11 +8,18 @@ from asusrouter.modules.client import process_client
 from asusrouter.modules.data import AsusDataState
 from asusrouter.tools.readers import readable_mac
 
+# List of models with 6Ghz support
+# and no 5Ghz2 support
+MODEL_WITH_6GHZ = [
+    "RT-AXE95Q",
+]
+
 
 def transform_network(
     data: dict[str, Any],
     services: Optional[list[str]],
     history: Optional[AsusDataState],
+    **kwargs: Any,
 ) -> dict[str, Any]:
     """Transform network data."""
 
@@ -46,13 +53,18 @@ def transform_network(
                 "tx_speed": 0.0,
             }
 
+    # Get the model if available
+    model = kwargs.get("model", None)
+
     # Check if we have 5GHz2 available in the network data
     if "5ghz2" in network:
         # Check interfaces for 5Ghz2/6Ghz
         support_5ghz2 = "5G-2" in services
         support_6ghz = "wifi6e" in services
 
-        if support_5ghz2 is False and support_6ghz is True:
+        if (
+            support_5ghz2 is False and support_6ghz is True
+        ) or model in MODEL_WITH_6GHZ:
             # Rename 5Ghz2 to 6Ghz
             network["6ghz"] = network.pop("5ghz2")
 
