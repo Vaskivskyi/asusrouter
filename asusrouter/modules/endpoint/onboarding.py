@@ -1,6 +1,5 @@
 """Onboarding endpoint module."""
 
-
 from __future__ import annotations
 
 from typing import Any
@@ -20,8 +19,35 @@ CONNECTION_TYPE = {
 }
 
 
+CONST_AP = {
+    "2g": "2ghz",
+    "5g": "5ghz",
+    "5g1": "5ghz2",
+    "6g": "6ghz",
+    "dwb": "dwb",
+}
+
+CONST_FREQ = [
+    "2g",
+    "5g",
+    "6g",
+]
+
+
 def read(content: str) -> dict[str, Any]:
     """Read onboarding data"""
+
+    # Preprocess the content
+    content = read_preprocess(content)
+
+    # Read the json content
+    onboarding: dict[str, Any] = read_json_content(content)
+
+    return onboarding
+
+
+def read_preprocess(content: str) -> str:
+    """Preprocess the content before reading it."""
 
     # Prepare the content
     content = (
@@ -35,10 +61,7 @@ def read(content: str) -> dict[str, Any]:
     # In case we have a trailing comma inside a dict
     content = content.replace(",}", "}")
 
-    # Read the json content
-    onboarding: dict[str, Any] = read_json_content(content)
-
-    return onboarding
+    return content
 
 
 def process(data: dict[str, Any]) -> dict[AsusData, Any]:
@@ -55,14 +78,14 @@ def process(data: dict[str, Any]) -> dict[AsusData, Any]:
 
     # Client list
     clients = {}
-    client_list = data["get_allclientlist"][0]
+    client_list = data.get("get_allclientlist", [{}])[0]
     for node in client_list:
         for connection in client_list[node]:
             convert = process_connection(connection)
             for mac in client_list[node][connection]:
                 description = {
-                    "connection_type": convert["connection_type"],
-                    "guest": convert["guest"],
+                    "connection_type": convert.get("connection_type"),
+                    "guest": convert.get("guest"),
                     "ip": safe_return(
                         client_list[node][connection][mac].get("ip", None)
                     ),
@@ -81,32 +104,23 @@ def process(data: dict[str, Any]) -> dict[AsusData, Any]:
 def process_aimesh_node(data: dict[str, Any]) -> AiMeshDevice:
     """Process AiMesh node data."""
 
-    const_ap = {
-        "2g": "2ghz",
-        "5g": "5ghz",
-        "5g1": "5ghz2",
-        "6g": "6ghz",
-        "dwb": "dwb",
-    }
-
-    const_freq = [
-        "2g",
-        "5g",
-        "6g",
-    ]
-
+    # Get the list of WLAN APs
     ap = {}
-    for el, value in const_ap.items():
+    for el, value in CONST_AP.items():
         if f"ap{el}" in data and data[f"ap{el}"] is not str():
             ap[value] = data[f"ap{el}"]
 
+    # Get the parent data
     parent = {}
-    for el in const_freq:
+    for el in CONST_FREQ:
         if f"pap{el}" in data and data[f"pap{el}"] is not str():
-            parent["connection"] = const_ap[el]
+            parent["connection"] = CONST_AP[el]
             parent["mac"] = data[f"pap{el}"]
             parent["rssi"] = safe_return(data.get(f"rssi{el}"))
             parent["ssid"] = safe_return(data.get(f"pap{el}_ssid"))
+
+            # Stop the loop since we found the parent
+            break
 
     level = safe_int(data.get("level", "0"))
     node_type = "router" if level == 0 else "node"
@@ -138,11 +152,8 @@ def process_connection(data: str) -> dict[str, int]:
     if data == "wired_mac":
         return {"connection_type": 0, "guest": 0}
 
-    try:
-        temp = data.split("_")
-        return {
-            "connection_type": CONNECTION_TYPE.get(temp[0]) or 0,
-            "guest": int(temp[1]) if len(temp) > 1 else 0,
-        }
-    except Exception as ex:
-        raise ex
+    temp = data.split("_")
+    return {
+        "connection_type": CONNECTION_TYPE.get(temp[0]) or 0,
+        "guest": int(temp[1]) if len(temp) > 1 else 0,
+    }
