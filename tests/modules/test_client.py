@@ -287,14 +287,23 @@ def test_process_client_connection_wlan(process_data_mock):
             False,
             ConnectionState.DISCONNECTED,
         ),
-        # No node assigned
+        # No node assigned, offline
+        (
+            "192.168.1.11",
+            ConnectionType.WLAN_2G,
+            False,
+            None,
+            False,
+            ConnectionState.DISCONNECTED,
+        ),
+        # No node assigned, online
         (
             "192.168.1.11",
             ConnectionType.WLAN_2G,
             False,
             None,
             True,
-            ConnectionState.DISCONNECTED,
+            ConnectionState.CONNECTED,
         ),
         # Node assigned, offline
         (
@@ -303,7 +312,7 @@ def test_process_client_connection_wlan(process_data_mock):
             False,
             "00:AA:BB:CC:00:01",
             False,
-            ConnectionState.DISCONNECTED,
+            ConnectionState.CONNECTED,
         ),
         # Node assigned, online
         (
