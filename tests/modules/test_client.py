@@ -258,23 +258,74 @@ def test_process_client_connection_wlan(process_data_mock):
 
 
 @pytest.mark.parametrize(
-    "node, online, expected_result",
+    "ip_address, connection_type, aimesh, node, online, expected_result",
     [
-        # No node assigned, offline
-        (None, False, ConnectionState.DISCONNECTED),
-        # No node assigned, online
-        (None, True, ConnectionState.CONNECTED),
+        # No IP address
+        (
+            None,
+            ConnectionType.WLAN_2G,
+            False,
+            None,
+            False,
+            ConnectionState.DISCONNECTED,
+        ),
+        # Connection type is disconnected
+        (
+            "192.168.1.11",
+            ConnectionType.DISCONNECTED,
+            False,
+            None,
+            False,
+            ConnectionState.DISCONNECTED,
+        ),
+        # Client is an AiMesh node
+        (
+            "192.168.1.11",
+            ConnectionType.WLAN_2G,
+            True,
+            None,
+            False,
+            ConnectionState.DISCONNECTED,
+        ),
+        # No node assigned
+        (
+            "192.168.1.11",
+            ConnectionType.WLAN_2G,
+            False,
+            None,
+            True,
+            ConnectionState.DISCONNECTED,
+        ),
         # Node assigned, offline
-        ("00:AA:BB:CC:00:01", False, ConnectionState.CONNECTED),
+        (
+            "192.168.1.11",
+            ConnectionType.WLAN_2G,
+            False,
+            "00:AA:BB:CC:00:01",
+            False,
+            ConnectionState.DISCONNECTED,
+        ),
         # Node assigned, online
-        ("00:AA:BB:CC:00:01", True, ConnectionState.CONNECTED),
+        (
+            "192.168.1.11",
+            ConnectionType.WLAN_2G,
+            False,
+            "00:AA:BB:CC:00:01",
+            True,
+            ConnectionState.CONNECTED,
+        ),
     ],
 )
-def test_process_client_state(node, online, expected_result):
+def test_process_client_state(
+    ip_address, connection_type, aimesh, node, online, expected_result
+):
     """Test process_client_state."""
 
     # Prepare input data
     connection = AsusClientConnection(
+        type=connection_type,
+        ip_address=ip_address,
+        aimesh=aimesh,
         node=node,
         online=online,
     )
