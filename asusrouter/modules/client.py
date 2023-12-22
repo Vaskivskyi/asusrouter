@@ -296,7 +296,7 @@ def process_client_state(
         return ConnectionState.DISCONNECTED
 
     # This one is a weak check, should always be the last one
-    if connection.online is True and connection.node is not None:
+    if connection.online is True or connection.node is not None:
         return ConnectionState.CONNECTED
 
     return ConnectionState.DISCONNECTED
