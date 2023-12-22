@@ -285,6 +285,11 @@ def process_client_state(
     if connection.node is not None:
         return ConnectionState.CONNECTED
 
+    # If no IP address or type is disconnected, it's disconnected
+    if connection.ip_address is None or connection.type == ConnectionType.DISCONNECTED:
+        return ConnectionState.DISCONNECTED
+
+    # This one is a weak check, should always be the last one
     if connection.online is True:
         return ConnectionState.CONNECTED
 
