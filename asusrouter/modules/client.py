@@ -295,13 +295,8 @@ def process_client_state(
     if connection.aimesh is True:
         return ConnectionState.DISCONNECTED
 
-    # If client has node attribute, it's connected
-    # This can be true even with no IP address assigned, so goes second
-    if connection.node is not None:
-        return ConnectionState.CONNECTED
-
     # This one is a weak check, should always be the last one
-    if connection.online is True:
+    if connection.online is True and connection.node is not None:
         return ConnectionState.CONNECTED
 
     return ConnectionState.DISCONNECTED
