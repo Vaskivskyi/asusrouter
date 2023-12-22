@@ -48,6 +48,9 @@ class AsusClientConnection:
     node: Optional[str] = None
     online: bool = False
 
+    # Is an AiMesh node
+    aimesh: Optional[bool] = None
+
 
 @dataclass
 class AsusClientConnectionWlan(AsusClientConnection):
@@ -158,6 +161,9 @@ CLIENT_MAP_CONNECTION: dict[str, list[MapValueType]] = {
     "online": [
         ("online", safe_bool),
         ("isOnline", safe_bool),
+    ],
+    "aimesh": [
+        ("amesh_isRe", safe_bool),
     ],
 }
 
@@ -281,13 +287,18 @@ def process_client_state(
 ) -> ConnectionState:
     """Process client state."""
 
-    # If client has node attribute, it's connected
-    if connection.node is not None:
-        return ConnectionState.CONNECTED
-
     # If no IP address or type is disconnected, it's disconnected
     if connection.ip_address is None or connection.type == ConnectionType.DISCONNECTED:
         return ConnectionState.DISCONNECTED
+
+    # If client is an AiMesh node, it's not a client
+    if connection.aimesh is True:
+        return ConnectionState.DISCONNECTED
+
+    # If client has node attribute, it's connected
+    # This can be true even with no IP address assigned, so goes second
+    if connection.node is not None:
+        return ConnectionState.CONNECTED
 
     # This one is a weak check, should always be the last one
     if connection.online is True:
