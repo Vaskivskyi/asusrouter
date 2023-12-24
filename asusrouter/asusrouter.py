@@ -69,23 +69,6 @@ _LOGGER = logging.getLogger(__name__)
 class AsusRouter:
     """The interface class."""
 
-    _cache_time: float = DEFAULT_CACHE_TIME
-    _hostname: str
-
-    _identity: Optional[AsusDevice] = None
-
-    _state: dict[AsusData, AsusDataState] = {}
-
-    _flags: Flag = Flag()
-    # Time for change to take effect before available to fetch
-    _needed_time: Optional[int] = None
-    # ID from the last called service
-    _last_id: Optional[int] = None
-
-    # Force clients
-    _force_clients: bool = False
-    _force_clients_waittime: float = DEFAULT_CLIENTS_WAITTIME
-
     def __init__(
         self,
         hostname: str,
@@ -102,11 +85,25 @@ class AsusRouter:
         _LOGGER.debug("Initializing a new interface to `%s`", hostname)
 
         # Set the cache time
-        if cache_time:
-            self._cache_time = cache_time
+        self._cache_time = cache_time or DEFAULT_CACHE_TIME
 
         # Set the host
-        self._hostname = hostname
+        self._hostname: str = hostname
+
+        # Set the device identity
+        self._identity: Optional[AsusDevice] = None
+        self._state: dict[AsusData, AsusDataState] = {}
+
+        # Set the flags
+        self._flags: Flag = Flag()
+        # Time for change to take effect before available to fetch
+        self._needed_time: Optional[int] = None
+        # ID from the last called service
+        self._last_id: Optional[int] = None
+
+        # Force clients
+        self._force_clients: bool = False
+        self._force_clients_waittime: float = DEFAULT_CLIENTS_WAITTIME
 
         # Create a connection
         self._connection = Connection(
