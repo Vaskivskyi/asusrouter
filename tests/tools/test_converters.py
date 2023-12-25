@@ -102,6 +102,83 @@ def test_get_enum_key_by_value():
         converters.get_enum_key_by_value(EnumForTest, 3)
 
 
+@pytest.mark.parametrize(
+    ("content", "result"),
+    [
+        (0, [False]),
+        (1, [True]),
+        (2, [False, True]),
+        (3, [True, True]),
+        (10, [False, True, False, True]),
+        # Test with negative integers and non-integer input
+        (-1, []),
+        ("string", []),
+        (None, []),
+    ],
+)
+def test_int_as_bits(content, result):
+    """Test int_as_bits method."""
+
+    assert converters.int_as_bits(content) == result
+
+
+# Define a test Enum
+class Capabilities(Enum):
+    """Capabilities enum."""
+
+    CAPABILITY1 = 0
+    CAPABILITY2 = 1
+    CAPABILITY3 = 2
+    CAPABILITY4 = 3
+    CAPABILITY5 = "not an int"
+
+
+@pytest.mark.parametrize(
+    ("value", "capabilities", "result"),
+    [
+        (
+            0,
+            Capabilities,
+            {
+                Capabilities.CAPABILITY1: False,
+                Capabilities.CAPABILITY2: False,
+                Capabilities.CAPABILITY3: False,
+                Capabilities.CAPABILITY4: False,
+            },
+        ),
+        (
+            1,
+            Capabilities,
+            {
+                Capabilities.CAPABILITY1: True,
+                Capabilities.CAPABILITY2: False,
+                Capabilities.CAPABILITY3: False,
+                Capabilities.CAPABILITY4: False,
+            },
+        ),
+        (
+            10,
+            Capabilities,
+            {
+                Capabilities.CAPABILITY1: False,
+                Capabilities.CAPABILITY2: True,
+                Capabilities.CAPABILITY3: False,
+                Capabilities.CAPABILITY4: True,
+            },
+        ),
+        # Wrong input
+        (None, Capabilities, {}),
+        ("string", Capabilities, {}),
+        (15, "not an enum", {}),
+        (15, None, {}),
+    ],
+)
+def test_int_as_capabilities(value, capabilities, result):
+    """Test int_as_capabilities method."""
+
+    assert converters.int_as_capabilities(value, capabilities) == result
+
+
 def test_is_enum():
     """Test is_enum method."""
 
