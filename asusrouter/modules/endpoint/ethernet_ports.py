@@ -29,16 +29,22 @@ def process(data: dict[str, Any]) -> dict[AsusData, Any]:
         PortType.LAN: {},
         PortType.WAN: {},
     }
-    if "portSpeed" in data:
-        data = data["portSpeed"]
-        for port, value in data.items():
-            port_type = PortType(port[0:3].lower())
-            port_id = safe_int(port[3:])
-            link_rate = PORT_SPEED.get(value)
-            ports[port_type][port_id] = {
-                "state": link_rate != PortSpeed.LINK_DOWN,
-                "link_rate": link_rate,
-            }
+
+    port_speed = data.get("portSpeed")
+
+    if port_speed is None:
+        return {
+            AsusData.PORTS: ports,
+        }
+
+    for port, value in port_speed.items():
+        port_type = PortType(port[0:3].lower())
+        port_id = safe_int(port[3:])
+        link_rate = PORT_SPEED.get(value)
+        ports[port_type][port_id] = {
+            "state": link_rate not in (PortSpeed.LINK_DOWN, PortSpeed.UNKNOWN),
+            "link_rate": link_rate,
+        }
 
     return {
         AsusData.PORTS: ports,

@@ -175,7 +175,10 @@ ASUSDATA_NVRAM["wireguard_server"].extend(
 
 ASUSDATA_ENDPOINT_APPEND = {
     Endpoint.PORT_STATUS: {
-        "node_mac": AsusRouterAttribute.MAC,
+        # Request status of the ports for the whole AiMesh network
+        # This will save time and requests, since we then cache the data
+        # in most cases
+        "node_mac": "all",
     }
 }
 
