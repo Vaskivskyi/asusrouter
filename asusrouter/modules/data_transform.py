@@ -6,6 +6,7 @@ from typing import Any, Optional
 
 from asusrouter.modules.client import process_client
 from asusrouter.modules.data import AsusDataState
+from asusrouter.modules.ports import PortType
 from asusrouter.tools.readers import readable_mac
 
 # List of models with 6Ghz support
@@ -97,6 +98,26 @@ def transform_cpu(
         info.setdefault("usage", None)
 
     return data
+
+
+def transform_ethernet_ports(
+    data: dict[str, Any],
+    mac: Optional[str],
+) -> dict[str, dict[str, Any]]:
+    """Transform the legacy ethernet ports data to the new format."""
+
+    # Check if the first level of the dict is PortType enum
+    # If any other key is found, return the data as is
+    for data_key in data:
+        if not isinstance(data_key, PortType):
+            return data
+
+    # If mac is not available, return the data as is
+    if not mac:
+        return data
+
+    # Transform the data
+    return {mac: data}
 
 
 def transform_wan(
