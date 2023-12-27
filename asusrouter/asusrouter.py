@@ -39,6 +39,7 @@ from asusrouter.modules.data_finder import (
 from asusrouter.modules.data_transform import (
     transform_clients,
     transform_cpu,
+    transform_ethernet_ports,
     transform_network,
     transform_wan,
 )
@@ -325,7 +326,10 @@ class AsusRouter:
         if endpoint in ASUSDATA_ENDPOINT_APPEND:
             payload = payload or ""
             for key, attribute in ASUSDATA_ENDPOINT_APPEND[endpoint].items():
-                value = self._get_attribute(attribute)
+                if isinstance(attribute, AsusRouterAttribute):
+                    value = self._get_attribute(attribute)
+                else:
+                    value = attribute
                 if value:
                     payload += f"{key}={value};"
             # Remove trailing semicolon
@@ -450,7 +454,7 @@ class AsusRouter:
 
         return data_map
 
-    def _transform_data(self, datatype: AsusData, data: Any) -> Any:
+    def _transform_data(self, datatype: AsusData, data: Any, **kwargs: Any) -> Any:
         """Transform data if needed."""
 
         _LOGGER.debug("Triggered method _transform_data for `%s`", datatype)
@@ -470,6 +474,13 @@ class AsusRouter:
                 self._identity.services if self._identity else [],
                 self._state.get(AsusData.NETWORK),
                 model=self._identity.model if self._identity else None,
+            )
+
+        if datatype == AsusData.PORTS:
+            _LOGGER.debug("Transforming port data")
+            return transform_ethernet_ports(
+                data,
+                self._identity.mac if self._identity else None,
             )
 
         if datatype == AsusData.WAN:
@@ -524,7 +535,38 @@ class AsusRouter:
                 )
             )
 
-    async def async_get_data(self, datatype: AsusData, force: bool = False) -> Any:
+    def _return_state(self, datatype: AsusData, **kwargs: Any) -> Any:
+        """Return a proper state."""
+
+        _LOGGER.debug("Triggered method _return_state")
+
+        # Get the state
+        state = self._state[datatype].data
+
+        if datatype == AsusData.PORTS:
+            own_mac = self._identity.mac if self._identity else None
+
+            # Get the device selected
+            device = kwargs.get("device", None)
+
+            match device:
+                case None:
+                    if isinstance(state, dict):
+                        return state.get(own_mac, {})
+                    return state
+                case "all":
+                    return state
+                # Case when substate is a MAC address
+                case a if isinstance(a, str):
+                    if isinstance(state, dict) and a in state:
+                        return state[a]
+                    return {}
+
+        return state
+
+    async def async_get_data(
+        self, datatype: AsusData, force: bool = False, **kwargs: Any
+    ) -> Any:
         """Generic method to get data from the device."""
 
         # Check if we have a state object for this data
@@ -629,7 +671,7 @@ class AsusRouter:
                     self._state[key] = AsusDataState()
                 self._state[key].update(value)
         except (AsusRouterConnectionError, AsusRouterDataError):
-            return self._state[datatype].data
+            return self._return_state(datatype, **kwargs)
 
         # Check flags
         await self._check_flags()
@@ -640,7 +682,7 @@ class AsusRouter:
             datatype,
             type(self._state[datatype].data),
         )
-        return self._state[datatype].data
+        return self._return_state(datatype, **kwargs)
 
     # ---------------------------
     # Service-related methods -->
