@@ -79,11 +79,13 @@ def process_node_info(data: dict[str, Any]) -> dict[str, Any]:
     if not node_info:
         return {}
 
-    # This is just a dict with a single pair mac: info
-    mac = list(node_info.keys())[0]
-    node = node_info[mac]
+    nodes = {}
 
-    return node
+    for mac, info in node_info.items():
+        # Save the node info
+        nodes[mac] = info
+
+    return nodes
 
 
 def process_port_info(
