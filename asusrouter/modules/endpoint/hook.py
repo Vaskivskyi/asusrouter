@@ -12,15 +12,11 @@ from asusrouter.modules.endpoint import data_get
 from asusrouter.modules.endpoint.error import AccessError
 from asusrouter.modules.led import AsusLED
 from asusrouter.modules.parental_control import (
-    KEY_PARENTAL_CONTROL_BLOCK_ALL,
-    KEY_PARENTAL_CONTROL_MAC,
-    KEY_PARENTAL_CONTROL_STATE,
-    KEY_PARENTAL_CONTROL_TYPE,
-    MAP_PARENTAL_CONTROL_ITEM,
-    MAP_PARENTAL_CONTROL_TYPE,
+    KEY_PC_BLOCK_ALL,
+    KEY_PC_STATE,
     AsusBlockAll,
     AsusParentalControl,
-    ParentalControlRule,
+    read_pc_rules,
 )
 from asusrouter.modules.port_forwarding import (
     KEY_PORT_FORWARDING_LIST,
@@ -125,7 +121,7 @@ def process(data: dict[str, Any]) -> dict[AsusData, Any]:
         state[AsusData.OPENVPN_SERVER] = process_openvpn_server(data)
 
     # Parental control
-    if KEY_PARENTAL_CONTROL_STATE in data:
+    if KEY_PC_STATE in data:
         state[AsusData.PARENTAL_CONTROL] = process_parental_control(data)
 
     # Port forwarding
@@ -334,35 +330,16 @@ def process_parental_control(data: dict[str, Any]) -> dict[str, Any]:
 
     # State
     parental_control["state"] = AsusParentalControl(
-        safe_int(data.get(KEY_PARENTAL_CONTROL_STATE), default=-999)
+        safe_int(data.get(KEY_PC_STATE), default=-999)
     )
 
     # Block all
     parental_control["block_all"] = AsusBlockAll(
-        safe_int(data.get(KEY_PARENTAL_CONTROL_BLOCK_ALL), default=-999)
+        safe_int(data.get(KEY_PC_BLOCK_ALL), default=-999)
     )
 
     # Rules
-    rules = {}
-
-    if data.get(KEY_PARENTAL_CONTROL_MAC) != data.get(KEY_PARENTAL_CONTROL_TYPE):
-        as_is = {
-            key_to_use: [
-                method(temp_element) for temp_element in data[key].split("&#62")
-            ]
-            for key, key_to_use, method in MAP_PARENTAL_CONTROL_ITEM
-        }
-
-        number = len(as_is["mac"])
-        for i in range(number):
-            rules[as_is["mac"][i]] = ParentalControlRule(
-                mac=as_is["mac"][i],
-                name=as_is["name"][i],
-                type=MAP_PARENTAL_CONTROL_TYPE.get(as_is["type"][i], "unknown"),
-                timemap=as_is["timemap"][i] if i < len(as_is["timemap"]) else None,
-            )
-
-    parental_control["rules"] = rules.copy()
+    parental_control["rules"] = read_pc_rules(data)
 
     return parental_control
 

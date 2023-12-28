@@ -48,7 +48,6 @@ from asusrouter.modules.endpoint.error import AccessError
 from asusrouter.modules.firmware import Firmware
 from asusrouter.modules.flags import Flag
 from asusrouter.modules.identity import AsusDevice, collect_identity
-from asusrouter.modules.parental_control import ParentalControlRule
 from asusrouter.modules.port_forwarding import PortForwardingRule
 from asusrouter.modules.service import async_call_service
 from asusrouter.modules.state import (
@@ -61,7 +60,7 @@ from asusrouter.modules.state import (
 )
 from asusrouter.modules.system import AsusSystem
 from asusrouter.tools import legacy
-from asusrouter.tools.converters import safe_list
+from asusrouter.tools.converters import get_enum_key_by_value, safe_list
 from asusrouter.tools.readers import merge_dicts
 
 _LOGGER = logging.getLogger(__name__)
@@ -761,6 +760,12 @@ class AsusRouter:
                 # The only way to make it work with VPN Fusion
                 await asyncio.sleep(1)
                 await self._async_check_state_dependency(state)
+            elif (
+                get_enum_key_by_value(AsusState, type(state), default=AsusState.NONE)
+                == AsusState.PC_RULE
+            ):
+                # We should not save this state, since it is saved differently
+                pass
             else:
                 # Check if we have a state object for this data
                 self._check_state(get_datatype(state))
@@ -788,72 +793,6 @@ class AsusRouter:
     # Not tested, not used, not documented
     # This part can be changed / removed in the future
     # It might also not be working properly
-
-    async def async_apply_parental_control_rules(
-        self,
-        rules: dict[str, ParentalControlRule],
-    ) -> bool:
-        """Apply parental control rules."""
-
-        request = legacy.compile_parental_control(rules)
-
-        if request:
-            return await self.async_run_service(
-                service="restart_firewall",
-                arguments=request,
-                apply=True,
-            )
-
-        return False
-
-    async def async_remove_parental_control_rules(
-        self,
-        macs: Optional[str | list[str]] = None,
-        rules: Optional[ParentalControlRule | list[ParentalControlRule]] = None,
-        apply: bool = True,
-    ) -> dict[str, ParentalControlRule]:
-        """Remove parental control rules"""
-
-        _macs = set() if macs is None else set(safe_list(macs))
-        rules = [] if rules is None else safe_list(rules)
-
-        # Get current rules
-        current_rules: dict = (await self.async_get_data(AsusData.PARENTAL_CONTROL))[
-            "rules"
-        ]
-
-        # Remove old rules for these MACs
-        for mac in _macs:
-            current_rules.pop(mac, None)
-        for rule in rules:
-            current_rules.pop(rule.mac, None)
-
-        # Apply new rules
-        if apply:
-            await self.async_apply_parental_control_rules(current_rules)
-
-        # Return the new rules
-        return current_rules
-
-    async def async_set_parental_control_rules(
-        self,
-        rules: ParentalControlRule | list[ParentalControlRule],
-    ) -> bool:
-        """Set parental control rules"""
-
-        rules = safe_list(rules)
-
-        # Remove old rules for these MACs and get the rest of the list
-        current_rules = await self.async_remove_parental_control_rules(
-            rules, apply=False
-        )
-
-        # Add new rules
-        for rule in rules:
-            current_rules[rule.mac] = rule
-
-        # Apply new rules
-        return await self.async_apply_parental_control_rules(current_rules)
 
     async def async_apply_port_forwarding_rules(
         self,
