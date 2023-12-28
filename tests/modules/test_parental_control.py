@@ -5,7 +5,6 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from asusrouter.modules.data import AsusData, AsusDataState
 from asusrouter.modules.parental_control import (
     KEY_PC_BLOCK_ALL,
     KEY_PC_STATE,
