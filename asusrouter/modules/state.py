@@ -10,7 +10,11 @@ from typing import Any, Awaitable, Callable, Optional
 
 from asusrouter.modules.connection import ConnectionState
 from asusrouter.modules.data import AsusData, AsusDataState
-from asusrouter.modules.parental_control import AsusBlockAll, AsusParentalControl
+from asusrouter.modules.parental_control import (
+    AsusBlockAll,
+    AsusParentalControl,
+    ParentalControlRule,
+)
 from asusrouter.modules.port_forwarding import AsusPortForwarding
 from asusrouter.modules.system import AsusSystem
 from asusrouter.modules.vpnc import AsusVPNC
@@ -43,6 +47,7 @@ class AsusState(Enum):
     OPENVPN_CLIENT = AsusOVPNClient
     OPENVPN_SERVER = AsusOVPNServer
     PARENTAL_CONTROL = AsusParentalControl
+    PC_RULE = ParentalControlRule
     PORT_FORWARDING = AsusPortForwarding
     SYSTEM = AsusSystem
     VPNC = AsusVPNC
@@ -59,6 +64,7 @@ AsusStateMap: dict[AsusState, Optional[AsusData]] = {
     AsusState.OPENVPN_CLIENT: AsusData.OPENVPN_CLIENT,
     AsusState.OPENVPN_SERVER: AsusData.OPENVPN_SERVER,
     AsusState.PARENTAL_CONTROL: AsusData.PARENTAL_CONTROL,
+    AsusState.PC_RULE: AsusData.PARENTAL_CONTROL,
     AsusState.PORT_FORWARDING: AsusData.PORT_FORWARDING,
     AsusState.SYSTEM: AsusData.SYSTEM,
     AsusState.VPNC: AsusData.VPNC,
