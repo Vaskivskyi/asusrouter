@@ -460,7 +460,11 @@ class AsusRouter:
 
         if datatype == AsusData.CLIENTS:
             _LOGGER.debug("Transforming clients data")
-            return transform_clients(data, self._state.get(AsusData.CLIENTS))
+            return transform_clients(
+                data,
+                self._state.get(AsusData.CLIENTS),
+                aimesh=self._identity.aimesh if self._identity else False,
+            )
 
         if datatype == AsusData.CPU:
             _LOGGER.debug("Transforming CPU data")
