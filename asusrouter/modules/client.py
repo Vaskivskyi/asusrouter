@@ -188,7 +188,7 @@ CLIENT_MAP_CONNECTION_WLAN: dict[str, list[MapValueType]] = {
 
 
 def process_client(
-    data: dict[str, Any], history: Optional[AsusClient] = None
+    data: dict[str, Any], history: Optional[AsusClient] = None, **kwargs: Any
 ) -> AsusClient:
     """
     Process client data.
@@ -206,7 +206,7 @@ def process_client(
         process_client_connection(data)
     )
 
-    state: ConnectionState = process_client_state(connection)
+    state: ConnectionState = process_client_state(connection, **kwargs)
 
     # Clean disconnected client
     if state != ConnectionState.CONNECTED:
@@ -284,6 +284,7 @@ def process_client_connection_wlan(
 
 def process_client_state(
     connection: AsusClientConnection,
+    **kwargs: Any,
 ) -> ConnectionState:
     """Process client state."""
 
@@ -295,8 +296,13 @@ def process_client_state(
     if connection.aimesh is True:
         return ConnectionState.DISCONNECTED
 
+    # If we have support for AiMesh but no node, client is disconnected
+    aimesh = kwargs.get("aimesh", False)
+    if aimesh is True and connection.node is None:
+        return ConnectionState.DISCONNECTED
+
     # This one is a weak check, should always be the last one
-    if connection.online is True or connection.node is not None:
+    if connection.online is True:
         return ConnectionState.CONNECTED
 
     return ConnectionState.DISCONNECTED

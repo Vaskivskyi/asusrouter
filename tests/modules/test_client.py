@@ -258,13 +258,14 @@ def test_process_client_connection_wlan(process_data_mock):
 
 
 @pytest.mark.parametrize(
-    "ip_address, connection_type, aimesh, node, online, expected_result",
+    "ip_address, connection_type, aimesh, aimesh_support, node, online, expected_result",
     [
         # No IP address
         (
             None,
             ConnectionType.WLAN_2G,
             False,
+            True,
             None,
             False,
             ConnectionState.DISCONNECTED,
@@ -274,6 +275,7 @@ def test_process_client_connection_wlan(process_data_mock):
             "192.168.1.11",
             ConnectionType.DISCONNECTED,
             False,
+            True,
             None,
             False,
             ConnectionState.DISCONNECTED,
@@ -282,6 +284,7 @@ def test_process_client_connection_wlan(process_data_mock):
         (
             "192.168.1.11",
             ConnectionType.WLAN_2G,
+            True,
             True,
             None,
             False,
@@ -292,33 +295,37 @@ def test_process_client_connection_wlan(process_data_mock):
             "192.168.1.11",
             ConnectionType.WLAN_2G,
             False,
+            True,
             None,
             False,
             ConnectionState.DISCONNECTED,
-        ),
-        # No node assigned, online
-        (
-            "192.168.1.11",
-            ConnectionType.WLAN_2G,
-            False,
-            None,
-            True,
-            ConnectionState.CONNECTED,
         ),
         # Node assigned, offline
         (
             "192.168.1.11",
             ConnectionType.WLAN_2G,
             False,
+            True,
             "00:AA:BB:CC:00:01",
             False,
-            ConnectionState.CONNECTED,
+            ConnectionState.DISCONNECTED,
+        ),
+        # Node assigned, offline
+        (
+            "192.168.1.11",
+            ConnectionType.WLAN_2G,
+            False,
+            False,
+            "00:AA:BB:CC:00:01",
+            False,
+            ConnectionState.DISCONNECTED,
         ),
         # Node assigned, online
         (
             "192.168.1.11",
             ConnectionType.WLAN_2G,
             False,
+            True,
             "00:AA:BB:CC:00:01",
             True,
             ConnectionState.CONNECTED,
@@ -326,7 +333,7 @@ def test_process_client_connection_wlan(process_data_mock):
     ],
 )
 def test_process_client_state(
-    ip_address, connection_type, aimesh, node, online, expected_result
+    ip_address, connection_type, aimesh, aimesh_support, node, online, expected_result
 ):
     """Test process_client_state."""
 
@@ -340,7 +347,7 @@ def test_process_client_state(
     )
 
     # Check the result
-    assert process_client_state(connection) == expected_result
+    assert process_client_state(connection, aimesh=aimesh_support) == expected_result
 
 
 @pytest.mark.parametrize(

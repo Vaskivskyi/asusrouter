@@ -73,8 +73,7 @@ def transform_network(
 
 
 def transform_clients(
-    data: dict[str, Any],
-    history: Optional[AsusDataState],
+    data: dict[str, Any], history: Optional[AsusDataState], **kwargs: Any
 ) -> dict[str, Any]:
     """Transform clients data."""
 
@@ -84,7 +83,7 @@ def transform_clients(
             # Check client history
             client_history = history.data.get(mac) if history and history.data else None
             # Process the client
-            clients[mac] = process_client(client, client_history)
+            clients[mac] = process_client(client, client_history, **kwargs)
 
     return clients
 
