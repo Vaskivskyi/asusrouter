@@ -76,7 +76,7 @@ class Connection:  # pylint: disable=too-many-instance-attributes
         self._password = password
 
         # Client session
-        self._session = session if session is not None else aiohttp.ClientSession()
+        self._session = session if session is not None else self._new_session()
         _LOGGER.debug("Using session `%s`", session)
 
         # Set the port and protocol based on the input
@@ -86,6 +86,11 @@ class Connection:  # pylint: disable=too-many-instance-attributes
 
         # Callback for dumping data
         self._dumpback = dumpback
+
+    def _new_session(self) -> aiohttp.ClientSession:
+        """Create a new session."""
+
+        return aiohttp.ClientSession()
 
     async def async_connect(
         self, retry: int = 0, lock: Optional[asyncio.Lock] = None
@@ -259,8 +264,14 @@ class Connection:  # pylint: disable=too-many-instance-attributes
         # Check if a session is available
         if self._session is None or self._session.closed:
             # If no session is available, we cannot be connected to the device
-            # So we don't try to make any requests
-            raise AsusRouterSessionError("No session available for this connection")
+            _LOGGER.debug("No session available. Creating a new one")
+            # We will create a new session and retry the request
+            self.reset_connection()
+            self._session = self._new_session()
+            # Reconnect
+            await self.async_connect()
+            # Retry the request
+            return await self._make_post_request(endpoint, payload, headers)
 
         # Check headers
         if not headers:
