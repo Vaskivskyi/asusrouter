@@ -39,6 +39,7 @@ from asusrouter.modules.data_finder import (
 from asusrouter.modules.data_transform import (
     transform_clients,
     transform_cpu,
+    transform_ethernet_ports,
     transform_network,
     transform_wan,
 )
@@ -47,7 +48,6 @@ from asusrouter.modules.endpoint.error import AccessError
 from asusrouter.modules.firmware import Firmware
 from asusrouter.modules.flags import Flag
 from asusrouter.modules.identity import AsusDevice, collect_identity
-from asusrouter.modules.parental_control import ParentalControlRule
 from asusrouter.modules.port_forwarding import PortForwardingRule
 from asusrouter.modules.service import async_call_service
 from asusrouter.modules.state import (
@@ -60,7 +60,7 @@ from asusrouter.modules.state import (
 )
 from asusrouter.modules.system import AsusSystem
 from asusrouter.tools import legacy
-from asusrouter.tools.converters import safe_list
+from asusrouter.tools.converters import get_enum_key_by_value, safe_list
 from asusrouter.tools.readers import merge_dicts
 
 _LOGGER = logging.getLogger(__name__)
@@ -325,7 +325,10 @@ class AsusRouter:
         if endpoint in ASUSDATA_ENDPOINT_APPEND:
             payload = payload or ""
             for key, attribute in ASUSDATA_ENDPOINT_APPEND[endpoint].items():
-                value = self._get_attribute(attribute)
+                if isinstance(attribute, AsusRouterAttribute):
+                    value = self._get_attribute(attribute)
+                else:
+                    value = attribute
                 if value:
                     payload += f"{key}={value};"
             # Remove trailing semicolon
@@ -450,14 +453,18 @@ class AsusRouter:
 
         return data_map
 
-    def _transform_data(self, datatype: AsusData, data: Any) -> Any:
+    def _transform_data(self, datatype: AsusData, data: Any, **kwargs: Any) -> Any:
         """Transform data if needed."""
 
         _LOGGER.debug("Triggered method _transform_data for `%s`", datatype)
 
         if datatype == AsusData.CLIENTS:
             _LOGGER.debug("Transforming clients data")
-            return transform_clients(data, self._state.get(AsusData.CLIENTS))
+            return transform_clients(
+                data,
+                self._state.get(AsusData.CLIENTS),
+                aimesh=self._identity.aimesh if self._identity else False,
+            )
 
         if datatype == AsusData.CPU:
             _LOGGER.debug("Transforming CPU data")
@@ -470,6 +477,13 @@ class AsusRouter:
                 self._identity.services if self._identity else [],
                 self._state.get(AsusData.NETWORK),
                 model=self._identity.model if self._identity else None,
+            )
+
+        if datatype == AsusData.PORTS:
+            _LOGGER.debug("Transforming port data")
+            return transform_ethernet_ports(
+                data,
+                self._identity.mac if self._identity else None,
             )
 
         if datatype == AsusData.WAN:
@@ -524,7 +538,38 @@ class AsusRouter:
                 )
             )
 
-    async def async_get_data(self, datatype: AsusData, force: bool = False) -> Any:
+    def _return_state(self, datatype: AsusData, **kwargs: Any) -> Any:
+        """Return a proper state."""
+
+        _LOGGER.debug("Triggered method _return_state")
+
+        # Get the state
+        state = self._state[datatype].data
+
+        if datatype == AsusData.PORTS:
+            own_mac = self._identity.mac if self._identity else None
+
+            # Get the device selected
+            device = kwargs.get("device", None)
+
+            match device:
+                case None:
+                    if isinstance(state, dict):
+                        return state.get(own_mac, {})
+                    return state
+                case "all":
+                    return state
+                # Case when substate is a MAC address
+                case a if isinstance(a, str):
+                    if isinstance(state, dict) and a in state:
+                        return state[a]
+                    return {}
+
+        return state
+
+    async def async_get_data(
+        self, datatype: AsusData, force: bool = False, **kwargs: Any
+    ) -> Any:
         """Generic method to get data from the device."""
 
         # Check if we have a state object for this data
@@ -629,7 +674,7 @@ class AsusRouter:
                     self._state[key] = AsusDataState()
                 self._state[key].update(value)
         except (AsusRouterConnectionError, AsusRouterDataError):
-            return self._state[datatype].data
+            return self._return_state(datatype, **kwargs)
 
         # Check flags
         await self._check_flags()
@@ -640,7 +685,7 @@ class AsusRouter:
             datatype,
             type(self._state[datatype].data),
         )
-        return self._state[datatype].data
+        return self._return_state(datatype, **kwargs)
 
     # ---------------------------
     # Service-related methods -->
@@ -719,6 +764,12 @@ class AsusRouter:
                 # The only way to make it work with VPN Fusion
                 await asyncio.sleep(1)
                 await self._async_check_state_dependency(state)
+            elif (
+                get_enum_key_by_value(AsusState, type(state), default=AsusState.NONE)
+                == AsusState.PC_RULE
+            ):
+                # We should not save this state, since it is saved differently
+                pass
             else:
                 # Check if we have a state object for this data
                 self._check_state(get_datatype(state))
@@ -746,72 +797,6 @@ class AsusRouter:
     # Not tested, not used, not documented
     # This part can be changed / removed in the future
     # It might also not be working properly
-
-    async def async_apply_parental_control_rules(
-        self,
-        rules: dict[str, ParentalControlRule],
-    ) -> bool:
-        """Apply parental control rules."""
-
-        request = legacy.compile_parental_control(rules)
-
-        if request:
-            return await self.async_run_service(
-                service="restart_firewall",
-                arguments=request,
-                apply=True,
-            )
-
-        return False
-
-    async def async_remove_parental_control_rules(
-        self,
-        macs: Optional[str | list[str]] = None,
-        rules: Optional[ParentalControlRule | list[ParentalControlRule]] = None,
-        apply: bool = True,
-    ) -> dict[str, ParentalControlRule]:
-        """Remove parental control rules"""
-
-        _macs = set() if macs is None else set(safe_list(macs))
-        rules = [] if rules is None else safe_list(rules)
-
-        # Get current rules
-        current_rules: dict = (await self.async_get_data(AsusData.PARENTAL_CONTROL))[
-            "rules"
-        ]
-
-        # Remove old rules for these MACs
-        for mac in _macs:
-            current_rules.pop(mac, None)
-        for rule in rules:
-            current_rules.pop(rule.mac, None)
-
-        # Apply new rules
-        if apply:
-            await self.async_apply_parental_control_rules(current_rules)
-
-        # Return the new rules
-        return current_rules
-
-    async def async_set_parental_control_rules(
-        self,
-        rules: ParentalControlRule | list[ParentalControlRule],
-    ) -> bool:
-        """Set parental control rules"""
-
-        rules = safe_list(rules)
-
-        # Remove old rules for these MACs and get the rest of the list
-        current_rules = await self.async_remove_parental_control_rules(
-            rules, apply=False
-        )
-
-        # Add new rules
-        for rule in rules:
-            current_rules[rule.mac] = rule
-
-        # Apply new rules
-        return await self.async_apply_parental_control_rules(current_rules)
 
     async def async_apply_port_forwarding_rules(
         self,

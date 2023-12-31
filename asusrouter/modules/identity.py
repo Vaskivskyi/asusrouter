@@ -50,6 +50,9 @@ class AsusDevice:  # pylint: disable=too-many-instance-attributes
     model: Optional[str] = None
     brand: str = "ASUSTek"
 
+    # Supported features
+    aimesh: bool = False
+
     # Device information
     firmware: Optional[Firmware] = None
     merlin: bool = False
@@ -92,6 +95,9 @@ async def collect_identity(
     # Read the identity
     identity = _read_nvram(identity_map)
     _LOGGER.debug("Identity read")
+
+    # Process services
+    identity["aimesh"] = "amas" in identity["services"]
 
     # Check endpoints
     endpoints = await _check_endpoints(api_query)

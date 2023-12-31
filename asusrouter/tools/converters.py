@@ -134,6 +134,50 @@ def handle_none_content(content: Optional[_T], default: Optional[_T]) -> Optiona
     return content
 
 
+def int_as_bits(value: int) -> list[bool]:
+    """Convert an integer to a list of bits."""
+
+    if not isinstance(value, int):
+        return []
+
+    # Negative values are not supported
+    if value < 0:
+        return []
+
+    # Zero is a special case
+    if value == 0:
+        return [False]
+
+    return [bool(value & (1 << i)) for i in range(value.bit_length())]
+
+
+def int_as_capabilities(value: int, capabilities: Type[Enum]) -> dict[Enum, bool]:
+    """Convert an integer to a dict of capabilities."""
+
+    # Check if the capabilities is an enum
+    if not is_enum(capabilities) or not isinstance(value, int):
+        return {}
+
+    # Convert the value to a list of bits
+    bits = int_as_bits(value)
+
+    result = {}
+
+    # For each capability in the capabilities
+    # Considering key as a capability name and value as a capability bit
+    for capability in capabilities:
+        # Check that the capability is an integer
+        if not isinstance(capability.value, int):
+            continue
+
+        # Check if the bit is set
+        result[capability] = (
+            bits[capability.value] if capability.value < len(bits) else False
+        )
+
+    return result
+
+
 def is_enum(v) -> bool:
     """Check if the value is an enum."""
 

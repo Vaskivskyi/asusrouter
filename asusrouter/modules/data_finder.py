@@ -18,14 +18,7 @@ from asusrouter.modules.endpoint.hook_const import (
     MAP_WIREGUARD_CLIENT,
     MAP_WIREGUARD_SERVER,
 )
-from asusrouter.modules.parental_control import (
-    KEY_PARENTAL_CONTROL_BLOCK_ALL,
-    KEY_PARENTAL_CONTROL_MAC,
-    KEY_PARENTAL_CONTROL_NAME,
-    KEY_PARENTAL_CONTROL_STATE,
-    KEY_PARENTAL_CONTROL_TIMEMAP,
-    KEY_PARENTAL_CONTROL_TYPE,
-)
+from asusrouter.modules.parental_control import HOOK_PC
 from asusrouter.modules.wlan import gwlan_nvram_request, wlan_nvram_request
 from asusrouter.tools import converters
 
@@ -110,14 +103,7 @@ ASUSDATA_NVRAM = {
         for element in MAP_OVPN_SERVER_388
         for key, _, _ in [converters.safe_unpack_keys(element)]
     ],
-    "parental_control": [
-        KEY_PARENTAL_CONTROL_BLOCK_ALL,
-        KEY_PARENTAL_CONTROL_MAC,
-        KEY_PARENTAL_CONTROL_NAME,
-        KEY_PARENTAL_CONTROL_STATE,
-        KEY_PARENTAL_CONTROL_TIMEMAP,
-        KEY_PARENTAL_CONTROL_TYPE,
-    ],
+    "parental_control": HOOK_PC,
     "port_forwarding": [
         "vts_rulelist",
         "vts_enable_x",
@@ -175,7 +161,10 @@ ASUSDATA_NVRAM["wireguard_server"].extend(
 
 ASUSDATA_ENDPOINT_APPEND = {
     Endpoint.PORT_STATUS: {
-        "node_mac": AsusRouterAttribute.MAC,
+        # Request status of the ports for the whole AiMesh network
+        # This will save time and requests, since we then cache the data
+        # in most cases
+        "node_mac": "all",
     }
 }
 

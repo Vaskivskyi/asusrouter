@@ -10,6 +10,7 @@ class AsusSystem(str, Enum):
     """Asus system enum."""
 
     REBOOT = "reboot"
+    REBUILD_AIMESH = "re_reconnect"
     RESTART_CHPASS = "restart_chpass"
     RESTART_DNSMASQ = "restart_dnsmasq"
     RESTART_FIREWALL = "restart_firewall"
