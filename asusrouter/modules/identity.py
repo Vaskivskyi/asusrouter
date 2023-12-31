@@ -9,7 +9,11 @@ from dataclasses import dataclass
 from typing import Any, Awaitable, Callable, Optional, Tuple
 
 from asusrouter.error import AsusRouterIdentityError
+from asusrouter.modules.aimesh import AiMeshDevice
+from asusrouter.modules.data import AsusData
 from asusrouter.modules.endpoint import Endpoint, check_available
+from asusrouter.modules.endpoint.onboarding import process as process_onboarding
+from asusrouter.modules.endpoint.onboarding import read as read_onboarding
 from asusrouter.modules.firmware import Firmware, read_fw_string
 from asusrouter.modules.wlan import WLAN_TYPE, Wlan
 from asusrouter.tools import writers
@@ -27,6 +31,7 @@ MAP_IDENTITY: Tuple = (
     ("label_mac", "mac"),
     ("lan_hwaddr", "lan_mac"),
     ("wan_hwaddr", "wan_mac"),
+    ("productid", "product_id"),
     ("productid", "model"),
     ("firmver", "fw_major"),
     ("buildno", "fw_minor"),
@@ -47,6 +52,7 @@ class AsusDevice:  # pylint: disable=too-many-instance-attributes
     # Device-defining values
     serial: Optional[str] = None
     mac: Optional[str] = None
+    product_id: Optional[str] = None
     model: Optional[str] = None
     brand: str = "ASUSTek"
 
@@ -100,9 +106,14 @@ async def collect_identity(
     identity["aimesh"] = "amas" in identity["services"]
 
     # Check endpoints
-    endpoints = await _check_endpoints(api_query)
+    endpoints, onboarding = await _check_endpoints(api_query)
     identity["endpoints"] = endpoints
     _LOGGER.debug("Endpoints checked")
+
+    # Check onboarding to get nice model name
+    this_device = onboarding.get(identity["mac"])
+    if isinstance(this_device, AiMeshDevice):
+        identity["model"] = this_device.model
 
     # Check if Merlin
     if endpoints[Endpoint.SYSINFO] is True:
@@ -177,12 +188,21 @@ def _read_nvram(data: dict[str, Any]) -> dict[str, Any]:
 
 async def _check_endpoints(
     api_hook: Callable[..., Awaitable[Any]]
-) -> dict[Endpoint, bool]:
+) -> tuple[dict[Endpoint, bool], dict[str, Any]]:
     """Check which endpoints are available."""
 
     endpoints: dict[Endpoint, bool] = {}
+    contents: dict[Endpoint, Any] = {}
 
     for endpoint in Endpoint:
-        endpoints[endpoint] = await check_available(endpoint, api_hook)
+        result, content = await check_available(endpoint, api_hook)
+        endpoints[endpoint] = result
+        contents[endpoint] = content
 
-    return endpoints
+    onboarding = {}
+    if endpoints[Endpoint.ONBOARDING] is True:
+        onboarding = process_onboarding(
+            read_onboarding(contents[Endpoint.ONBOARDING])
+        ).get(AsusData.AIMESH, {})
+
+    return (endpoints, onboarding)
