@@ -140,14 +140,14 @@ def data_get(data: dict[str, Any], key: str) -> Optional[Any]:
 
 async def check_available(
     endpoint: Endpoint, api_query: Callable[..., Awaitable[Any]]
-) -> bool:
+) -> tuple[bool, Optional[Any]]:
     """Check whether the endpoint is available or returns 404."""
 
     try:
-        status, _, _ = await api_query(endpoint)
+        status, _, content = await api_query(endpoint)
         if status == 200:
-            return True
+            return (True, content)
     except AsusRouter404Error:
-        return False
+        return (False, None)
 
-    return False
+    return (False, None)
