@@ -159,11 +159,13 @@ def test_data_get(data, key, expected, data_left):
     "api_query_return, expected_result",
     [
         # Test case: status 200
-        ((200, None, None), True),
+        ((200, None, None), (True, None)),
+        # Test case: status 200 and content
+        ((200, None, "content"), (True, "content")),
         # Test case: status not 200
-        ((403, None, None), False),
+        ((403, None, None), (False, None)),
         # Test case: AsusRouter404Error is raised
-        (AsusRouter404Error(), False),
+        (AsusRouter404Error(), (False, None)),
     ],
 )
 async def test_check_available(api_query_return, expected_result):
