@@ -44,9 +44,9 @@ def process(data: dict[str, Any]) -> dict[AsusData, Any]:
         # Get the port code
         port_code = port[0:3].lower()
         # Check whether the port code is in PortType enum
-        if port_code in PortType.__members__:
+        try:
             port_type = PortType(port_code)
-        else:
+        except ValueError:
             # This should be some other kind of port and not LAN or WAN
             # Based on https://github.com/Vaskivskyi/ha-asusrouter/issues/774
             # it is probably the SFPP port, since 10G WAN/LAN should be
