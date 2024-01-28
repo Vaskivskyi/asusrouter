@@ -509,6 +509,28 @@ class AsusRouter:
         # A placeholder for future checks
         return
 
+    async def _check_postrequisites(self, datatype: AsusData) -> None:
+        """Check postrequisites after fetching data.
+
+        This method is also used to fetch additional data."""
+
+        _LOGGER.debug(
+            "Triggered method _check_postrequisites for datatype `%s`", datatype
+        )
+
+        # Firmware
+        if datatype == AsusData.FIRMWARE:
+            # Check if update is available
+            firmware = self._state[AsusData.FIRMWARE].data
+            if firmware and firmware["state"] is True:
+                # Get release notes
+                release_note = await self.async_get_data(
+                    AsusData.FIRMWARE_NOTE, force=True
+                )
+                if release_note:
+                    firmware.update(release_note)
+        return
+
     def _check_state(self, datatype: Optional[AsusData]) -> None:
         """Make sure the state object is available."""
 
@@ -665,6 +687,9 @@ class AsusRouter:
 
         # Check flags
         await self._check_flags()
+
+        # Check postrequisites
+        await self._check_postrequisites(datatype)
 
         # Return the data we were looking for
         _LOGGER.debug(
