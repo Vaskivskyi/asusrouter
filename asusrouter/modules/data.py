@@ -18,6 +18,7 @@ class AsusData(str, Enum):
     CPU = "cpu"
     DEVICEMAP = "devicemap"
     FIRMWARE = "firmware"
+    FIRMWARE_NOTE = "firmware_note"
     FLAGS = "flags"
     GWLAN = "gwlan"
     LED = "led"
