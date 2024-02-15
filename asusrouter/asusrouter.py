@@ -13,11 +13,7 @@ from typing import Any, Awaitable, Callable, Optional
 import aiohttp
 
 from asusrouter.connection import Connection
-from asusrouter.const import (
-    DEFAULT_CACHE_TIME,
-    DEFAULT_CLIENTS_WAITTIME,
-    DEFAULT_TIMEOUT,
-)
+from asusrouter.const import DEFAULT_CACHE_TIME, DEFAULT_TIMEOUT
 from asusrouter.error import (
     AsusRouter404Error,
     AsusRouterAccessError,
@@ -58,7 +54,6 @@ from asusrouter.modules.state import (
     save_state,
     set_state,
 )
-from asusrouter.modules.system import AsusSystem
 from asusrouter.tools import legacy
 from asusrouter.tools.converters import get_enum_key_by_value, safe_list
 from asusrouter.tools.readers import merge_dicts
@@ -100,10 +95,6 @@ class AsusRouter:
         self._needed_time: Optional[int] = None
         # ID from the last called service
         self._last_id: Optional[int] = None
-
-        # Force clients
-        self._force_clients: bool = False
-        self._force_clients_waittime: float = DEFAULT_CLIENTS_WAITTIME
 
         # Create a connection
         self._connection = Connection(
@@ -511,16 +502,34 @@ class AsusRouter:
     async def _check_prerequisites(self, datatype: AsusData) -> None:
         """Check prerequisites before fetching data."""
 
-        # Allow forcing clients update if set by the user
-        if datatype == AsusData.CLIENTS:
-            if self._force_clients:
-                _LOGGER.debug("Forcing clients update")
-                await self.async_set_state(AsusSystem.UPDATE_CLIENTS)
-                _LOGGER.debug(
-                    "Waiting for clients to be updated: %s s",
-                    self._force_clients_waittime,
+        _LOGGER.debug(
+            "Triggered method _check_prerequisites for datatype `%s`", datatype
+        )
+
+        # A placeholder for future checks
+        return
+
+    async def _check_postrequisites(self, datatype: AsusData) -> None:
+        """Check postrequisites after fetching data.
+
+        This method is also used to fetch additional data."""
+
+        _LOGGER.debug(
+            "Triggered method _check_postrequisites for datatype `%s`", datatype
+        )
+
+        # Firmware
+        if datatype == AsusData.FIRMWARE:
+            # Check if update is available
+            firmware = self._state[AsusData.FIRMWARE].data
+            if firmware and firmware["state"] is True:
+                # Get release notes
+                release_note = await self.async_get_data(
+                    AsusData.FIRMWARE_NOTE, force=True
                 )
-                await asyncio.sleep(self._force_clients_waittime)
+                if release_note:
+                    firmware.update(release_note)
+        return
 
     def _check_state(self, datatype: Optional[AsusData]) -> None:
         """Make sure the state object is available."""
@@ -678,6 +687,9 @@ class AsusRouter:
 
         # Check flags
         await self._check_flags()
+
+        # Check postrequisites
+        await self._check_postrequisites(datatype)
 
         # Return the data we were looking for
         _LOGGER.debug(
@@ -898,15 +910,6 @@ class AsusRouter:
     # ---------------------------
     # Additional settings -->
     # ---------------------------
-
-    def set_force_clients(
-        self, value: bool = True, waittime: Optional[float] = None
-    ) -> None:
-        """Set force clients."""
-
-        self._force_clients = value
-        if waittime:
-            self._force_clients_waittime = waittime
 
     # ---------------------------
     # <-- Additional settings

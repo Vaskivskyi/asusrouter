@@ -13,7 +13,7 @@ REQUIRE_FIRMWARE = True
 
 
 def read(content: str) -> dict[str, Any]:
-    """Read firmware data"""
+    """Read firmware data."""
 
     firmware: dict[str, Any] = {}
 
@@ -32,7 +32,7 @@ def read(content: str) -> dict[str, Any]:
 
 
 def process(data: dict[str, Any]) -> dict[AsusData, Any]:
-    """Process firmware data"""
+    """Process firmware data."""
 
     state: dict[AsusData, Any] = {}
 
@@ -46,7 +46,7 @@ def process(data: dict[str, Any]) -> dict[AsusData, Any]:
 
 
 def process_firmware(raw_firmware, fw_current) -> dict[str, Any]:
-    """Process firmware data"""
+    """Process firmware data."""
 
     # Firmware
     firmware = raw_firmware
