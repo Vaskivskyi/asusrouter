@@ -15,6 +15,12 @@ class AsusSystem(str, Enum):
     Some services might not be tested and might not work as expected. Use with caution
     and at your own risk."""
 
+    # Firmware
+    FIRMWARE_CHECK = "firmware_check"  # Check for firmware update
+    # Firmware upgrade will upgrade the firmware to the latest version
+    # if available. The firmware file is downloaded from the Asus server.
+    # After the download, the router will reboot and install the firmware.
+    FIRMWARE_UPGRADE = "firmware_upgrade"  # Firmware upgrade
     PREPARE_CERT = "prepare_cert"  # Prepare certificate
     REBOOT = "reboot"  # Reboot the router
     REBUILD_AIMESH = "re_reconnect"  # Rebuild AiMesh
@@ -86,6 +92,18 @@ class AsusSystem(str, Enum):
 
 # Map AsusSystem special cases to service calls
 STATE_MAP: dict[AsusSystem, dict[str, Any]] = {
+    AsusSystem.FIRMWARE_CHECK: {
+        "service": None,
+        "arguments": {"action_mode": "firmware_check"},
+        "apply": False,
+        "expect_modify": False,
+    },
+    AsusSystem.FIRMWARE_UPGRADE: {
+        "service": None,
+        "arguments": {"action_mode": "firmware_upgrade"},
+        "apply": False,
+        "expect_modify": False,
+    },
     AsusSystem.UPDATE_CLIENTS: {
         "service": None,
         "arguments": {"action_mode": "update_client_list"},
