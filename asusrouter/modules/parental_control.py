@@ -277,14 +277,9 @@ def write_pc_rules(rules: dict[str, ParentalControlRule]) -> dict[str, str]:
     # Join the values together
     data = {}
     for key, attribute in PC_RULE_MAP.items():
-        if attribute == "type":
-            data[key] = ">".join(
-                str(getattr(rule, attribute, "")) for rule in rules.values()
-            )
-        else:
-            data[key] = ">".join(
-                getattr(rule, attribute, "") for rule in rules.values()
-            )
+        data[key] = ">".join(
+            str(getattr(rule, attribute, "")) for rule in rules.values()
+        )
 
     data[KEY_PC_TIMEMAP] = data[KEY_PC_TIMEMAP].replace("&#60", "<")
 
