@@ -427,7 +427,8 @@ class AsusRouter:
         while isinstance(data_map, AsusData):
             data_map = ASUSDATA_MAP.get(data_map)
         # Check if we have a map
-        if not data_map:
+        if not isinstance(data_map, AsusDataFinder):
+            _LOGGER.debug("No map found for %s", datatype)
             return None
 
         # Check if endpoints are available
