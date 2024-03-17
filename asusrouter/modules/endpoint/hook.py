@@ -480,6 +480,8 @@ def process_vpnc(data: dict[str, Any]) -> Tuple[dict[AsusVPNType, dict[int, Any]
                 continue
             part = client.split(">")
             # Format: name, type, id, login, password, active, vpnc_id, ?, ?, ?, ?, `Web`
+            if len(part) < 7:
+                continue
             vpnc_id = safe_int(part[6])
             vpnc[vpnc_id] = {
                 "type": AsusVPNType(part[1])
