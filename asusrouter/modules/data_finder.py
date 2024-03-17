@@ -179,7 +179,9 @@ ASUSDATA_MAP: dict[AsusData, AsusData | AsusDataFinder] = {
     AsusData.CPU: AsusDataFinder(Endpoint.HOOK, request=ASUSDATA_REQUEST["main"]),
     AsusData.DEVICEMAP: AsusDataFinder(Endpoint.DEVICEMAP),
     AsusData.FIRMWARE: AsusDataFinder(Endpoint.FIRMWARE),
-    AsusData.FIRMWARE_NOTE: AsusDataFinder(Endpoint.FIRMWARE_NOTE),
+    AsusData.FIRMWARE_NOTE: AsusDataFinder(
+        [Endpoint.FIRMWARE_NOTE, Endpoint.FIRMWARE_NOTE_AIMESH]
+    ),
     AsusData.GWLAN: AsusDataFinder(
         Endpoint.HOOK,
         method=gwlan_nvram_request,
