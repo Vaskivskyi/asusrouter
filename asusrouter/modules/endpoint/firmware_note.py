@@ -14,6 +14,10 @@ def read(content: str) -> dict[str, Any]:
     raw_note = content.replace("\ufeff", "")
     raw_note = raw_note.replace("\uff1a", ":")  # Replace the full-width colon
 
+    # Empty release note -> fast return
+    if raw_note == "\n\n":
+        return {}
+
     # Get only the changes
     # 1. Split the data into lines
     lines = raw_note.splitlines()
