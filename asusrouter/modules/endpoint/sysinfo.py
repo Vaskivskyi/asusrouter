@@ -58,11 +58,21 @@ def process(data: dict[str, Any]) -> dict[AsusData, Any]:
     memory_info = {}
     memory_data = data.get("mem_stats_arr")
     if memory_data:
+        # Before 388.7
         # JFFS data is presented as a string of `XX.xx / YY.yy MB`
         # where `XX.xx` is the used space (float) and `YY.yy` is the total space (float)
-        jffs_data = memory_data[7][:-3].split(" / ")
-        jffs_used = safe_float(jffs_data[0])
-        jffs_total = safe_float(jffs_data[1])
+        jffs = memory_data[7]
+        if "/" in jffs:
+            jffs_data = jffs[:-3].split(" / ")
+            jffs_used = safe_float(jffs_data[0])
+            jffs_total = safe_float(jffs_data[1])
+            jffs_free = jffs_total - jffs_used if jffs_used and jffs_total else None
+        # From 388.7
+        # JFFS is just a `free` single float
+        else:
+            jffs_free = safe_float(jffs)
+            jffs_used = None
+            jffs_total = None
 
         memory_info = {
             "total": safe_float(memory_data[0]),
@@ -72,6 +82,7 @@ def process(data: dict[str, Any]) -> dict[AsusData, Any]:
             "swap_1": safe_float(memory_data[4]),
             "swap_2": safe_float(memory_data[5]),
             "nvram": safe_int(memory_data[6]),
+            "jffs_free": jffs_free,
             "jffs_used": jffs_used,
             "jffs_total": jffs_total,
         }
