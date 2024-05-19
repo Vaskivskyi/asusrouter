@@ -135,8 +135,9 @@ class Connection:  # pylint: disable=too-many-instance-attributes
                     await asyncio.sleep(DEFAULT_TIMEOUTS[retry])
                     return await self.async_connect(retry + 1, asyncio.Lock())
                 raise AsusRouterTimeoutError(
-                    f"Reached maximum allowed timeout\
-                        for a single connection attempt: {sum(DEFAULT_TIMEOUTS)}"
+                    f"Reached maximum allowed timeout \
+for a single connection attempt: {sum(DEFAULT_TIMEOUTS)}. \
+The last error: {ex}"
                 ) from ex
             except Exception as ex:  # pylint: disable=broad-except
                 _LOGGER.debug("Error while connecting to %s: %s", self._hostname, ex)
@@ -223,11 +224,13 @@ class Connection:  # pylint: disable=too-many-instance-attributes
         except aiohttp.ClientConnectorError as ex:
             self.reset_connection()
             raise AsusRouterConnectionError(
-                f"Cannot connect to {self._hostname}. Failed in `_send_request`"
+                f"Cannot connect to `{self._hostname}` on port `{self._port}`. \
+Failed in `_send_request` with error: `{ex}`"
             ) from ex
         except (aiohttp.ClientConnectionError, aiohttp.ClientOSError) as ex:
             raise AsusRouterConnectionError(
-                f"Cannot connect to {self._hostname}. Failed in `_send_request`"
+                f"Cannot connect to `{self._hostname}` on port `{self._port}`. \
+Failed in `_send_request` with error: `{ex}`"
             ) from ex
         except Exception as ex:  # pylint: disable=broad-except
             raise ex
