@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import importlib
 import logging
+from concurrent.futures import ThreadPoolExecutor
 from enum import Enum
 from types import ModuleType
 from typing import Any, Awaitable, Callable, Optional
@@ -57,8 +58,12 @@ def _get_module(endpoint: Endpoint | EndpointControl) -> Optional[ModuleType]:
     try:
         # Get the module name from the endpoint
         module_name = f"asusrouter.modules.endpoint.{endpoint.name.lower()}"
-        # Import the module
-        submodule = importlib.import_module(module_name)
+
+        # Import the module in a separate thread to avoid blocking the main thread
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(importlib.import_module, module_name)
+            submodule = future.result()
+
         # Return the module
         return submodule
     except ModuleNotFoundError:
