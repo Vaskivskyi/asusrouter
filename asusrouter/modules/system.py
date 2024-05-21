@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import logging
 from enum import Enum
 from typing import Any, Awaitable, Callable
+
+_LOGGER = logging.getLogger(__name__)
 
 
 class AsusSystem(str, Enum):
@@ -15,6 +18,12 @@ class AsusSystem(str, Enum):
     Some services might not be tested and might not work as expected. Use with caution
     and at your own risk."""
 
+    # ---------------------
+    # AiMesh
+    AIMESH_REBOOT = "device_reboot"  # Restart router + all nodes
+    AIMESH_REBUILD = "re_reconnect"  # Rebuild AiMesh
+    REBUILD_AIMESH = "_depr_re_reconnect"  # Rebuild AiMesh / legacy name
+    # ---------------------
     # Firmware
     FIRMWARE_CHECK = "firmware_check"  # Check for firmware update
     # Firmware upgrade will upgrade the firmware to the latest version
@@ -23,7 +32,6 @@ class AsusSystem(str, Enum):
     FIRMWARE_UPGRADE = "firmware_upgrade"  # Firmware upgrade
     PREPARE_CERT = "prepare_cert"  # Prepare certificate
     REBOOT = "reboot"  # Reboot the router
-    REBUILD_AIMESH = "re_reconnect"  # Rebuild AiMesh
     RESTART_CHPASS = "restart_chpass"
     RESTART_CLOUDSYNC = "restart_cloudsync"  # AiCloud 2.0 sync
     RESTART_CP = "restart_CP"  # Captive Portal
@@ -90,8 +98,19 @@ class AsusSystem(str, Enum):
     UPDATE_CLIENTS = "update_clients"
 
 
+AsusSystemDeprecated = {
+    AsusSystem.REBUILD_AIMESH: (AsusSystem.AIMESH_REBUILD, None),
+}
+
+
 # Map AsusSystem special cases to service calls
 STATE_MAP: dict[AsusSystem, dict[str, Any]] = {
+    AsusSystem.AIMESH_REBOOT: {
+        "service": None,
+        "arguments": {"action_mode": "device_reboot"},
+        "apply": False,
+        "expect_modify": False,
+    },
     AsusSystem.FIRMWARE_CHECK: {
         "service": None,
         "arguments": {"action_mode": "firmware_check"},
@@ -119,6 +138,17 @@ async def set_state(
     **kwargs: Any,
 ) -> bool:
     """Set the system state."""
+
+    if state in AsusSystemDeprecated:
+        repl_state, repl_ver = AsusSystemDeprecated[state]
+        message = f"Deprecated state `{state.name}` from `AsusSystem` \
+enum used. Use `{repl_state.name}` instead"
+        if repl_ver:
+            message += f". This state will be removed in version {repl_ver}"
+        _LOGGER.warning(
+            message,
+        )
+        state = repl_state
 
     # Get the arguments for the callback function based on the state
     callback_args = STATE_MAP.get(
