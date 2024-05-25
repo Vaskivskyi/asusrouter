@@ -8,7 +8,7 @@ from typing import Callable, Optional
 
 from asusrouter.modules.attributes import AsusRouterAttribute
 from asusrouter.modules.data import AsusData
-from asusrouter.modules.endpoint import Endpoint
+from asusrouter.modules.endpoint import Endpoint, EndpointTools, EndpointType
 from asusrouter.modules.endpoint.hook_const import (
     MAP_OVPN_SERVER_388,
     MAP_VPNC_WIREGUARD,
@@ -37,7 +37,7 @@ class AsusDataFinder:
 
     def __init__(
         self,
-        endpoint: list[Endpoint] | Endpoint,
+        endpoint: list[EndpointType] | EndpointType,
         merge: AsusDataMerge = AsusDataMerge.ANY,
         request: Optional[list[tuple[str, ...]]] = None,
         nvram: Optional[list[str] | str] = None,
@@ -47,7 +47,7 @@ class AsusDataFinder:
         """Initialize the data finder."""
 
         # Set the endpoint as list even if it's a single endpoint
-        if isinstance(endpoint, Endpoint):
+        if not isinstance(endpoint, list):
             endpoint = [endpoint]
         self.endpoint = endpoint
 
@@ -198,6 +198,7 @@ ASUSDATA_MAP: dict[AsusData, AsusData | AsusDataFinder] = {
     AsusData.PARENTAL_CONTROL: AsusDataFinder(
         Endpoint.HOOK, nvram=ASUSDATA_NVRAM["parental_control"]
     ),
+    AsusData.PING: AsusDataFinder(EndpointTools.NETWORK),
     AsusData.PORT_FORWARDING: AsusDataFinder(
         Endpoint.HOOK, nvram=ASUSDATA_NVRAM["port_forwarding"]
     ),

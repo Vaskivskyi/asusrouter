@@ -6,12 +6,18 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
+from itertools import chain
 from typing import Any, Awaitable, Callable, Optional, Tuple
 
 from asusrouter.error import AsusRouterIdentityError
 from asusrouter.modules.aimesh import AiMeshDevice
 from asusrouter.modules.data import AsusData
-from asusrouter.modules.endpoint import Endpoint, check_available
+from asusrouter.modules.endpoint import (
+    Endpoint,
+    EndpointTools,
+    EndpointType,
+    check_available,
+)
 from asusrouter.modules.endpoint.onboarding import process as process_onboarding
 from asusrouter.modules.endpoint.onboarding import read as read_onboarding
 from asusrouter.modules.firmware import Firmware, read_fw_string
@@ -63,7 +69,7 @@ class AsusDevice:  # pylint: disable=too-many-instance-attributes
     firmware: Optional[Firmware] = None
     merlin: bool = False
     wlan: Optional[list[Wlan]] = None
-    endpoints: Optional[dict[Endpoint, bool]] = None
+    endpoints: Optional[dict[EndpointType, bool]] = None
     services: Optional[list[str]] = None
 
     # Flags for device features
@@ -188,13 +194,13 @@ def _read_nvram(data: dict[str, Any]) -> dict[str, Any]:
 
 async def _check_endpoints(
     api_hook: Callable[..., Awaitable[Any]]
-) -> tuple[dict[Endpoint, bool], dict[str, Any]]:
+) -> tuple[dict[EndpointType, bool], dict[str, Any]]:
     """Check which endpoints are available."""
 
-    endpoints: dict[Endpoint, bool] = {}
-    contents: dict[Endpoint, Any] = {}
+    endpoints: dict[EndpointType, bool] = {}
+    contents: dict[EndpointType, Any] = {}
 
-    for endpoint in Endpoint:
+    for endpoint in chain(Endpoint, EndpointTools):
         result, content = await check_available(endpoint, api_hook)
         endpoints[endpoint] = result
         contents[endpoint] = content

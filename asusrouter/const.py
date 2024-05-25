@@ -16,6 +16,13 @@ class ContentType(str, Enum):
     XML = "application/xml"
 
 
+class RequestType(str, Enum):
+    """Request type enum."""
+
+    GET = "get"
+    POST = "post"
+
+
 # Asus constants
 USER_AGENT = "asusrouter--DUTUtil-"
 

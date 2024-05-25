@@ -1,4 +1,4 @@
-"""Result of processing hook_007.content."""
+"""Result of processing hook_001.content."""
 
 from asusrouter import AsusData
 from asusrouter.modules.connection import ConnectionState

@@ -143,6 +143,11 @@ def test_read_js_variables(content, expected):
             '{ , "key1": "value1", , "key2": "value2", }',
             {"key1": "value1", "key2": "value2"},
         ),
+        # Test keys without values
+        (
+            '{"key1": "value1", "key2": , "key3": "value3", "key4": ,}',
+            {"key1": "value1", "key3": "value3"},
+        ),
     ],
 )
 def test_read_json_content(content, expected):
