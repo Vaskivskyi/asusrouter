@@ -13,7 +13,7 @@ from typing import Any, Awaitable, Callable, Optional
 import aiohttp
 
 from asusrouter.connection import Connection
-from asusrouter.const import DEFAULT_CACHE_TIME, DEFAULT_TIMEOUT
+from asusrouter.const import DEFAULT_CACHE_TIME, DEFAULT_TIMEOUT, RequestType
 from asusrouter.error import (
     AsusRouter404Error,
     AsusRouterAccessError,
@@ -39,7 +39,14 @@ from asusrouter.modules.data_transform import (
     transform_network,
     transform_wan,
 )
-from asusrouter.modules.endpoint import Endpoint, EndpointControl, process, read
+from asusrouter.modules.endpoint import (
+    ENDPOINT_FORCE_REQUEST,
+    Endpoint,
+    EndpointControl,
+    EndpointType,
+    process,
+    read,
+)
 from asusrouter.modules.endpoint.error import AccessError
 from asusrouter.modules.firmware import Firmware
 from asusrouter.modules.flags import Flag
@@ -309,7 +316,7 @@ class AsusRouter:
             await self._async_handle_reboot()
 
     async def async_api_query(
-        self, endpoint: Endpoint | EndpointControl, payload: Optional[str] = None
+        self, endpoint: EndpointType, payload: Optional[str] = None
     ):
         """A wrapper for the connection query method."""
 
@@ -327,11 +334,15 @@ class AsusRouter:
 
         _LOGGER.debug("Triggered method async_api_query: %s | %s", endpoint, payload)
 
-        return await self._connection.async_query(endpoint, payload)
+        request_type = ENDPOINT_FORCE_REQUEST.get(endpoint, RequestType.POST)
+
+        return await self._connection.async_query(
+            endpoint, payload, request_type=request_type
+        )
 
     async def async_api_load(
         self,
-        endpoint: Endpoint | EndpointControl,
+        endpoint: EndpointType,
         request: str = "",
         retry: int = 0,
     ) -> dict[str, Any]:
@@ -396,7 +407,7 @@ class AsusRouter:
     async def async_api_command(
         self,
         commands: Optional[dict[str, str]],
-        endpoint: Endpoint | EndpointControl = EndpointControl.COMMAND,
+        endpoint: EndpointType = EndpointControl.COMMAND,
     ):
         """Send a command to the device."""
 
@@ -487,7 +498,7 @@ class AsusRouter:
 
         return data
 
-    def _drop_data(self, datatype: AsusData, endpoint: Endpoint) -> bool:
+    def _drop_data(self, datatype: AsusData, endpoint: EndpointType) -> bool:
         """Check whether data should be dropped. This is required
         for some data obtained from multiple endpoints."""
 
@@ -643,6 +654,14 @@ class AsusRouter:
                         else data_finder.method()
                     )
                 # Check that we are not fetching this data already
+
+                # Add the request from kwargs
+                kw_request = kwargs.get("request", {})
+                if isinstance(kw_request, dict):
+                    for key, value in kw_request.items():
+                        request += f"{key}={value};"
+                    # Remove trailing symbol
+                    request = request[:-1]
 
                 # Fetch the data
                 data = await self.async_api_load(endpoint, request)
