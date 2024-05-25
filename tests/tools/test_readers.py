@@ -138,6 +138,11 @@ def test_read_js_variables(content, expected):
         (None, {}),
         # Test invalid JSON content
         ("not a json", {}),
+        # Test missing values
+        (
+            '{ , "key1": "value1", , "key2": "value2", }',
+            {"key1": "value1", "key2": "value2"},
+        ),
     ],
 )
 def test_read_json_content(content, expected):
