@@ -146,7 +146,7 @@ def test_read_js_variables(content, expected):
         # Test keys without values
         (
             '{"key1": "value1", "key2": , "key3": "value3", "key4": ,}',
-            {"key1": "value1", "key3": "value3"},
+            {"key1": "value1", "key2": None, "key3": "value3", "key4": None},
         ),
     ],
 )
