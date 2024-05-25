@@ -138,6 +138,11 @@ def read_json_content(content: Optional[str]) -> dict[str, Any]:
     for symbol in RANDOM_SYMBOLS:
         content = content.replace(symbol, "")
 
+    # Handle missing values in JSON
+    content = re.sub(r"\s*,\s*,", ", ", content)
+    content = re.sub(r"^\s*{\s*,", "{", content)
+    content = re.sub(r",\s*}\s*$", "}", content)
+
     # Return the json content
     try:
         return json.loads(content.encode().decode("utf-8-sig"))
