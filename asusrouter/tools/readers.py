@@ -143,6 +143,9 @@ def read_json_content(content: Optional[str]) -> dict[str, Any]:
     content = re.sub(r"^\s*{\s*,", "{", content)
     content = re.sub(r",\s*}\s*$", "}", content)
 
+    # Handle keys without values
+    content = re.sub(r":\s*(,|\})", ": null\\1", content)
+
     # Return the json content
     try:
         return json.loads(content.encode().decode("utf-8-sig"))

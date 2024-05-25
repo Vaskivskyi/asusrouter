@@ -7,8 +7,9 @@ import logging
 from concurrent.futures import ThreadPoolExecutor
 from enum import Enum
 from types import ModuleType
-from typing import Any, Awaitable, Callable, Optional
+from typing import Any, Awaitable, Callable, Optional, Union
 
+from asusrouter.const import RequestType
 from asusrouter.error import AsusRouter404Error
 from asusrouter.modules.data import AsusData, AsusDataState
 from asusrouter.modules.firmware import Firmware
@@ -52,7 +53,25 @@ class EndpointService(str, Enum):
     LOGOUT = "Logout.asp"
 
 
-def _get_module(endpoint: Endpoint | EndpointControl) -> Optional[ModuleType]:
+class EndpointTools(str, Enum):
+    """Tools endpoints."""
+
+    # Network tools: ping, jitter, loss
+    NETWORK = "netool.cgi"
+
+
+# Typehint for the endpoint
+EndpointType = Union[Endpoint, EndpointControl, EndpointService, EndpointTools]
+
+# Force request type for the endpoint
+ENDPOINT_FORCE_REQUEST = {
+    EndpointTools.NETWORK: RequestType.GET,
+}
+
+
+def _get_module(
+    endpoint: Endpoint | EndpointControl | EndpointTools,
+) -> Optional[ModuleType]:
     """Attempt to get the module for the endpoint."""
 
     try:
@@ -71,7 +90,9 @@ def _get_module(endpoint: Endpoint | EndpointControl) -> Optional[ModuleType]:
         return None
 
 
-def read(endpoint: Endpoint | EndpointControl, content: str) -> dict[str, Any]:
+def read(
+    endpoint: Endpoint | EndpointControl | EndpointTools, content: str
+) -> dict[str, Any]:
     """Read the data from an endpoint."""
 
     _LOGGER.debug("Reading data from endpoint %s", endpoint)
@@ -146,7 +167,7 @@ def data_get(data: dict[str, Any], key: str) -> Optional[Any]:
 
 
 async def check_available(
-    endpoint: Endpoint, api_query: Callable[..., Awaitable[Any]]
+    endpoint: Endpoint | EndpointTools, api_query: Callable[..., Awaitable[Any]]
 ) -> tuple[bool, Optional[Any]]:
     """Check whether the endpoint is available or returns 404."""
 

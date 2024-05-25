@@ -14,18 +14,17 @@ from urllib.parse import quote
 
 import aiohttp
 
-from asusrouter.const import DEFAULT_TIMEOUTS, USER_AGENT
+from asusrouter.const import DEFAULT_TIMEOUTS, USER_AGENT, RequestType
 from asusrouter.error import (
     AsusRouter404Error,
     AsusRouterAccessError,
     AsusRouterConnectionError,
     AsusRouterError,
     AsusRouterLogoutError,
-    AsusRouterSessionError,
     AsusRouterTimeoutError,
 )
-from asusrouter.modules.endpoint import Endpoint, EndpointControl, EndpointService
-from asusrouter.modules.endpoint.error import AccessError, handle_access_error
+from asusrouter.modules.endpoint import EndpointService, EndpointType
+from asusrouter.modules.endpoint.error import handle_access_error
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -190,18 +189,20 @@ The last error: {ex}"
 
     async def _send_request(
         self,
-        endpoint: Endpoint | EndpointControl | EndpointService,
+        endpoint: EndpointType,
         payload: Optional[str] = None,
         headers: Optional[dict[str, str]] = None,
+        request_type: RequestType = RequestType.POST,
     ) -> Tuple[int, dict[str, str], str]:
         """Send a request to the device."""
 
         # Send request
         try:
-            resp_status, resp_headers, resp_content = await self._make_post_request(
+            resp_status, resp_headers, resp_content = await self._make_request(
                 endpoint,
                 payload,
                 headers,
+                request_type,
             )
 
             # Raise exception on 404
@@ -237,9 +238,10 @@ Failed in `_send_request` with error: `{ex}`"
 
     async def async_query(
         self,
-        endpoint: Endpoint | EndpointControl | EndpointService,
+        endpoint: EndpointType,
         payload: Optional[str] = None,
         headers: Optional[dict[str, str]] = None,
+        request_type: RequestType = RequestType.POST,
     ) -> Tuple[int, dict[str, str], str]:
         """Send a request to the device."""
 
@@ -253,14 +255,15 @@ Failed in `_send_request` with error: `{ex}`"
             raise AsusRouterTimeoutError("Data cannot be retrieved. Connection failed")
 
         # Send the request
-        _LOGGER.debug("Sending request to %s", self._hostname)
-        return await self._send_request(endpoint, payload, headers)
+        _LOGGER.debug("Sending `%s` request to `%s`", request_type, self._hostname)
+        return await self._send_request(endpoint, payload, headers, request_type)
 
-    async def _make_post_request(
+    async def _make_request(
         self,
-        endpoint: Endpoint | EndpointControl | EndpointService,
+        endpoint: EndpointType,
         payload: Optional[str] = None,
         headers: Optional[dict[str, str]] = None,
+        request_type: RequestType = RequestType.POST,
     ) -> Any:
         """Make a post request to the device."""
 
@@ -274,7 +277,7 @@ Failed in `_send_request` with error: `{ex}`"
             # Reconnect
             await self.async_connect()
             # Retry the request
-            return await self._make_post_request(endpoint, payload, headers)
+            return await self._make_request(endpoint, payload, headers, request_type)
 
         # Check headers
         if not headers:
@@ -283,13 +286,19 @@ Failed in `_send_request` with error: `{ex}`"
         # Generate the url
         url = f"{self._http}://{self._hostname}:{self._port}/{endpoint.value}"
 
+        # Add get parameters if needed
+        if request_type == RequestType.GET and payload:
+            payload.replace(";", "&")
+            url = f"{url}?{payload}"
+
         # Process the payload to be sent
         payload_to_send = quote(payload) if payload else None
 
         # Send the request
-        async with self._session.post(
+        async with self._session.request(
+            request_type.value,
             url,
-            data=payload_to_send,
+            data=payload_to_send if request_type == RequestType.POST else None,
             headers=headers,
             ssl=self._ssl,
         ) as response:
