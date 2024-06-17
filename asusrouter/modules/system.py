@@ -35,7 +35,7 @@ class AsusSystem(str, Enum):
     RESTART_CHPASS = "restart_chpass"
     RESTART_CLOUDSYNC = "restart_cloudsync"  # AiCloud 2.0 sync
     RESTART_CP = "restart_CP"  # Captive Portal
-    RESTART_DDNS_LED = "restart_ddns_le"
+    RESTART_DDNS_LE = "restart_ddns_le"
     RESTART_DEFAULT_WAN = "restart_default_wan"  # Default WAN
     RESTART_DISKMON = "restart_diskmon"  # Disk monitor
     RESTART_DNSFILTER = "restart_dnsfilter"  # DNS filter
