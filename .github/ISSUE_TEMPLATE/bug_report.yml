@@ -1,0 +1,62 @@
+name: Bug report
+description: Report an issue (a bug) with AsusRouter
+title: "[Bug] "
+labels: ["bug"]
+assignees:
+  - vaskivskyi
+body:
+  - type: markdown
+    attributes:
+      value: >
+        This form is for bug reports only (something does not work as expected) in AsusRouter Python library.
+        If you have a feature request or you would like to report some device as supported (meaning everything
+        works as expected), please, use the appropriate form.
+  - type: textarea
+    validations:
+      required: true
+    attributes:
+      label: The problem
+      description: >
+        Please, describe the issue. The more details you provide, the easier it would be to understand the issue.
+
+        Keep in mind, that the description should also be clear, so I will be able to help you with it.
+  - type: markdown
+    attributes:
+      value: >
+        # Environment and device
+  - type: input
+    validations:
+      required: true
+    attributes:
+      label: Python version
+      description: >
+        Please, provide the version of Python you are using, e.g. `3.11.0`.
+  - type: input
+    id: device
+    validations:
+      required: true
+    attributes:
+      label: Your device model
+      description: >
+        Please, put in the full model of your device, e.g. `GT-AX11000 Pro`.
+      placeholder: RT-
+  - type: dropdown
+    id: firmware_type
+    validations:
+      required: true
+    attributes:
+      label: Firmware type
+      description: >
+        What kind of firmware you are using? Is it a stock AsusWRT or AsusWRT-Merlin?
+      options:
+        - Stock
+        - Merlin
+  - type: input
+    id: firmware_version
+    validations:
+      required: true
+    attributes:
+      label: Firmware version
+      description: >
+        Please, provide the full version of the firmware, e.g. `3.0.0.4.386.5_2` or `3.0.0.4.386_48631-g10d88e5`.
+      placeholder: 3.0.0.4.
