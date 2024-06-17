@@ -1,0 +1,57 @@
+name: Supported device
+description: Report a device as supported (meaning everything works as expected)
+title: "[Supported device] "
+labels: ["documentation"]
+assignees:
+  - vaskivskyi
+body:
+  - type: markdown
+    attributes:
+      value: >
+        This form is for reporting devices as supported (meaning everything works as expected) in AsusRouter Python library.
+        If you have a bug report or you would like to request a feature, please, use the appropriate form.
+  - type: textarea
+    attributes:
+      label: Anything you want to mention?
+      description: >
+        Use this field for a short description if you would like.
+  - type: markdown
+    attributes:
+      value: >
+        # Environment and device
+  - type: input
+    validations:
+      required: true
+    attributes:
+      label: Python version
+      description: >
+        Please, provide the version of Python you are using, e.g. `3.11.0`.
+  - type: input
+    id: device
+    validations:
+      required: true
+    attributes:
+      label: Your device model
+      description: >
+        Please, put in the full model of your device, e.g. `GT-AX11000 Pro`.
+      placeholder: RT-
+  - type: dropdown
+    id: firmware_type
+    validations:
+      required: true
+    attributes:
+      label: Firmware type
+      description: >
+        What kind of firmware you are using? Is it a stock AsusWRT or AsusWRT-Merlin?
+      options:
+        - Stock
+        - Merlin
+  - type: input
+    id: firmware_version
+    validations:
+      required: true
+    attributes:
+      label: Firmware version
+      description: >
+        Please, provide the full version of the firmware, e.g. `3.0.0.4.386.5_2` or `3.0.0.4.386_48631-g10d88e5`.
+      placeholder: 3.0.0.4.
