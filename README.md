@@ -20,14 +20,34 @@ pip install asusrouter
 Once installed, you can import the `AsusRouter` class from the module. Example shows the default parameters except for `host`, `username` and `password`.
 
 ```python
-from asusrouter import AsusRouter
+import aiohttp
+import asyncio
+from asusrouter import AsusRouter, AsusData
 
-router = AsusRouter(host = "router.my.address",         #required - both IP and URL supported
-                    username = "admin",                 #required
-                    password = "password",              #required
-                    port = None,                        #optional - default port would be selected based on use_ssl parameter
-                    use_ssl = False,                    #optional
-                    cache_time = 5)                     #optional
+# Create a new event loop
+loop = asyncio.new_event_loop()
+
+# Create aiohttp session
+session = aiohttp.ClientSession(loop=loop)
+
+router = AsusRouter(                #required - both IP and URL supported
+    hostname="router.my.address",   #required
+    username="admin",               #required
+    password="password",            #required
+    use_ssl=True,                   #optional
+    session=session,                #optional
+)
+
+# Connect to the router
+loop.run_until_complete(router.async_connect())
+
+# Now you can use the router object to call methods
+data = loop.run_until_complete(router.async_get_data(AsusData.NETWORK))
+print(data)
+
+# Remember to disconnect and close the session when you're done
+loop.run_until_complete(router.async_disconnect())
+loop.run_until_complete(session.close())
 ```
 
 ## Supported devices
