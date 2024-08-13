@@ -19,6 +19,25 @@ class AsusSystem(str, Enum):
     and at your own risk."""
 
     # ---------------------
+    # DISCLAIMER: Migration to the new format
+    #
+    # AsusSystem enum is being migrated to a new format. Instead of
+    # `{ACTION}_{FEATURE}`, the format should be `{FEATURE}_{ACTION}`. This
+    # will allow better grouping of related actions and easier access.
+    #
+    # E.g. `REBUILD_AIMESH` -> `AIMESH_REBUILD`
+    #
+    # The old format will be deprecated and removed in a future version.
+    # Please, only add new actions in the new format.
+    #
+    # All the old actions will be migrated to the new format with time
+    # (and updates in the corresponding modules). Any deprecated actions
+    # with a new format should be added to the `AsusSystemDeprecated` dict.
+    #
+    # Check the AiMesh for an example of the new format.
+    # ---------------------
+
+    # ---------------------
     # AiMesh
     AIMESH_REBOOT = "device_reboot"  # Restart router + all nodes
     AIMESH_REBUILD = "re_reconnect"  # Rebuild AiMesh
@@ -98,6 +117,9 @@ class AsusSystem(str, Enum):
     UPDATE_CLIENTS = "update_clients"
 
 
+# Deprecated states for AsusSystem
+# Format: {DeprecatedState: (NewState, Version)}
+# Version is the version when the deprecated state will be removed (optional)
 AsusSystemDeprecated = {
     AsusSystem.REBUILD_AIMESH: (AsusSystem.AIMESH_REBUILD, None),
 }
@@ -139,6 +161,7 @@ async def set_state(
 ) -> bool:
     """Set the system state."""
 
+    # Check and notify if the state is deprecated
     if state in AsusSystemDeprecated:
         repl_state, repl_ver = AsusSystemDeprecated[state]
         message = f"Deprecated state `{state.name}` from `AsusSystem` \
