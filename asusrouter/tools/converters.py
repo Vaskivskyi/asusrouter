@@ -1,10 +1,10 @@
 """Converters module
 
-This module has methods to convert data between different formats 
-without complicated logic. In case data cannot be converted, 
+This module has methods to convert data between different formats
+without complicated logic. In case data cannot be converted,
 `None` is returned and no exception is raised.
 
-If data conversion requires complicated logic, 
+If data conversion requires complicated logic,
 it should be in the Readers module"""
 
 from __future__ import annotations
@@ -66,7 +66,9 @@ def flatten_dict(
     items = []
     exclude = (exclude,) if isinstance(exclude, str) else tuple(exclude or [])
     for k, v in d.items():
-        new_key = f"{parent_key}{sep}{k}" if parent_key not in ("", None) else k
+        new_key = (
+            f"{parent_key}{sep}{k}" if parent_key not in ("", None) else k
+        )
         # We have a dict - check it
         if isinstance(v, dict):
             # This key should be skipped
@@ -126,7 +128,9 @@ def get_enum_key_by_value(
     raise ValueError(f"Invalid value: {value}")
 
 
-def handle_none_content(content: Optional[_T], default: Optional[_T]) -> Optional[_T]:
+def handle_none_content(
+    content: Optional[_T], default: Optional[_T]
+) -> Optional[_T]:
     """Return the default value if content is None, else return the content."""
 
     if content is None:
@@ -151,7 +155,9 @@ def int_as_bits(value: int) -> list[bool]:
     return [bool(value & (1 << i)) for i in range(value.bit_length())]
 
 
-def int_as_capabilities(value: int, capabilities: Type[Enum]) -> dict[Enum, bool]:
+def int_as_capabilities(
+    value: int, capabilities: Type[Enum]
+) -> dict[Enum, bool]:
     """Convert an integer to a dict of capabilities."""
 
     # Check if the capabilities is an enum
@@ -196,7 +202,9 @@ def list_from_dict(raw: Optional[dict[Any, Any] | list[Any]]) -> list[str]:
     return list(raw.keys())
 
 
-def nvram_get(content: Optional[list[str] | str]) -> Optional[list[tuple[str, ...]]]:
+def nvram_get(
+    content: Optional[list[str] | str],
+) -> Optional[list[tuple[str, ...]]]:
     """Convert values to NVRAM request."""
 
     if not content:
@@ -306,22 +314,33 @@ def safe_float(
 ) -> Optional[float]:
     """Read the content as float or return None."""
 
-    content = cast(Optional[str | int | float], handle_none_content(content, default))
+    content = cast(
+        Optional[str | int | float], handle_none_content(content, default)
+    )
     return safe_convert(float, content, default)
 
 
 @clean_input
 def safe_int(
-    content: Optional[str | int | float], default: Optional[int] = None, base: int = 10
+    content: Optional[str | int | float],
+    default: Optional[int] = None,
+    base: int = 10,
 ) -> Optional[int]:
     """Read the content as int or return the default value (None if not specified)."""
 
-    content = cast(Optional[str | int | float], handle_none_content(content, default))
+    content = cast(
+        Optional[str | int | float], handle_none_content(content, default)
+    )
     if isinstance(content, str):
         return safe_convert(
-            lambda x: int(x, base=base), content, default, lambda x: int(float(x))
+            lambda x: int(x, base=base),
+            content,
+            default,
+            lambda x: int(float(x)),
         )
-    return safe_convert(int, content, default if isinstance(default, int) else None)
+    return safe_convert(
+        int, content, default if isinstance(default, int) else None
+    )
 
 
 def safe_list(content: Any) -> list[Any]:
@@ -343,7 +362,9 @@ def safe_list_csv(content: Optional[str]) -> list[str]:
 
 
 @clean_input
-def safe_list_from_string(content: Optional[str], delimiter: str = " ") -> list[str]:
+def safe_list_from_string(
+    content: Optional[str], delimiter: str = " "
+) -> list[str]:
     """Read the content as list or return empty list."""
 
     if not isinstance(content, str):
@@ -402,9 +423,11 @@ def safe_timedelta_long(content: Optional[str]) -> timedelta:
 
 
 def safe_unpack_key(
-    content: tuple[str, Optional[Callable[..., Any]] | list[Callable[..., Any]]]
+    content: tuple[
+        str, Optional[Callable[..., Any]] | list[Callable[..., Any]]
+    ]
     | str
-    | tuple[str]
+    | tuple[str],
 ) -> tuple[str, Optional[Callable[..., Any] | list[Callable[..., Any]]]]:
     """
     Unpacks a tuple containing a key and a method.
@@ -427,7 +450,10 @@ def safe_unpack_key(
         key = content[0]
         if len(content) > 1:
             content = cast(
-                tuple[str, Optional[Callable[..., Any]] | list[Callable[..., Any]]],
+                tuple[
+                    str,
+                    Optional[Callable[..., Any]] | list[Callable[..., Any]],
+                ],
                 content,
             )
             methods = content[1]
@@ -444,9 +470,11 @@ def safe_unpack_key(
 
 
 def safe_unpack_keys(
-    content: tuple[str, str, Optional[Callable[..., Any]] | list[Callable[..., Any]]]
+    content: tuple[
+        str, str, Optional[Callable[..., Any]] | list[Callable[..., Any]]
+    ]
     | tuple[str, str]
-    | str
+    | str,
 ) -> tuple[Any, ...]:
     """Method to unpack key/key_to_use/method tuple
     even if some values are missing."""
@@ -536,3 +564,18 @@ def safe_utc_to_timestamp_milli(value: Optional[datetime]) -> Optional[int]:
         return None
 
     return int(_timestamp * 1000)
+
+
+def scale_value_int(
+    value: int,
+    scale: int,
+    scale_from: Optional[int] = None,
+) -> int:
+    """Scale the value from the custom scale."""
+
+    if scale_from is None or scale_from == scale:
+        return value
+
+    return (
+        min(round(value * scale / scale_from), scale) if scale_from != 0 else 0
+    )

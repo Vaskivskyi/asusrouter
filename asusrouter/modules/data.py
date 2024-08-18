@@ -8,11 +8,14 @@ from datetime import datetime, timedelta, timezone
 from enum import Enum
 from typing import Any, Optional
 
+from asusrouter.tools.converters import safe_bool
+
 
 class AsusData(str, Enum):
     """AsusRouter data class."""
 
     AIMESH = "aimesh"
+    AURA = "aura"
     BOOTTIME = "boottime"
     CLIENTS = "clients"
     CPU = "cpu"
@@ -81,6 +84,9 @@ class AsusDataState:
     def update_state(self, state: Any, last_id: Optional[int] = None) -> None:
         """Update a state variable in the data dict."""
 
+        # Convert the state if needed
+        state = convert_state(state)
+
         if last_id is not None:
             if not isinstance(self.data, dict):
                 self.data = {}
@@ -101,3 +107,13 @@ class AsusDataState:
             return
 
         self.timestamp = datetime.now(timezone.utc) + timedelta(seconds=offset)
+
+
+def convert_state(state: Any):
+    """Convert the state to a correct one."""
+
+    # If the state is not boolean, convert it to boolean
+    if not isinstance(state, bool):
+        state = safe_bool(state)
+
+    return state

@@ -97,6 +97,12 @@ ASUSDATA_REQUEST = {
 }
 
 ASUSDATA_NVRAM = {
+    "aura": [
+        "AllLED",
+        "ledg_night_mode",
+        "ledg_scheme",
+        "ledg_scheme_old",
+    ],
     "light": ["led_val"],
     "openvpn_server_388": [
         key
@@ -125,6 +131,7 @@ ASUSDATA_NVRAM = {
         if key != "get_wgsc_status"
     ],
 }
+ASUSDATA_NVRAM["aura"].extend([f"ledg_rgb{num}" for num in range(0, 8)])
 ASUSDATA_NVRAM["vpnc"].extend(
     [
         f"wgc{num}_{key}"
@@ -172,11 +179,17 @@ ASUSDATA_ENDPOINT_APPEND = {
 # A map of endptoins to get data from
 ASUSDATA_MAP: dict[AsusData, AsusData | AsusDataFinder] = {
     AsusData.AIMESH: AsusDataFinder(Endpoint.ONBOARDING),
+    AsusData.AURA: AsusDataFinder(
+        Endpoint.HOOK,
+        nvram=ASUSDATA_NVRAM["aura"],
+    ),
     AsusData.BOOTTIME: AsusData.DEVICEMAP,
     AsusData.CLIENTS: AsusDataFinder(
         [Endpoint.ONBOARDING, Endpoint.UPDATE_CLIENTS], AsusDataMerge.ALL
     ),
-    AsusData.CPU: AsusDataFinder(Endpoint.HOOK, request=ASUSDATA_REQUEST["main"]),
+    AsusData.CPU: AsusDataFinder(
+        Endpoint.HOOK, request=ASUSDATA_REQUEST["main"]
+    ),
     AsusData.DEVICEMAP: AsusDataFinder(Endpoint.DEVICEMAP),
     AsusData.FIRMWARE: AsusDataFinder(Endpoint.FIRMWARE),
     AsusData.FIRMWARE_NOTE: AsusDataFinder(
@@ -202,7 +215,9 @@ ASUSDATA_MAP: dict[AsusData, AsusData | AsusDataFinder] = {
     AsusData.PORT_FORWARDING: AsusDataFinder(
         Endpoint.HOOK, nvram=ASUSDATA_NVRAM["port_forwarding"]
     ),
-    AsusData.PORTS: AsusDataFinder([Endpoint.PORT_STATUS, Endpoint.ETHERNET_PORTS]),
+    AsusData.PORTS: AsusDataFinder(
+        [Endpoint.PORT_STATUS, Endpoint.ETHERNET_PORTS]
+    ),
     AsusData.RAM: AsusData.CPU,
     AsusData.SPEEDTEST: AsusDataFinder(
         Endpoint.HOOK,
@@ -219,11 +234,15 @@ ASUSDATA_MAP: dict[AsusData, AsusData | AsusDataFinder] = {
     AsusData.SYSINFO: AsusDataFinder(Endpoint.SYSINFO),
     AsusData.TEMPERATURE: AsusDataFinder(Endpoint.TEMPERATURE),
     AsusData.VPNC: AsusDataFinder(
-        Endpoint.HOOK, nvram=ASUSDATA_NVRAM["vpnc"], request=ASUSDATA_REQUEST["vpnc"]
+        Endpoint.HOOK,
+        nvram=ASUSDATA_NVRAM["vpnc"],
+        request=ASUSDATA_REQUEST["vpnc"],
     ),
     AsusData.VPNC_CLIENTLIST: AsusData.VPNC,
     AsusData.WAN: AsusDataFinder(
-        Endpoint.HOOK, nvram=ASUSDATA_NVRAM["wan"], request=ASUSDATA_REQUEST["wan"]
+        Endpoint.HOOK,
+        nvram=ASUSDATA_NVRAM["wan"],
+        request=ASUSDATA_REQUEST["wan"],
     ),
     AsusData.WIREGUARD: AsusData.WIREGUARD_SERVER,
     AsusData.WIREGUARD_CLIENT: AsusData.VPNC,

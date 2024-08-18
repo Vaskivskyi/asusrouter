@@ -12,11 +12,11 @@ _LOGGER = logging.getLogger(__name__)
 class AsusSystem(str, Enum):
     """Asus system enum.
 
-    This enum contains all known system services. The availability of these services
-    depends on the router model and firmware version.
+    This enum contains all known system services. The availability of these
+    services depends on the router model and firmware version.
 
-    Some services might not be tested and might not work as expected. Use with caution
-    and at your own risk."""
+    Some services might not be tested and might not work as expected. Use with
+    caution and at your own risk."""
 
     # ---------------------
     # DISCLAIMER: Migration to the new format
@@ -42,6 +42,9 @@ class AsusSystem(str, Enum):
     AIMESH_REBOOT = "device_reboot"  # Restart router + all nodes
     AIMESH_REBUILD = "re_reconnect"  # Rebuild AiMesh
     REBUILD_AIMESH = "_depr_re_reconnect"  # Rebuild AiMesh / legacy name
+    # ---------------------
+    # Aura
+    AURA_RESTART = "restart_ledg"  # Restart Aura RGB
     # ---------------------
     # Firmware
     FIRMWARE_CHECK = "firmware_check"  # Check for firmware update
@@ -69,7 +72,9 @@ class AsusSystem(str, Enum):
     RESTART_LPD = "restart_lpd"  # Line Printer Daemon (LPD)
     RESTART_NASAPPS = "restart_nasapps"
     RESTART_NET = "restart_net"  # Restart all wired interfaces
-    RESTART_NET_AND_PHY = "restart_net_and_phy"  # Restart all network interfaces
+    RESTART_NET_AND_PHY = (
+        "restart_net_and_phy"  # Restart all network interfaces
+    )
     RESTART_NFCM = "restart_nfcm"
     RESTART_OAM = "restart_oam"
     RESTART_OPENVPND = "restart_openvpnd"  # OpenVPN daemon
@@ -77,7 +82,9 @@ class AsusSystem(str, Enum):
     RESTART_ROUTERBOOST = "restart_routerboost"
     RESTART_SAMBA = "restart_samba"  # Samba file sharing
     RESTART_SETTINGS_WEBDAV = "restart_settings_webdav"  # WebDAV
-    RESTART_SNMPD = "restart_snmpd"  # Simple Network Management Protocol (SNMP)
+    RESTART_SNMPD = (
+        "restart_snmpd"  # Simple Network Management Protocol (SNMP)
+    )
     RESTART_SUBNET = "restart_subnet"
     RESTART_TIME = "restart_time"
     RESTART_TIMEMACHINE = "restart_timemachine"
@@ -89,9 +96,13 @@ class AsusSystem(str, Enum):
     RESTART_USB_IDLE = "restart_usb_idle"
     RESTART_VPNC = "restart_vpnc"
     RESTART_VPND = "restart_vpnd"  # VPN daemon for legacy VPNs
-    RESTART_WAN = "restart_wan"  # Restart WAN connection (optional if number, e.g. 0)
+    RESTART_WAN = (
+        "restart_wan"  # Restart WAN connection (optional if number, e.g. 0)
+    )
     RESTART_WAN_DNS = "restart_wan_dns"  # Restart WAN DNS (optional if number)
-    RESTART_WAN_IF = "restart_wan_if"  # Restart WAN interfaces (optional if number)
+    RESTART_WAN_IF = (
+        "restart_wan_if"  # Restart WAN interfaces (optional if number)
+    )
     RESTART_WEBDAV = "restart_webdav"  # WebDAV
     RESTART_WIRELESS = "restart_wireless"  # Restart all wireless interfaces
     RESTART_WLCSCAN = "restart_wlcscan"
@@ -104,7 +115,9 @@ class AsusSystem(str, Enum):
     START_DISKFORMAT = "start_diskformat"  # Format disk
     START_DISKSCAN = "start_diskscan"  # Scan disk
     START_UPGRADE = "start_upgrade"  # Start firmware upgrade
-    START_WEBS_UPGRADE = "start_webs_upgrade"  # Start firmware upgrade from the web
+    START_WEBS_UPGRADE = (
+        "start_webs_upgrade"  # Start firmware upgrade from the web
+    )
     START_WEBS_UPDATE = "start_webs_update"  # Check for firmware update
     START_WRS = "start_wrs"
     STOP_AURARGB = "stop_aurargb"  # Aura RGB

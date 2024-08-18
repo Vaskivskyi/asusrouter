@@ -11,14 +11,18 @@ from typing import Any, Awaitable, Callable, Optional, Tuple
 
 from asusrouter.error import AsusRouterIdentityError
 from asusrouter.modules.aimesh import AiMeshDevice
+from asusrouter.modules.color import color_zone
 from asusrouter.modules.data import AsusData
 from asusrouter.modules.endpoint import (
     Endpoint,
+    EndpointNoCheck,
     EndpointTools,
     EndpointType,
     check_available,
 )
-from asusrouter.modules.endpoint.onboarding import process as process_onboarding
+from asusrouter.modules.endpoint.onboarding import (
+    process as process_onboarding,
+)
 from asusrouter.modules.endpoint.onboarding import read as read_onboarding
 from asusrouter.modules.firmware import Firmware, read_fw_string
 from asusrouter.modules.wlan import WLAN_TYPE, Wlan
@@ -45,6 +49,8 @@ MAP_IDENTITY: Tuple = (
     ("rc_support", "services", safe_list_from_string),
     ("ss_support", "services", safe_list_from_string),
     ("led_val", "led", safe_exists),
+    ("ledg_rgb1", "aura", safe_exists),
+    ("ledg_rgb2", "aura_zone", color_zone),
 )
 
 
@@ -74,8 +80,8 @@ class AsusDevice:  # pylint: disable=too-many-instance-attributes
 
     # Flags for device features
     aura: bool = False
+    aura_zone: int = 1
     led: bool = False
-    ledg: bool = False
     ookla: bool = False
     vpn_status: bool = False
 
@@ -193,7 +199,7 @@ def _read_nvram(data: dict[str, Any]) -> dict[str, Any]:
 
 
 async def _check_endpoints(
-    api_hook: Callable[..., Awaitable[Any]]
+    api_hook: Callable[..., Awaitable[Any]],
 ) -> tuple[dict[EndpointType, bool], dict[str, Any]]:
     """Check which endpoints are available."""
 
@@ -201,6 +207,8 @@ async def _check_endpoints(
     contents: dict[EndpointType, Any] = {}
 
     for endpoint in chain(Endpoint, EndpointTools):
+        if endpoint.name in EndpointNoCheck.__members__:
+            continue
         result, content = await check_available(endpoint, api_hook)
         endpoints[endpoint] = result
         contents[endpoint] = content
