@@ -46,7 +46,7 @@ def color_zone(
     if color_str is None:
         return 0
 
-    return (len(color_str.split(delimiter)) + 1) // 3
+    return (len(color_str.split(delimiter))) // 3
 
 
 @clean_input
@@ -68,6 +68,8 @@ def parse_colors(
     colors = []
     for i in range(0, len(channels), 3):
         color = ColorRGBB()
+        if i + 2 >= len(channels):
+            break
         color.from_rgbwb(
             rgb=(
                 safe_int(channels[i]),
@@ -78,7 +80,7 @@ def parse_colors(
         )
         colors.append(color)
 
-    return colors
+    return colors if len(colors) > 0 else None
 
 
 class ColorRGB:
@@ -185,6 +187,23 @@ class ColorRGB:
 
         return f"{self._r},{self._g},{self._b}"
 
+    def __eq__(self, other: object) -> bool:
+        """Check if the colors are equal."""
+
+        if not isinstance(other, ColorRGB):
+            return False
+        return (
+            self._r == other._r
+            and self._g == other._g
+            and self._b == other._b
+            and self._scale == other._scale
+        )
+
+    def __hash__(self) -> int:
+        """Return the hash of the object."""
+
+        return hash((self._r, self._g, self._b, self._scale))
+
     @property
     def r(self) -> int:
         return self._r
@@ -212,14 +231,14 @@ class ColorRGBB(ColorRGB):
     def __init__(
         self,
         rgb: tuple[int, int, int] | ColorRGB = DEFAULT_COLOR,
-        br: int = DEFAULT_COLOR_SCALE_ASUS,
+        br: Optional[int] = None,
         scale: int = DEFAULT_COLOR_SCALE_ASUS,
     ) -> None:
         """Initialize the color."""
 
         self._scale = scale
         self.from_rgbwb(rgb)
-        self._br = br
+        self._br = min(br, self._scale) if br is not None else self._scale
 
     def set_brightness(self, br: int) -> None:
         """Set the brightness."""
