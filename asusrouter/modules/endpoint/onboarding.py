@@ -92,7 +92,9 @@ def process(data: dict[str, Any]) -> dict[AsusData, Any]:
                     "mac": mac,
                     "node": node,
                     "online": True,
-                    "rssi": client_list[node][connection][mac].get("rssi", None),
+                    "rssi": client_list[node][connection][mac].get(
+                        "rssi", None
+                    ),
                 }
                 clients[mac] = description
 
@@ -155,5 +157,5 @@ def process_connection(data: str) -> dict[str, int]:
     temp = data.split("_")
     return {
         "connection_type": CONNECTION_TYPE.get(temp[0]) or 0,
-        "guest": int(temp[1]) if len(temp) > 1 else 0,
+        "guest": safe_int(temp[1]) if len(temp) > 1 else 0,
     }
