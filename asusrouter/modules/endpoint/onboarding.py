@@ -157,5 +157,5 @@ def process_connection(data: str) -> dict[str, int]:
     temp = data.split("_")
     return {
         "connection_type": CONNECTION_TYPE.get(temp[0]) or 0,
-        "guest": safe_int(temp[1]) if len(temp) > 1 else 0,
+        "guest": safe_int(temp[1], 0) if len(temp) > 1 else 0,
     }
