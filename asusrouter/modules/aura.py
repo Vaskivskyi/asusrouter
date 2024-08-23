@@ -108,6 +108,10 @@ def set_color(
     # Fallback in case zones have wrong data written
     zones = zones or len(colors)
 
+    # Make sure, we have enough colors in the list (fix wrong data)
+    if len(colors) < zones:
+        colors.extend(colors[: zones - len(colors)])
+
     # No new color defined
     if not color_to_set:
         _LOGGER.debug("No new color defined. Skipping")
@@ -127,13 +131,11 @@ def set_color(
         return
 
     if isinstance(color_to_set, list):
-        # Make sure, we have enough colors in the list
-        if len(colors) < zones:
-            colors.extend(colors[: zones - len(colors)])
-
         # We have a list of colors to set
         for i in range(zones):
-            colors[i].from_rgb(color_to_set[i % len(color_to_set)])
+            # Check that color is of the correct type
+            if isinstance(color_to_set[i % len(color_to_set)], ColorRGB):
+                colors[i].from_rgb(color_to_set[i % len(color_to_set)])
 
     return
 
@@ -145,12 +147,15 @@ def set_brightness(
 ) -> None:
     """Set the brightness for the zones."""
 
+    # Prepare the brightness
+    brightness = safe_int(brightness)
+
     # No brightness defined
     if brightness is None:
         return
 
     # Change the brightness for the selected zone
-    if zone is not None and zone < len(colors):
+    if isinstance(zone, int) and zone >= 0 and zone < len(colors):
         colors[zone].set_brightness(brightness)
         return
 
@@ -210,10 +215,17 @@ async def set_state(
     colors = aura_state.get("effect", {}).get(
         state_number, get_default_aura_color(zones)
     )
+    # Convert to ColorRGBB if needed
+    colors = [
+        ColorRGBB(color) if isinstance(color, ColorRGB) else color
+        for color in colors
+    ]
 
     # Set new color(s) and brightness
     set_color(colors, color_to_set, zone, zones)
     set_brightness(colors, brightness, zone)
+
+    _LOGGER.error("Colors: %s, type: %s", colors, type(colors))
 
     # Convert color_set to the string
     color_to_use = ",".join(
@@ -265,6 +277,7 @@ def process_aura(data: dict[str, Any]) -> dict[str, Any]:
         )
 
     # Effects settings
+    active_effect = None
     aura["effect"] = {}
     for effect in range(0, 8):
         aura["effect"][effect] = parse_colors(data.get(f"ledg_rgb{effect}"))

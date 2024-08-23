@@ -80,7 +80,7 @@ class AsusDevice:  # pylint: disable=too-many-instance-attributes
 
     # Flags for device features
     aura: bool = False
-    aura_zone: int = 1
+    aura_zone: int = 0
     led: bool = False
     ookla: bool = False
     vpn_status: bool = False

@@ -280,6 +280,22 @@ class TestColorRGB:
             (None, "0,0,0"),
         ],
     )
+    def test_repr(self, input_rgb, expected):
+        """Test __repr__."""
+
+        color = ColorRGB(input_rgb)
+        assert repr(color) == expected
+
+    @pytest.mark.parametrize(
+        "input_rgb, expected",
+        [
+            # Correct input
+            ((100, 150, 200), "64,96,128"),
+            ((100,), "100,0,0"),
+            # Wrong input
+            (None, "0,0,0"),
+        ],
+    )
     def test_str(self, input_rgb, expected):
         """Test __str__."""
 
@@ -490,6 +506,19 @@ class TestColorRGBB:
 
         result = input_color.to_rgb(scale)
         assert result.as_tuple() == expected_rgb.as_tuple()
+
+    @pytest.mark.parametrize(
+        "input_color, expected",
+        [
+            (ColorRGBB((255, 0, 0), 128, 255), "255,0,0,128,255"),
+            (ColorRGBB((0, 255, 0), 64, 255), "0,255,0,64,255"),
+            (ColorRGBB((0, 0, 255), 32, 255), "0,0,255,32,255"),
+        ],
+    )
+    def test_repr(self, input_color, expected):
+        """Test __repr__."""
+
+        assert repr(input_color) == expected
 
     @pytest.mark.parametrize(
         "input_color, expected",

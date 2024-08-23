@@ -127,6 +127,8 @@ class ColorRGB:
             rgb = tuple(
                 safe_int(value) for value in rgb.split(DEFAULT_COLOR_DELIMITER)
             )
+        elif isinstance(rgb, ColorRGB):
+            rgb = rgb.as_tuple()
         else:
             rgb = tuple(safe_int(value) for value in rgb)
 
@@ -181,6 +183,11 @@ class ColorRGB:
         """Return the color as tuple."""
 
         return self._r, self._g, self._b
+
+    def __repr__(self) -> str:
+        """Return the color as string."""
+
+        return f"{self._r},{self._g},{self._b}"
 
     def __str__(self) -> str:
         """Return the color as string."""
@@ -330,6 +337,11 @@ class ColorRGBB(ColorRGB):
             return ColorRGB(self._to_rgb((rgb[0], rgb[1], rgb[2], scale)))
 
         return ColorRGB(rgb, scale=self._scale)
+
+    def __repr__(self) -> str:
+        """Return the color as string."""
+
+        return f"{self._r},{self._g},{self._b},{self._br},{self._scale}"
 
     def __str__(self) -> str:
         """Return the color as string."""
