@@ -777,16 +777,7 @@ async def test_set_state_final(
                 "night_mode": None,
                 "scheme": AsusAura.UNKNOWN,
                 "scheme_prev": AsusAura.UNKNOWN,
-                "effect": {
-                    0: None,
-                    1: None,
-                    2: None,
-                    3: None,
-                    4: None,
-                    5: None,
-                    6: None,
-                    7: None,
-                },
+                "effect": {},
                 "active": {},
                 "zones": 0,
             },
@@ -814,6 +805,4 @@ def test_process_aura_unknown(caplog):
         process_aura(input_data)
 
     assert f"Unknown Aura scheme: `{input_scheme}`" in caplog.text
-    assert (
-        f"Unknown previous Aura scheme: `{input_scheme_prev}`" in caplog.text
-    )
+    assert f"Unknown Aura scheme: `{input_scheme_prev}`" in caplog.text

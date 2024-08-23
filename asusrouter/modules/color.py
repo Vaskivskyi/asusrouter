@@ -29,9 +29,11 @@ def average_color(
     # Get the scale as the maximum scale from the colors
     scale = max(color.scale for color in colors)
 
-    red = sum(color.r for color in colors) // len(colors)
-    green = sum(color.g for color in colors) // len(colors)
-    blue = sum(color.b for color in colors) // len(colors)
+    # Calculate the average color components
+    num_colors = len(colors)
+    red = sum(color.r for color in colors) // num_colors
+    green = sum(color.g for color in colors) // num_colors
+    blue = sum(color.b for color in colors) // num_colors
 
     return ColorRGB(red, green, blue, scale=scale)
 
@@ -43,7 +45,7 @@ def color_zone(
 ) -> int:
     """Return the number of color zones."""
 
-    if color_str is None:
+    if not color_str:
         return 0
 
     return (len(color_str.split(delimiter))) // 3
@@ -57,13 +59,16 @@ def parse_colors(
 ) -> Optional[list[ColorRGBB]]:
     """Parse the colors from the string."""
 
-    if color_str is None or color_str == "":
+    if not color_str:
         return None
 
     # Split the string to separate groups of 3 digits
     channels = color_str.split(delimiter)
     if len(channels) % 3 != 0:
-        _LOGGER.warning("Invalid color string: %s", color_str)
+        _LOGGER.warning(
+            "Invalid color string: %s, but will parse what is possible",
+            color_str,
+        )
 
     colors = []
     for i in range(0, len(channels), 3):
@@ -133,7 +138,7 @@ class ColorRGB:
             rgb = tuple(safe_int(value) for value in rgb)
 
         # Add extra values if needed or remove them
-        rgb += (0,) * (3 - len(rgb))
+        rgb = (rgb + (0,) * 3)[:3]
 
         return rgb[0], rgb[1], rgb[2]
 
@@ -250,9 +255,7 @@ class ColorRGBB(ColorRGB):
     def set_brightness(self, br: int) -> None:
         """Set the brightness."""
 
-        br = max(0, min(br, self._scale))
-
-        self._br = br
+        self._br = max(0, min(br, self._scale))
 
     def _from_rgb(
         self,

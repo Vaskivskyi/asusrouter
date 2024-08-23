@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from enum import Enum, IntEnum
 from typing import Any, Awaitable, Callable, Optional
 
@@ -10,7 +11,6 @@ from asusrouter.modules.color import (
     ColorRGB,
     ColorRGBB,
     average_color,
-    color_zone,
     parse_colors,
 )
 from asusrouter.modules.data import AsusData, AsusDataState
@@ -66,9 +66,10 @@ DEFAULT_AURA_SCHEME = AsusAura.STATIC
 def get_default_aura_color(zones: int) -> tuple[ColorRGBB, ...]:
     """Get the default Aura color for the zones."""
 
+    _pattern_length = len(DEFAULT_COLOR_PATTERN)
     # Repeat the pattern enough times to cover the required length
     repeated_pattern = DEFAULT_COLOR_PATTERN * (
-        (zones + len(DEFAULT_COLOR_PATTERN) - 1) // len(DEFAULT_COLOR_PATTERN)
+        (zones + _pattern_length - 1) // _pattern_length
     )
 
     # Return the required length
@@ -78,20 +79,21 @@ def get_default_aura_color(zones: int) -> tuple[ColorRGBB, ...]:
 def get_scheme_from_state(aura_state: dict) -> AsusAura:
     """Get the scheme from the state."""
 
+    def is_valid_scheme(scheme: Any) -> bool:
+        """Check if the scheme is valid."""
+
+        return scheme in AsusAura and scheme not in (
+            AsusAura.UNKNOWN,
+            AsusAura.ON,
+            AsusAura.OFF,
+        )
+
     current_scheme = aura_state.get("scheme")
-    if current_scheme in AsusAura and current_scheme not in (
-        AsusAura.UNKNOWN,
-        AsusAura.ON,
-        AsusAura.OFF,
-    ):
+    if is_valid_scheme(current_scheme):
         return AsusAura(current_scheme)
 
     prev_scheme = aura_state.get("scheme_prev")
-    if prev_scheme in AsusAura and prev_scheme not in (
-        AsusAura.UNKNOWN,
-        AsusAura.ON,
-        AsusAura.OFF,
-    ):
+    if is_valid_scheme(prev_scheme):
         return AsusAura(prev_scheme)
 
     return DEFAULT_AURA_SCHEME
@@ -123,19 +125,20 @@ def set_color(
         if zone is not None and zone < zones:
             _LOGGER.debug("Applying the color to the zone %s", zone)
             colors[zone].from_rgb(color_to_set)
-            return
         # No zone defined - set the color to all zones
-        _LOGGER.debug("Applying the color to all zones")
-        for i in range(zones):
-            colors[i].from_rgb(color_to_set)
+        else:
+            _LOGGER.debug("Applying the color to all zones")
+            for i in range(zones):
+                colors[i].from_rgb(color_to_set)
         return
 
     if isinstance(color_to_set, list):
         # We have a list of colors to set
+        _LOGGER.debug("List of colors defined")
         for i in range(zones):
-            # Check that color is of the correct type
-            if isinstance(color_to_set[i % len(color_to_set)], ColorRGB):
-                colors[i].from_rgb(color_to_set[i % len(color_to_set)])
+            color = color_to_set[i % len(color_to_set)]
+            if isinstance(color, ColorRGB):
+                colors[i].from_rgb(color)
 
     return
 
@@ -155,13 +158,13 @@ def set_brightness(
         return
 
     # Change the brightness for the selected zone
-    if isinstance(zone, int) and zone >= 0 and zone < len(colors):
+    if isinstance(zone, int) and 0 <= zone < len(colors):
         colors[zone].set_brightness(brightness)
         return
 
     # Change the brightness for all zones
-    for i in range(len(colors)):
-        colors[i].set_brightness(brightness)
+    for color in colors:
+        color.set_brightness(brightness)
 
     return
 
@@ -225,8 +228,6 @@ async def set_state(
     set_color(colors, color_to_set, zone, zones)
     set_brightness(colors, brightness, zone)
 
-    _LOGGER.error("Colors: %s, type: %s", colors, type(colors))
-
     # Convert color_set to the string
     color_to_use = ",".join(
         [color_zone.to_rgb().__str__() for color_zone in colors]
@@ -249,61 +250,51 @@ async def set_state(
 def process_aura(data: dict[str, Any]) -> dict[str, Any]:
     """Process Aura data."""
 
-    aura = {}
+    def get_scheme(key: str) -> AsusAura:
+        """Get the scheme from the data."""
 
-    # State
-    aura["state"] = safe_bool(data.get("AllLED"))
+        scheme_value = data.get(key)
+        scheme = AsusAura(safe_int(scheme_value, default=-999))
+        if scheme == AsusAura.UNKNOWN:
+            _LOGGER.warning("Unknown Aura scheme: `%s`", scheme_value)
+        return scheme
 
-    # Night mode
-    aura["night_mode"] = safe_bool(data.get("ledg_night_mode"))
+    # Get the effects data
+    rgb_key_pattern = re.compile(r"ledg_rgb(\d+)")
+    effect = {
+        safe_int(match.group(1)): parse_colors(data[key])
+        for key in data
+        if (match := rgb_key_pattern.match(key))
+    }
 
-    # Scheme
-    aura["scheme"] = AsusAura(safe_int(data.get("ledg_scheme"), default=-999))
-    # Mark state as off if the scheme is explicitly set to 0
+    aura = {
+        "state": safe_bool(data.get("AllLED")),
+        "night_mode": safe_bool(data.get("ledg_night_mode")),
+        "scheme": get_scheme("ledg_scheme"),
+        "scheme_prev": get_scheme("ledg_scheme_old"),
+        "effect": effect,
+        "active": {},
+    }
+
     if aura["scheme"] == AsusAura.OFF:
         aura["state"] = False
-    # Notify if the scheme is unknown
-    if aura["scheme"] == AsusAura.UNKNOWN:
-        _LOGGER.warning("Unknown Aura scheme: `%s`", data.get("ledg_scheme"))
-
-    # Previous scheme
-    aura["scheme_prev"] = AsusAura(
-        safe_int(data.get("ledg_scheme_old"), default=-999)
-    )
-    # Notify if the previous scheme is unknown
-    if aura["scheme_prev"] == AsusAura.UNKNOWN:
-        _LOGGER.warning(
-            "Unknown previous Aura scheme: `%s`", data.get("ledg_scheme_old")
-        )
-
-    # Effects settings
-    active_effect = None
-    aura["effect"] = {}
-    for effect in range(0, 8):
-        aura["effect"][effect] = parse_colors(data.get(f"ledg_rgb{effect}"))
-        if effect == aura["scheme"].value:
-            active_effect = aura["effect"][effect]
 
     # Active effect
-    aura["active"] = {}
-    _acrive_brightness = 0
+    active_effect = aura["effect"].get(aura["scheme"].value)
     if active_effect:
+        _active_brightness = 0
         for i, color in enumerate(active_effect):
             _brightness = color.brightness
-            aura["active"][i] = {
-                "color": color,
-                "brightness": _brightness,
-            }
-            _acrive_brightness = max(_acrive_brightness, _brightness)
+            aura["active"][i] = {"color": color, "brightness": _brightness}
+            _active_brightness = max(_active_brightness, _brightness)
 
-    # Active color and brightness
-    if active_effect:
+        # Active color and brightness
         active_color = ColorRGBB(average_color(active_effect))
-        active_color.set_brightness(_acrive_brightness)
+        active_color.set_brightness(_active_brightness)
         aura["active"]["color"] = active_color
-        aura["active"]["brightness"] = _acrive_brightness
+        aura["active"]["brightness"] = _active_brightness
 
-    # Zones
-    aura["zones"] = color_zone(data.get("ledg_rgb1"))
+    # Get number of zones from the Static effect length
+    aura["zones"] = len(aura["effect"].get(AsusAuraColor.STATIC, []))
 
     return aura
