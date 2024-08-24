@@ -7,7 +7,7 @@ from typing import Any
 from asusrouter.tools.readers import read_json_content
 
 
-def read(content: str) -> dict[str, Any]:  # pylint: disable=unused-argument
+def read(content: str) -> dict[str, Any]:
     """Read aura data"""
 
     # Read the json content
