@@ -5,6 +5,8 @@ __pycache__/
 dist/
 *.egg-info
 
+.python-version
+
 # Pytest
 .coverage
 pytest/

@@ -82,11 +82,13 @@ def get_scheme_from_state(aura_state: dict) -> AsusAura:
     def is_valid_scheme(scheme: Any) -> bool:
         """Check if the scheme is valid."""
 
-        return scheme in AsusAura and scheme not in (
-            AsusAura.UNKNOWN,
-            AsusAura.ON,
-            AsusAura.OFF,
-        )
+        # Keep compatible with Python 3.11,
+        valid_schemes = [
+            e.value
+            for e in AsusAura
+            if e not in (AsusAura.UNKNOWN, AsusAura.ON, AsusAura.OFF)
+        ]
+        return scheme in valid_schemes
 
     current_scheme = aura_state.get("scheme")
     if is_valid_scheme(current_scheme):
