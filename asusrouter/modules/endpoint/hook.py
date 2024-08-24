@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timezone
-from typing import Any, Callable, Optional, Tuple
+from typing import Any, Optional, Tuple
 
+from asusrouter.modules.aura import process_aura
 from asusrouter.modules.connection import ConnectionState, ConnectionStatus
 from asusrouter.modules.data import AsusData, AsusDataState
 from asusrouter.modules.endpoint import data_get
@@ -55,6 +56,8 @@ from .hook_const import (
 REQUIRE_HISTORY = True
 REQUIRE_WLAN = True
 
+_LOGGER = logging.getLogger(__name__)
+
 
 def read(content: str) -> dict[str, Any]:
     """Read hook data"""
@@ -76,6 +79,10 @@ def process(data: dict[str, Any]) -> dict[AsusData, Any]:
     # Get the passed awrguments
     history: dict[AsusData, AsusDataState] = data_get(data, "history") or {}
     wlan = data_get(data, "wlan") or []
+
+    # Aura
+    if "ledg_scheme" in data:
+        state[AsusData.AURA] = process_aura(data)
 
     # CPU
     if "cpu_usage" in data:
@@ -183,7 +190,10 @@ def process_cpu(
             if item in prev_cpu:
                 before = prev_cpu[item]
                 after["usage"] = safe_usage_historic(
-                    after["used"], after["total"], before["used"], before["total"]
+                    after["used"],
+                    after["total"],
+                    before["used"],
+                    before["total"],
                 )
 
     return cpu
@@ -211,7 +221,9 @@ def process_cpu_usage(raw: dict[str, Any]) -> dict[str | int, Any]:
     return cpu
 
 
-def process_gwlan(data: dict[str, Any], wlan_list: list[Wlan]) -> dict[str, Any]:
+def process_gwlan(
+    data: dict[str, Any], wlan_list: list[Wlan]
+) -> dict[str, Any]:
     """Process GWLAN data."""
 
     gwlan = {}
@@ -242,7 +254,9 @@ def process_network(
 
     # Calculate speeds if previous data is available
     if history and history.data:
-        time_delta = (datetime.now(timezone.utc) - history.timestamp).total_seconds()
+        time_delta = (
+            datetime.now(timezone.utc) - history.timestamp
+        ).total_seconds()
         network = process_network_speed(network, history.data, time_delta)
 
     return network
@@ -414,7 +428,9 @@ def process_speedtest(data: dict[str, Any]) -> dict[str, Any]:
     test_result = speedtest.pop("result", None)
 
     # Get the last speedtest step
-    last_run_step: Optional[dict[str, Any]] = process_speedtest_last_step(test_result)
+    last_run_step: Optional[dict[str, Any]] = process_speedtest_last_step(
+        test_result
+    )
 
     # Save the last tested data directly in the speedtest dict
     for key, value in last_run_step.items():
@@ -432,7 +448,9 @@ def process_speedtest(data: dict[str, Any]) -> dict[str, Any]:
     # convert bandwidth from Bps to bps
     for speed in ("download", "upload"):
         if speed in speedtest:
-            speedtest[speed]["bandwidth"] = 8 * speedtest[speed].get("bandwidth", 0)
+            speedtest[speed]["bandwidth"] = 8 * speedtest[speed].get(
+                "bandwidth", 0
+            )
 
     # Remove extra values
     speedtest.pop("type", None)
@@ -443,7 +461,9 @@ def process_speedtest(data: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def process_speedtest_last_step(data: Optional[list[dict[str, Any]]]) -> dict[str, Any]:
+def process_speedtest_last_step(
+    data: Optional[list[dict[str, Any]]],
+) -> dict[str, Any]:
     """Process Speedtest progress data."""
 
     last_step: dict[str, Any] = {}
@@ -463,14 +483,18 @@ def process_speedtest_last_step(data: Optional[list[dict[str, Any]]]) -> dict[st
     return last_step
 
 
-def process_vpnc(data: dict[str, Any]) -> Tuple[dict[AsusVPNType, dict[int, Any]], str]:
+def process_vpnc(
+    data: dict[str, Any],
+) -> Tuple[dict[AsusVPNType, dict[int, Any]], str]:
     """Process VPNC data."""
 
     vpnc = {}
 
     # Get client list
     vpnc_clientlist = (
-        data.get("vpnc_clientlist", "").replace("&#62", ">").replace("&#60", "<")
+        data.get("vpnc_clientlist", "")
+        .replace("&#62", ">")
+        .replace("&#60", "<")
     )
     if vpnc_clientlist != "":
         clients = vpnc_clientlist.split("<")
@@ -484,9 +508,11 @@ def process_vpnc(data: dict[str, Any]) -> Tuple[dict[AsusVPNType, dict[int, Any]
                 continue
             vpnc_id = safe_int(part[6])
             vpnc[vpnc_id] = {
-                "type": AsusVPNType(part[1])
-                if part[1] in [e.value for e in AsusVPNType]
-                else AsusVPNType.UNKNOWN,
+                "type": (
+                    AsusVPNType(part[1])
+                    if part[1] in [e.value for e in AsusVPNType]
+                    else AsusVPNType.UNKNOWN
+                ),
                 "id": safe_int(part[2]),
                 "name": safe_return(part[0]),
                 "login": safe_return(part[3]),
@@ -509,12 +535,16 @@ def process_vpnc(data: dict[str, Any]) -> Tuple[dict[AsusVPNType, dict[int, Any]
             error_code = safe_int(part[1])
             vpnc[vpnc_id].update(
                 {
-                    "state": AsusVPNC(state_code)
-                    if state_code in [e.value for e in AsusVPNC]
-                    else AsusVPNC.UNKNOWN,
-                    "error": AccessError(error_code)
-                    if error_code in [e.value for e in AccessError]
-                    else AccessError.UNKNOWN,
+                    "state": (
+                        AsusVPNC(state_code)
+                        if state_code in [e.value for e in AsusVPNC]
+                        else AsusVPNC.UNKNOWN
+                    ),
+                    "error": (
+                        AccessError(error_code)
+                        if error_code in [e.value for e in AccessError]
+                        else AccessError.UNKNOWN
+                    ),
                 }
             )
 
@@ -603,7 +633,9 @@ def process_wan(data: dict[str, Any]) -> dict[Any, dict[str, Any]]:
                 key, key_to_use, method = safe_unpack_keys(keys)
                 state_value = data.get(f"wan{num}_{extra}{key}")
                 if state_value is not None:
-                    interface[extra_key][key_to_use] = run_method(state_value, method)
+                    interface[extra_key][key_to_use] = run_method(
+                        state_value, method
+                    )
         if interface:
             wan[num] = interface
 
@@ -640,12 +672,16 @@ def process_wan(data: dict[str, Any]) -> dict[Any, dict[str, Any]]:
             wan["dualwan"]["state"] = True
 
     # Assign main IP address
-    wan["internet"]["ip_address"] = wan[wan["internet"]["unit"]]["main"]["ip_address"]
+    wan["internet"]["ip_address"] = wan[wan["internet"]["unit"]]["main"][
+        "ip_address"
+    ]
 
     return wan
 
 
-def process_wireguard_server(data: dict[str, Any]) -> dict[int, dict[str, Any]]:
+def process_wireguard_server(
+    data: dict[str, Any],
+) -> dict[int, dict[str, Any]]:
     """Process WireGuard data."""
 
     wireguard = {}
@@ -674,9 +710,9 @@ def process_wireguard_server(data: dict[str, Any]) -> dict[int, dict[str, Any]]:
         if status:
             for client in status:
                 if client.get("index") in wireguard["clients"]:
-                    wireguard["clients"][client.get("index")][
-                        "state"
-                    ] = ConnectionState(client.get("status"))
+                    wireguard["clients"][client.get("index")]["state"] = (
+                        ConnectionState(client.get("status"))
+                    )
 
     # Remove the `status` value
     wireguard.pop("status", None)
@@ -684,7 +720,9 @@ def process_wireguard_server(data: dict[str, Any]) -> dict[int, dict[str, Any]]:
     return {1: wireguard}
 
 
-def process_wlan(data: dict[str, Any], wlan_list: list[Wlan]) -> dict[str, Any]:
+def process_wlan(
+    data: dict[str, Any], wlan_list: list[Wlan]
+) -> dict[str, Any]:
     """Process WLAN data."""
 
     wlan = {}

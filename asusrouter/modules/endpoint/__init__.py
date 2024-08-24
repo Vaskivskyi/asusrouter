@@ -30,12 +30,13 @@ class Endpoint(str, Enum):
     NETWORKMAPD = "update_networkmapd.asp"
     ONBOARDING = "ajax_onboarding.asp"
     PORT_STATUS = "get_port_status.cgi"
-    RGB = "light_effect.html"
     STATE = "state.js"
     SYSINFO = "ajax_sysinfo.asp"
     TEMPERATURE = "ajax_coretmp.asp"
     UPDATE_CLIENTS = "update_clients.asp"
     VPN = "ajax_vpn_status.asp"
+    # Endpoints known but not used / not available on test devices
+    # RGB = "light_effect.html"
 
 
 class EndpointControl(str, Enum):
@@ -43,7 +44,6 @@ class EndpointControl(str, Enum):
 
     APPLY = "apply.cgi"
     COMMAND = "applyapp.cgi"
-    LEDG = "set_ledg.cgi"
 
 
 class EndpointService(str, Enum):
@@ -56,8 +56,17 @@ class EndpointService(str, Enum):
 class EndpointTools(str, Enum):
     """Tools endpoints."""
 
+    # AURA control / RGB
+    AURA = "set_ledg.cgi"
     # Network tools: ping, jitter, loss
     NETWORK = "netool.cgi"
+
+
+class EndpointNoCheck(str, Enum):
+    """Endpoints that should not be checked for availability."""
+
+    # AURA control / RGB
+    AURA = "set_ledg.cgi"
 
 
 # Typehint for the endpoint
@@ -167,7 +176,8 @@ def data_get(data: dict[str, Any], key: str) -> Optional[Any]:
 
 
 async def check_available(
-    endpoint: Endpoint | EndpointTools, api_query: Callable[..., Awaitable[Any]]
+    endpoint: Endpoint | EndpointTools,
+    api_query: Callable[..., Awaitable[Any]],
 ) -> tuple[bool, Optional[Any]]:
     """Check whether the endpoint is available or returns 404."""
 

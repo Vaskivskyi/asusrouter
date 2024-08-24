@@ -8,6 +8,7 @@ from enum import Enum
 from types import ModuleType
 from typing import Any, Awaitable, Callable, Optional
 
+from asusrouter.modules.aura import AsusAura
 from asusrouter.modules.connection import ConnectionState
 from asusrouter.modules.data import AsusData, AsusDataState
 from asusrouter.modules.parental_control import (
@@ -18,7 +19,10 @@ from asusrouter.modules.parental_control import (
 from asusrouter.modules.port_forwarding import AsusPortForwarding
 from asusrouter.modules.system import AsusSystem
 from asusrouter.modules.vpnc import AsusVPNC
-from asusrouter.modules.wireguard import AsusWireGuardClient, AsusWireGuardServer
+from asusrouter.modules.wireguard import (
+    AsusWireGuardClient,
+    AsusWireGuardServer,
+)
 from asusrouter.modules.wlan import AsusWLAN
 from asusrouter.tools.converters import get_enum_key_by_value
 
@@ -41,6 +45,7 @@ class AsusState(Enum):
     """Asus state."""
 
     NONE = AsusStateNone
+    AURA = AsusAura
     BLOCK_ALL = AsusBlockAll
     CONNECTION = ConnectionState
     LED = AsusLED
@@ -58,6 +63,7 @@ class AsusState(Enum):
 
 AsusStateMap: dict[AsusState, Optional[AsusData]] = {
     AsusState.NONE: None,
+    AsusState.AURA: AsusData.AURA,
     AsusState.BLOCK_ALL: AsusData.PARENTAL_CONTROL,
     AsusState.CONNECTION: None,
     AsusState.LED: AsusData.LED,
@@ -88,7 +94,9 @@ def add_conditional_state(state: AsusState, data: AsusData) -> None:
 def get_datatype(state: Optional[Any]) -> Optional[AsusData]:
     """Get the datatype."""
 
-    asus_state = get_enum_key_by_value(AsusState, type(state), default=AsusState.NONE)
+    asus_state = get_enum_key_by_value(
+        AsusState, type(state), default=AsusState.NONE
+    )
 
     return AsusStateMap.get(asus_state)
 
@@ -196,7 +204,8 @@ async def keep_state(
     awaitables = [
         submodule.keep_state(callback, state, **kwargs)
         for state in states
-        if (submodule := _get_module(state)) and _has_method(submodule, "keep_state")
+        if (submodule := _get_module(state))
+        and _has_method(submodule, "keep_state")
     ]
 
     # Execute all awaitables

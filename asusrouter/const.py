@@ -42,6 +42,8 @@ DEFAULT_TIMEOUTS = [
     180.0,
 ]
 
+DEFAULT_RESULT_SUCCESS = {"statusCode": "200"}
+
 # --------------------
 # Value maps -->
 # --------------------

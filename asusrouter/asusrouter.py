@@ -13,7 +13,12 @@ from typing import Any, Awaitable, Callable, Optional
 import aiohttp
 
 from asusrouter.connection import Connection
-from asusrouter.const import DEFAULT_CACHE_TIME, DEFAULT_TIMEOUT, RequestType
+from asusrouter.const import (
+    DEFAULT_CACHE_TIME,
+    DEFAULT_RESULT_SUCCESS,
+    DEFAULT_TIMEOUT,
+    RequestType,
+)
 from asusrouter.error import (
     AsusRouter404Error,
     AsusRouterAccessError,
@@ -232,10 +237,18 @@ class AsusRouter:
             if not merlin:
                 _LOGGER.debug("Adding conditional rules for stock firmware")
                 if fw_388 < firmware:
-                    add_conditional_state(AsusState.OPENVPN_CLIENT, AsusData.VPNC)
-                    add_conditional_state(AsusState.WIREGUARD_CLIENT, AsusData.VPNC)
-                    add_conditional_data_alias(AsusData.OPENVPN_CLIENT, AsusData.VPNC)
-                    add_conditional_data_alias(AsusData.WIREGUARD_CLIENT, AsusData.VPNC)
+                    add_conditional_state(
+                        AsusState.OPENVPN_CLIENT, AsusData.VPNC
+                    )
+                    add_conditional_state(
+                        AsusState.WIREGUARD_CLIENT, AsusData.VPNC
+                    )
+                    add_conditional_data_alias(
+                        AsusData.OPENVPN_CLIENT, AsusData.VPNC
+                    )
+                    add_conditional_data_alias(
+                        AsusData.WIREGUARD_CLIENT, AsusData.VPNC
+                    )
                     add_conditional_data_rule(
                         AsusData.OPENVPN_SERVER,
                         AsusDataFinder(
@@ -282,13 +295,15 @@ class AsusRouter:
     # Request-related methods -->
     # ---------------------------
 
-    def _get_attribute(self, attribute: Optional[AsusRouterAttribute]) -> Optional[Any]:
+    def _get_attribute(
+        self, attribute: Optional[AsusRouterAttribute]
+    ) -> Optional[Any]:
         """Get an attribute value."""
 
         if not attribute:
             return None
 
-        match (attribute):
+        match attribute:
             case AsusRouterAttribute.MAC:
                 if self._identity:
                     return self._identity.mac
@@ -332,7 +347,9 @@ class AsusRouter:
             # Remove trailing semicolon
             payload = payload[:-1]
 
-        _LOGGER.debug("Triggered method async_api_query: %s | %s", endpoint, payload)
+        _LOGGER.debug(
+            "Triggered method async_api_query: %s | %s", endpoint, payload
+        )
 
         request_type = ENDPOINT_FORCE_REQUEST.get(endpoint, RequestType.POST)
 
@@ -411,7 +428,9 @@ class AsusRouter:
     ):
         """Send a command to the device."""
 
-        _LOGGER.debug("Triggered method async_api_command: %s | %s", endpoint, commands)
+        _LOGGER.debug(
+            "Triggered method async_api_command: %s | %s", endpoint, commands
+        )
 
         return await self.async_api_load(
             endpoint=endpoint,
@@ -422,7 +441,9 @@ class AsusRouter:
     # <-- Request-related methods
     # ---------------------------
 
-    def _where_to_get_data(self, datatype: AsusData) -> Optional[AsusDataFinder]:
+    def _where_to_get_data(
+        self, datatype: AsusData
+    ) -> Optional[AsusDataFinder]:
         """Get the list of endpoints to get data from."""
 
         _LOGGER.debug("Triggered method _where_to_get_data")
@@ -445,7 +466,9 @@ class AsusRouter:
         # Check if endpoints are available
         for endpoint in data_map.endpoint:
             # Check endpoint availability in identity
-            if self._identity.endpoints and self._identity.endpoints.get(endpoint) in (
+            if self._identity.endpoints and self._identity.endpoints.get(
+                endpoint
+            ) in (
                 False,
                 None,
             ):
@@ -456,7 +479,9 @@ class AsusRouter:
 
         return data_map
 
-    def _transform_data(self, datatype: AsusData, data: Any, **kwargs: Any) -> Any:
+    def _transform_data(
+        self, datatype: AsusData, data: Any, **kwargs: Any
+    ) -> Any:
         """Transform data if needed."""
 
         _LOGGER.debug("Triggered method _transform_data for `%s`", datatype)
@@ -527,7 +552,8 @@ class AsusRouter:
         This method is also used to fetch additional data."""
 
         _LOGGER.debug(
-            "Triggered method _check_postrequisites for datatype `%s`", datatype
+            "Triggered method _check_postrequisites for datatype `%s`",
+            datatype,
         )
 
         # Firmware
@@ -555,7 +581,8 @@ class AsusRouter:
         if datatype not in self._state:
             self._state[datatype] = AsusDataState(
                 timestamp=(
-                    datetime.now(timezone.utc) - timedelta(seconds=2 * self._cache_time)
+                    datetime.now(timezone.utc)
+                    - timedelta(seconds=2 * self._cache_time)
                 )
             )
 
@@ -599,19 +626,24 @@ class AsusRouter:
         # If state object is active, wait for it to finish and return the data
         if self._state[datatype].active:
             try:
-                _LOGGER.debug("Already in progress. Waiting for data to be fetched")
+                _LOGGER.debug(
+                    "Already in progress. Waiting for data to be fetched"
+                )
                 await asyncio.wait_for(
-                    self._state[datatype].inactive_event.wait(), DEFAULT_TIMEOUT
+                    self._state[datatype].inactive_event.wait(),
+                    DEFAULT_TIMEOUT,
                 )
             except asyncio.TimeoutError:
-                _LOGGER.debug("Timeout while waiting for data. Will try fetching again")
+                _LOGGER.debug(
+                    "Timeout while waiting for data. Will try fetching again"
+                )
 
         # Check if we have the data already and not forcing a refresh
         if self._state[datatype].data and not force:
             # Check if the data is younger than the cache time
-            if datetime.now(timezone.utc) - self._state[datatype].timestamp < timedelta(
-                seconds=self._cache_time
-            ):
+            if datetime.now(timezone.utc) - self._state[
+                datatype
+            ].timestamp < timedelta(seconds=self._cache_time):
                 _LOGGER.debug(
                     "Using cached data for `%s`: %s",
                     datatype,
@@ -760,7 +792,25 @@ class AsusRouter:
             # VPNC state change requires the correct previous state
             await self.async_get_data(AsusData.VPNC, force=True)
 
+        if dependency == AsusData.AURA:
+            # Aura state change requires the correct previous state
+            await self.async_get_data(AsusData.AURA, force=True)
+
         return
+
+    async def _async_get_state_callback(
+        self, state: AsusState
+    ) -> Callable[..., Awaitable]:
+        """Get the state callback."""
+
+        _LOGGER.debug("Triggered method _async_get_state_callback")
+
+        datatype = get_datatype(state)
+        # If state is one of AsusState.AURA enum
+        if datatype == AsusData.AURA:
+            return self.async_api_command
+
+        return self.async_run_service
 
     async def async_set_state(
         self,
@@ -782,8 +832,11 @@ class AsusRouter:
         # Check dependencies
         await self._async_check_state_dependency(state)
 
+        # Get the state callback
+        callback = await self._async_get_state_callback(state)
+
         result = await set_state(
-            callback=self.async_run_service,
+            callback=callback,
             state=state,
             expect_modify=expect_modify,
             router_state=self._state,
@@ -791,20 +844,28 @@ class AsusRouter:
             **kwargs,
         )
 
+        # Rewrite the result if it is the default one
+        if result == DEFAULT_RESULT_SUCCESS:
+            result = True
+
         if result is True:
-            if get_datatype(state) == AsusData.VPNC:
+            _datatype = get_datatype(state)
+
+            if _datatype in (AsusData.VPNC, AsusData.AURA):
                 # The only way to make it work with VPN Fusion
                 await asyncio.sleep(1)
                 await self._async_check_state_dependency(state)
             elif (
-                get_enum_key_by_value(AsusState, type(state), default=AsusState.NONE)
+                get_enum_key_by_value(
+                    AsusState, type(state), default=AsusState.NONE
+                )
                 == AsusState.PC_RULE
             ):
                 # We should not save this state, since it is saved differently
                 pass
             else:
                 # Check if we have a state object for this data
-                self._check_state(get_datatype(state))
+                self._check_state(_datatype)
                 # Save the state
                 _LOGGER.debug(
                     "Saving state `%s` for `%s` s with id=`%s`",
@@ -812,7 +873,9 @@ class AsusRouter:
                     self._needed_time,
                     self._last_id,
                 )
-                save_state(state, self._state, self._needed_time, self._last_id)
+                save_state(
+                    state, self._state, self._needed_time, self._last_id
+                )
                 # Reset the needed time and last id
                 self._needed_time = None
                 self._last_id = None
@@ -864,7 +927,9 @@ class AsusRouter:
         )["rules"]
 
         # Remove all rules for these IPs
-        current_rules = [rule for rule in current_rules if rule.ip_address not in ips]
+        current_rules = [
+            rule for rule in current_rules if rule.ip_address not in ips
+        ]
         # Remove exact rules
         for rule_to_find in rules:
             current_rules = [
@@ -878,7 +943,10 @@ class AsusRouter:
                         rule_to_find.ip_external is None
                         or rule.ip_external == rule_to_find.ip_external
                     )
-                    and (rule_to_find.port is None or rule.port == rule_to_find.port)
+                    and (
+                        rule_to_find.port is None
+                        or rule.port == rule_to_find.port
+                    )
                 )
             ]
 
