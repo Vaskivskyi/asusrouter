@@ -39,7 +39,8 @@ from asusrouter.tools.converters import (
     safe_usage,
     safe_usage_historic,
 )
-from asusrouter.tools.readers import merge_dicts, read_json_content
+from asusrouter.tools.readers import merge_dicts
+from asusrouter.tools.readers import read_json_content as read  # noqa: F401
 
 from .hook_const import (
     MAP_NETWORK,
@@ -57,14 +58,6 @@ REQUIRE_HISTORY = True
 REQUIRE_WLAN = True
 
 _LOGGER = logging.getLogger(__name__)
-
-
-def read(content: str) -> dict[str, Any]:
-    """Read hook data"""
-
-    hook: dict[str, Any] = read_json_content(content)
-
-    return hook
 
 
 def process(data: dict[str, Any]) -> dict[AsusData, Any]:
