@@ -497,7 +497,6 @@ async def test_set_state_with_color_support(
         50,
         1,
     )
-    default_get_arguments_args = ("color", "brightness", "zone")
 
     # Mock the get_arguments function
     mock_get_arguments.return_value = default_get_arguments
@@ -508,7 +507,7 @@ async def test_set_state_with_color_support(
 
     # Mock the aura state
     mock_aura_state = {
-        "effect": {1: [ColorRGB((0, 0, 0)), ColorRGB((0, 0, 0))]}
+        "effect": {1: [ColorRGBB((0, 0, 0)), ColorRGBB((0, 0, 0))]}
     }
 
     # Mock the get_default_aura_color function

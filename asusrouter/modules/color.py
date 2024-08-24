@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Optional
+from typing import Any, Optional
 
 from asusrouter.tools.converters import clean_input, safe_int, scale_value_int
 
@@ -93,7 +93,7 @@ class ColorRGB:
 
     def __init__(
         self,
-        r: int | tuple[int, int, int] = DEFAULT_COLOR,
+        r: int | tuple[int, int, int] | Any = DEFAULT_COLOR,
         g: Optional[int] = None,
         b: Optional[int] = None,
         scale: int = DEFAULT_COLOR_SCALE_ASUS,
@@ -121,7 +121,8 @@ class ColorRGB:
 
     def _normalize_input_rgb(
         self,
-        rgb: tuple[int, ...] | str,
+        rgb: Optional[tuple[int, ...] | str],
+        delimiter: str = DEFAULT_COLOR_DELIMITER,
     ) -> tuple[int, int, int]:
         """Normalize the RGB input."""
 
@@ -129,9 +130,7 @@ class ColorRGB:
             return DEFAULT_COLOR
 
         if isinstance(rgb, str):
-            rgb = tuple(
-                safe_int(value) for value in rgb.split(DEFAULT_COLOR_DELIMITER)
-            )
+            rgb = tuple(safe_int(value) for value in rgb.split(delimiter))
         elif isinstance(rgb, ColorRGB):
             rgb = rgb.as_tuple()
         else:
@@ -166,7 +165,7 @@ class ColorRGB:
 
         # Prepare and normalize the input
         rgb = self._normalize_scale(
-            self._normalize_input_rgb(rgb),
+            self._normalize_input_rgb(rgb, delimiter),
             self._scale,
         )
 
@@ -176,8 +175,8 @@ class ColorRGB:
     def from_rgbs(
         self,
         rgb: tuple[int, int, int] | str,
-        scale: Optional[int] = None,
         delimiter: str = DEFAULT_COLOR_DELIMITER,
+        scale: Optional[int] = None,
     ) -> None:
         """Load a color from RGB + Scale values."""
 
@@ -259,14 +258,15 @@ class ColorRGBB(ColorRGB):
 
     def _from_rgb(
         self,
-        rgb: tuple[int, ...],
+        rgb: tuple[int, ...] | str,
+        delimiter: str = DEFAULT_COLOR_DELIMITER,
         scale: Optional[int] = None,
     ) -> tuple[int, int, int]:
         """Read the RGB values."""
 
         # Prepare and normalize the input
         rgb = self._normalize_scale(
-            self._normalize_input_rgb(rgb),
+            self._normalize_input_rgb(rgb, delimiter),
             scale or self._scale,
         )
 
@@ -274,7 +274,8 @@ class ColorRGBB(ColorRGB):
 
     def from_rgb(
         self,
-        rgb: tuple[int, ...] | ColorRGB,
+        rgb: tuple[int, ...] | str | ColorRGB,
+        delimiter: str = DEFAULT_COLOR_DELIMITER,
         scale: Optional[int] = None,
     ) -> None:
         """Load a color from RGB values."""
@@ -283,13 +284,14 @@ class ColorRGBB(ColorRGB):
             rgb = (rgb.r, rgb.g, rgb.b)
 
         self._scale = scale or self._scale
-        rgb = self._from_rgb(rgb, self._scale)
+        rgb = self._from_rgb(rgb, delimiter, self._scale)
 
         self._r, self._g, self._b = rgb
 
     def from_rgbwb(
         self,
         rgb: tuple[int, ...] | ColorRGB,
+        delimiter: str = DEFAULT_COLOR_DELIMITER,
         scale: Optional[int] = None,
     ) -> None:
         """Load a color from RGB/wb (RGB with B embedded) values."""
@@ -298,7 +300,7 @@ class ColorRGBB(ColorRGB):
             rgb = (rgb.r, rgb.g, rgb.b)
 
         self._scale = scale or self._scale
-        rgb = self._from_rgb(rgb, self._scale)
+        rgb = self._from_rgb(rgb, delimiter, self._scale)
 
         # Get color brightness
         self._br = max(rgb)

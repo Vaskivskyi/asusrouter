@@ -210,46 +210,46 @@ class TestColorRGB:
         assert result == expected
 
     @pytest.mark.parametrize(
-        "input_rgb, delimiter, expected",
+        "input_rgb, expected",
         [
             # This will scale to the default 128 scale
-            ((100, 150, 200), ",", (64, 96, 128)),
-            ("100,150,200", ",", (64, 96, 128)),
+            ((100, 150, 200), (64, 96, 128)),
+            ("100,150,200", (64, 96, 128)),
             # This will stay
-            ((32, 64, 96), ",", (32, 64, 96)),
+            ((32, 64, 96), (32, 64, 96)),
             # Other input
-            ((100,), ",", (100, 0, 0)),
-            ("100", ",", (100, 0, 0)),
-            (None, ",", (0, 0, 0)),
+            ((100,), (100, 0, 0)),
+            ("100", (100, 0, 0)),
+            (None, (0, 0, 0)),
         ],
     )
-    def test_from_rgb(self, input_rgb, delimiter, expected):
+    def test_from_rgb(self, input_rgb, expected):
         """Test from_rgb."""
 
         color = ColorRGB()
-        color.from_rgb(input_rgb, delimiter)
+        color.from_rgb(input_rgb)
         assert (color._r, color._g, color._b) == expected
 
     @pytest.mark.parametrize(
-        "rgb, scale, delimiter, expected",
+        "rgb, scale, expected",
         [
             # This will scale to the default 128 scale
-            ((100, 150, 200), 128, ",", (64, 96, 128)),
-            ("100,150,200", 128, ",", (64, 96, 128)),
+            ((100, 150, 200), 128, (64, 96, 128)),
+            ("100,150,200", 128, (64, 96, 128)),
             # This will scale to the 255 scale
-            ((32, 64, 96), 255, ",", (32, 64, 96)),
+            ((32, 64, 96), 255, (32, 64, 96)),
             # Other input
-            ((100,), 255, ",", (100, 0, 0)),
-            ("100", 255, ",", (100, 0, 0)),
-            (None, 255, ",", (0, 0, 0)),
+            ((100,), 255, (100, 0, 0)),
+            ("100", 255, (100, 0, 0)),
+            (None, 255, (0, 0, 0)),
         ],
     )
-    def test_from_rgbs(self, rgb, scale, delimiter, expected):
+    def test_from_rgbs(self, rgb, scale, expected):
         """Test from_rgbs."""
 
         with patch.object(ColorRGB, "from_rgb") as mock_from_rgb:
             color = ColorRGB()
-            color.from_rgbs(rgb, scale, delimiter)
+            color.from_rgbs(rgb, scale=scale)
 
             assert mock_from_rgb.call_count == 2
 
@@ -429,7 +429,7 @@ class TestColorRGBB:
         """Test _from_rgb."""
 
         color = ColorRGBB()
-        result = color._from_rgb(rgb, scale)
+        result = color._from_rgb(rgb, scale=scale)
         assert result == expected
 
     @pytest.mark.parametrize(
@@ -448,7 +448,7 @@ class TestColorRGBB:
         """Test from_rgb."""
 
         color = ColorRGBB()
-        color.from_rgb(rgb, scale)
+        color.from_rgb(rgb, scale=scale)
         assert (color._r, color._g, color._b) == expected
 
     @pytest.mark.parametrize(
@@ -466,7 +466,7 @@ class TestColorRGBB:
         """Test from_rgbwb."""
 
         color = ColorRGBB()
-        color.from_rgbwb(rgb, scale)
+        color.from_rgbwb(rgb, scale=scale)
         assert (color._r, color._g, color._b) == expected
 
     @pytest.mark.parametrize(

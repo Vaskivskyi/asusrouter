@@ -90,12 +90,12 @@ def get_scheme_from_state(aura_state: dict) -> AsusAura:
         ]
         return scheme in valid_schemes
 
-    current_scheme = aura_state.get("scheme")
-    if is_valid_scheme(current_scheme):
+    current_scheme = safe_int(aura_state.get("scheme"))
+    if current_scheme is not None and is_valid_scheme(current_scheme):
         return AsusAura(current_scheme)
 
-    prev_scheme = aura_state.get("scheme_prev")
-    if is_valid_scheme(prev_scheme):
+    prev_scheme = safe_int(aura_state.get("scheme_prev"))
+    if prev_scheme is not None and is_valid_scheme(prev_scheme):
         return AsusAura(prev_scheme)
 
     return DEFAULT_AURA_SCHEME
