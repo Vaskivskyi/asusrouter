@@ -19,18 +19,9 @@ from asusrouter.tools.converters import (
     safe_bool,
     safe_int,
 )
-from asusrouter.tools.readers import read_json_content
+from asusrouter.tools.readers import read_json_content as read  # noqa: F401
 
 _LOGGER = logging.getLogger(__name__)
-
-
-def read(content: str) -> dict[str, Any]:
-    """Read port status data"""
-
-    # Read the page content
-    port_status: dict[str, Any] = read_json_content(content)
-
-    return port_status
 
 
 def process(data: dict[str, Any]) -> dict[AsusData, Any]:
@@ -57,10 +48,12 @@ def process(data: dict[str, Any]) -> dict[AsusData, Any]:
 
             for port, values in info.items():
                 # Process the port info
-                port_description, port_type, port_id = process_port_info(port, values)
+                port_description, port_type, port_id = process_port_info(
+                    port, values
+                )
 
                 # Create a port type group if it doesn't exist yet
-                if not port_type in ports[mac]:
+                if port_type not in ports[mac]:
                     ports[mac][port_type] = {}
 
                 # Save the port info
@@ -99,7 +92,9 @@ def process_port_info(
     port_id = safe_int(port[1])
 
     # Get the capabilities of the port
-    port_capabilities = int_as_capabilities(safe_int(values.get("cap")), PortCapability)
+    port_capabilities = int_as_capabilities(
+        safe_int(values.get("cap")), PortCapability
+    )
 
     # Get the port type
     port_type = PortType.UNKNOWN
@@ -148,7 +143,9 @@ def process_port_info(
 
     # Leave only the capabilities that are available
     capabilities = [
-        capability for capability, value in port_capabilities.items() if value is True
+        capability
+        for capability, value in port_capabilities.items()
+        if value is True
     ]
 
     # Combine the port description
