@@ -3,20 +3,35 @@
 from unittest.mock import AsyncMock
 
 import pytest
-
 from asusrouter.modules.firmware import Firmware
 from asusrouter.modules.identity import AsusDevice
-from asusrouter.modules.openvpn import AsusOVPNClient, AsusOVPNServer, set_state
+from asusrouter.modules.openvpn import (
+    AsusOVPNClient,
+    AsusOVPNServer,
+    set_state,
+)
 
 FW_MAJOR = "3.0.0.4"
 FW_MINOR_OLD = 386
 FW_MINOR_NEW = 388
 
 identity_mock = {
-    "merlin_new": AsusDevice(merlin=True, firmware=Firmware(FW_MAJOR, FW_MINOR_NEW, 0)),
-    "merlin_old": AsusDevice(merlin=True, firmware=Firmware(FW_MAJOR, FW_MINOR_OLD, 0)),
-    "stock_new": AsusDevice(merlin=False, firmware=Firmware(FW_MAJOR, FW_MINOR_NEW, 0)),
-    "stock_old": AsusDevice(merlin=False, firmware=Firmware(FW_MAJOR, FW_MINOR_OLD, 0)),
+    "merlin_new": AsusDevice(
+        merlin=True,
+        firmware=Firmware(major=FW_MAJOR, minor=FW_MINOR_NEW, build=0),
+    ),
+    "merlin_old": AsusDevice(
+        merlin=True,
+        firmware=Firmware(major=FW_MAJOR, minor=FW_MINOR_OLD, build=0),
+    ),
+    "stock_new": AsusDevice(
+        merlin=False,
+        firmware=Firmware(major=FW_MAJOR, minor=FW_MINOR_NEW, build=0),
+    ),
+    "stock_old": AsusDevice(
+        merlin=False,
+        firmware=Firmware(major=FW_MAJOR, minor=FW_MINOR_OLD, build=0),
+    ),
 }
 
 
@@ -25,7 +40,15 @@ identity_mock = {
     "state, vpn_id, identity, expect_modify, expect_call, expected_args, expected_service",
     [
         # Correct states
-        (AsusOVPNClient.ON, 1, "merlin_new", True, True, {"id": 1}, "start_vpnclient1"),
+        (
+            AsusOVPNClient.ON,
+            1,
+            "merlin_new",
+            True,
+            True,
+            {"id": 1},
+            "start_vpnclient1",
+        ),
         (
             AsusOVPNClient.OFF,
             1,
@@ -35,7 +58,15 @@ identity_mock = {
             {"id": 1},
             "stop_vpnclient1",
         ),
-        (AsusOVPNServer.ON, 1, "merlin_new", True, True, {"id": 1}, "start_vpnserver1"),
+        (
+            AsusOVPNServer.ON,
+            1,
+            "merlin_new",
+            True,
+            True,
+            {"id": 1},
+            "start_vpnserver1",
+        ),
         (
             AsusOVPNServer.OFF,
             1,
@@ -46,7 +77,15 @@ identity_mock = {
             "stop_vpnserver1",
         ),
         # Different identity - merlin old
-        (AsusOVPNClient.ON, 1, "merlin_old", True, True, {"id": 1}, "start_vpnclient1"),
+        (
+            AsusOVPNClient.ON,
+            1,
+            "merlin_old",
+            True,
+            True,
+            {"id": 1},
+            "start_vpnclient1",
+        ),
         (
             AsusOVPNClient.OFF,
             1,
@@ -57,7 +96,15 @@ identity_mock = {
             "stop_vpnclient1",
         ),
         # Different identity - stock old
-        (AsusOVPNClient.ON, 1, "stock_old", True, True, {"id": 1}, "start_vpnclient1"),
+        (
+            AsusOVPNClient.ON,
+            1,
+            "stock_old",
+            True,
+            True,
+            {"id": 1},
+            "start_vpnclient1",
+        ),
         (
             AsusOVPNClient.OFF,
             1,
@@ -102,11 +149,25 @@ identity_mock = {
         # No ID
         (AsusOVPNClient.ON, None, "merlin_new", True, False, {}, None),
         # No identity - should use legacy service
-        (AsusOVPNClient.ON, 1, None, True, True, {"id": 1}, "start_vpnclient1"),
+        (
+            AsusOVPNClient.ON,
+            1,
+            None,
+            True,
+            True,
+            {"id": 1},
+            "start_vpnclient1",
+        ),
     ],
 )
 async def test_set_state(
-    state, vpn_id, identity, expect_modify, expect_call, expected_args, expected_service
+    state,
+    vpn_id,
+    identity,
+    expect_modify,
+    expect_call,
+    expected_args,
+    expected_service,
 ):
     """Test set_state."""
 
@@ -114,7 +175,10 @@ async def test_set_state(
     callback = AsyncMock()
 
     # Compile the kwargs
-    kwargs = {"id": vpn_id, "identity": identity_mock[identity] if identity else None}
+    kwargs = {
+        "id": vpn_id,
+        "identity": identity_mock[identity] if identity else None,
+    }
 
     # Call the set_state function
     await set_state(
