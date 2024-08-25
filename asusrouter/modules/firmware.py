@@ -83,12 +83,20 @@ class Firmware:
             self.rog = rog
             self.beta = beta
 
+        self._update_beta()
+
     def safe(self) -> Optional[Firmware]:
         """Return self if exists, otherwise None."""
 
         if self.major:
             return self
         return None
+
+    def _update_beta(self) -> None:
+        """Return the beta flag."""
+
+        if self.major:
+            self.beta = self.major[0] == "9"
 
     def from_string(self, fw_string: Optional[str] = None) -> None:
         """Read the firmware string."""
@@ -191,9 +199,18 @@ class Firmware:
                     if self.minor < other.minor:
                         return True
                 # Compare the build versions
-                if self.build is not None and other.build is not None:
+                if isinstance(self.build, int) and isinstance(
+                    other.build, int
+                ):
                     if self.build < other.build:
                         return True
+                elif isinstance(self.build, str) and isinstance(
+                    other.build, str
+                ):
+                    # Compare the build versions as strings symbol by symbol
+                    for i in range(min(len(self.build), len(other.build))):
+                        if self.build[i] < other.build[i]:
+                            return True
                 # Compare the revision versions
                 if isinstance(self.revision, int) and isinstance(
                     other.revision, int
