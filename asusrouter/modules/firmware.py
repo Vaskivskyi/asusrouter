@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 import re
 from enum import Enum
-from typing import Optional
+from typing import Any, Optional
 
 from asusrouter.tools.converters import clean_string, safe_int
 
@@ -185,38 +185,31 @@ class Firmware:
         if self.beta != other.beta:
             _LOGGER.debug("Comparing beta and non-beta firmware")
 
+        def compare_versions(v1: Any, v2: Any) -> bool:
+            """Helper function to compare version parts."""
+
+            if v1 is None or v2 is None:
+                return False
+            if isinstance(v1, int) and isinstance(v2, int):
+                return v1 < v2
+            if isinstance(v1, str) and isinstance(v2, str):
+                return v1 < v2
+            return False
+
         if self.major and other.major:
-            # Ignore first character because we can have beta versions
             major1 = [int(x) for x in self.major.split(".")[1:]]
             major2 = [int(x) for x in other.major.split(".")[1:]]
-            # Compare the major versions
-            if major1 < major2:
+            if major1 != major2:
+                return major1 < major2
+
+            if compare_versions(self.minor, other.minor):
                 return True
-            # Proceed only if major is the same for both
-            if major1 == major2:
-                # Compare the minor versions
-                if self.minor is not None and other.minor is not None:
-                    if self.minor < other.minor:
-                        return True
-                # Compare the build versions
-                if isinstance(self.build, int) and isinstance(
-                    other.build, int
-                ):
-                    if self.build < other.build:
-                        return True
-                elif isinstance(self.build, str) and isinstance(
-                    other.build, str
-                ):
-                    # Compare the build versions as strings symbol by symbol
-                    for i in range(min(len(self.build), len(other.build))):
-                        if self.build[i] < other.build[i]:
-                            return True
-                # Compare the revision versions
-                if isinstance(self.revision, int) and isinstance(
-                    other.revision, int
-                ):
-                    if self.revision < other.revision:
-                        return True
+
+            if compare_versions(self.build, other.build):
+                return True
+
+            if compare_versions(self.revision, other.revision):
+                return True
 
         return False
 

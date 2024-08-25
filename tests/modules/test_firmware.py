@@ -261,7 +261,7 @@ class TestFirmware:
             (
                 Firmware(major="3.0.0.4", minor=1, build="2abc"),
                 Firmware(major="3.0.0.4", minor=1, build="2abcdef"),
-                False,  # because we compare only by the shorter length
+                True,
             ),
             (
                 Firmware(major="3.0.0.4", minor=1, build="abc1"),
