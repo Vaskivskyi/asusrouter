@@ -24,7 +24,7 @@ from asusrouter.modules.endpoint.onboarding import (
     process as process_onboarding,
 )
 from asusrouter.modules.endpoint.onboarding import read as read_onboarding
-from asusrouter.modules.firmware import Firmware, read_fw_string
+from asusrouter.modules.firmware import Firmware
 from asusrouter.modules.wlan import WLAN_TYPE, Wlan
 from asusrouter.tools import writers
 from asusrouter.tools.cleaners import clean_dict
@@ -177,7 +177,7 @@ def _read_nvram(data: dict[str, Any]) -> dict[str, Any]:
 
     # Firmware
     # TODO: Optimize this
-    firmware = read_fw_string(
+    firmware = Firmware(
         f"{identity['fw_major']}.{identity['fw_minor']}.{identity['fw_build']}"
     )
     identity["firmware"] = firmware

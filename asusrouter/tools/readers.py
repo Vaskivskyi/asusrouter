@@ -28,7 +28,9 @@ RANDOM_SYMBOLS: list[str] = [
 ]
 
 
-def merge_dicts(data: dict[Any, Any], merge_data: dict[Any, Any]) -> dict[Any, Any]:
+def merge_dicts(
+    data: dict[Any, Any], merge_data: dict[Any, Any]
+) -> dict[Any, Any]:
     """This methods merges two nested dicts into a single one
     while keeping all the existing values"""
 
@@ -72,7 +74,9 @@ def read_as_snake_case(data: str) -> str:
     """Convert a string to snake case"""
 
     string = (
-        re.sub(r"(?<=[a-z])(?=[A-Z])|[^a-zA-Z]", " ", data).strip().replace(" ", "_")
+        re.sub(r"(?<=[a-z])(?=[A-Z])|[^a-zA-Z]", " ", data)
+        .strip()
+        .replace(" ", "_")
     )
     result = "".join(string.lower())
     while "__" in result:
@@ -95,6 +99,7 @@ def read_content_type(headers: dict[str, str]) -> ContentType:
     return ContentType.UNKNOWN
 
 
+@clean_input
 def read_js_variables(content: str) -> dict[str, Any]:
     """Get all the JS variables from the content"""
 
@@ -164,7 +169,9 @@ def readable_mac(raw: Optional[str]) -> bool:
     """Checks if string is MAC address"""
 
     if isinstance(raw, str):
-        if re.search(re.compile("^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$"), raw):
+        if re.search(
+            re.compile("^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$"), raw
+        ):
             return True
 
     return False
