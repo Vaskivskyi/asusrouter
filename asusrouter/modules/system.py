@@ -52,6 +52,15 @@ class AsusSystem(str, Enum):
     # if available. The firmware file is downloaded from the Asus server.
     # After the download, the router will reboot and install the firmware.
     FIRMWARE_UPGRADE = "firmware_upgrade"  # Firmware upgrade
+    # ---------------------
+    # Upgrades and updates
+    UPGRADE_RESTART = "restart_upgrade"  # Upgrade firmware and restart device
+    UPGRADE_START = "start_upgrade"  # Start firmware upgrade / installation
+    UPGRADE_STOP = "stop_upgrade"  # Stop firmware upgrade / installation
+    RESTART_UPGRADE = "_depr_restart_upgrade"
+    START_UPGRADE = "_depr_start_upgrade"
+    STOP_UPGRADE = "_depr_stop_upgrade"
+    # ---------------------
     PREPARE_CERT = "prepare_cert"  # Prepare certificate
     REBOOT = "reboot"  # Reboot the router
     RESTART_CHPASS = "restart_chpass"
@@ -91,7 +100,6 @@ class AsusSystem(str, Enum):
     RESTART_TOR = "restart_tor"  # The Onion Router (TOR)
     RESTART_TR = "restart_tr"
     RESTART_U2EC = "restart_u2ec"  # USB to Ethernet Connector
-    RESTART_UPGRADE = "restart_upgrade"
     RESTART_UPNP = "restart_upnp"  # Universal Plug and Play (UPnP)
     RESTART_USB_IDLE = "restart_usb_idle"
     RESTART_VPNC = "restart_vpnc"
@@ -114,7 +122,6 @@ class AsusSystem(str, Enum):
     START_AURARGB = "start_aurargb"  # Aura RGB
     START_DISKFORMAT = "start_diskformat"  # Format disk
     START_DISKSCAN = "start_diskscan"  # Scan disk
-    START_UPGRADE = "start_upgrade"  # Start firmware upgrade
     START_WEBS_UPGRADE = (
         "start_webs_upgrade"  # Start firmware upgrade from the web
     )
@@ -123,7 +130,6 @@ class AsusSystem(str, Enum):
     STOP_AURARGB = "stop_aurargb"  # Aura RGB
     STOP_LOGGER = "stop_logger"
     STOP_OPENVPND = "stop_openvpnd"  # Stop OpenVPN server
-    STOP_UPGRADE = "stop_upgrade"
     STOP_VPNC = "stop_vpnc"
     STOP_VPND = "stop_vpnd"  # Stop VPN server for legacy VPNs
     STOP_WRS_FORCE = "stop_wrs_force"
@@ -134,7 +140,12 @@ class AsusSystem(str, Enum):
 # Format: {DeprecatedState: (NewState, Version)}
 # Version is the version when the deprecated state will be removed (optional)
 AsusSystemDeprecated = {
+    # AiMesh
     AsusSystem.REBUILD_AIMESH: (AsusSystem.AIMESH_REBUILD, None),
+    # Upgrades and updates
+    AsusSystem.RESTART_UPGRADE: (AsusSystem.UPGRADE_RESTART, None),
+    AsusSystem.START_UPGRADE: (AsusSystem.UPGRADE_START, None),
+    AsusSystem.STOP_UPGRADE: (AsusSystem.UPGRADE_STOP, None),
 }
 
 
