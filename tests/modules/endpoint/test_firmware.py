@@ -71,8 +71,6 @@ test_case_2_webs = test_case_2["webs"].copy()
 test_case_2_webs.update(
     {
         "available": Firmware("3.0.0.4.388.8_0"),
-        "available_beta": None,
-        "required": None,
     }
 )
 test_case_2.update(
@@ -80,8 +78,6 @@ test_case_2.update(
         "current": Firmware("3.0.0.4.388.7_0"),
         "state": True,
         "available": Firmware("3.0.0.4.388.8_0"),
-        "state_beta": False,
-        "available_beta": None,
         "webs": test_case_2_webs,
     }
 )
@@ -101,14 +97,11 @@ test_case_3_webs.update(
     {
         "available": Firmware("3.0.0.4.388.8_0"),
         "available_beta": Firmware("3.0.0.4.388.8_2beta1"),
-        "required": None,
     }
 )
 test_case_3.update(
     {
         "current": Firmware("3.0.0.4.388.8_0"),
-        "state": False,
-        "available": None,
         "state_beta": True,
         "available_beta": Firmware("3.0.0.4.388.8_2beta1"),
         "webs": test_case_3_webs,
@@ -130,7 +123,6 @@ test_case_4_webs.update(
     {
         "available": Firmware("3.0.0.4.388.8_0"),
         "available_beta": Firmware("3.0.0.4.388.8_2beta1"),
-        "required": None,
     }
 )
 test_case_4.update(
@@ -140,9 +132,52 @@ test_case_4.update(
         "available": Firmware("3.0.0.4.388.8_0"),
         "state_beta": True,
         "available_beta": Firmware("3.0.0.4.388.8_2beta1"),
-        "webs": test_case_3_webs,
+        "webs": test_case_4_webs,
     }
 )
+
+# Case 5: ROG flag (Merlin firmware)
+# Check that the ROG flag is properly ignored.
+test_case_5_input: dict[str, Any] = {
+    "webs_state_info": "3.0.0.4.388.7_0",
+    "firmware": Firmware("3.0.0.4.388.7_0_rog"),
+}
+
+test_case_5 = test_case_1.copy()
+test_case_5_webs = test_case_5["webs"].copy()
+test_case_5_webs.update(
+    {
+        "available": Firmware("3.0.0.4.388.7_0"),
+    }
+)
+test_case_5.update(
+    {
+        "current": Firmware("3.0.0.4.388.7_0_rog"),
+        "webs": test_case_5_webs,
+    }
+)
+
+# Case 6: Rog flag reversed (Merlin firmware)
+# Check that the ROG flag is properly ignored.
+test_case_6_input: dict[str, Any] = {
+    "webs_state_info": "3.0.0.4.388.7_0_rog",
+    "firmware": Firmware("3.0.0.4.388.7_0"),
+}
+
+test_case_6 = test_case_1.copy()
+test_case_6_webs = test_case_6["webs"].copy()
+test_case_6_webs.update(
+    {
+        "available": Firmware("3.0.0.4.388.7_0_rog"),
+    }
+)
+test_case_6.update(
+    {
+        "current": Firmware("3.0.0.4.388.7_0"),
+        "webs": test_case_6_webs,
+    }
+)
+
 
 test_cases = [
     (
@@ -160,6 +195,14 @@ test_cases = [
     (
         test_case_4_input,
         {AsusData.FIRMWARE: test_case_4},
+    ),
+    (
+        test_case_5_input,
+        {AsusData.FIRMWARE: test_case_5},
+    ),
+    (
+        test_case_6_input,
+        {AsusData.FIRMWARE: test_case_6},
     ),
 ]
 
