@@ -215,104 +215,62 @@ class TestFirmware:
         "fw1, fw2, expected",
         [
             # Major version
-            (Firmware(major="3.0.0.4"), Firmware(major="3.0.0.6"), True),
-            (Firmware(major="3.0.0.4"), Firmware(major="3.0.0.4"), False),
-            (Firmware(major="3.0.0.6"), Firmware(major="3.0.0.4"), False),
+            ("3.0.0.4.123.4_5", "3.0.0.6.123.4_5", True),
+            ("3.0.0.4.123.4_5", "3.0.0.4.123.4_5", False),
+            ("3.0.0.6.123.4_5", "3.0.0.4.123.4_5", False),
             # Beta digit should not matter
-            (Firmware(major="3.0.0.4"), Firmware(major="9.0.0.4"), False),
+            ("3.0.0.4.123.4_5", "9.0.0.4.123.4_5", False),
             # Minor version
-            (
-                Firmware(major="3.0.0.4", minor=1),
-                Firmware(major="3.0.0.4", minor=2),
-                True,
-            ),
-            (
-                Firmware(major="3.0.0.4", minor=1),
-                Firmware(major="3.0.0.4", minor=1),
-                False,
-            ),
-            (
-                Firmware(major="3.0.0.4", minor=2),
-                Firmware(major="3.0.0.4", minor=1),
-                False,
-            ),
+            ("3.0.0.4.123.4_5", "3.0.0.4.124.4_5", True),
+            ("3.0.0.4.123.4_5", "3.0.0.4.123.4_5", False),
+            ("3.0.0.4.124.4_5", "3.0.0.4.123.4_5", False),
             # Build version
-            (
-                Firmware(major="3.0.0.4", minor=1, build=1),
-                Firmware(major="3.0.0.4", minor=1, build=2),
-                True,
-            ),
-            (
-                Firmware(major="3.0.0.4", minor=1, build=1),
-                Firmware(major="3.0.0.4", minor=1, build=1),
-                False,
-            ),
-            (
-                Firmware(major="3.0.0.4", minor=1, build=2),
-                Firmware(major="3.0.0.4", minor=1, build=1),
-                False,
-            ),
-            # String build version
-            (
-                Firmware(major="3.0.0.4", minor=1, build="1abc"),
-                Firmware(major="3.0.0.4", minor=1, build="2abc"),
-                True,
-            ),
-            (
-                Firmware(major="3.0.0.4", minor=1, build="2abc"),
-                Firmware(major="3.0.0.4", minor=1, build="2abcdef"),
-                True,
-            ),
-            (
-                Firmware(major="3.0.0.4", minor=1, build="abc1"),
-                Firmware(major="3.0.0.4", minor=1, build="abc1"),
-                False,
-            ),
-            (
-                Firmware(major="3.0.0.4", minor=1, build="efg2"),
-                Firmware(major="3.0.0.4", minor=1, build="abc1"),
-                False,
-            ),
-            # Different build types
-            (
-                Firmware(major="3.0.0.4", minor=1, build="2"),
-                Firmware(major="3.0.0.4", minor=1, build=3),
-                False,
-            ),
-            (
-                Firmware(major="3.0.0.4", minor=1, build="2"),
-                Firmware(major="3.0.0.4", minor=1, build=None),
-                False,
-            ),
+            ("3.0.0.4.123.4_5", "3.0.0.4.123.5_5", True),
+            ("3.0.0.4.123.4_5", "3.0.0.4.123.4_5", False),
+            ("3.0.0.4.123.5_5", "3.0.0.4.123.4_5", False),
             # Revision
-            (
-                Firmware(major="3.0.0.4", minor=1, build=1, revision=1),
-                Firmware(major="3.0.0.4", minor=1, build=1, revision=2),
-                True,
-            ),
-            (
-                Firmware(major="3.0.0.4", minor=1, build=1, revision=1),
-                Firmware(major="3.0.0.4", minor=1, build=1, revision=1),
-                False,
-            ),
-            # Non integer revision
-            (
-                Firmware(major="3.0.0.4", minor=1, build=1, revision=None),
-                Firmware(major="3.0.0.4", minor=1, build=1, revision=1),
-                False,
-            ),
-            (
-                Firmware(major="3.0.0.4", minor=1, build=1, revision=1),
-                Firmware(major="3.0.0.4", minor=1, build=1, revision="string"),
-                False,
-            ),
+            ("3.0.0.4.123.4_5", "3.0.0.4.123.4_6", True),
+            ("3.0.0.4.123.4_5", "3.0.0.4.123.4_5", False),
+            ("3.0.0.4.123.4_6", "3.0.0.4.123.4_5", False),
+            ("3.0.0.4.123.4_5abc6", "3.0.0.4.123.4_5abc7", True),
+            ("3.0.0.4.123.4_5abc6", "3.0.0.4.123.4_5abc6", False),
+            ("3.0.0.4.123.4_5abc7", "3.0.0.4.123.4_5abc6", False),
+            # Other important cases
+            # Flip in m<m b>b
+            ("3.0.0.4.124.3.5", "3.0.0.4.123.4_5", False),
+            ("3.0.0.4.123.4_5", "3.0.0.4.124.3.5", True),
+            # Different types: int vs str
+            ("3.0.0.4.123.4_5", "3.0.0.4.123.4_6beta1", True),
+            ("3.0.0.4.123.4_6beta1", "3.0.0.4.123.4_5", False),
             # Anything but Firmware
-            (Firmware(), None, False),
-            (Firmware(), "invalid", False),
+            ("3.0.0.4.123.4_5", None, False),
+            ("3.0.0.4.123.4_5", "invalid", False),
         ],
     )
     def test_lt(self, fw1, fw2, expected):
         """Test the less than operator."""
+
+        fw1 = Firmware(fw1)
+        fw2 = Firmware(fw2)
+
+        assert (fw1 < fw2) == expected
+
+    @pytest.mark.parametrize(
+        "fw2, expected",
+        [
+            (None, False),
+            ("invalid", False),
+            (Firmware(), False),
+            (Firmware(major="3.0.0.4"), False),
+            (Firmware(major="3.0.0.4", minor=123), False),
+            (Firmware(major="3.0.0.4", minor=123, build=4), False),
+            (Firmware(major="3.0.0.4", minor=123, build=4, revision=5), False),
+        ],
+    )
+    def test_lt_invalid(self, fw2, expected):
+        """Test the less than operator with invalid input."""
+
+        fw1 = Firmware("3.0.0.4.123.4_5")
 
         assert (fw1 < fw2) == expected
 

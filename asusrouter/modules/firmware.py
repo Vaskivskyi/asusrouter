@@ -115,7 +115,7 @@ class Firmware:
 
         re_match = re.match(pattern, fw_string)
         if not re_match:
-            print(
+            _LOGGER.warning(
                 "Firmware version cannot be parsed. \
                     Please report this. The original FW string is: `%s`"
                 % fw_string
@@ -185,31 +185,62 @@ class Firmware:
         if self.beta != other.beta:
             _LOGGER.debug("Comparing beta and non-beta firmware")
 
-        def compare_versions(v1: Any, v2: Any) -> bool:
-            """Helper function to compare version parts."""
+        if not self.major or not other.major:
+            return False
 
-            if v1 is None or v2 is None:
+        # Remove beta digit from the major version
+        major_1 = [int(x) for x in self.major.split(".")[1:]]
+        major_2 = [int(x) for x in other.major.split(".")[1:]]
+
+        def lt_values(v1: Any, v2: Any) -> bool:
+            """Check whether one value is less than the other."""
+
+            if v2 is None:
                 return False
+            elif v1 is None:
+                return True
+
             if isinstance(v1, int) and isinstance(v2, int):
                 return v1 < v2
             if isinstance(v1, str) and isinstance(v2, str):
                 return v1 < v2
+            if isinstance(v1, list) and isinstance(v2, list):
+                for i in range(min(len(v1), len(v2))):
+                    if v1[i] < v2[i]:
+                        return True
+                    if v2[i] < v1[i]:
+                        return False
+            # Special case for int vs str
+            if (isinstance(v1, int) and isinstance(v2, str)) or (
+                isinstance(v1, str) and isinstance(v2, int)
+            ):
+                return str(v1) < str(v2)
+
             return False
 
-        if self.major and other.major:
-            major1 = [int(x) for x in self.major.split(".")[1:]]
-            major2 = [int(x) for x in other.major.split(".")[1:]]
-            if major1 != major2:
-                return major1 < major2
+        # Compare the major version
+        if lt_values(major_1, major_2):
+            return True
+        if lt_values(major_2, major_1):
+            return False
 
-            if compare_versions(self.minor, other.minor):
-                return True
+        # Compare the minor version
+        if lt_values(self.minor, other.minor):
+            return True
+        if lt_values(other.minor, self.minor):
+            return False
 
-            if compare_versions(self.build, other.build):
-                return True
+        # Compare the build version
+        if lt_values(self.build, other.build):
+            return True
+        if lt_values(other.build, self.build):
+            return False
 
-            if compare_versions(self.revision, other.revision):
-                return True
+        # Compare the revision version
+        if lt_values(self.revision, other.revision):
+            return True
+        if lt_values(other.revision, self.revision):
+            return False
 
         return False
 
