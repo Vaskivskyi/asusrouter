@@ -12,6 +12,15 @@ from asusrouter.tools.converters import clean_string, safe_int
 _LOGGER = logging.getLogger(__name__)
 
 
+class FirmwareType(Enum):
+    """Type of firmware."""
+
+    UNKNOWN = -999
+    STOCK = 0
+    MERLIN = 1
+    GNUTON = 2
+
+
 class WebsError(Enum):
     """Webs Upgrade error status."""
 
@@ -59,17 +68,17 @@ class Firmware:
         version: Optional[str] = None,
         major: Optional[str] = None,
         minor: Optional[int] = None,
-        build: Optional[int | str] = None,
+        build: Optional[int] = None,
         revision: Optional[int | str] = None,
-        rog: bool = False,
-        beta: bool = False,
     ) -> None:
         """Initialize the firmware object."""
 
         self.major: Optional[str] = None
         self.minor: Optional[int] = None
-        self.build: Optional[int | str] = None
+        self.build: Optional[int] = None
         self.revision: Optional[int | str] = None
+
+        self.source: FirmwareType = FirmwareType.STOCK
         self.rog: bool = False
         self.beta: bool = False
 
@@ -80,10 +89,10 @@ class Firmware:
             self.minor = minor
             self.build = build
             self.revision = revision
-            self.rog = rog
-            self.beta = beta
+            self._update_rog()
 
         self._update_beta()
+        self._update_source()
 
     def safe(self) -> Optional[Firmware]:
         """Return self if exists, otherwise None."""
@@ -93,10 +102,38 @@ class Firmware:
         return None
 
     def _update_beta(self) -> None:
-        """Return the beta flag."""
+        """Update the beta flag."""
 
+        self.beta = False
         if self.major:
             self.beta = self.major[0] == "9"
+
+    def _update_rog(self) -> None:
+        """Update the ROG flag."""
+
+        self.rog = False
+        if isinstance(self.revision, str):
+            self.rog = "_rog" in self.revision
+            # Remove the _rog suffix
+            if self.rog:
+                self.revision = self.revision[:-4]
+
+    def _update_source(self) -> None:
+        """Update the source of the firmware."""
+
+        if isinstance(self.revision, int):
+            self.source = FirmwareType.MERLIN
+            return
+
+        if isinstance(self.revision, str):
+            if "gnuton" in self.revision:
+                self.source = FirmwareType.GNUTON
+                return
+            if "alpha" in self.revision or "beta" in self.revision:
+                self.source = FirmwareType.MERLIN
+                return
+
+        self.source = FirmwareType.STOCK
 
     def from_string(self, fw_string: Optional[str] = None) -> None:
         """Read the firmware string."""
@@ -133,8 +170,7 @@ class Firmware:
         # Minor version
         minor = safe_int(re_match.group("minor"))
         # Build version
-        build = re_match.group("build")
-        build = safe_int(build) if build.isdigit() else build
+        build = safe_int(re_match.group("build"))
         # Revision
         revision = re_match.group("revision")
         revision = safe_int(revision) if revision.isdigit() else revision
@@ -180,6 +216,11 @@ class Firmware:
         """Compare two firmware versions."""
 
         if not isinstance(other, Firmware):
+            _LOGGER.debug("Cannot compare Firmware with other object")
+            return False
+
+        if self.source != other.source:
+            _LOGGER.debug("Cannot compare different firmware sources")
             return False
 
         if self.beta != other.beta:
@@ -191,6 +232,22 @@ class Firmware:
         # Remove beta digit from the major version
         major_1 = [int(x) for x in self.major.split(".")[1:]]
         major_2 = [int(x) for x in other.major.split(".")[1:]]
+
+        def get_prefix(v: str) -> str:
+            """Get the prefix of the version."""
+
+            if "alpha" in v:
+                return clean_string(v.split("alpha")[0]) or "-1"
+            if "beta" in v:
+                return clean_string(v.split("beta")[0]) or "-1"
+            # We should not reach this point ever if
+            # attributes of Firmware were not manually overwritten
+            _LOGGER.warning(
+                "Code execution reached an unexpected point"
+                + " in Firmware.__lt__.get_prefix()."
+                + " Trying to compare %s and %s" % (self, other)
+            )
+            return v
 
         def lt_values(v1: Any, v2: Any) -> bool:
             """Check whether one value is less than the other."""
@@ -210,11 +267,23 @@ class Firmware:
                         return True
                     if v2[i] < v1[i]:
                         return False
-            # Special case for int vs str
-            if (isinstance(v1, int) and isinstance(v2, str)) or (
-                isinstance(v1, str) and isinstance(v2, int)
-            ):
-                return str(v1) < str(v2)
+            # Case of beta / alpha
+            if isinstance(v1, int) and isinstance(v2, str):
+                _prefix = get_prefix(v2)
+                _v1 = str(v1)
+                # This case will solve `1 vs 1beta1`
+                if _v1 == _prefix:
+                    return False
+                # Everything else can be compared as strings
+                return str(v1) < _prefix
+            if isinstance(v1, str) and isinstance(v2, int):
+                _prefix = get_prefix(v1)
+                _v2 = str(v2)
+                # This case will solve `1 vs 1beta1`
+                if _v2 == _prefix:
+                    return True
+                # Everything else can be compared as strings
+                return _prefix < str(v2)
 
             return False
 

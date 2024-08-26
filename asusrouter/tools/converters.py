@@ -305,7 +305,7 @@ def safe_enum(
     value: Any,
     default_value: Optional[Any] = None,
     default: Optional[_E] = None,
-) -> _E:
+) -> Optional[_E]:
     """Get the enum key by value"""
 
     # Fast return
