@@ -5,7 +5,6 @@ from enum import Enum
 from unittest.mock import patch
 
 import pytest
-
 from asusrouter.tools import converters
 
 
@@ -90,13 +89,16 @@ def test_get_enum_key_by_value():
     """Test get_enum_key_by_value method."""
 
     assert (
-        converters.get_enum_key_by_value(EnumForTest, 1, EnumForTest.B) == EnumForTest.A
+        converters.get_enum_key_by_value(EnumForTest, 1, EnumForTest.B)
+        == EnumForTest.A
     )
     assert (
-        converters.get_enum_key_by_value(EnumForTest, 2, EnumForTest.A) == EnumForTest.B
+        converters.get_enum_key_by_value(EnumForTest, 2, EnumForTest.A)
+        == EnumForTest.B
     )
     assert (
-        converters.get_enum_key_by_value(EnumForTest, 3, EnumForTest.A) == EnumForTest.A
+        converters.get_enum_key_by_value(EnumForTest, 3, EnumForTest.A)
+        == EnumForTest.A
     )
     with pytest.raises(ValueError):
         converters.get_enum_key_by_value(EnumForTest, 3)
@@ -266,7 +268,10 @@ def test_run_method():
         A = 1
         B = 2
 
-    assert converters.run_method(3, TestEnumWithUnknown) == TestEnumWithUnknown.UNKNOWN
+    assert (
+        converters.run_method(3, TestEnumWithUnknown)
+        == TestEnumWithUnknown.UNKNOWN
+    )
 
 
 @pytest.mark.parametrize(
@@ -315,6 +320,26 @@ def test_safe_datetime(content, result):
     """Test safe_datetime method."""
 
     assert converters.safe_datetime(content) == result
+
+
+@pytest.mark.parametrize(
+    "enum, value, default_value, default, expected",
+    [
+        (EnumForTest, 1, None, None, EnumForTest.A),
+        (EnumForTest, 2, None, None, EnumForTest.B),
+        (EnumForTest, None, 1, None, EnumForTest.A),
+        (EnumForTest, None, 2, None, EnumForTest.B),
+        (EnumForTest, None, None, EnumForTest.A, EnumForTest.A),
+        (EnumForTest, None, None, EnumForTest.B, EnumForTest.B),
+        (EnumForTest, 3, None, None, None),
+        (EnumForTest, None, None, None, None),
+        (EnumForTest, None, 2, EnumForTest.B, EnumForTest.B),
+    ],
+)
+def test_safe_enum(enum, value, default_value, default, expected):
+    assert (
+        converters.safe_enum(enum, value, default_value, default) == expected
+    )
 
 
 def test_safe_exists():
@@ -466,7 +491,9 @@ def test_safe_time_from_delta(mock_datetime):
     # Set up the mock to return a specific datetime when now() is called
     mock_datetime.now.return_value = datetime(2023, 8, 15, tzinfo=timezone.utc)
 
-    result = converters.safe_time_from_delta("48:00:15")  # 48 hours, 15 seconds
+    result = converters.safe_time_from_delta(
+        "48:00:15"
+    )  # 48 hours, 15 seconds
     expected = datetime(2023, 8, 12, 23, 59, 45, tzinfo=timezone.utc)
     assert result == expected
 
@@ -557,7 +584,9 @@ def test_safe_unpack_keys():
 
     # Test with a key and key_to_use only
     result = converters.safe_unpack_keys(("key", "key_to_use"))
-    assert result[0] == "key" and result[1] == "key_to_use" and result[2] is None
+    assert (
+        result[0] == "key" and result[1] == "key_to_use" and result[2] is None
+    )
 
     # Test with a key only
     result = converters.safe_unpack_keys("key")
@@ -589,22 +618,46 @@ def test_safe_usage(used, total, result):
         (10, 20, 5, 10, 50.0),  # normal usage
         (10, 20, 10, 20, 0.0),  # no usage
         (6, 18, 3, 9, 33.33),  # round to 2 decimals
-        (5, 20, 10, 10, 0.0),  # invalid case when current used is less than previous
-        (10, 20, 5, 25, 0.0),  # invalid case when current total is less than previous
-        (5, 10, 10, 20, 0.0),  # invalid case when current values are less than previous
+        (
+            5,
+            20,
+            10,
+            10,
+            0.0,
+        ),  # invalid case when current used is less than previous
+        (
+            10,
+            20,
+            5,
+            25,
+            0.0,
+        ),  # invalid case when current total is less than previous
+        (
+            5,
+            10,
+            10,
+            20,
+            0.0,
+        ),  # invalid case when current values are less than previous
     ],
 )
 def test_safe_usage_historic(used, total, prev_used, prev_total, result):
     """Test safe_usage_historic method."""
 
-    assert converters.safe_usage_historic(used, total, prev_used, prev_total) == result
+    assert (
+        converters.safe_usage_historic(used, total, prev_used, prev_total)
+        == result
+    )
 
 
 @pytest.mark.parametrize(
     ("value", "result"),
     [
         # Actual timestamp in milliseconds
-        (1700515143689, datetime(2023, 11, 20, 21, 19, 3, 689000, tzinfo=timezone.utc)),
+        (
+            1700515143689,
+            datetime(2023, 11, 20, 21, 19, 3, 689000, tzinfo=timezone.utc),
+        ),
         # None
         (None, None),
         # The beginning of the epoch
@@ -645,7 +698,10 @@ def test_safe_utc_to_timestamp(value, result):
     ("value", "result"),
     [
         # Actual datetime
-        (datetime(2023, 11, 20, 21, 19, 3, 689000, tzinfo=timezone.utc), 1700515143689),
+        (
+            datetime(2023, 11, 20, 21, 19, 3, 689000, tzinfo=timezone.utc),
+            1700515143689,
+        ),
         # None
         (None, None),
         # The beginning of the epoch

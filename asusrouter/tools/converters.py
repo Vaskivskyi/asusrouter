@@ -15,6 +15,8 @@ from typing import Any, Callable, Iterable, Optional, Type, TypeVar, cast
 
 from dateutil.parser import parse as dtparse
 
+from asusrouter.tools.cleaners import clean_content
+
 true_values = {"true", "allow", "1", "on", "enabled"}
 false_values = {"false", "block", "0", "off", "disabled"}
 
@@ -41,7 +43,7 @@ def clean_string(content: Optional[str]) -> Optional[str]:
     if not content or not isinstance(content, str):
         return None
 
-    content = content.strip()
+    content = clean_content(content.strip())
     # Empty string
     if not content:
         return None
@@ -296,6 +298,37 @@ def safe_datetime(content: Optional[str]) -> Optional[datetime]:
         return dtparse(content)
     except (ValueError, TypeError):
         return None
+
+
+def safe_enum(
+    enum: Type[_E],
+    value: Any,
+    default_value: Optional[Any] = None,
+    default: Optional[_E] = None,
+) -> Optional[_E]:
+    """Get the enum key by value"""
+
+    # Fast return
+    # Return the default enum member
+    if not default_value and not value and default is not None:
+        return default
+
+    if issubclass(enum, Enum):
+        _def_enum_value = None
+        # Go through the enum values
+        for enum_value in enum:
+            # Check for the value
+            if enum_value.value == value:
+                # Fast return
+                return enum_value
+            # Check for the default value
+            if enum_value.value == default_value:
+                _def_enum_value = enum_value
+        # Return the default value
+        if _def_enum_value is not None:
+            return _def_enum_value
+
+    return None
 
 
 @clean_input
