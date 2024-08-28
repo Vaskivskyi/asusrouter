@@ -121,6 +121,8 @@ async def collect_identity(
     endpoints, onboarding = await _check_endpoints(api_query)
     identity["endpoints"] = endpoints
     _LOGGER.debug("Endpoints checked")
+    # Manually assign Aura endpoint value
+    identity["endpoints"][EndpointTools.AURA] = identity.get("aura", False)
 
     # Check onboarding to get nice model name
     this_device = onboarding.get(identity["mac"])

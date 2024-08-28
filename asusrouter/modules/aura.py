@@ -16,7 +16,12 @@ from asusrouter.modules.color import (
 from asusrouter.modules.data import AsusData, AsusDataState
 from asusrouter.modules.endpoint import EndpointTools
 from asusrouter.modules.identity import AsusDevice
-from asusrouter.tools.converters import get_arguments, safe_bool, safe_int
+from asusrouter.tools.converters import (
+    get_arguments,
+    safe_bool,
+    safe_enum,
+    safe_int,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -256,8 +261,13 @@ def process_aura(data: dict[str, Any]) -> dict[str, Any]:
         """Get the scheme from the data."""
 
         scheme_value = data.get(key)
-        scheme = AsusAura(safe_int(scheme_value, default=-999))
-        if scheme == AsusAura.UNKNOWN:
+        _scheme_value = safe_int(scheme_value)
+        _scheme_enum = safe_enum(AsusAura, _scheme_value, default_value=-999)
+        scheme: AsusAura = (
+            _scheme_enum if _scheme_enum is not None else AsusAura.UNKNOWN
+        )
+
+        if scheme == AsusAura.UNKNOWN and _scheme_value is not None:
             _LOGGER.warning("Unknown Aura scheme: `%s`", scheme_value)
         return scheme
 
@@ -296,7 +306,10 @@ def process_aura(data: dict[str, Any]) -> dict[str, Any]:
         aura["active"]["color"] = active_color
         aura["active"]["brightness"] = _active_brightness
 
+    print(aura["effect"])
+
     # Get number of zones from the Static effect length
-    aura["zones"] = len(aura["effect"].get(AsusAuraColor.STATIC, []))
+    _effect_static = aura["effect"].get(AsusAuraColor.STATIC)
+    aura["zones"] = len(_effect_static) if _effect_static else 0
 
     return aura
