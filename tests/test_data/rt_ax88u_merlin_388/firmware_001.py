@@ -1,26 +1,51 @@
 """Result of processing firmware_001.content."""
 
+from typing import Optional
+
 from asusrouter import AsusData
+from asusrouter.modules.firmware import (
+    Firmware,
+    WebsError,
+    WebsFlag,
+    WebsUpdate,
+    WebsUpgrade,
+)
+
+_available: Optional[Firmware] = Firmware(
+    major="3.0.0.4", minor=388, build=4, revision=0
+)
+_available_beta: Optional[Firmware] = None
 
 expected_result = {
     AsusData.FIRMWARE: {
-        "webs_state_error": "0",
-        "webs_state_info": "3004_388_4_0",
-        "webs_state_info_beta": "",
-        "webs_state_REQinfo": "",
-        "webs_state_flag": "0",
-        "webs_state_upgrade": "",
-        "webs_state_level": "0",
-        "sig_state_flag": "1",
-        "sig_state_update": "0",
-        "sig_state_upgrade": "1",
-        "sig_state_error": "0",
-        "sig_ver": "2.380",
-        "cfg_check": "",
-        "cfg_upgrade": "",
-        "hndwr_status": "99",
+        "current": None,
         "state": True,
-        "current": "None",
-        "available": "3.0.0.4.388.4_0",
-    }
+        "available": _available,
+        "state_beta": False,
+        "available_beta": _available_beta,
+        "webs": {
+            "update": WebsUpdate.INACTIVE,
+            "upgrade": WebsUpgrade.INACTIVE,
+            "available": _available,
+            "available_beta": _available_beta,
+            "required": None,
+            "error": WebsError.NONE,
+            "flag": WebsFlag.DONT,
+            "level": 0,
+        },
+        "cfg": {
+            "check": None,
+            "upgrade": None,
+        },
+        "sig": {
+            "update": 0,
+            "upgrade": 1,
+            "version": "2.380",
+            "error": 0,
+            "flag": 1,
+        },
+        "hndwr": {
+            "status": 99,
+        },
+    },
 }

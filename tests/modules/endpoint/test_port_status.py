@@ -1,6 +1,6 @@
-"""Test AsusRouter command endpoint module."""
+"""Tests for the Port Status endpoint module."""
 
-from asusrouter.modules.endpoint.command import read
+from asusrouter.modules.endpoint.port_status import read
 
 from ._test_default import _test_read
 

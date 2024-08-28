@@ -3,7 +3,6 @@
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-
 from asusrouter.error import AsusRouter404Error
 from asusrouter.modules.endpoint import (
     Endpoint,
@@ -22,16 +21,20 @@ def test_get_module():
     # Test valid endpoint
     with patch("importlib.import_module") as mock_import:
         mock_import.return_value = "mocked_module"
-        result = _get_module(Endpoint.RGB)
+        result = _get_module(Endpoint.PORT_STATUS)
         assert result == "mocked_module"
-        mock_import.assert_called_once_with("asusrouter.modules.endpoint.rgb")
+        mock_import.assert_called_once_with(
+            "asusrouter.modules.endpoint.port_status"
+        )
 
     # Test invalid endpoint
     with patch("importlib.import_module") as mock_import:
         mock_import.side_effect = ModuleNotFoundError
         result = _get_module(Endpoint.FIRMWARE)
         assert result is None
-        mock_import.assert_called_once_with("asusrouter.modules.endpoint.firmware")
+        mock_import.assert_called_once_with(
+            "asusrouter.modules.endpoint.firmware"
+        )
 
 
 def test_read():
@@ -54,9 +57,9 @@ def test_read():
     with patch(
         "asusrouter.modules.endpoint._get_module", return_value=None
     ) as mock_get_module:
-        result = read(Endpoint.RGB, "content")
+        result = read(Endpoint.PORT_STATUS, "content")
         assert result == {}
-        mock_get_module.assert_called_once_with(Endpoint.RGB)
+        mock_get_module.assert_called_once_with(Endpoint.PORT_STATUS)
 
 
 @pytest.mark.parametrize(
@@ -108,9 +111,9 @@ def test_process_no_module():
     with patch(
         "asusrouter.modules.endpoint._get_module", return_value=None
     ) as mock_get_module:
-        result = process(Endpoint.RGB, {"key": "value"})
+        result = process(Endpoint.PORT_STATUS, {"key": "value"})
         assert result == {}
-        mock_get_module.assert_called_once_with(Endpoint.RGB)
+        mock_get_module.assert_called_once_with(Endpoint.PORT_STATUS)
 
 
 def test_data_set():
@@ -131,7 +134,12 @@ def test_data_set():
     "data, key, expected, data_left",
     [
         # Key exists
-        ({"key1": "value1", "key2": "value2"}, "key1", "value1", {"key2": "value2"}),
+        (
+            {"key1": "value1", "key2": "value2"},
+            "key1",
+            "value1",
+            {"key2": "value2"},
+        ),
         # Key does not exist
         (
             {"key1": "value1", "key2": "value2"},

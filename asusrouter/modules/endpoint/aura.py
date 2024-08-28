@@ -1,4 +1,4 @@
-"""Command endpoint module."""
+"""Aura endpoint module."""
 
 from __future__ import annotations
 

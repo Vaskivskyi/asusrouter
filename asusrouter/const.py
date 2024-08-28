@@ -42,6 +42,10 @@ DEFAULT_TIMEOUTS = [
     180.0,
 ]
 
+DEFAULT_RESULT_SUCCESS = {"statusCode": "200"}
+
+UNKNOWN_MEMBER = -999
+
 # --------------------
 # Value maps -->
 # --------------------
