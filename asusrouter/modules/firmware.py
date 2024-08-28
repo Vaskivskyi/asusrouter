@@ -166,7 +166,8 @@ class Firmware:
             if major and "." not in major and len(major) == 4
             else major
         )
-        beta = major[0] == "9"
+        # Only if major version exists and has 0 member
+        beta = major[0] == "9" if major and len(major) > 0 else False
         # Minor version
         minor = safe_int(re_match.group("minor"))
         # Build version
