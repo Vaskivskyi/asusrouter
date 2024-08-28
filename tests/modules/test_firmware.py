@@ -159,6 +159,8 @@ class TestFirmware:
                 False,
                 False,
             ),
+            # Additional cases
+            (".386.7_120", None, 386, 7, 120, False, False),
             # Invalid input
             ("", None, None, None, None, False, False),
             ("invalid", None, None, None, None, False, False),
