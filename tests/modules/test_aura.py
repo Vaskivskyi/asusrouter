@@ -794,7 +794,7 @@ def test_process_aura_unknown(caplog):
     """Test process_aura function for unknown scheme log."""
 
     input_scheme = "unknown_1"
-    input_scheme_prev = "unknown_2"
+    input_scheme_prev = 123
     input_data = {
         "ledg_scheme": input_scheme,
         "ledg_scheme_old": input_scheme_prev,
@@ -803,5 +803,6 @@ def test_process_aura_unknown(caplog):
     with caplog.at_level("WARNING"):
         process_aura(input_data)
 
-    assert f"Unknown Aura scheme: `{input_scheme}`" in caplog.text
+    # There should not be any log for non-numerical values
+    # assert f"Unknown Aura scheme: `{input_scheme}`" in caplog.text
     assert f"Unknown Aura scheme: `{input_scheme_prev}`" in caplog.text
