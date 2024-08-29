@@ -163,6 +163,13 @@ def process(data: dict[str, Any]) -> dict[AsusData, Any]:
         or "wl3_wpa_psk" in data
     ):
         state[AsusData.WLAN] = process_wlan(data, wlan)
+    
+    # DSL
+    if (
+        "dsllog_dataratedown" in data
+        or "dsllog_datarateup" in data
+    ):
+        state[AsusData.DSL] = process_dsl(data)
 
     return state
 
@@ -733,3 +740,22 @@ def process_wlan(
         wlan[interface.value] = info
 
     return wlan
+
+def process_dsl(dsl_info: dict[str, Any]) -> dict[str, Any]:
+    """Process DSL data"""
+
+    dsl: dict[str, Any] = {}
+
+    # Data preprocessing
+    if "Kbps" in dsl_info.get("dsllog_dataratedown", ""):
+        dsl_info["dsllog_dataratedown"] = dsl_info["dsllog_dataratedown"].replace("Kbps", "")
+
+    if "Kbps" in dsl_info.get("dsllog_datarateup", ""):
+        dsl_info["dsllog_datarateup"] = dsl_info["dsllog_datarateup"].replace("Kbps", "")
+
+    dsl = {
+        "dsllog_dataratedown": safe_int(dsl_info["dsllog_dataratedown"]),
+        "dsllog_datarateup": safe_int(dsl_info["dsllog_datarateup"]),
+    }
+
+    return dsl
