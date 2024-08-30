@@ -754,8 +754,8 @@ def process_dsl(dsl_info: dict[str, Any]) -> dict[str, Any]:
         dsl_info["dsllog_datarateup"] = dsl_info["dsllog_datarateup"].replace("Kbps", "")
 
     dsl = {
-        "dsllog_dataratedown": safe_int(dsl_info["dsllog_dataratedown"]),
-        "dsllog_datarateup": safe_int(dsl_info["dsllog_datarateup"]),
+        "dsllog_dataratedown": safe_int(dsl_info["dsllog_dataratedown"], 0),
+        "dsllog_datarateup": safe_int(dsl_info["dsllog_datarateup"], 0),
     }
 
     return dsl
