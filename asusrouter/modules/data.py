@@ -20,6 +20,7 @@ class AsusData(str, Enum):
     CLIENTS = "clients"
     CPU = "cpu"
     DEVICEMAP = "devicemap"
+    DSL = "dsl"
     FIRMWARE = "firmware"
     FIRMWARE_NOTE = "firmware_note"
     FLAGS = "flags"
@@ -49,7 +50,7 @@ class AsusData(str, Enum):
     WIREGUARD_CLIENT = "wireguard_client"
     WIREGUARD_SERVER = "wireguard_server"
     WLAN = "wlan"
-    DSL = "dsl"
+
 
 @dataclass
 class AsusDataState:
