@@ -744,18 +744,22 @@ def process_wlan(
 def process_dsl(dsl_info: dict[str, Any]) -> dict[str, Any]:
     """Process DSL data"""
 
+    def remove_units(value: Optional[str]) -> Optional[str]:
+        """Remove units from the value."""
+
+        if value is None:
+            return None
+        return value.split(" ")[0]
+
     dsl: dict[str, Any] = {}
 
     # Data preprocessing
-    if "Kbps" in dsl_info.get("dsllog_dataratedown", ""):
-        dsl_info["dsllog_dataratedown"] = dsl_info["dsllog_dataratedown"].replace("Kbps", "")
+    _dataratedown = remove_units(dsl_info.get("dsllog_dataratedown"))
+    _datarateup = remove_units(dsl_info.get("dsllog_datarateup"))
 
-    if "Kbps" in dsl_info.get("dsllog_datarateup", ""):
-        dsl_info["dsllog_datarateup"] = dsl_info["dsllog_datarateup"].replace("Kbps", "")
-
-    dsl = {
-        "dsllog_dataratedown": safe_int(dsl_info["dsllog_dataratedown"], 0),
-        "dsllog_datarateup": safe_int(dsl_info["dsllog_datarateup"], 0),
+    dsl["datarate"] = {
+        "down": safe_int(_dataratedown, 0),
+        "up": safe_int(_datarateup, 0),
     }
 
     return dsl
