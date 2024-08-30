@@ -1,6 +1,6 @@
 """Connection module.
 
-This module handles the connection between the library and the router 
+This module handles the connection between the library and the router
 as well as all the data transfer."""
 
 from __future__ import annotations
@@ -29,7 +29,9 @@ from asusrouter.modules.endpoint.error import handle_access_error
 _LOGGER = logging.getLogger(__name__)
 
 
-def generate_credentials(username: str, password: str) -> Tuple[str, dict[str, str]]:
+def generate_credentials(
+    username: str, password: str
+) -> Tuple[str, dict[str, str]]:
     """Generate credentials for connection"""
 
     auth = f"{username}:{password}".encode("ascii")
@@ -75,7 +77,13 @@ class Connection:  # pylint: disable=too-many-instance-attributes
         self._password = password
 
         # Client session
-        self._session = session if session is not None else self._new_session()
+        self._manage_session: bool = False
+        if session is not None:
+            _LOGGER.debug("Using provided session")
+            self._session = session
+        else:
+            _LOGGER.debug("No session provided. Will create a new one")
+            self._session = self._new_session()
         _LOGGER.debug("Using session `%s`", session)
 
         # Set the port and protocol based on the input
@@ -86,9 +94,32 @@ class Connection:  # pylint: disable=too-many-instance-attributes
         # Callback for dumping data
         self._dumpback = dumpback
 
+    def __del__(self) -> None:
+        """Proper cleanup when the object is deleted."""
+
+        if self._manage_session and self._session and not self._session.closed:
+            _LOGGER.debug(
+                "Connection object is managing a session. Trying to close it"
+            )
+            try:
+                loop = asyncio.get_running_loop()
+                loop.create_task(self._session.close())
+                _LOGGER.debug("Session close task created")
+            except RuntimeError:
+                try:
+                    asyncio.run(self._session.close())
+                    _LOGGER.debug("Trying to close the session")
+                except Exception as ex:  # pylint: disable=broad-except
+                    _LOGGER.warning("Error while closing the session: %s", ex)
+            finally:
+                if self._session.closed:
+                    _LOGGER.debug("Session closed")
+
     def _new_session(self) -> aiohttp.ClientSession:
         """Create a new session."""
 
+        # If we create a new session, we will manage it
+        self._manage_session = True
         return aiohttp.ClientSession()
 
     async def async_connect(
@@ -112,7 +143,9 @@ class Connection:  # pylint: disable=too-many-instance-attributes
             self._connected = False
 
             # Generate payload and header for login request
-            payload, headers = generate_credentials(self._username, self._password)
+            payload, headers = generate_credentials(
+                self._username, self._password
+            )
 
             # Request authotization
             _LOGGER.debug("Requesting authorization")
@@ -139,7 +172,9 @@ for a single connection attempt: {sum(DEFAULT_TIMEOUTS)}. \
 The last error: {ex}"
                 ) from ex
             except Exception as ex:  # pylint: disable=broad-except
-                _LOGGER.debug("Error while connecting to %s: %s", self._hostname, ex)
+                _LOGGER.debug(
+                    "Error while connecting to %s: %s", self._hostname, ex
+                )
                 raise ex
 
             # Convert the response to JSON
@@ -181,7 +216,9 @@ The last error: {ex}"
             _LOGGER.debug("Disconnected from %s", self._hostname)
             return True
         except AsusRouterError as ex:
-            _LOGGER.debug("Error while disconnecting from %s: %s", self._hostname, ex)
+            _LOGGER.debug(
+                "Error while disconnecting from %s: %s", self._hostname, ex
+            )
             return False
 
         # Anything else would mean error when disconnecting
@@ -252,11 +289,17 @@ Failed in `_send_request` with error: `{ex}`"
 
         # If still not connected, raise an error
         if not self._connected:
-            raise AsusRouterTimeoutError("Data cannot be retrieved. Connection failed")
+            raise AsusRouterTimeoutError(
+                "Data cannot be retrieved. Connection failed"
+            )
 
         # Send the request
-        _LOGGER.debug("Sending `%s` request to `%s`", request_type, self._hostname)
-        return await self._send_request(endpoint, payload, headers, request_type)
+        _LOGGER.debug(
+            "Sending `%s` request to `%s`", request_type, self._hostname
+        )
+        return await self._send_request(
+            endpoint, payload, headers, request_type
+        )
 
     async def _make_request(
         self,
@@ -277,7 +320,9 @@ Failed in `_send_request` with error: `{ex}`"
             # Reconnect
             await self.async_connect()
             # Retry the request
-            return await self._make_request(endpoint, payload, headers, request_type)
+            return await self._make_request(
+                endpoint, payload, headers, request_type
+            )
 
         # Check headers
         if not headers:
