@@ -81,6 +81,7 @@ class AsusDevice:  # pylint: disable=too-many-instance-attributes
     # Flags for device features
     aura: bool = False
     aura_zone: int = 0
+    dsl: bool = False
     led: bool = False
     ookla: bool = False
     vpn_status: bool = False
@@ -128,6 +129,11 @@ async def collect_identity(
     this_device = onboarding.get(identity["mac"])
     if isinstance(this_device, AiMeshDevice):
         identity["model"] = this_device.model
+
+    # Check if DSL
+    if endpoints[Endpoint.DSL] is True:
+        identity["dsl"] = True
+        _LOGGER.debug("DSL-compatible device detected")
 
     # Check if Merlin
     if endpoints[Endpoint.SYSINFO] is True:

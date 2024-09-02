@@ -277,6 +277,10 @@ class AsusRouter:
                 remove_data_rule(AsusData.WIREGUARD_CLIENT)
                 remove_data_rule(AsusData.WIREGUARD_SERVER)
 
+            # DSL connection
+            if self._identity.dsl is False:
+                remove_data_rule(AsusData.DSL)
+
             # Ookla Speedtest
             if self._identity.ookla is False:
                 remove_data_rule(AsusData.SPEEDTEST)
