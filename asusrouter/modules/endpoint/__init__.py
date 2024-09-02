@@ -22,6 +22,7 @@ class Endpoint(str, Enum):
     """Endpoint enum. These endpoints are used to receive data from the device."""
 
     DEVICEMAP = "ajax_status.xml"
+    DSL = "ajax_AdslStatus.asp"
     ETHERNET_PORTS = "ajax_ethernet_ports.asp"
     FIRMWARE = "detect_firmware.asp"
     FIRMWARE_NOTE = "release_note0.asp"
