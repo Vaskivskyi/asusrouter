@@ -45,18 +45,6 @@ def generate_credentials(
 class Connection:  # pylint: disable=too-many-instance-attributes
     """A connection between the library and the device."""
 
-    # A token for the current session
-    _token: Optional[str] = None
-    # A header to use in the current session
-    _header: Optional[dict[str, str]] = None
-
-    # SSL
-    _ssl = False
-
-    # Connection status
-    _connected: bool = False
-    _connection_lock: asyncio.Lock = asyncio.Lock()
-
     def __init__(  # pylint: disable=too-many-arguments
         self,
         hostname: str,
@@ -70,6 +58,12 @@ class Connection:  # pylint: disable=too-many-instance-attributes
         """Initialize connection."""
 
         _LOGGER.debug("Initializing a new connection to `%s`", hostname)
+
+        # Initialize parameters for connection
+        self._token: Optional[str] = None
+        self._header: Optional[dict[str, str]] = None
+        self._connected: bool = False
+        self._connection_lock: asyncio.Lock = asyncio.Lock()
 
         # Hostname and credentials
         self._hostname = hostname
@@ -89,7 +83,14 @@ class Connection:  # pylint: disable=too-many-instance-attributes
         # Set the port and protocol based on the input
         self._http = "https" if use_ssl else "http"
         self._port = port or (8443 if use_ssl else 80)
-        _LOGGER.debug("Using `%s` and port `%s`", self._http, self._port)
+        self._ssl = use_ssl
+        self._verify_ssl = False
+        _LOGGER.debug(
+            "Using `%s` and port `%s` with ssl flag `%s`",
+            self._http,
+            self._port,
+            self._ssl,
+        )
 
         # Callback for dumping data
         self._dumpback = dumpback
@@ -97,23 +98,26 @@ class Connection:  # pylint: disable=too-many-instance-attributes
     def __del__(self) -> None:
         """Proper cleanup when the object is deleted."""
 
-        if self._manage_session and self._session and not self._session.closed:
-            _LOGGER.debug(
-                "Connection object is managing a session. Trying to close it"
-            )
-            try:
-                loop = asyncio.get_running_loop()
-                loop.create_task(self._session.close())
-                _LOGGER.debug("Session close task created")
-            except RuntimeError:
+        if self._manage_session and self._session:
+            if not self._session.closed:
+                _LOGGER.debug(
+                    "Connection object is managing a session. Trying to close it"
+                )
                 try:
-                    asyncio.run(self._session.close())
-                    _LOGGER.debug("Trying to close the session")
-                except Exception as ex:  # pylint: disable=broad-except
-                    _LOGGER.warning("Error while closing the session: %s", ex)
-            finally:
-                if self._session.closed:
-                    _LOGGER.debug("Session closed")
+                    loop = asyncio.get_running_loop()
+                    loop.create_task(self._session.close())
+                    _LOGGER.debug("Session close task created")
+                except RuntimeError:
+                    try:
+                        asyncio.run(self._session.close())
+                        _LOGGER.debug("Trying to close the session")
+                    except Exception as ex:  # pylint: disable=broad-except
+                        _LOGGER.warning(
+                            "Error while closing the session: %s", ex
+                        )
+
+            else:
+                _LOGGER.debug("Session closed")
 
     def _new_session(self) -> aiohttp.ClientSession:
         """Create a new session."""
@@ -345,7 +349,7 @@ Failed in `_send_request` with error: `{ex}`"
             url,
             data=payload_to_send if request_type == RequestType.POST else None,
             headers=headers,
-            ssl=self._ssl,
+            verify_ssl=self._verify_ssl,
         ) as response:
             # Read the status code
             resp_status = response.status
