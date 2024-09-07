@@ -27,7 +27,7 @@ jobs:
         uses: actions/checkout@v4.1.7
 
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5.1.1
+        uses: actions/setup-python@v5.2.0
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -63,7 +63,7 @@ jobs:
         uses: actions/checkout@v4.1.7
 
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5.1.1
+        uses: actions/setup-python@v5.2.0
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -92,7 +92,7 @@ jobs:
           pytest --cov=asusrouter --cov-report=xml:unit-tests-cov-${{ matrix.python-version }}.xml -k 'not test_devices'
 
       - name: Upload coverage to artifacts
-        uses: actions/upload-artifact@v4.3.6
+        uses: actions/upload-artifact@v4.4.0
         with:
           name: unit-tests-cov-${{ matrix.python-version }}
           path: unit-tests-cov-${{ matrix.python-version }}.xml
@@ -109,7 +109,7 @@ jobs:
         uses: actions/checkout@v4.1.7
 
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5.1.1
+        uses: actions/setup-python@v5.2.0
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -138,7 +138,7 @@ jobs:
           pytest --cov=asusrouter --cov-report=xml:real-data-tests-cov-${{ matrix.python-version }}.xml tests/test_devices.py --log-cli-level=INFO
 
       - name: Upload coverage to artifacts
-        uses: actions/upload-artifact@v4.3.6
+        uses: actions/upload-artifact@v4.4.0
         with:
           name: real-data-tests-cov-${{ matrix.python-version }}
           path: real-data-tests-cov-${{ matrix.python-version }}.xml

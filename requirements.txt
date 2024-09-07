@@ -1,6 +1,6 @@
 # Requirements for AsusRouter
 
 aiohttp>=3.8.1
-python-dateutil==2.8.2
+python-dateutil==2.9.0.post0
 urllib3>=1.26.14
 xmltodict>=0.12.0

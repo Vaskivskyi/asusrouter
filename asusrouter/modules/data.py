@@ -20,6 +20,7 @@ class AsusData(str, Enum):
     CLIENTS = "clients"
     CPU = "cpu"
     DEVICEMAP = "devicemap"
+    DSL = "dsl"
     FIRMWARE = "firmware"
     FIRMWARE_NOTE = "firmware_note"
     FLAGS = "flags"

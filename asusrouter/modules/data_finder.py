@@ -130,6 +130,10 @@ ASUSDATA_NVRAM = {
         for key, _, _ in [converters.safe_unpack_keys(element)]
         if key != "get_wgsc_status"
     ],
+    "dsl": [
+        "dsllog_dataratedown",
+        "dsllog_datarateup",
+    ]
 }
 ASUSDATA_NVRAM["aura"].extend([f"ledg_rgb{num}" for num in range(0, 8)])
 ASUSDATA_NVRAM["vpnc"].extend(
@@ -255,6 +259,10 @@ ASUSDATA_MAP: dict[AsusData, AsusData | AsusDataFinder] = {
         Endpoint.HOOK,
         method=wlan_nvram_request,
         arguments=AsusRouterAttribute.WLAN_LIST,
+    ),
+    AsusData.DSL: AsusDataFinder(
+        Endpoint.HOOK,
+        nvram=ASUSDATA_NVRAM["dsl"],
     ),
 }
 
