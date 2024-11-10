@@ -140,7 +140,11 @@ class Firmware:
 
         fw_string = clean_string(fw_string)
         if not fw_string:
-            return
+            return None
+
+        # Special cases for old firmwares and absent data
+        if fw_string == "__":
+            return None
 
         pattern = (
             r"^(?P<major>[39].?0.?0.?[46])?[_.]?"
