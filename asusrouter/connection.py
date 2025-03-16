@@ -14,7 +14,7 @@ from urllib.parse import quote
 
 import aiohttp
 
-from asusrouter.const import DEFAULT_TIMEOUTS, USER_AGENT, RequestType
+from asusrouter.const import USER_AGENT, RequestType
 from asusrouter.error import (
     AsusRouter404Error,
     AsusRouterAccessError,
@@ -126,9 +126,7 @@ class Connection:  # pylint: disable=too-many-instance-attributes
         self._manage_session = True
         return aiohttp.ClientSession()
 
-    async def async_connect(
-        self, retry: int = 0, lock: Optional[asyncio.Lock] = None
-    ) -> bool:
+    async def async_connect(self, lock: Optional[asyncio.Lock] = None) -> bool:
         """Connect to the device and get a new auth token."""
 
         # Check that we are connected so that we don't try to go through lock again
@@ -139,10 +137,6 @@ class Connection:  # pylint: disable=too-many-instance-attributes
         _lock = lock or self._connection_lock
 
         async with _lock:
-            # Again check if we are connected and return if we are
-            if self._connected:
-                return True
-
             _LOGGER.debug("Initializing connection to %s", self._hostname)
             self._connected = False
 
@@ -164,20 +158,12 @@ class Connection:  # pylint: disable=too-many-instance-attributes
                 ) from ex
             except AsusRouterError as ex:
                 _LOGGER.debug("Connection failed with error: %s", ex)
-                if retry < len(DEFAULT_TIMEOUTS) - 1:
-                    _LOGGER.debug(
-                        "Will try again in %s seconds", DEFAULT_TIMEOUTS[retry]
-                    )
-                    await asyncio.sleep(DEFAULT_TIMEOUTS[retry])
-                    return await self.async_connect(retry + 1, asyncio.Lock())
-                raise AsusRouterTimeoutError(
-                    f"Reached maximum allowed timeout \
-for a single connection attempt: {sum(DEFAULT_TIMEOUTS)}. \
-The last error: {ex}"
-                ) from ex
+                raise
             except Exception as ex:  # pylint: disable=broad-except
                 _LOGGER.debug(
-                    "Error while connecting to %s: %s", self._hostname, ex
+                    "Unexpected error while connecting to %s: %s",
+                    self._hostname,
+                    ex,
                 )
                 raise ex
 
