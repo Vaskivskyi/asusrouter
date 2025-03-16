@@ -3,9 +3,6 @@ name: Release
 on:
   release:
     types: [published]
-  push:
-    branches:
-      - uv-ruff
 
 env:
   DEFAULT_PYTHON: 3.11
@@ -66,8 +63,8 @@ jobs:
     runs-on: ubuntu-latest
 
     environment:
-      name: testpypi
-      url: https://test.pypi.org/p/asusrouter
+      name: pypi
+      url: https://pypi.org/p/asusrouter
 
     permissions:
       id-token: write
@@ -80,5 +77,3 @@ jobs:
           path: dist/
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          repository-url: https://test.pypi.org/legacy/
