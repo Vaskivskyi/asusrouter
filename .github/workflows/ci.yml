@@ -48,7 +48,7 @@ jobs:
 
       - name: Sync dependencies
         run: |
-          uv sync --all
+          uv sync --all-groups
 
   unit-tests:
     name: Unit Tests
@@ -83,7 +83,7 @@ jobs:
 
       - name: Sync dependencies
         run: |
-          uv sync --all
+          uv sync --all-groups
 
       - name: Run unit tests
         run: |
@@ -128,7 +128,7 @@ jobs:
 
       - name: Sync dependencies
         run: |
-          uv sync --all
+          uv sync --all-groups
 
       - name: Run real-data tests
         run: |
