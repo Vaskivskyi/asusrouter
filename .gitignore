@@ -6,7 +6,8 @@ dist/
 *.egg-info
 
 .python-version
-
+.venv*
+venv*
 # Pytest
 .coverage
 pytest/
