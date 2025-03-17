@@ -45,6 +45,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4.2.2
 
+      - name: Set up UV and Python
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      - name: Install the project
+        run: uv sync --all-groups
+
       - name: Run unit tests
         run: |
           uv run pytest --cov=asusrouter --cov-report=xml:unit-tests-cov-${{ matrix.python-version }}.xml -k 'not test_devices'
@@ -65,6 +75,16 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4.2.2
+
+      - name: Set up UV and Python
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      - name: Install the project
+        run: uv sync --all-groups
 
       - name: Run real-data tests
         run: |
