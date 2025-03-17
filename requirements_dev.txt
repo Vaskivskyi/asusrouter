@@ -1,4 +1,0 @@
-# Dev Requirements for AsusRouter
-
-mypy==1.11.1
-pydantic==2.8.2
