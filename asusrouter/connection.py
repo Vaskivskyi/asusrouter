@@ -101,7 +101,8 @@ class Connection:  # pylint: disable=too-many-instance-attributes
         if self._manage_session and self._session:
             if not self._session.closed:
                 _LOGGER.debug(
-                    "Connection object is managing a session. Trying to close it"
+                    "Connection object is managing a session. "
+                    "Trying to close it",
                 )
                 try:
                     loop = asyncio.get_running_loop()
@@ -124,12 +125,15 @@ class Connection:  # pylint: disable=too-many-instance-attributes
 
         # If we create a new session, we will manage it
         self._manage_session = True
-        return aiohttp.ClientSession()
+        return aiohttp.ClientSession(
+            connector=aiohttp.TCPConnector(ssl=self._verify_ssl)
+        )
 
     async def async_connect(self, lock: Optional[asyncio.Lock] = None) -> bool:
         """Connect to the device and get a new auth token."""
 
-        # Check that we are connected so that we don't try to go through lock again
+        # Check that we are connected
+        # so that we don't try to go through lock again
         if self._connected:
             _LOGGER.debug("Already connected to %s", self._hostname)
             return True
@@ -154,7 +158,8 @@ class Connection:  # pylint: disable=too-many-instance-attributes
                 _LOGGER.debug("Received authorization response")
             except AsusRouterAccessError as ex:
                 raise AsusRouterAccessError(
-                    f"Cannot access {EndpointService.LOGIN}. Failed in `async_connect`"
+                    f"Cannot access {EndpointService.LOGIN}. "
+                    "Failed in `async_connect`"
                 ) from ex
             except AsusRouterError as ex:
                 _LOGGER.debug("Connection failed with error: %s", ex)
@@ -244,21 +249,22 @@ class Connection:  # pylint: disable=too-many-instance-attributes
 
             # Check for access errors
             if "error_status" in resp_content:
-                return handle_access_error(
+                handle_access_error(
                     endpoint, resp_status, resp_headers, resp_content
                 )
 
+            # Return the response
             return (resp_status, resp_headers, resp_content)
         except aiohttp.ClientConnectorError as ex:
             self.reset_connection()
             raise AsusRouterConnectionError(
-                f"Cannot connect to `{self._hostname}` on port `{self._port}`. \
-Failed in `_send_request` with error: `{ex}`"
+                f"Cannot connect to `{self._hostname}` on port "
+                f"`{self._port}`. Failed in `_send_request` with error: `{ex}`"
             ) from ex
         except (aiohttp.ClientConnectionError, aiohttp.ClientOSError) as ex:
             raise AsusRouterConnectionError(
-                f"Cannot connect to `{self._hostname}` on port `{self._port}`. \
-Failed in `_send_request` with error: `{ex}`"
+                f"Cannot connect to `{self._hostname}` on port "
+                f"`{self._port}`. Failed in `_send_request` with error: `{ex}`"
             ) from ex
         except Exception as ex:  # pylint: disable=broad-except
             raise ex
@@ -335,7 +341,6 @@ Failed in `_send_request` with error: `{ex}`"
             url,
             data=payload_to_send if request_type == RequestType.POST else None,
             headers=headers,
-            verify_ssl=self._verify_ssl,
         ) as response:
             # Read the status code
             resp_status = response.status
@@ -359,7 +364,7 @@ Failed in `_send_request` with error: `{ex}`"
             # Return the response
             return (resp_status, resp_headers, resp_content)
 
-    def reset_connection(self):
+    def reset_connection(self) -> None:
         """Reset connection variables."""
 
         if not self._connected:
