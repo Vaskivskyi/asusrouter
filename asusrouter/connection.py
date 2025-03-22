@@ -28,6 +28,25 @@ from asusrouter.modules.endpoint.error import handle_access_error
 
 _LOGGER = logging.getLogger(__name__)
 
+PAYLOAD_TO_CLEAN = [
+    "login_authorization",
+]
+
+
+def clean_payload(payload: Optional[str]) -> Optional[str]:
+    """Clean the payload for logging"""
+
+    if not payload:
+        return payload
+
+    # If any of the payload keys are in the list, replace the whole
+    # payload with `REDACTED`
+    for key in PAYLOAD_TO_CLEAN:
+        if key in payload:
+            return "REDACTED"
+
+    return payload
+
 
 def generate_credentials(
     username: str, password: str
@@ -321,7 +340,7 @@ class Connection:  # pylint: disable=too-many-instance-attributes
             _LOGGER.debug(
                 "Unexpected error sending request to %s with payload %s: %s",
                 endpoint,
-                payload,
+                clean_payload(payload),
                 ex,
             )
             raise ex
