@@ -29,7 +29,10 @@ from asusrouter.modules.endpoint.error import handle_access_error
 _LOGGER = logging.getLogger(__name__)
 
 PAYLOAD_TO_CLEAN = [
-    "login_authorization",
+    "login",
+    "password",
+    "token",
+    "secret",
 ]
 
 
