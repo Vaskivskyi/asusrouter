@@ -108,20 +108,47 @@ class AsusRouter:
         # ID from the last called service
         self._last_id: Optional[int] = None
 
-        # Create a connection
-        self._connection = Connection(
-            hostname=hostname,
-            username=username,
-            password=password,
-            port=port,
-            use_ssl=use_ssl,
-            session=session,
-            dumpback=dumpback,
-        )
+        # Create an empty connection and save the credentials
+        self._connection: Optional[Connection] = None
+        self._username = username
+        self._password = password
+        self._port = port
+        self._use_ssl = use_ssl
+        self._session = session
+        self._dumpback = dumpback
 
     # ---------------------------
     # Connection-related methods -->
     # ---------------------------
+
+    async def async_init_connection(self) -> None:
+        """Initialize the connection."""
+
+        _LOGGER.debug("Triggered method async_init_connection")
+
+        self._connection = await Connection.create(
+            hostname=self._hostname,
+            username=self._username,
+            password=self._password,
+            port=self._port,
+            use_ssl=self._use_ssl,
+            session=self._session,
+            timeout=DEFAULT_TIMEOUT,
+            dumpback=self._dumpback,
+        )
+
+    async def async_del_connection(self) -> None:
+        """Delete the connection."""
+
+        _LOGGER.debug("Triggered method async_del_connection")
+
+        # Disconnect from the device if connected
+        await self.async_disconnect()
+
+        # Close the connection
+        if self._connection:
+            await self._connection.async_close()
+            self._connection = None
 
     async def async_connect(self) -> bool:
         """Connect to the device and get its identity."""
@@ -130,7 +157,16 @@ class AsusRouter:
 
         # Connect to the device
         try:
-            result = await self._connection.async_connect()
+            # Make sure the connection is initialized
+            if self._connection is None:
+                await self.async_init_connection()
+
+            # Connect to the device
+            result = (
+                await self._connection.async_connect()
+                if self._connection
+                else False
+            )
             if result is False:
                 return False
         except Exception as ex:  # pylint: disable=broad-except
@@ -146,7 +182,8 @@ class AsusRouter:
 
         # Disconnect from the device
         try:
-            await self._connection.async_disconnect()
+            if self._connection:
+                await self._connection.async_disconnect()
         except Exception as ex:  # pylint: disable=broad-except
             await self._async_handle_exception(ex)
 
@@ -158,7 +195,8 @@ class AsusRouter:
 
         _LOGGER.debug("Triggered method _async_drop_connection")
 
-        self._connection.reset_connection()
+        if self._connection:
+            self._connection.reset_connection()
 
     async def _async_handle_exception(self, ex: Exception) -> None:
         """Handle exceptions."""
@@ -993,7 +1031,7 @@ class AsusRouter:
     def connected(self) -> bool:
         """Return connection status."""
 
-        return self._connection.connected
+        return self._connection.connected if self._connection else False
 
     # ---------------------------
     # <-- Properties
@@ -1014,7 +1052,9 @@ class AsusRouter:
     async def async_cleanup(self) -> None:
         """Cleanup the connection."""
 
-        self._connection.reset_connection()
+        if self._connection:
+            self._connection.reset_connection()
+            # await self._connection._async_close_session()
 
     # ---------------------------
     # <-- General management
