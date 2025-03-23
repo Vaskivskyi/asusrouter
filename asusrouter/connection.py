@@ -318,6 +318,11 @@ class Connection:  # pylint: disable=too-many-instance-attributes
                 f"Cannot connect to `{self._hostname}` on port "
                 f"`{self._port}`. Failed in `_send_request` with error: `{ex}`"
             ) from ex
+        except (asyncio.TimeoutError, asyncio.CancelledError) as ex:
+            raise AsusRouterTimeoutError(
+                f"Data cannot be retrieved due to an asyncio error. "
+                f"Connection failed: {ex}"
+            ) from ex
         except Exception as ex:  # pylint: disable=broad-except
             _LOGGER.debug(
                 "Unexpected error sending request to %s: %s",
