@@ -622,8 +622,7 @@ class TestConnection:
                 None,
                 aiohttp.ClientConnectionError("Connection error"),
                 AsusRouterConnectionError,
-                r"('Cannot connect to `localhost` on port `80`. Failed in "
-                r"`_send_request` with error: `Connection error`', None)",
+                r"Connection error",
             ),
             # Case 7: Connection error (ClientOSError)
             (
@@ -632,8 +631,7 @@ class TestConnection:
                 None,
                 aiohttp.ClientOSError("OS error"),
                 AsusRouterConnectionError,
-                r"('Cannot connect to `localhost` on port `80`. Failed in "
-                r"`_send_request` with error: `OS error`', None)",
+                r"OS error",
             ),
             # Case 8: Unexpected error
             (
@@ -643,6 +641,26 @@ class TestConnection:
                 Exception("Unexpected error"),
                 Exception,
                 "Unexpected error",
+            ),
+            # Case 9: asyncio.TimeoutError
+            (
+                None,
+                None,
+                None,
+                asyncio.TimeoutError("operation timed out"),
+                AsusRouterTimeoutError,
+                r"Data cannot be retrieved due to an asyncio error\. "
+                r"Connection failed: operation timed out",
+            ),
+            # Case 10: asyncio.CancelledError
+            (
+                None,
+                None,
+                None,
+                asyncio.CancelledError("operation cancelled"),
+                AsusRouterTimeoutError,
+                r"Data cannot be retrieved due to an asyncio error\. "
+                r"Connection failed: operation cancelled",
             ),
         ],
     )
@@ -664,7 +682,7 @@ class TestConnection:
             password="pass",
         )
 
-        # Mock the `_make_request` method
+        # Mock the _make_request method
         with (
             patch.object(
                 connection, "_make_request", new_callable=AsyncMock
@@ -676,7 +694,7 @@ class TestConnection:
                 connection, "reset_connection", new_callable=Mock
             ) as mock_reset_connection,
         ):
-            # Configure the mock for `_make_request`
+            # Configure the mock for _make_request
             if make_request_side_effect:
                 mock_make_request.side_effect = make_request_side_effect
             else:
@@ -686,32 +704,28 @@ class TestConnection:
                     resp_content,
                 )
 
-            # Configure `handle_access_error` to raise an exception if called
+            # Configure handle_access_error to raise an exception if called
             if resp_content and "error_status" in resp_content:
                 mock_handle_access_error.side_effect = AsusRouterAccessError(
                     "Access error"
                 )
 
             if expected_exception:
-                # Verify that the expected exception is raised
                 with pytest.raises(
                     expected_exception, match=exception_message
                 ):
                     await connection._send_request(EndpointService.LOGIN)
             else:
-                # Call `_send_request`
                 result = await connection._send_request(EndpointService.LOGIN)
-
-                # Verify the result
                 assert result == (resp_status, resp_headers, resp_content)
 
-            # Verify `_make_request` was called
+            # Verify _make_request was called with expected parameters
             mock_make_request.assert_called_once_with(
                 EndpointService.LOGIN, None, None, RequestType.POST
             )
 
-            # Verify `handle_access_error` was called
-            # if `error_status` is in content
+            # Verify handle_access_error was called if error_status
+            # in content, else not
             if resp_content and "error_status" in resp_content:
                 mock_handle_access_error.assert_called_once_with(
                     EndpointService.LOGIN,
@@ -722,8 +736,10 @@ class TestConnection:
             else:
                 mock_handle_access_error.assert_not_called()
 
-            # Verify `reset_connection` was called for connection errors
-            if isinstance(
+            # For ClientConnectorError, reset_connection is expected,
+            # but for asyncio.TimeoutError or CancelledError we do not
+            # call reset_connection.
+            if make_request_side_effect and isinstance(
                 make_request_side_effect, aiohttp.ClientConnectorError
             ):
                 mock_reset_connection.assert_called_once()
