@@ -1,7 +1,7 @@
 """Error endpoint module.
 
-This is not an actual endpoint, but rather a module that is used to handle errors
-from any endpoint."""
+This is not an actual endpoint, but rather a module that is used
+to handle errors from any endpoint."""
 
 from __future__ import annotations
 
@@ -10,6 +10,7 @@ from enum import IntEnum
 from typing import Any
 
 from asusrouter.error import AsusRouterAccessError, AsusRouterLogoutError
+from asusrouter.modules.endpoint import EndpointType
 from asusrouter.tools.readers import read_json_content
 
 _LOGGER = logging.getLogger(__name__)
@@ -30,7 +31,9 @@ class AccessError(IntEnum):
     RESET_REQUIRED = 11
 
 
-def handle_access_error(endpoint, status, headers, content):
+def handle_access_error(
+    endpoint: EndpointType, status: Any, headers: Any, content: Any
+) -> None:
     """Handle access errors."""
 
     # Read the page as json
