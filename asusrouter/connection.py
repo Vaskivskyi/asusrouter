@@ -14,7 +14,7 @@ from urllib.parse import quote
 
 import aiohttp
 
-from asusrouter.const import DEFAULT_TIMEOUTS, USER_AGENT, RequestType
+from asusrouter.const import DEFAULT_TIMEOUT, USER_AGENT, RequestType
 from asusrouter.error import (
     AsusRouter404Error,
     AsusRouterAccessError,
@@ -37,7 +37,7 @@ def generate_credentials(
     auth = f"{username}:{password}".encode("ascii")
     logintoken = base64.b64encode(auth).decode("ascii")
     payload = f"login_authorization={logintoken}"
-    headers = {"user-agent": "asusrouter--DUTUtil-"}
+    headers = {"user-agent": USER_AGENT}
 
     return payload, headers
 
@@ -53,6 +53,7 @@ class Connection:  # pylint: disable=too-many-instance-attributes
         port: Optional[int] = None,
         use_ssl: bool = False,
         session: Optional[aiohttp.ClientSession] = None,
+        timeout: Optional[int] = DEFAULT_TIMEOUT,
         dumpback: Optional[Callable[..., Awaitable[None]]] = None,
     ):
         """Initialize connection."""
@@ -64,21 +65,12 @@ class Connection:  # pylint: disable=too-many-instance-attributes
         self._header: Optional[dict[str, str]] = None
         self._connected: bool = False
         self._connection_lock: asyncio.Lock = asyncio.Lock()
+        self._timeout: int = timeout or DEFAULT_TIMEOUT
 
         # Hostname and credentials
         self._hostname = hostname
         self._username = username
         self._password = password
-
-        # Client session
-        self._manage_session: bool = False
-        if session is not None:
-            _LOGGER.debug("Using provided session")
-            self._session = session
-        else:
-            _LOGGER.debug("No session provided. Will create a new one")
-            self._session = self._new_session()
-        _LOGGER.debug("Using session `%s`", session)
 
         # Set the port and protocol based on the input
         self._http = "https" if use_ssl else "http"
@@ -95,43 +87,105 @@ class Connection:  # pylint: disable=too-many-instance-attributes
         # Callback for dumping data
         self._dumpback = dumpback
 
-    def __del__(self) -> None:
-        """Proper cleanup when the object is deleted."""
+        # Client session
+        self._manage_session: bool = False
+        if session is not None:
+            _LOGGER.debug("Using provided session")
+            self._session = session
+        else:
+            _LOGGER.debug("No session provided. Will create a new one")
+            self._session = self._new_session()
 
-        if self._manage_session and self._session:
-            if not self._session.closed:
-                _LOGGER.debug(
-                    "Connection object is managing a session. Trying to close it"
-                )
-                try:
-                    loop = asyncio.get_running_loop()
-                    loop.create_task(self._session.close())
-                    _LOGGER.debug("Session close task created")
-                except RuntimeError:
-                    try:
-                        asyncio.run(self._session.close())
-                        _LOGGER.debug("Trying to close the session")
-                    except Exception as ex:  # pylint: disable=broad-except
-                        _LOGGER.warning(
-                            "Error while closing the session: %s", ex
-                        )
+    async def __aenter__(self) -> Connection:
+        """Enter the connection."""
 
-            else:
-                _LOGGER.debug("Session closed")
+        await self.async_connect()
+        return self
+
+    async def __aexit__(
+        self,
+        exc_type: Any,
+        exc_value: Any,
+        traceback: Any,
+    ) -> None:
+        """Exit the connection."""
+
+        await self.async_close()
+
+    @classmethod
+    async def create(
+        cls,
+        hostname: str,
+        username: str,
+        password: str,
+        port: Optional[int] = None,
+        use_ssl: bool = False,
+        session: Optional[aiohttp.ClientSession] = None,
+        timeout: Optional[int] = DEFAULT_TIMEOUT,
+        dumpback: Optional[Callable[..., Awaitable[None]]] = None,
+    ) -> Connection:
+        """Factory method to create and initialize a connection."""
+
+        connection = cls(
+            hostname=hostname,
+            username=username,
+            password=password,
+            port=port,
+            use_ssl=use_ssl,
+            session=session,
+            timeout=timeout or DEFAULT_TIMEOUT,
+            dumpback=dumpback,
+        )
+        await connection.async_connect()
+        return connection
 
     def _new_session(self) -> aiohttp.ClientSession:
         """Create a new session."""
 
         # If we create a new session, we will manage it
         self._manage_session = True
-        return aiohttp.ClientSession()
 
-    async def async_connect(
-        self, retry: int = 0, lock: Optional[asyncio.Lock] = None
+        # Timeout for the session
+        timeout = aiohttp.ClientTimeout(total=self._timeout)
+
+        # Create the session
+        return aiohttp.ClientSession(
+            connector=aiohttp.TCPConnector(ssl=self._verify_ssl),
+            timeout=timeout,
+        )
+
+    async def async_close(self) -> None:
+        """Close the session."""
+
+        if self._manage_session and self._session:
+            if not self._session.closed:
+                _LOGGER.debug("Closing the session")
+                await self._session.close()
+            else:
+                _LOGGER.debug("Session already closed")
+        else:
+            _LOGGER.debug("No session to close or not managing the session")
+
+    async def async_connect(self, lock: Optional[asyncio.Lock] = None) -> bool:
+        """Connect to the device and get a new auth token."""
+
+        try:
+            await asyncio.wait_for(
+                self._async_connect_with_lock(lock), timeout=self._timeout
+            )
+            return True
+        except asyncio.TimeoutError:
+            _LOGGER.error("Connection to %s timed out", self._hostname)
+            return False
+
+    async def _async_connect_with_lock(
+        self,
+        lock: Optional[asyncio.Lock] = None,
     ) -> bool:
         """Connect to the device and get a new auth token."""
 
-        # Check that we are connected so that we don't try to go through lock again
+        # Check that we are connected
+        # so that we don't try to go through lock again
         if self._connected:
             _LOGGER.debug("Already connected to %s", self._hostname)
             return True
@@ -139,10 +193,6 @@ class Connection:  # pylint: disable=too-many-instance-attributes
         _lock = lock or self._connection_lock
 
         async with _lock:
-            # Again check if we are connected and return if we are
-            if self._connected:
-                return True
-
             _LOGGER.debug("Initializing connection to %s", self._hostname)
             self._connected = False
 
@@ -160,24 +210,17 @@ class Connection:  # pylint: disable=too-many-instance-attributes
                 _LOGGER.debug("Received authorization response")
             except AsusRouterAccessError as ex:
                 raise AsusRouterAccessError(
-                    f"Cannot access {EndpointService.LOGIN}. Failed in `async_connect`"
+                    f"Cannot access {EndpointService.LOGIN}. "
+                    "Failed in `async_connect`"
                 ) from ex
             except AsusRouterError as ex:
                 _LOGGER.debug("Connection failed with error: %s", ex)
-                if retry < len(DEFAULT_TIMEOUTS) - 1:
-                    _LOGGER.debug(
-                        "Will try again in %s seconds", DEFAULT_TIMEOUTS[retry]
-                    )
-                    await asyncio.sleep(DEFAULT_TIMEOUTS[retry])
-                    return await self.async_connect(retry + 1, asyncio.Lock())
-                raise AsusRouterTimeoutError(
-                    f"Reached maximum allowed timeout \
-for a single connection attempt: {sum(DEFAULT_TIMEOUTS)}. \
-The last error: {ex}"
-                ) from ex
+                raise
             except Exception as ex:  # pylint: disable=broad-except
                 _LOGGER.debug(
-                    "Error while connecting to %s: %s", self._hostname, ex
+                    "Unexpected error while connecting to %s: %s",
+                    self._hostname,
+                    ex,
                 )
                 raise ex
 
@@ -258,23 +301,34 @@ The last error: {ex}"
 
             # Check for access errors
             if "error_status" in resp_content:
-                return handle_access_error(
+                handle_access_error(
                     endpoint, resp_status, resp_headers, resp_content
                 )
 
+            # Return the response
             return (resp_status, resp_headers, resp_content)
         except aiohttp.ClientConnectorError as ex:
             self.reset_connection()
             raise AsusRouterConnectionError(
-                f"Cannot connect to `{self._hostname}` on port `{self._port}`. \
-Failed in `_send_request` with error: `{ex}`"
+                f"Cannot connect to `{self._hostname}` on port "
+                f"`{self._port}`. Failed in `_send_request` with error: `{ex}`"
             ) from ex
         except (aiohttp.ClientConnectionError, aiohttp.ClientOSError) as ex:
             raise AsusRouterConnectionError(
-                f"Cannot connect to `{self._hostname}` on port `{self._port}`. \
-Failed in `_send_request` with error: `{ex}`"
+                f"Cannot connect to `{self._hostname}` on port "
+                f"`{self._port}`. Failed in `_send_request` with error: `{ex}`"
+            ) from ex
+        except (asyncio.TimeoutError, asyncio.CancelledError) as ex:
+            raise AsusRouterTimeoutError(
+                f"Data cannot be retrieved due to an asyncio error. "
+                f"Connection failed: {ex}"
             ) from ex
         except Exception as ex:  # pylint: disable=broad-except
+            _LOGGER.debug(
+                "Unexpected error sending request to %s: %s",
+                endpoint,
+                ex,
+            )
             raise ex
 
     async def async_query(
@@ -349,7 +403,6 @@ Failed in `_send_request` with error: `{ex}`"
             url,
             data=payload_to_send if request_type == RequestType.POST else None,
             headers=headers,
-            verify_ssl=self._verify_ssl,
         ) as response:
             # Read the status code
             resp_status = response.status
@@ -373,7 +426,7 @@ Failed in `_send_request` with error: `{ex}`"
             # Return the response
             return (resp_status, resp_headers, resp_content)
 
-    def reset_connection(self):
+    def reset_connection(self) -> None:
         """Reset connection variables."""
 
         if not self._connected:

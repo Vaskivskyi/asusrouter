@@ -8,43 +8,58 @@ env:
   DEFAULT_PYTHON: 3.11
 
 jobs:
-  deploy:
-    name: Build & Publish PyPI package
+  build:
+    name: Build PyPI package
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout the repository
-      uses: actions/checkout@v4.2.2
-      with:
-        ref: ${{ github.event.release.target_commitish }}
+      - name: Checkout the repository
+        uses: actions/checkout@v4.2.2
+        with:
+          ref: ${{ github.event.release.target_commitish }}
 
-    - name: Setup Python ${{ env.DEFAULT_PYTHON }}
-      uses: actions/setup-python@v5.3.0
-      with:
-        python-version: ${{ env.DEFAULT_PYTHON }}
+      - name: Set up UV and Python
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: ${{ env.DEFAULT_PYTHON }}
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
 
-    - name: Cache pip dependencies
-      uses: actions/cache@v4
-      with:
-        path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
-        restore-keys: |
-          ${{ runner.os }}-pip-
+      - name: Install the project
+        run: uv sync --all-groups
 
-    - name: Install dependencies
-      run: |
-        pip install -r requirements.txt
-        pip install pytest
-        pip install build twine
+      - name: Run tests
+        run: |
+          uv run pytest
 
-    - name: Run tests
-      run: pytest
+      - name: Build package
+        run: |
+          uv build
 
-    - name: Build package
-      run: python -m build
+      - name: Store the distribution packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-package-distributions
+          path: dist/
 
-    - name: Publish package
-      run: |
-        export TWINE_USERNAME="__token__"
-        export TWINE_PASSWORD="${{ secrets.TWINE_TOKEN }}"
-        twine upload dist/* --skip-existing || exit 1
+  publish:
+    name: Publish to PyPI 📦
+    needs:
+      - build
+    runs-on: ubuntu-latest
+
+    environment:
+      name: pypi
+      url: https://pypi.org/p/asusrouter
+
+    permissions:
+      id-token: write
+
+    steps:
+      - name: Download all the dists
+        uses: actions/download-artifact@v4
+        with:
+          name: python-package-distributions
+          path: dist/
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1

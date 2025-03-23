@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name            = "asusrouter"
-version         = "1.13.1"
+version         = "1.14.0"
 license         = {text = "Apache-2.0"}
 requires-python = ">=3.11.0"
 readme          = "README.md"
@@ -18,6 +18,7 @@ classifiers     = [
     "License :: OSI Approved :: Apache Software License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "Topic :: Software Development :: Libraries",
 ]
 dependencies    = [
@@ -28,13 +29,38 @@ dependencies    = [
 ]
 
 [project.urls]
+"Homepage"      = "https://asusrouter.vaskivskyi.com/"
 "Source Code"   = "https://github.com/Vaskivskyi/asusrouter"
 "Bug Reports"   = "https://github.com/Vaskivskyi/asusrouter/issues"
 
 [tool.setuptools.packages.find]
 include = ["asusrouter*"]
 
+[dependency-groups]
+dev = [
+    "mypy>=1.15.0",
+    "pydantic>=2.10.6",
+    "ruff>=0.11.0",
+]
+test = [
+    "pytest>=8.3.5",
+    "pytest-asyncio>=0.25.3",
+    "pytest-cov>=6.0.0",
+]
+
 [tool.pytest.ini_options]
 testpaths = [
     "tests",
 ]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+ignore_missing_imports = true
+show_error_codes = true
+exclude = "tests/.*"
+
+[tool.ruff]
+line-length = 79
+select = ["E", "F", "W", "C", "N"]
+target-version = "py311"
