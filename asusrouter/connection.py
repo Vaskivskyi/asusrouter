@@ -53,7 +53,7 @@ class Connection:  # pylint: disable=too-many-instance-attributes
         port: Optional[int] = None,
         use_ssl: bool = False,
         session: Optional[aiohttp.ClientSession] = None,
-        timeout: int = DEFAULT_TIMEOUT,
+        timeout: Optional[int] = DEFAULT_TIMEOUT,
         dumpback: Optional[Callable[..., Awaitable[None]]] = None,
     ):
         """Initialize connection."""
@@ -65,7 +65,7 @@ class Connection:  # pylint: disable=too-many-instance-attributes
         self._header: Optional[dict[str, str]] = None
         self._connected: bool = False
         self._connection_lock: asyncio.Lock = asyncio.Lock()
-        self._timeout: int = timeout
+        self._timeout: int = timeout or DEFAULT_TIMEOUT
 
         # Hostname and credentials
         self._hostname = hostname
@@ -121,10 +121,11 @@ class Connection:  # pylint: disable=too-many-instance-attributes
         port: Optional[int] = None,
         use_ssl: bool = False,
         session: Optional[aiohttp.ClientSession] = None,
-        timeout: int = DEFAULT_TIMEOUT,
+        timeout: Optional[int] = DEFAULT_TIMEOUT,
         dumpback: Optional[Callable[..., Awaitable[None]]] = None,
     ) -> Connection:
         """Factory method to create and initialize a connection."""
+
         connection = cls(
             hostname=hostname,
             username=username,
@@ -132,7 +133,7 @@ class Connection:  # pylint: disable=too-many-instance-attributes
             port=port,
             use_ssl=use_ssl,
             session=session,
-            timeout=timeout,
+            timeout=timeout or DEFAULT_TIMEOUT,
             dumpback=dumpback,
         )
         await connection.async_connect()
