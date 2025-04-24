@@ -19,7 +19,7 @@ jobs:
           ref: ${{ github.event.release.target_commitish }}
 
       - name: Set up UV and Python
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@v6
         with:
           python-version: ${{ env.DEFAULT_PYTHON }}
           enable-cache: true
