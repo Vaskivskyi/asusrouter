@@ -293,7 +293,14 @@ class TestConnection:
         with (
             patch("aiohttp.ClientSession") as mock_client_session,
             patch("aiohttp.TCPConnector") as mock_tcp_connector,
+            patch(
+                "asusrouter.connection.get_cookie_jar",
+            ) as mock_get_cookie_jar,
         ):
+            # Use a Mock for the cookie jar
+            mock_cookie_jar = Mock()
+            mock_get_cookie_jar.return_value = mock_cookie_jar
+
             # Call _new_session
             session = connection._new_session()
 
@@ -307,9 +314,10 @@ class TestConnection:
             )
 
             # Verify that aiohttp.ClientSession was called
-            # with the correct timeout
+            # with the correct timeout and cookie jar
             mock_client_session.assert_called_once_with(
                 connector=mock_tcp_connector.return_value,
+                cookie_jar=mock_cookie_jar,
                 timeout=aiohttp.ClientTimeout(total=connection._timeout),
             )
 

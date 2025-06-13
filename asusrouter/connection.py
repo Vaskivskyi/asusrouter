@@ -25,6 +25,7 @@ from asusrouter.error import (
 )
 from asusrouter.modules.endpoint import EndpointService, EndpointType
 from asusrouter.modules.endpoint.error import handle_access_error
+from asusrouter.tools.connection import get_cookie_jar
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -151,6 +152,7 @@ class Connection:  # pylint: disable=too-many-instance-attributes
         # Create the session
         return aiohttp.ClientSession(
             connector=aiohttp.TCPConnector(ssl=self._verify_ssl),
+            cookie_jar=get_cookie_jar(),
             timeout=timeout,
         )
 
