@@ -75,6 +75,7 @@ EndpointType = Union[Endpoint, EndpointControl, EndpointService, EndpointTools]
 
 # Force request type for the endpoint
 ENDPOINT_FORCE_REQUEST = {
+    Endpoint.PORT_STATUS: RequestType.GET,
     EndpointTools.NETWORK: RequestType.GET,
 }
 
