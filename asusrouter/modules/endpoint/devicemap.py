@@ -17,7 +17,11 @@ from asusrouter.tools.cleaners import clean_dict, clean_dict_key_prefix
 from asusrouter.tools.converters import safe_int
 from asusrouter.tools.readers import merge_dicts
 
-from .devicemap_const import DEVICEMAP_BY_INDEX, DEVICEMAP_BY_KEY, DEVICEMAP_CLEAR
+from .devicemap_const import (
+    DEVICEMAP_BY_INDEX,
+    DEVICEMAP_BY_KEY,
+    DEVICEMAP_CLEAR,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -32,7 +36,9 @@ def read(content: str) -> dict[str, Any]:
 
     # Parse the XML data
     try:
-        xml_content: dict[str, Any] = xmltodict.parse(content).get("devicemap", {})
+        xml_content: dict[str, Any] = xmltodict.parse(content).get(
+            "devicemap", {}
+        )
         if not xml_content:
             _LOGGER.debug("Received empty devicemap XML")
             return devicemap
@@ -56,16 +62,18 @@ def read(content: str) -> dict[str, Any]:
             # If the key is not in the devicemap, continue
             if key not in devicemap[output_group]:
                 continue
-            devicemap[output_group][key] = devicemap[output_group][key].replace(
-                clear_value, ""
-            )
+            devicemap[output_group][key] = devicemap[output_group][
+                key
+            ].replace(clear_value, "")
 
     # Clean the devicemap values
     devicemap = clean_dict(devicemap)
 
     # Clean the devicemap values_dict from output_group prefix
     for output_group, values_dict in devicemap.items():
-        devicemap[output_group] = clean_dict_key_prefix(values_dict, output_group)
+        devicemap[output_group] = clean_dict_key_prefix(
+            values_dict, output_group
+        )
 
     # Return the devicemap
     return devicemap
@@ -156,28 +164,32 @@ def read_special(xml_content: dict[str, Any]) -> dict[str, Any]:
     return {}
 
 
-def read_uptime_string(content: str) -> datetime | None:
+def read_uptime_string(
+    content: str,
+) -> Tuple[Optional[datetime], Optional[int]]:
     """Read uptime string and return proper datetime object."""
 
     # Split the content into the date/time part and the seconds part
     uptime_parts = content.split("(")
     if len(uptime_parts) < 2:
-        return None
+        return (None, None)
 
     # Extract the number of seconds from the seconds part
     seconds_match = re.search("([0-9]+)", uptime_parts[1])
     if not seconds_match:
-        return None
+        return (None, None)
 
     try:
-        seconds = int(seconds_match.group())
+        seconds = safe_int(seconds_match.group())
         when = dtparse(uptime_parts[0])
     except ValueError:
-        return None
+        return (None, None)
 
-    uptime = when - timedelta(seconds=seconds)
+    if seconds is not None:
+        uptime = when - timedelta(seconds=seconds)
+        return (uptime, seconds)
 
-    return uptime
+    return (None, None)
 
 
 def process(data: dict[str, Any]) -> dict[AsusData, Any]:
@@ -190,7 +202,9 @@ def process(data: dict[str, Any]) -> dict[AsusData, Any]:
     devicemap = data
 
     # Boot time
-    prev_boottime_object: Optional[AsusDataState] = history.get(AsusData.BOOTTIME)
+    prev_boottime_object: Optional[AsusDataState] = history.get(
+        AsusData.BOOTTIME
+    )
     prev_boottime = prev_boottime_object.data if prev_boottime_object else None
     boottime, reboot = process_boottime(devicemap, prev_boottime)
 
@@ -219,7 +233,7 @@ def process_boottime(
     # Reboot flag
     reboot = False
 
-    boottime = {}
+    boottime: dict[str, Any] = {}
 
     # Since precision is 1 second, could be that old and new are 1 sec different.
     # In this case, we should not change the boot time,
@@ -227,10 +241,12 @@ def process_boottime(
     sys = devicemap.get("sys")
     if sys:
         uptime_str = sys.get("uptimeStr")
+        _LOGGER.debug("Uptime string: %s", uptime_str)
         if uptime_str:
-            time = read_uptime_string(uptime_str)
+            time, seconds = read_uptime_string(uptime_str)
             if time:
                 boottime["datetime"] = time
+                boottime["uptime"] = seconds
 
                 if prev_boottime and "datetime" in prev_boottime:
                     delta = time - prev_boottime["datetime"]
