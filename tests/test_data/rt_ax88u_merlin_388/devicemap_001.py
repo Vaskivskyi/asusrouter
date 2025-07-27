@@ -74,7 +74,10 @@ expected_result = {
             "server1_state": "2",
             "server2_state": None,
         },
-        "sys": {"uptimeStr": "Sun, 19 Nov 2023 15:51:06 +0100(509356 secs since boot)"},
+        "sys": {
+            "uptimeStr": "Sun, 19 Nov 2023 15:51:06 +0100(509356 secs "
+            "since boot)"
+        },
         "qtn": {"state": None},
         "sim": {
             "state": None,
@@ -95,7 +98,10 @@ expected_result = {
         "diag": {"dblog_enable": "0", "dblog_remaining": "0"},
     },
     AsusData.BOOTTIME: {
-        "datetime": datetime(2023, 11, 13, 18, 21, 50, tzinfo=tzoffset(None, 3600))
+        "datetime": datetime(
+            2023, 11, 13, 18, 21, 50, tzinfo=tzoffset(None, 3600)
+        ),
+        "uptime": 509356,
     },
     AsusData.OPENVPN: {
         "client": {
