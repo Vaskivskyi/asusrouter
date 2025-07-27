@@ -245,8 +245,6 @@ def process_boottime(
             time, seconds = read_uptime_string(uptime_str)
             if time:
                 boottime["datetime"] = time
-                boottime["uptime"] = seconds
-
                 if prev_boottime and "datetime" in prev_boottime:
                     delta = time - prev_boottime["datetime"]
 
@@ -255,6 +253,8 @@ def process_boottime(
                         reboot = True
                     else:
                         boottime = prev_boottime
+
+                boottime["uptime"] = seconds
 
     return boottime, reboot
 
