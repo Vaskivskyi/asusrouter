@@ -178,18 +178,17 @@ def read_uptime_string(
     seconds_match = re.search("([0-9]+)", uptime_parts[1])
     if not seconds_match:
         return (None, None)
+    seconds = safe_int(seconds_match.group())
 
     try:
-        seconds = safe_int(seconds_match.group())
         when = dtparse(uptime_parts[0])
     except ValueError:
-        return (None, None)
+        return (None, seconds)
 
-    if seconds is not None:
-        uptime = when - timedelta(seconds=seconds)
-        return (uptime, seconds)
-
-    return (None, None)
+    # This part will always work, since seconds are always an integer
+    # unless `safe_int` got broken
+    uptime = when - timedelta(seconds=seconds)
+    return (uptime, seconds)
 
 
 def process(data: dict[str, Any]) -> dict[AsusData, Any]:
@@ -235,9 +234,9 @@ def process_boottime(
 
     boottime: dict[str, Any] = {}
 
-    # Since precision is 1 second, could be that old and new are 1 sec different.
-    # In this case, we should not change the boot time,
-    # but keep the previous value to avoid regular changes
+    # Since precision is 1 second, could be that old and new
+    # are 1 sec different. In this case, we should not change
+    # the boot time, but keep the previous value to avoid regular changes
     sys = devicemap.get("sys")
     if sys:
         uptime_str = sys.get("uptimeStr")
