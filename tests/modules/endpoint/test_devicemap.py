@@ -309,7 +309,7 @@ def test_process(
 @pytest.mark.parametrize(
     "prev_boottime_delta, expected_result",
     [
-        (timedelta(seconds=1), ({"datetime": ANY}, False)),
+        (timedelta(seconds=1), ({"datetime": ANY, "uptime": 2}, False)),
         (timedelta(seconds=3), ({"datetime": ANY, "uptime": 2}, True)),
     ],
 )
