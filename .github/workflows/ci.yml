@@ -23,11 +23,6 @@ on:
   schedule:
     - cron: "0 0 * * *"
 
-permissions:
-  contents: read
-  actions: write
-  checks: write
-
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
@@ -36,6 +31,10 @@ jobs:
   prepare:
     name: Preparation
     runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
     strategy:
       matrix:
         python-version: [3.11, 3.12, 3.13]
@@ -57,6 +56,10 @@ jobs:
     name: Unit Tests
     needs: prepare
     runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
     strategy:
       matrix:
         python-version: [3.11, 3.12, 3.13]
@@ -88,6 +91,10 @@ jobs:
     name: Device Tests
     needs: prepare
     runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
     strategy:
       matrix:
         python-version: [3.11, 3.12, 3.13]
@@ -119,6 +126,11 @@ jobs:
     name: Codecov
     needs: [unit-tests, device-tests]
     runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      checks: write
+
     strategy:
       matrix:
         python-version: [3.11, 3.12, 3.13]
