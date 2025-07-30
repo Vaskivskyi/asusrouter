@@ -1,0 +1,105 @@
+name: Auto Label PRs
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  label:
+    name: Label PRs
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Labeler
+        uses: actions/labeler@v5
+        with:
+          repo-token: "${{ secrets.GITHUB_TOKEN }}"
+
+      - name: Remove unneeded autolabeler labels
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const labelsToCheck = ['testing', 'github', 'github_actions', 'dependencies'];
+            const files = await github.rest.pulls.listFiles({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: pr.number,
+            });
+            const filenames = files.data.map(f => f.filename);
+
+            // Define your label rules (same as in .github/labeler.yml)
+            const labelRules = {
+                testing: f => f.startsWith('tests/'),
+                github: f => f.startsWith('.github/'),
+                github_actions: f => f.startsWith('.github/workflows/'),
+                dependencies: f => f === 'uv.lock' || f.startsWith('requirements'),
+            };
+
+            // Find which labels should be present
+            const shouldHave = new Set();
+            for (const [label, rule] of Object.entries(labelRules)) {
+                if (filenames.some(rule)) {
+                shouldHave.add(label);
+                }
+            }
+
+            // Remove labels that are present but not needed
+            for (const label of pr.labels.map(l => l.name)) {
+                if (labelsToCheck.includes(label) && !shouldHave.has(label)) {
+                try {
+                    await github.rest.issues.removeLabel({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: pr.number,
+                    name: label,
+                    });
+                } catch (e) {}
+                }
+            }
+
+      - name: Add build label if version changed
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const files = await github.rest.pulls.listFiles({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: pr.number,
+            });
+            let buildLabel = false;
+            for (const file of files.data) {
+              if (file.filename === 'pyproject.toml' && file.patch && /^[+-]\s*version\s*=/.test(file.patch)) {
+                buildLabel = true;
+                break;
+              }
+            }
+            if (buildLabel) {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pr.number,
+                labels: ['build'],
+              });
+            } else {
+              // Remove the build label if it exists
+              try {
+                await github.rest.issues.removeLabel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: pr.number,
+                  name: 'build',
+                });
+              } catch (e) {
+                // Ignore if label does not exist
+              }
+            }
