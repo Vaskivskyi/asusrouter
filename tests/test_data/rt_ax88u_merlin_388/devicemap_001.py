@@ -1,8 +1,6 @@
 """Result of processing devicemap_001.content."""
 
-from datetime import datetime
-
-from dateutil.tz import tzoffset
+from datetime import datetime, timedelta, timezone
 
 from asusrouter import AsusData
 from asusrouter.modules.openvpn import AsusOVPNClient, AsusOVPNServer
@@ -99,7 +97,7 @@ expected_result = {
     },
     AsusData.BOOTTIME: {
         "datetime": datetime(
-            2023, 11, 13, 18, 21, 50, tzinfo=tzoffset(None, 3600)
+            2023, 11, 13, 18, 21, 50, tzinfo=timezone(timedelta(hours=1))
         ),
         "uptime": 509356,
     },
