@@ -1,0 +1,9 @@
+testing:
+  - "tests/**"
+github:
+  - ".github/**"
+github_actions:
+  - ".github/workflows/**"
+dependencies:
+  - "uv.lock"
+  - "requirements*.txt"
