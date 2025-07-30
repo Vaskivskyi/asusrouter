@@ -7,7 +7,6 @@ on:
       - dev
     paths:
       - "**/*.py"
-      - "tests/**/*.py"
       - ".github/workflows/**"
       - "pyproject.toml"
       - "setup.cfg"
@@ -17,7 +16,6 @@ on:
     paths:
       - "**/*.py"
       - "tests/**/*.py"
-      - ".github/workflows/**"
       - "pyproject.toml"
       - "setup.cfg"
       - "requirements*.txt"

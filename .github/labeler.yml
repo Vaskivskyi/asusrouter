@@ -1,9 +1,13 @@
 testing:
-  - "tests/**"
+  - changed-files:
+      - any-glob-to-any-file: "tests/**"
 github:
-  - ".github/**"
+  - changed-files:
+      - any-glob-to-any-file: ".github/**"
 github_actions:
-  - ".github/workflows/**"
+  - changed-files:
+      - any-glob-to-any-file: ".github/workflows/**"
 dependencies:
-  - "uv.lock"
-  - "requirements*.txt"
+  - changed-files:
+      - any-glob-to-any-file: "uv.lock"
+      - any-glob-to-any-file: "requirements*.txt"

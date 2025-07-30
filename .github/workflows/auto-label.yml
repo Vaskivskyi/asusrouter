@@ -4,6 +4,10 @@ on:
   pull_request:
     types: [opened, synchronize, reopened, edited]
 
+permissions:
+  contents: read
+  pull-requests: write
+
 jobs:
   label:
     runs-on: ubuntu-latest
@@ -23,7 +27,7 @@ jobs:
             });
             let buildLabel = false;
             for (const file of files.data) {
-              if (file.filename === 'pyproject.toml' && file.patch && file.patch.includes('version')) {
+              if (file.filename === 'pyproject.toml' && file.patch && /^[+-]\s*version\s*=/.test(file.patch)) {
                 buildLabel = true;
                 break;
               }
