@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.11, 3.12]
+        python-version: [3.11, 3.12, 3.13]
     steps:
       - name: Checkout
         uses: actions/checkout@v4.2.2
@@ -40,7 +40,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.11, 3.12]
+        python-version: [3.11, 3.12, 3.13]
     steps:
       - name: Checkout
         uses: actions/checkout@v4.2.2
@@ -71,7 +71,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.11, 3.12]
+        python-version: [3.11, 3.12, 3.13]
     steps:
       - name: Checkout
         uses: actions/checkout@v4.2.2
@@ -102,7 +102,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.11, 3.12]
+        python-version: [3.11, 3.12, 3.13]
     steps:
       - name: Checkout
         uses: actions/checkout@v4.2.2
