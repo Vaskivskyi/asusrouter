@@ -8,13 +8,12 @@ from datetime import datetime, timedelta
 from typing import Any, Optional, Tuple
 
 import xmltodict
-from dateutil.parser import parse as dtparse
 
 from asusrouter.modules.data import AsusData, AsusDataState
 from asusrouter.modules.endpoint import data_get
 from asusrouter.modules.openvpn import AsusOVPNClient, AsusOVPNServer
 from asusrouter.tools.cleaners import clean_dict, clean_dict_key_prefix
-from asusrouter.tools.converters import safe_int
+from asusrouter.tools.converters import safe_datetime, safe_int
 from asusrouter.tools.readers import merge_dicts
 
 from .devicemap_const import (
@@ -180,9 +179,8 @@ def read_uptime_string(
         return (None, None)
     seconds = safe_int(seconds_match.group())
 
-    try:
-        when = dtparse(uptime_parts[0])
-    except ValueError:
+    when = safe_datetime(uptime_parts[0])
+    if when is None:
         return (None, seconds)
 
     # This part will always work, since seconds are always an integer
