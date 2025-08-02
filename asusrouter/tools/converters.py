@@ -13,8 +13,6 @@ from datetime import datetime, timedelta, timezone
 from enum import Enum
 from typing import Any, Callable, Iterable, Optional, Type, TypeVar, cast
 
-from dateutil.parser import parse as dtparse
-
 from asusrouter.tools.cleaners import clean_content
 
 true_values = {"true", "allow", "1", "on", "enabled"}
@@ -295,9 +293,12 @@ def safe_datetime(content: Optional[str]) -> Optional[datetime]:
         return None
 
     try:
-        return dtparse(content)
+        return datetime.fromisoformat(content)
     except (ValueError, TypeError):
-        return None
+        try:
+            return datetime.strptime(content, "%a, %d %b %Y %H:%M:%S %z")
+        except (ValueError, TypeError):
+            return None
 
 
 def safe_enum(

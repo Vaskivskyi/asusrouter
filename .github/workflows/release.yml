@@ -12,6 +12,9 @@ jobs:
     name: Build PyPI package
     runs-on: ubuntu-latest
 
+    permissions:
+      contents: read
+
     steps:
       - name: Checkout the repository
         uses: actions/checkout@v4.2.2
@@ -48,12 +51,12 @@ jobs:
       - build
     runs-on: ubuntu-latest
 
+    permissions:
+      id-token: write
+
     environment:
       name: pypi
       url: https://pypi.org/p/asusrouter
-
-    permissions:
-      id-token: write
 
     steps:
       - name: Download all the dists

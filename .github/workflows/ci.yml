@@ -5,7 +5,21 @@ on:
     branches:
       - main
       - dev
-  pull_request: ~
+    paths:
+      - "**/*.py"
+      - ".github/workflows/**"
+      - "pyproject.toml"
+      - "setup.cfg"
+      - "requirements*.txt"
+      - "uv.lock"
+  pull_request:
+    paths:
+      - "**/*.py"
+      - "tests/**/*.py"
+      - "pyproject.toml"
+      - "setup.cfg"
+      - "requirements*.txt"
+      - "uv.lock"
   schedule:
     - cron: "0 0 * * *"
 
@@ -17,9 +31,13 @@ jobs:
   prepare:
     name: Preparation
     runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
     strategy:
       matrix:
-        python-version: [3.11, 3.12]
+        python-version: [3.11, 3.12, 3.13]
     steps:
       - name: Checkout
         uses: actions/checkout@v4.2.2
@@ -38,9 +56,13 @@ jobs:
     name: Unit Tests
     needs: prepare
     runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
     strategy:
       matrix:
-        python-version: [3.11, 3.12]
+        python-version: [3.11, 3.12, 3.13]
     steps:
       - name: Checkout
         uses: actions/checkout@v4.2.2
@@ -69,9 +91,13 @@ jobs:
     name: Device Tests
     needs: prepare
     runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
     strategy:
       matrix:
-        python-version: [3.11, 3.12]
+        python-version: [3.11, 3.12, 3.13]
     steps:
       - name: Checkout
         uses: actions/checkout@v4.2.2
@@ -100,9 +126,14 @@ jobs:
     name: Codecov
     needs: [unit-tests, device-tests]
     runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      checks: write
+
     strategy:
       matrix:
-        python-version: [3.11, 3.12]
+        python-version: [3.11, 3.12, 3.13]
     steps:
       - name: Checkout
         uses: actions/checkout@v4.2.2

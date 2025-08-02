@@ -63,6 +63,8 @@ class Firmware:
 
     This class contains information about the firmware of a device."""
 
+    _fw_warned: list[str] = []
+
     def __init__(
         self,
         version: Optional[str] = None,
@@ -143,7 +145,7 @@ class Firmware:
             return None
 
         # Special cases for old firmwares and absent data
-        if fw_string == "__":
+        if fw_string in ("__", "___"):
             return None
 
         pattern = (
@@ -156,11 +158,13 @@ class Firmware:
 
         re_match = re.match(pattern, fw_string)
         if not re_match:
-            _LOGGER.warning(
-                "Firmware version cannot be parsed. \
-                    Please report this. The original FW string is: `%s`"
-                % fw_string
-            )
+            if fw_string not in self._fw_warned:
+                self._fw_warned.append(fw_string)
+                _LOGGER.warning(
+                    "Firmware version cannot be parsed. \
+                        Please report this. The original FW string is: `%s`"
+                    % fw_string
+                )
             return None
 
         # Major version
