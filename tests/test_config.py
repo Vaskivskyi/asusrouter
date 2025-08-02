@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import pytest
-from asusrouter.config import CONFIG_DEFAULT_BOOL, ARConfig
+from asusrouter.config import CONFIG_DEFAULT_BOOL, ARConfig, safe_bool_config
 
 KEYS_BOOL = [
     "optimistic_data",
@@ -15,6 +15,21 @@ def reset_config() -> None:
     """Reset the configuration before each test."""
 
     ARConfig.set("optimistic_data", CONFIG_DEFAULT_BOOL)
+
+
+class TestConvert:
+    """Tests for the configuration conversion functions."""
+
+    @pytest.mark.parametrize("value", [True, False])
+    def test_safe_bool_config(self, value: bool) -> None:
+        """Test that safe_bool_config converts values correctly."""
+
+        assert safe_bool_config(value) is value
+
+    def test_safe_bool_config_default(self) -> None:
+        """Test that safe_bool_config returns default when value is None."""
+
+        assert safe_bool_config(None) is CONFIG_DEFAULT_BOOL
 
 
 class TestBoolConfig:

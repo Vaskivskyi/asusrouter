@@ -3,11 +3,22 @@
 from __future__ import annotations
 
 import threading
-from typing import Any, Callable, Dict
+from typing import Any, Callable, Dict, Optional
 
 from asusrouter.tools.converters import safe_bool
 
 CONFIG_DEFAULT_BOOL: bool = False
+
+
+def safe_bool_config(value: Any) -> bool:
+    """Convert a value to a boolean, defaulting to CONFIG_DEFAULT_BOOL."""
+
+    config_value: Optional[bool] = safe_bool(value)
+
+    if config_value is None:
+        return CONFIG_DEFAULT_BOOL
+
+    return config_value
 
 
 class Config:
@@ -28,7 +39,9 @@ class Config:
 
         with self._lock:
             if key in self._options:
-                converter = self._types.get(key, safe_bool)
+                converter: Callable[[Any], Any] = self._types.get(
+                    key, safe_bool_config
+                )
                 self._options[key] = converter(value)
             else:
                 raise KeyError(f"Unknown configuration option: {key}")
