@@ -31,6 +31,7 @@ class Config:
 
         self._options: Dict[str, Any] = {
             "optimistic_data": CONFIG_DEFAULT_BOOL,
+            "optimistic_temperature": CONFIG_DEFAULT_BOOL,
         }
         self._types: Dict[str, Callable[[Any], Any]] = {}
 
@@ -66,6 +67,12 @@ class Config:
         """Get the optimistic data flag."""
 
         return bool(self.get("optimistic_data"))
+
+    @property
+    def optimistic_temperature(self) -> bool:
+        """Get the optimistic temperature flag."""
+
+        return bool(self.get("optimistic_temperature"))
 
 
 ARConfig: Config = Config()
