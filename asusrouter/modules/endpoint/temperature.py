@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Tuple
+import threading
+from typing import Any, Optional
 
 from asusrouter.config import ARConfig
 from asusrouter.modules.data import AsusData
@@ -20,6 +21,7 @@ EXPECTED_TEMPERATURE_MAX = 150.0
 MAX_SCALE_COUNT = 5
 
 _temperature_warned: bool = False
+_temperature_warned_lock = threading.Lock()
 
 
 # The temperature data can be presented it the following JS variables:
@@ -82,16 +84,18 @@ def read(content: str) -> dict[str, Any]:
 
     if ARConfig.optimistic_temperature is True:
         temperature, scaled = _scale_temperature(temperature)
-        if scaled and _temperature_warned is False:
-            _LOGGER.warning(
-                "Temperature values were rescaled due to the issue with "
-                "the raw data. Please report this. The original data is: `%s` "
-                "and the expected range is between %s and %s.",
-                variables,
-                EXPECTED_TEMPERATURE_MIN,
-                EXPECTED_TEMPERATURE_MAX,
-            )
-            _temperature_warned = True
+        with _temperature_warned_lock:
+            if scaled and _temperature_warned is False:
+                _LOGGER.warning(
+                    "Temperature values were rescaled due to the issue with "
+                    "the raw data. Please report this. The original data is: "
+                    "`%s` and the expected range is between %s and %s.",
+                    variables,
+                    EXPECTED_TEMPERATURE_MIN,
+                    EXPECTED_TEMPERATURE_MAX,
+                )
+                with _temperature_warned_lock:
+                    _temperature_warned = True
 
     return temperature
 
@@ -107,11 +111,11 @@ def process(data: dict[str, Any]) -> dict[AsusData, Any]:
 
 
 def _scale_temperature(
-    temperature: dict[str, float],
+    temperature: dict[str, Optional[float]],
     range_min: float = EXPECTED_TEMPERATURE_MIN,
     range_max: float = EXPECTED_TEMPERATURE_MAX,
     max_scale_count: int = MAX_SCALE_COUNT,
-) -> Tuple[dict[str, float], bool]:
+) -> tuple[dict[str, float], bool]:
     """Scale temperature values to a range.
 
     This method is a temporary solution for those routers
