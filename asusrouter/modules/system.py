@@ -39,6 +39,10 @@ class AsusSystem(str, Enum):
 
     # ---------------------
     # AiMesh
+    AIMESH_ADD_NODE = "ob_selection"  # Add a new node to AiMesh
+    AIMESH_ONBOARDING = (
+        "onboarding"  # Start AiMesh onboarding (search for nodes)
+    )
     AIMESH_REBOOT = "device_reboot"  # Restart router + all nodes
     AIMESH_REBUILD = "re_reconnect"  # Rebuild AiMesh
     REBUILD_AIMESH = "_depr_re_reconnect"  # Rebuild AiMesh / legacy name
