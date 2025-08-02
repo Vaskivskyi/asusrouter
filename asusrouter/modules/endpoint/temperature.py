@@ -82,6 +82,8 @@ def read(content: str) -> dict[str, Any]:
         if value and "disabled" not in value
     }
 
+    # While this functional is performing a kind of post-processing,
+    # it should stay a part of the read method to have access to the raw data
     if ARConfig.optimistic_temperature is True:
         temperature, scaled = _scale_temperature(temperature)
         with _temperature_warned_lock:
@@ -94,8 +96,7 @@ def read(content: str) -> dict[str, Any]:
                     EXPECTED_TEMPERATURE_MIN,
                     EXPECTED_TEMPERATURE_MAX,
                 )
-                with _temperature_warned_lock:
-                    _temperature_warned = True
+                _temperature_warned = True
 
     return temperature
 
