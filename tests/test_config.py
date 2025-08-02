@@ -15,6 +15,7 @@ def reset_config() -> None:
     """Reset the configuration before each test."""
 
     ARConfig.set("optimistic_data", CONFIG_DEFAULT_BOOL)
+    ARConfig.set("optimistic_temperature", CONFIG_DEFAULT_BOOL)
 
 
 class TestConvert:
@@ -61,6 +62,11 @@ class TestBoolConfig:
         """Test that we can get the value of optimistic_data."""
 
         assert ARConfig.optimistic_data is CONFIG_DEFAULT_BOOL
+
+    def test_get_optimistic_temperature(self) -> None:
+        """Test that we can get the value of optimistic_temperature."""
+
+        assert ARConfig.optimistic_temperature is CONFIG_DEFAULT_BOOL
 
     def test_unknown_key(self) -> None:
         """Test that setting/getting an unknown key raises KeyError."""

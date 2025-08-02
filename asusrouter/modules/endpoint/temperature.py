@@ -2,23 +2,40 @@
 
 from __future__ import annotations
 
-from typing import Any
+import logging
+import threading
+from typing import Any, Optional
 
+from asusrouter.config import ARConfig
 from asusrouter.modules.data import AsusData
 from asusrouter.modules.wlan import Wlan
 from asusrouter.tools.cleaners import clean_content
 from asusrouter.tools.converters import safe_float
 from asusrouter.tools.readers import read_js_variables
 
+_LOGGER = logging.getLogger(__name__)
+
+EXPECTED_DECIMAL_PLACES = 2
+EXPECTED_TEMPERATURE_MIN = 10.0
+EXPECTED_TEMPERATURE_MAX = 150.0
+MAX_SCALE_COUNT = 5
+
+_temperature_warned: bool = False
+_temperature_warned_lock = threading.Lock()
+
 
 # The temperature data can be presented it the following JS variables:
 # 1) curr_coreTmp_2_raw, curr_coreTmp_5_raw, curr_coreTmp_52_raw
-# 2) curr_coreTmp_0_raw, curr_coreTmp_1_raw, curr_coreTmp_2_raw, curr_coreTmp_3_raw
-# 3) curr_coreTmp_wl0_raw, curr_coreTmp_wl1_raw, curr_coreTmp_wl2_raw, curr_coreTmp_wl3_raw
+# 2) curr_coreTmp_0_raw, curr_coreTmp_1_raw, curr_coreTmp_2_raw,
+# curr_coreTmp_3_raw
+# 3) curr_coreTmp_wl0_raw, curr_coreTmp_wl1_raw, curr_coreTmp_wl2_raw,
+# curr_coreTmp_wl3_raw
 # for 2ghz, 5ghz, 5ghz2, 6ghz respectively
 # CPU temperature is set either in curr_cpuTemp or curr_coreTmp_cpu
 def read(content: str) -> dict[str, Any]:
     """Read temperature data."""
+
+    global _temperature_warned
 
     temperature: dict[str, Any] = {}
 
@@ -57,12 +74,29 @@ def read(content: str) -> dict[str, Any]:
     elif "curr_cpuTemp" in variables:
         temperature["cpu"] = variables.get("curr_cpuTemp")
 
-    # Convert the temperature values to float or remove them if they have "disabled"
+    # Convert the temperature values to float or remove them
+    # if they have "disabled"
     temperature = {
         key: safe_float(value)
         for key, value in temperature.items()
         if value and "disabled" not in value
     }
+
+    # While this functional is performing a kind of post-processing,
+    # it should stay a part of the read method to have access to the raw data
+    if ARConfig.optimistic_temperature is True:
+        temperature, scaled = _scale_temperature(temperature)
+        with _temperature_warned_lock:
+            if scaled and _temperature_warned is False:
+                _LOGGER.warning(
+                    "Temperature values were rescaled due to the issue with "
+                    "the raw data. Please report this. The original data is: "
+                    "`%s` and the expected range is between %s and %s.",
+                    variables,
+                    EXPECTED_TEMPERATURE_MIN,
+                    EXPECTED_TEMPERATURE_MAX,
+                )
+                _temperature_warned = True
 
     return temperature
 
@@ -75,3 +109,41 @@ def process(data: dict[str, Any]) -> dict[AsusData, Any]:
     }
 
     return temperature
+
+
+def _scale_temperature(
+    temperature: dict[str, Optional[float]],
+    range_min: float = EXPECTED_TEMPERATURE_MIN,
+    range_max: float = EXPECTED_TEMPERATURE_MAX,
+    max_scale_count: int = MAX_SCALE_COUNT,
+) -> tuple[dict[str, float], bool]:
+    """Scale temperature values to a range.
+
+    This method is a temporary solution for those routers
+    with orders of magnitude lower temperature values."""
+
+    scaled_temperature = {}
+    scaled = False
+
+    for key, temp in temperature.items():
+        if temp is None:
+            continue
+
+        original_temp = temp
+
+        count = 0
+        # Scale up if too small
+        while temp < range_min and count < max_scale_count:
+            temp *= 10
+            count += 1
+
+        # Scale down if too large
+        while temp > range_max and count < max_scale_count:
+            temp /= 10
+            count += 1
+
+        if temp != original_temp:
+            scaled = True
+        scaled_temperature[key] = round(temp, EXPECTED_DECIMAL_PLACES)
+
+    return scaled_temperature, scaled
