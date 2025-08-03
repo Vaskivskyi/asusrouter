@@ -177,6 +177,10 @@ STATE_MAP: dict[AsusSystem, dict[str, Any]] = {
     },
     AsusSystem.NODE_REBOOT: {
         SERVICE: None,
+        # NODE_REBOOT is an alias for AIMESH_REBOOT, but it requires
+        # passing a node MAC address. For the safety, this AsusSystem
+        # state is separated to avoid accidental reboot of the whole
+        # AiMesh network.
         ARGUMENTS: {ACTION_MODE: AsusSystem.AIMESH_REBOOT.value},
         APPLY: False,
         EXPECT_MODIFY: False,
