@@ -8,6 +8,12 @@ from typing import Any, Awaitable, Callable
 
 _LOGGER = logging.getLogger(__name__)
 
+ACTION_MODE = "action_mode"
+APPLY = "apply"
+ARGUMENTS = "arguments"
+EXPECT_MODIFY = "expect_modify"
+SERVICE = "service"
+
 
 class AsusSystem(str, Enum):
     """Asus system enum.
@@ -45,6 +51,8 @@ class AsusSystem(str, Enum):
     )
     AIMESH_REBOOT = "device_reboot"  # Restart router + all nodes
     AIMESH_REBUILD = "re_reconnect"  # Rebuild AiMesh
+    NODE_CONFIG_CHANGE = "config_changed"  # Change node configuration
+    NODE_REBOOT = "node_reboot"  # Reboot a node by MAC (when specified)
     REBUILD_AIMESH = "_depr_re_reconnect"  # Rebuild AiMesh / legacy name
     # ---------------------
     # Aura
@@ -156,29 +164,46 @@ AsusSystemDeprecated = {
 # Map AsusSystem special cases to service calls
 STATE_MAP: dict[AsusSystem, dict[str, Any]] = {
     AsusSystem.AIMESH_REBOOT: {
-        "service": None,
-        "arguments": {"action_mode": "device_reboot"},
-        "apply": False,
-        "expect_modify": False,
+        SERVICE: None,
+        ARGUMENTS: {ACTION_MODE: AsusSystem.AIMESH_REBOOT.value},
+        APPLY: False,
+        EXPECT_MODIFY: False,
+    },
+    AsusSystem.NODE_CONFIG_CHANGE: {
+        SERVICE: None,
+        ARGUMENTS: {ACTION_MODE: AsusSystem.NODE_CONFIG_CHANGE.value},
+        APPLY: False,
+        EXPECT_MODIFY: False,
+    },
+    AsusSystem.NODE_REBOOT: {
+        SERVICE: None,
+        ARGUMENTS: {ACTION_MODE: AsusSystem.AIMESH_REBOOT.value},
+        APPLY: False,
+        EXPECT_MODIFY: False,
     },
     AsusSystem.FIRMWARE_CHECK: {
-        "service": None,
-        "arguments": {"action_mode": "firmware_check"},
-        "apply": False,
-        "expect_modify": False,
+        SERVICE: None,
+        ARGUMENTS: {ACTION_MODE: AsusSystem.FIRMWARE_CHECK.value},
+        APPLY: False,
+        EXPECT_MODIFY: False,
     },
     AsusSystem.FIRMWARE_UPGRADE: {
-        "service": None,
-        "arguments": {"action_mode": "firmware_upgrade"},
-        "apply": False,
-        "expect_modify": False,
+        SERVICE: None,
+        ARGUMENTS: {ACTION_MODE: AsusSystem.FIRMWARE_UPGRADE.value},
+        APPLY: False,
+        EXPECT_MODIFY: False,
     },
     AsusSystem.UPDATE_CLIENTS: {
-        "service": None,
-        "arguments": {"action_mode": "update_client_list"},
-        "apply": False,
-        "expect_modify": False,
+        SERVICE: None,
+        ARGUMENTS: {ACTION_MODE: AsusSystem.UPDATE_CLIENTS.value},
+        APPLY: False,
+        EXPECT_MODIFY: False,
     },
+}
+
+ARGUMENTS_APPEND: dict[AsusSystem, list[str]] = {
+    AsusSystem.NODE_CONFIG_CHANGE: ["re_mac", "config"],
+    AsusSystem.NODE_REBOOT: ["device_list"],
 }
 
 
@@ -201,16 +226,35 @@ enum used. Use `{repl_state.name}` instead"
         )
         state = repl_state
 
+    arguments: dict[str, Any] = kwargs.get(ARGUMENTS, {})
+
     # Get the arguments for the callback function based on the state
-    callback_args = STATE_MAP.get(
+    callback_args: dict[str, Any] = STATE_MAP.get(
         state,
         {
-            "service": state.value,
-            "arguments": kwargs.get("arguments", {}),
-            "apply": True,
-            "expect_modify": kwargs.get("expect_modify", False),
+            SERVICE: state.value,
+            ARGUMENTS: arguments,
+            APPLY: True,
+            EXPECT_MODIFY: kwargs.get(EXPECT_MODIFY, False),
         },
     )
+
+    # Append additional arguments if the state is in the append list
+    if state in ARGUMENTS_APPEND:
+        search_args = ARGUMENTS_APPEND[state]
+        if not all(arg in kwargs for arg in search_args):
+            _LOGGER.error(
+                "Setting state `%s` requires ALL of the following "
+                "arguments: %s",
+                state,
+                search_args,
+            )
+            return False
+
+        # Append the arguments to the callback arguments
+        callback_args[ARGUMENTS].update(
+            {arg: kwargs[arg] for arg in search_args}
+        )
 
     # Run the service
     return await callback(**callback_args)

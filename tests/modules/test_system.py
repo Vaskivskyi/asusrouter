@@ -1,44 +1,65 @@
 """Tests for the system module."""
 
+from typing import Any, Optional
 from unittest import mock
 
 import pytest
-
 from asusrouter.modules.system import (
+    ARGUMENTS_APPEND,
     STATE_MAP,
     AsusSystem,
-    AsusSystemDeprecated,
     set_state,
 )
 
-async_callback = mock.AsyncMock()
+
+@pytest.mark.parametrize(
+    "state, expected_args",
+    [
+        (AsusSystem.NODE_CONFIG_CHANGE, ["re_mac", "config"]),
+        (AsusSystem.NODE_REBOOT, ["device_list"]),
+    ],
+)
+def test_arguments_append(state: AsusSystem, expected_args: list[str]) -> None:
+    """Test ARGUMENTS_APPEND dictionary."""
+
+    assert ARGUMENTS_APPEND.get(state) == expected_args
 
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    "state, expected_args",
-    list(STATE_MAP.items())
-    + [
+    "state, extra_args, should_call",
+    [
         (
-            AsusSystem.REBOOT,
-            {
-                "service": AsusSystem.REBOOT.value,
-                "arguments": {},
-                "apply": True,
-                "expect_modify": False,
-            },
+            AsusSystem.NODE_CONFIG_CHANGE,
+            {"re_mac": "mac", "config": "cfg"},
+            True,
         ),
+        (AsusSystem.NODE_REBOOT, {"device_list": ["dev1", "dev2"]}, True),
+        (AsusSystem.NODE_CONFIG_CHANGE, {"re_mac": "mac"}, False),
+        (AsusSystem.NODE_REBOOT, {}, False),
     ],
 )
-async def test_set_state(state, expected_args):
+async def test_set_state(
+    state: AsusSystem,
+    extra_args: dict[str, Any],
+    should_call: bool,
+) -> None:
     """Test set_state."""
 
-    # Test set_state with the given state
-    await set_state(async_callback, state)
-    async_callback.assert_called_once_with(**expected_args)
+    # Create a mock
+    async_callback = mock.AsyncMock()
 
-    # Reset the mock callback function
-    async_callback.reset_mock()
+    # Patch logger to check for error
+    with mock.patch("asusrouter.modules.system._LOGGER.error") as mock_error:
+        result = await set_state(async_callback, state, **extra_args)
+        if should_call:
+            async_callback.assert_called_once_with(**STATE_MAP.get(state, {}))
+            assert result is not False
+            mock_error.assert_not_called()
+        else:
+            async_callback.assert_not_called()
+            assert result is False
+            mock_error.assert_called_once()
 
 
 @pytest.mark.asyncio
@@ -49,8 +70,15 @@ async def test_set_state(state, expected_args):
         (AsusSystem.REBUILD_AIMESH, AsusSystem.AIMESH_REBUILD, "1.0.0"),
     ],
 )
-async def test_set_state_deprecated(deprecated_state, repl_state, repl_ver):
+async def test_set_state_deprecated(
+    deprecated_state: AsusSystem,
+    repl_state: AsusSystem,
+    repl_ver: Optional[str],
+) -> None:
     """Test set_state with a deprecated state."""
+
+    # Create a mock
+    async_callback = mock.AsyncMock()
 
     # Prepare the expected warning message
     message = f"Deprecated state `{deprecated_state.name}` from `AsusSystem` \
@@ -75,10 +103,9 @@ enum used. Use `{repl_state.name}` instead"
         {deprecated_state: (repl_state, repl_ver)},
     ):
         # Test set_state with the deprecated state
-        with mock.patch("asusrouter.modules.system._LOGGER.warning") as mock_warning:
+        with mock.patch(
+            "asusrouter.modules.system._LOGGER.warning"
+        ) as mock_warning:
             await set_state(async_callback, deprecated_state)
         mock_warning.assert_called_once_with(message)
         async_callback.assert_called_once_with(**expected_args)
-
-    # Reset the mock callback function
-    async_callback.reset_mock()
