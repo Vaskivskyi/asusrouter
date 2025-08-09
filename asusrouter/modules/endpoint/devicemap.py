@@ -190,8 +190,8 @@ def read_uptime_string(
     # This will introduce a systematic error with up to 1 second delay
     # but will avoid raw data uncertainty and the resulting jitter
     if ARConfig.robust_boottime:
-        floored_seconds = uptime.second - (uptime.second % 2)
-        uptime = uptime.replace(second=floored_seconds, microsecond=0)
+        even_seconds = uptime.second - (uptime.second % 2)
+        uptime = uptime.replace(second=even_seconds, microsecond=0)
 
     return (uptime, seconds)
 
