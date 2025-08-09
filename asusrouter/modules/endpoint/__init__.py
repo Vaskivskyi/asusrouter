@@ -19,8 +19,11 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class Endpoint(str, Enum):
-    """Endpoint enum. These endpoints are used to receive data from the device."""
+    """Endpoint enum. These endpoints are used
+    to receive data from the device."""
 
+    CERT_INFO = "ajax_certinfo.asp"
+    DDNS_CODE = "ajax_ddnscode.asp"
     DEVICEMAP = "ajax_status.xml"
     DSL = "ajax_AdslStatus.asp"
     ETHERNET_PORTS = "ajax_ethernet_ports.asp"
@@ -41,7 +44,8 @@ class Endpoint(str, Enum):
 
 
 class EndpointControl(str, Enum):
-    """Control endpoint enum. These endpoints are used to set parameters to the device."""
+    """Control endpoint enum. These endpoints are used
+    to set parameters to the device."""
 
     APPLY = "apply.cgi"
     COMMAND = "applyapp.cgi"
@@ -89,7 +93,8 @@ def _get_module(
         # Get the module name from the endpoint
         module_name = f"asusrouter.modules.endpoint.{endpoint.name.lower()}"
 
-        # Import the module in a separate thread to avoid blocking the main thread
+        # Import the module in a separate thread
+        # to avoid blocking the main thread
         with ThreadPoolExecutor(max_workers=1) as executor:
             future = executor.submit(importlib.import_module, module_name)
             submodule = future.result()
