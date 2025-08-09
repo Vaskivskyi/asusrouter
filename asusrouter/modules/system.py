@@ -58,6 +58,10 @@ class AsusSystem(str, Enum):
     # Aura
     AURA_RESTART = "restart_ledg"  # Restart Aura RGB
     # ---------------------
+    # DDNS
+    DDNS_RESTART = "restart_ddns_le"  # Restart DDNS
+    RESTART_DDNS_LE = "_depr_restart_ddns_le"  # Restart DDNS / legacy name
+    # ---------------------
     # Firmware
     FIRMWARE_CHECK = "firmware_check"  # Check for firmware update
     # Firmware upgrade will upgrade the firmware to the latest version
@@ -78,7 +82,6 @@ class AsusSystem(str, Enum):
     RESTART_CHPASS = "restart_chpass"
     RESTART_CLOUDSYNC = "restart_cloudsync"  # AiCloud 2.0 sync
     RESTART_CP = "restart_CP"  # Captive Portal
-    RESTART_DDNS_LE = "restart_ddns_le"
     RESTART_DEFAULT_WAN = "restart_default_wan"  # Default WAN
     RESTART_DISKMON = "restart_diskmon"  # Disk monitor
     RESTART_DNSFILTER = "restart_dnsfilter"  # DNS filter
@@ -154,6 +157,8 @@ class AsusSystem(str, Enum):
 AsusSystemDeprecated = {
     # AiMesh
     AsusSystem.REBUILD_AIMESH: (AsusSystem.AIMESH_REBUILD, None),
+    # DDNS
+    AsusSystem.RESTART_DDNS_LE: (AsusSystem.DDNS_RESTART, None),
     # Upgrades and updates
     AsusSystem.RESTART_UPGRADE: (AsusSystem.UPGRADE_RESTART, None),
     AsusSystem.START_UPGRADE: (AsusSystem.UPGRADE_START, None),
