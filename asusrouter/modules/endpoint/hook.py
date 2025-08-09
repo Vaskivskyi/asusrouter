@@ -9,6 +9,7 @@ from typing import Any, Optional, Tuple
 from asusrouter.modules.aura import process_aura
 from asusrouter.modules.connection import ConnectionState, ConnectionStatus
 from asusrouter.modules.data import AsusData, AsusDataState
+from asusrouter.modules.ddns import process_ddns
 from asusrouter.modules.endpoint import data_get
 from asusrouter.modules.endpoint.error import AccessError
 from asusrouter.modules.led import AsusLED
@@ -89,6 +90,14 @@ def process(data: dict[str, Any]) -> dict[AsusData, Any]:
             else {}
         )
 
+    # DDNS
+    if (
+        "ddns_return_code_chk" in data
+        or "ddns_server_x" in data
+        or "ddns_hostname_x" in data
+    ):
+        state[AsusData.DDNS] = process_ddns(data)
+
     # GWLAN
     if (
         "wl0.1_wpa_psk" in data
@@ -163,12 +172,9 @@ def process(data: dict[str, Any]) -> dict[AsusData, Any]:
         or "wl3_wpa_psk" in data
     ):
         state[AsusData.WLAN] = process_wlan(data, wlan)
-    
+
     # DSL
-    if (
-        "dsllog_dataratedown" in data
-        or "dsllog_datarateup" in data
-    ):
+    if "dsllog_dataratedown" in data or "dsllog_datarateup" in data:
         state[AsusData.DSL] = process_dsl(data)
 
     return state
@@ -740,6 +746,7 @@ def process_wlan(
         wlan[interface.value] = info
 
     return wlan
+
 
 def process_dsl(dsl_info: dict[str, Any]) -> dict[str, Any]:
     """Process DSL data"""

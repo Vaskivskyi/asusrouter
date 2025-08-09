@@ -11,6 +11,7 @@ from typing import Any, Awaitable, Callable, Optional
 from asusrouter.modules.aura import AsusAura
 from asusrouter.modules.connection import ConnectionState
 from asusrouter.modules.data import AsusData, AsusDataState
+from asusrouter.modules.ddns import AsusDDNS
 from asusrouter.modules.parental_control import (
     AsusBlockAll,
     AsusParentalControl,
@@ -48,6 +49,7 @@ class AsusState(Enum):
     AURA = AsusAura
     BLOCK_ALL = AsusBlockAll
     CONNECTION = ConnectionState
+    DDNS = AsusDDNS
     LED = AsusLED
     OPENVPN_CLIENT = AsusOVPNClient
     OPENVPN_SERVER = AsusOVPNServer
@@ -66,6 +68,7 @@ AsusStateMap: dict[AsusState, Optional[AsusData]] = {
     AsusState.AURA: AsusData.AURA,
     AsusState.BLOCK_ALL: AsusData.PARENTAL_CONTROL,
     AsusState.CONNECTION: None,
+    AsusState.DDNS: None,
     AsusState.LED: AsusData.LED,
     AsusState.OPENVPN_CLIENT: AsusData.OPENVPN_CLIENT,
     AsusState.OPENVPN_SERVER: AsusData.OPENVPN_SERVER,
@@ -165,6 +168,17 @@ async def set_state(
             state=state,
             **kwargs,
         )
+
+    if submodule is None:
+        # Log the enum class and member name if possible
+        if isinstance(state, Enum):
+            _LOGGER.debug(
+                "No module found for state %s.%s",
+                type(state).__name__,
+                state.name,
+            )
+        else:
+            _LOGGER.debug("No module found for state %r", state)
 
     return False
 
