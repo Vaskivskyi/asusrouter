@@ -9,7 +9,7 @@ from typing import Any, Optional, Tuple
 
 import xmltodict
 
-from asusrouter.config import ARConfig
+from asusrouter.config import ARConfig, ARConfigKey
 from asusrouter.modules.data import AsusData, AsusDataState
 from asusrouter.modules.endpoint import data_get
 from asusrouter.modules.openvpn import AsusOVPNClient, AsusOVPNServer
@@ -189,7 +189,7 @@ def read_uptime_string(
     # If robust_boottime is enabled, floor the uptime to even seconds
     # This will introduce a systematic error with up to 1 second delay
     # but will avoid raw data uncertainty and the resulting jitter
-    if ARConfig.robust_boottime:
+    if ARConfig.get(ARConfigKey.ROBUST_BOOTTIME) is True:
         even_seconds = uptime.second - (uptime.second % 2)
         uptime = uptime.replace(second=even_seconds, microsecond=0)
 
@@ -199,7 +199,7 @@ def read_uptime_string(
 def process(data: dict[str, Any]) -> dict[AsusData, Any]:
     """Process data from devicemap endpoint."""
 
-    # Get the passed awrguments
+    # Get the passed arguments
     history: dict[AsusData, AsusDataState] = data_get(data, "history") or {}
 
     # Devicemap - just the data itself
