@@ -32,6 +32,9 @@ class Config:
         self._options: Dict[str, Any] = {
             "optimistic_data": CONFIG_DEFAULT_BOOL,
             "optimistic_temperature": CONFIG_DEFAULT_BOOL,
+            # If set, the boottime will be processed with 2 seconds
+            # precision to avoid +- 1 second uncertainty in the raw data.
+            "robust_boottime": CONFIG_DEFAULT_BOOL,
         }
         self._types: Dict[str, Callable[[Any], Any]] = {}
 
@@ -73,6 +76,12 @@ class Config:
         """Get the optimistic temperature flag."""
 
         return bool(self.get("optimistic_temperature"))
+
+    @property
+    def robust_boottime(self) -> bool:
+        """Get the robust boottime flag."""
+
+        return bool(self.get("robust_boottime"))
 
 
 ARConfig: Config = Config()

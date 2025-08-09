@@ -9,6 +9,7 @@ from typing import Any, Optional, Tuple
 
 import xmltodict
 
+from asusrouter.config import ARConfig
 from asusrouter.modules.data import AsusData, AsusDataState
 from asusrouter.modules.endpoint import data_get
 from asusrouter.modules.openvpn import AsusOVPNClient, AsusOVPNServer
@@ -177,15 +178,21 @@ def read_uptime_string(
     seconds_match = re.search("([0-9]+)", uptime_parts[1])
     if not seconds_match:
         return (None, None)
-    seconds = safe_int(seconds_match.group())
+    seconds: Optional[int] = safe_int(seconds_match.group())
 
     when = safe_datetime(uptime_parts[0])
-    if when is None:
+    if when is None or seconds is None:
         return (None, seconds)
 
-    # This part will always work, since seconds are always an integer
-    # unless `safe_int` got broken
     uptime = when - timedelta(seconds=seconds)
+
+    # If robust_boottime is enabled, floor the uptime to even seconds
+    # This will introduce a systematic error with up to 1 second delay
+    # but will avoid raw data uncertainty and the resulting jitter
+    if ARConfig.robust_boottime:
+        floored_seconds = uptime.second - (uptime.second % 2)
+        uptime = uptime.replace(second=floored_seconds, microsecond=0)
+
     return (uptime, seconds)
 
 
