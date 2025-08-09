@@ -5,7 +5,6 @@ to a format easy to handle by Home Assistant integration.
 
 Native AsusRouter integration: https://github.com/vaskivskyi/ha-asusrouter."""
 
-
 from __future__ import annotations
 
 import logging
@@ -40,7 +39,9 @@ SENSORS_VPN = {
 }
 
 
-def convert_to_ha_sensors(data: dict[str, Any], datatype: AsusData) -> list[str]:
+def convert_to_ha_sensors(
+    data: dict[str, Any], datatype: AsusData
+) -> list[str]:
     """Convert available data to the list of sensors
     compatible with Home Assistant."""
 
@@ -109,7 +110,9 @@ def convert_to_ha_sensors_by_map_2(
     """Convert available data to the list of sensors
     using first two levels of the data and static map."""
 
-    _LOGGER.debug("Converting data to the list of sensors by 2 levels: %s", data)
+    _LOGGER.debug(
+        "Converting data to the list of sensors by 2 levels: %s", data
+    )
 
     sensors = []
 
@@ -133,7 +136,9 @@ def convert_to_ha_sensors_list(data: dict[str, Any]) -> list[str]:
     return list_from_dict(convert_to_ha_data(data))
 
 
-def convert_to_ha_state_bool(data: AsusState | Optional[bool]) -> Optional[bool]:
+def convert_to_ha_state_bool(
+    data: AsusState | Optional[bool],
+) -> Optional[bool]:
     """Convers native state to a binary state."""
 
     # Check whether the state is None
@@ -147,9 +152,17 @@ def convert_to_ha_state_bool(data: AsusState | Optional[bool]) -> Optional[bool]
     # Special cases
     if isinstance(data, AsusVPNC):
         match data:
-            case a if a in (AsusVPNC.CONNECTED, AsusVPNC.CONNECTING, AsusVPNC.ON):
+            case a if a in (
+                AsusVPNC.CONNECTED,
+                AsusVPNC.CONNECTING,
+                AsusVPNC.ON,
+            ):
                 return True
-            case a if a in (AsusVPNC.OFF, AsusVPNC.DISCONNECTED, AsusVPNC.ERROR):
+            case a if a in (
+                AsusVPNC.OFF,
+                AsusVPNC.DISCONNECTED,
+                AsusVPNC.ERROR,
+            ):
                 return False
             case _:
                 return None
