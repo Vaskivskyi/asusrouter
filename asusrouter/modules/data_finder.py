@@ -103,6 +103,17 @@ ASUSDATA_NVRAM = {
         "ledg_scheme",
         "ledg_scheme_old",
     ],
+    "ddns": [
+        "ddns_enable_x",
+        "ddns_hostname_x",
+        "ddns_ipaddr",
+        "ddns_old_name",
+        "ddns_replace_status",
+        "ddns_return_code",
+        "ddns_return_code_chk",
+        "ddns_server_x",
+        "ddns_updated",
+    ],
     "light": ["led_val"],
     "openvpn_server_388": [
         key
@@ -133,7 +144,7 @@ ASUSDATA_NVRAM = {
     "dsl": [
         "dsllog_dataratedown",
         "dsllog_datarateup",
-    ]
+    ],
 }
 ASUSDATA_NVRAM["aura"].extend([f"ledg_rgb{num}" for num in range(0, 8)])
 ASUSDATA_NVRAM["vpnc"].extend(
@@ -193,6 +204,10 @@ ASUSDATA_MAP: dict[AsusData, AsusData | AsusDataFinder] = {
     ),
     AsusData.CPU: AsusDataFinder(
         Endpoint.HOOK, request=ASUSDATA_REQUEST["main"]
+    ),
+    AsusData.DDNS: AsusDataFinder(
+        Endpoint.HOOK,
+        nvram=ASUSDATA_NVRAM["ddns"],
     ),
     AsusData.DEVICEMAP: AsusDataFinder(Endpoint.DEVICEMAP),
     AsusData.FIRMWARE: AsusDataFinder(Endpoint.FIRMWARE),
