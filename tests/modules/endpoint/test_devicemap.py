@@ -265,6 +265,47 @@ def test_read_uptime_string(
 
 
 @pytest.mark.parametrize(
+    "raw_seconds, diff_seconds, result_seconds",
+    [
+        (15, 0, 14),
+        (15, 1, 14),
+        (15, 2, 12),
+        (16, 0, 16),
+        (16, 1, 14),
+        (16, 2, 14),
+    ],
+)
+def test_read_uptime_string_robust(
+    raw_seconds: int,
+    diff_seconds: int,
+    result_seconds: int,
+) -> None:
+    """Test read_uptime_string with robust boottime enabled."""
+
+    # Mock the ARConfig to enable robust boottime
+    with patch(
+        "asusrouter.modules.endpoint.devicemap.ARConfig",
+        new=MagicMock(robust_boottime=True),
+    ):
+        # Test with a valid content string
+        content = f"Sat, 8 Aug 2025 08:08:{raw_seconds} "
+        content += f"+0100({diff_seconds} secs since boot)"
+        result = devicemap.read_uptime_string(content)
+        assert result == (
+            datetime(
+                2025,
+                8,
+                8,
+                8,
+                8,
+                result_seconds,
+                tzinfo=timezone(timedelta(hours=1)),
+            ),
+            diff_seconds,
+        )
+
+
+@pytest.mark.parametrize(
     "boottime_return, expected_flags",
     [
         (("boottime", False), {}),
