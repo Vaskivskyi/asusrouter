@@ -70,7 +70,6 @@ DDNS_HINT_MAP: dict[DDNSStatusHint, DDNSStatusCode] = {
 
 DDNS_STATUS_HINT: dict[DDNSStatusCode, str] = {
     DDNSStatusCode.ERROR: "Request error! Please try again.",
-    DDNSStatusCode.NONE: "No status code received.",
     DDNSStatusCode.SUCCESS: "Registration is successful.",
     DDNSStatusCode.DOMAIN_TAKEN: "This domain name '{hostname}'"
     + " has been registered. Please use a new domain name.",
@@ -133,7 +132,7 @@ def read_ddns_status_code(raw: str | None) -> DDNSStatusCode:
     # Check code match in raw string, e.g. "200" which can be
     # a part of a longer string
     for code in DDNSStatusCode:
-        if code in hint_codes:
+        if code in hint_codes or code == DDNSStatusCode.NONE:
             continue
         if str(code.value) in raw:
             return code
