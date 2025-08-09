@@ -5,6 +5,7 @@ from typing import Any, Generator, Optional, Tuple
 from unittest.mock import ANY, MagicMock, patch
 
 import pytest
+from asusrouter.config import ARConfigKey
 from asusrouter.modules.data import AsusData, AsusDataState
 from asusrouter.modules.endpoint import devicemap
 
@@ -284,9 +285,11 @@ def test_read_uptime_string_robust(
 
     # Mock the ARConfig to enable robust boottime
     with patch(
-        "asusrouter.modules.endpoint.devicemap.ARConfig",
-        new=MagicMock(robust_boottime=True),
-    ):
+        "asusrouter.modules.endpoint.devicemap.ARConfig"
+    ) as mock_config:
+        mock_config.get.side_effect = (
+            lambda key: True if key == ARConfigKey.ROBUST_BOOTTIME else False
+        )
         # Test with a valid content string
         content = f"Sat, 8 Aug 2025 08:08:{raw_seconds} "
         content += f"+0100({diff_seconds} secs since boot)"

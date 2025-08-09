@@ -4,7 +4,7 @@ from typing import Any, Optional
 from unittest.mock import call, patch
 
 import pytest
-from asusrouter.config import ARConfig
+from asusrouter.config import ARConfig, ARConfigKey
 from asusrouter.modules.data import AsusData
 from asusrouter.modules.endpoint import temperature as temp_mod
 from asusrouter.modules.endpoint.temperature import _scale_temperature, process
@@ -15,7 +15,7 @@ from asusrouter.modules.wlan import Wlan
 def reset_config() -> None:
     """Reset the configuration before each test."""
 
-    ARConfig.set("optimistic_temperature", False)
+    ARConfig.set(ARConfigKey.OPTIMISTIC_TEMPERATURE, False)
 
 
 @pytest.mark.parametrize(
@@ -92,7 +92,7 @@ def test_read_mocked(
 ) -> None:
     """Test the read function."""
 
-    ARConfig.set("optimistic_temperature", optimistic)
+    ARConfig.set(ARConfigKey.OPTIMISTIC_TEMPERATURE, optimistic)
     temp_mod._temperature_warned = False
 
     with (

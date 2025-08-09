@@ -6,7 +6,7 @@ import logging
 import threading
 from typing import Any, Optional
 
-from asusrouter.config import ARConfig
+from asusrouter.config import ARConfig, ARConfigKey
 from asusrouter.modules.data import AsusData
 from asusrouter.modules.wlan import Wlan
 from asusrouter.tools.cleaners import clean_content
@@ -84,7 +84,7 @@ def read(content: str) -> dict[str, Any]:
 
     # While this functional is performing a kind of post-processing,
     # it should stay a part of the read method to have access to the raw data
-    if ARConfig.optimistic_temperature is True:
+    if ARConfig.get(ARConfigKey.OPTIMISTIC_TEMPERATURE):
         temperature, scaled = _scale_temperature(temperature)
         with _temperature_warned_lock:
             if scaled and _temperature_warned is False:
