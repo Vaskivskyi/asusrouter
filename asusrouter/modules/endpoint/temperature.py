@@ -84,7 +84,7 @@ def read(content: str) -> dict[str, Any]:
 
     # While this functional is performing a kind of post-processing,
     # it should stay a part of the read method to have access to the raw data
-    if ARConfig.get(ARConfigKey.OPTIMISTIC_TEMPERATURE) is True:
+    if ARConfig.get(ARConfigKey.OPTIMISTIC_TEMPERATURE):
         temperature, scaled = _scale_temperature(temperature)
         with _temperature_warned_lock:
             if scaled and _temperature_warned is False:

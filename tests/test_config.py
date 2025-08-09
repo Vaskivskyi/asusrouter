@@ -184,8 +184,7 @@ class TestThreadSafety:
             ARConfig.set(key, val)
             return key, ARConfig.get(key)
 
-            # Prepare a list of (key, value) pairs
-
+        # Prepare a list of (key, value) pairs
         tasks = [
             (random.choice(KEYS_BOOL), random.choice([True, False]))
             for _ in range(100)
