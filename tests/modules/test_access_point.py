@@ -2,13 +2,12 @@
 
 from __future__ import annotations
 
-import pytest
-
 from asusrouter.modules.access_point import AccessPoint
+import pytest
 
 
 @pytest.mark.parametrize(
-    "mac, ssid, hidden, mac_fh, ssid_fh",
+    ("mac", "ssid", "hidden", "mac_fh", "ssid_fh"),
     [
         ("mac", "ssid", True, "mac_fh", "ssid_fh"),
         ("mac", "ssid", False, "mac_fh", "ssid_fh"),
@@ -17,7 +16,13 @@ from asusrouter.modules.access_point import AccessPoint
         (None, None, None, None, None),
     ],
 )
-def test_access_point(mac, ssid, hidden, mac_fh, ssid_fh):
+def test_access_point(
+    mac: str | None,
+    ssid: str | None,
+    hidden: bool,
+    mac_fh: str | None,
+    ssid_fh: str | None,
+) -> None:
     """Test the access point class."""
 
     # Create the access point

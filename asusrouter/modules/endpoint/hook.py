@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 import logging
-from datetime import datetime, timezone
-from typing import Any, Optional, Tuple
+from typing import Any
 
 from asusrouter.modules.aura import process_aura
 from asusrouter.modules.connection import ConnectionState, ConnectionStatus
@@ -40,8 +40,10 @@ from asusrouter.tools.converters import (
     safe_usage,
     safe_usage_historic,
 )
-from asusrouter.tools.readers import merge_dicts
-from asusrouter.tools.readers import read_json_content as read  # noqa: F401
+from asusrouter.tools.readers import (
+    merge_dicts,
+    read_json_content as read,  # noqa: F401
+)
 
 from .hook_const import (
     MAP_NETWORK,
@@ -61,7 +63,7 @@ REQUIRE_WLAN = True
 _LOGGER = logging.getLogger(__name__)
 
 
-def process(data: dict[str, Any]) -> dict[AsusData, Any]:
+def process(data: dict[str, Any]) -> dict[AsusData, Any]:  # noqa: C901, PLR0912
     """Process hook data."""
 
     # For this endpoint, the received data always depends on the sent request.
@@ -81,7 +83,7 @@ def process(data: dict[str, Any]) -> dict[AsusData, Any]:
     # CPU
     if "cpu_usage" in data:
         cpu_usage = data.get("cpu_usage", {})
-        prev_cpu: Optional[AsusDataState] = history.get(AsusData.CPU)
+        prev_cpu: AsusDataState | None = history.get(AsusData.CPU)
         state[AsusData.CPU] = (
             process_cpu(cpu_usage, prev_cpu)
             if cpu_usage
@@ -115,7 +117,7 @@ def process(data: dict[str, Any]) -> dict[AsusData, Any]:
 
     # Network
     if "netdev" in data:
-        prev_network: Optional[AsusDataState] = history.get(AsusData.NETWORK)
+        prev_network: AsusDataState | None = history.get(AsusData.NETWORK)
         netdev = data.get("netdev")
         state[AsusData.NETWORK] = (
             process_network(netdev, prev_network)
@@ -181,7 +183,7 @@ def process(data: dict[str, Any]) -> dict[AsusData, Any]:
 
 
 def process_cpu(
-    cpu_usage: dict[str, Any], history: Optional[AsusDataState]
+    cpu_usage: dict[str, Any], history: AsusDataState | None
 ) -> dict[str | int, Any]:
     """Process CPU data."""
 
@@ -251,7 +253,7 @@ def process_gwlan(
 
 
 def process_network(
-    netdev: dict[str, Any], history: Optional[AsusDataState]
+    netdev: dict[str, Any], history: AsusDataState | None
 ) -> dict[str, Any]:
     """Process network data."""
 
@@ -260,9 +262,7 @@ def process_network(
 
     # Calculate speeds if previous data is available
     if history and history.data:
-        time_delta = (
-            datetime.now(timezone.utc) - history.timestamp
-        ).total_seconds()
+        time_delta = (datetime.now(UTC) - history.timestamp).total_seconds()
         network = process_network_speed(network, history.data, time_delta)
 
     return network
@@ -276,7 +276,7 @@ def process_network_speed(
     """Calculate network speed for a set period of time."""
 
     # Check values one by one
-    for interface in network:
+    for interface, interface_data in network.items():
         # Skip if there is no previous data
         if interface not in prev_network:
             continue
@@ -285,7 +285,7 @@ def process_network_speed(
         interface_speed = {}
 
         # Calculate speed for each traffic type
-        for traffic_type, traffic_value in network[interface].items():
+        for traffic_type, traffic_value in interface_data.items():
             prev_traffic_value = prev_network[interface].get(traffic_type)
             # Calculate speed only if previous value is available
             if prev_traffic_value:
@@ -299,7 +299,7 @@ def process_network_speed(
             interface_speed[f"{traffic_type}_speed"] = 0.0
 
         # Update interface with speed values
-        network[interface].update(interface_speed)
+        interface_data.update(interface_speed)
 
     return network
 
@@ -380,7 +380,7 @@ def process_port_forwarding(data: dict[str, Any]) -> dict[str, Any]:
         rules = []
         rule_list = pf_list.split("&#60")
         for rule in rule_list:
-            if rule == str():
+            if rule == "":
                 continue
             part = rule.split("&#62")
             rules.append(
@@ -434,13 +434,10 @@ def process_speedtest(data: dict[str, Any]) -> dict[str, Any]:
     test_result = speedtest.pop("result", None)
 
     # Get the last speedtest step
-    last_run_step: Optional[dict[str, Any]] = process_speedtest_last_step(
-        test_result
-    )
+    last_run_step: dict[str, Any] = process_speedtest_last_step(test_result)
 
     # Save the last tested data directly in the speedtest dict
-    for key, value in last_run_step.items():
-        speedtest[key] = value
+    speedtest.update(dict(last_run_step.items()))
 
     # Convert the timestamp to UTC
     speedtest["timestamp"] = safe_datetime(speedtest.get("timestamp"))
@@ -468,14 +465,14 @@ def process_speedtest(data: dict[str, Any]) -> dict[str, Any]:
 
 
 def process_speedtest_last_step(
-    data: Optional[list[dict[str, Any]]],
+    data: list[dict[str, Any]] | None,
 ) -> dict[str, Any]:
     """Process Speedtest progress data."""
 
     last_step: dict[str, Any] = {}
 
     # Check the length of the data
-    if not data or len(data) < 2:
+    if not data or len(data) < 2:  # noqa: PLR2004
         return last_step
 
     # Check the last step
@@ -489,9 +486,9 @@ def process_speedtest_last_step(
     return last_step
 
 
-def process_vpnc(
+def process_vpnc(  # noqa: C901
     data: dict[str, Any],
-) -> Tuple[dict[AsusVPNType, dict[int, Any]], str]:
+) -> tuple[dict[AsusVPNType, dict[int, Any]], str]:
     """Process VPNC data."""
 
     vpnc = {}
@@ -506,11 +503,12 @@ def process_vpnc(
         clients = vpnc_clientlist.split("<")
         vpnc_unit = 0
         for client in clients:
-            if client == str():
+            if client == "":
                 continue
             part = client.split(">")
-            # Format: name, type, id, login, password, active, vpnc_id, ?, ?, ?, ?, `Web`
-            if len(part) < 7:
+            # Format: name, type, id, login, password, active,
+            #         vpnc_id, ?, ?, ?, ?, `Web`
+            if len(part) < 7:  # noqa: PLR2004
                 continue
             vpnc_id = safe_int(part[6])
             vpnc[vpnc_id] = {
@@ -533,7 +531,7 @@ def process_vpnc(
     if get_vpnc_status:
         clients = get_vpnc_status.split("<")
         for client in clients:
-            if client == str():
+            if client == "":
                 continue
             part = client.split(">")
             vpnc_id = safe_int(part[2])
@@ -612,7 +610,7 @@ def process_vpnc_wireguard(data: dict[str, Any]) -> dict[int, dict[str, Any]]:
     return wireguard
 
 
-def process_wan(data: dict[str, Any]) -> dict[Any, dict[str, Any]]:
+def process_wan(data: dict[str, Any]) -> dict[Any, dict[str, Any]]:  # noqa: C901, PLR0912
     """Process WAN data."""
 
     wan: dict[str | int, dict[str, Any]] = {}
@@ -685,7 +683,7 @@ def process_wan(data: dict[str, Any]) -> dict[Any, dict[str, Any]]:
     return wan
 
 
-def process_wireguard_server(
+def process_wireguard_server(  # noqa: C901
     data: dict[str, Any],
 ) -> dict[int, dict[str, Any]]:
     """Process WireGuard data."""
@@ -749,9 +747,9 @@ def process_wlan(
 
 
 def process_dsl(dsl_info: dict[str, Any]) -> dict[str, Any]:
-    """Process DSL data"""
+    """Process DSL data."""
 
-    def remove_units(value: Optional[str]) -> Optional[str]:
+    def remove_units(value: str | None) -> str | None:
         """Remove units from the value."""
 
         if value is None:

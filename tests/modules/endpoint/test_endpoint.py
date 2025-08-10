@@ -2,7 +2,6 @@
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import pytest
 from asusrouter.error import AsusRouter404Error
 from asusrouter.modules.endpoint import (
     Endpoint,
@@ -13,9 +12,10 @@ from asusrouter.modules.endpoint import (
     process,
     read,
 )
+import pytest
 
 
-def test_get_module():
+def test_get_module() -> None:
     """Test _get_module method."""
 
     # Test valid endpoint
@@ -37,7 +37,7 @@ def test_get_module():
         )
 
 
-def test_read():
+def test_read() -> None:
     """Test read method."""
 
     # Mock the module and its read method
@@ -63,7 +63,7 @@ def test_read():
 
 
 @pytest.mark.parametrize(
-    "require_history,require_firmware,require_wlan,call_count",
+    ("require_history", "require_firmware", "require_wlan", "call_count"),
     [
         (True, False, False, 1),
         (False, True, False, 1),
@@ -72,7 +72,12 @@ def test_read():
         (True, True, True, 3),
     ],
 )
-def test_process(require_history, require_firmware, require_wlan, call_count):
+def test_process(
+    require_history: bool,
+    require_firmware: bool,
+    require_wlan: bool,
+    call_count: int,
+) -> None:
     """Test process method."""
 
     # Mock the module and its process method
@@ -83,20 +88,29 @@ def test_process(require_history, require_firmware, require_wlan, call_count):
     mock_data_set = MagicMock()
 
     # Define a side effect function for getattr
-    def getattr_side_effect(_, attr, default=None):
+    def getattr_side_effect(
+        _: object, attr: str, default: bool | None = None
+    ) -> bool | None:
+        """Return the value of the attribute if it exists."""
+
         if attr == "REQUIRE_HISTORY":
             return require_history
         if attr == "REQUIRE_FIRMWARE":
             return require_firmware
         if attr == "REQUIRE_WLAN":
             return require_wlan
-        return default
+        return bool(default) if default is not None else None
 
     # Test valid endpoint
-    with patch(
-        "asusrouter.modules.endpoint._get_module", return_value=mock_module
-    ), patch("asusrouter.modules.endpoint.data_set", mock_data_set), patch(
-        "asusrouter.modules.endpoint.getattr", side_effect=getattr_side_effect
+    with (
+        patch(
+            "asusrouter.modules.endpoint._get_module", return_value=mock_module
+        ),
+        patch("asusrouter.modules.endpoint.data_set", mock_data_set),
+        patch(
+            "asusrouter.modules.endpoint.getattr",
+            side_effect=getattr_side_effect,
+        ),
     ):
         result = process(Endpoint.DEVICEMAP, {"key": "value"})
         assert result == {"mocked": "data"}
@@ -104,7 +118,7 @@ def test_process(require_history, require_firmware, require_wlan, call_count):
         assert mock_data_set.call_count == call_count
 
 
-def test_process_no_module():
+def test_process_no_module() -> None:
     """Test process method when no module is found."""
 
     # Mock the _get_module function to return None
@@ -116,7 +130,7 @@ def test_process_no_module():
         mock_get_module.assert_called_once_with(Endpoint.PORT_STATUS)
 
 
-def test_data_set():
+def test_data_set() -> None:
     """Test data_set function."""
 
     # Test data
@@ -131,7 +145,7 @@ def test_data_set():
 
 
 @pytest.mark.parametrize(
-    "data, key, expected, data_left",
+    ("data", "key", "expected", "data_left"),
     [
         # Key exists
         (
@@ -151,7 +165,12 @@ def test_data_set():
         ({}, "key1", None, {}),
     ],
 )
-def test_data_get(data, key, expected, data_left):
+def test_data_get(
+    data: dict[str, str],
+    key: str,
+    expected: str | None,
+    data_left: dict[str, str],
+) -> None:
     """Test data_get function."""
 
     # Call the function
@@ -164,7 +183,7 @@ def test_data_get(data, key, expected, data_left):
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    "api_query_return, expected_result",
+    ("api_query_return", "expected_result"),
     [
         # Test case: status 200
         ((200, None, None), (True, None)),
@@ -176,7 +195,10 @@ def test_data_get(data, key, expected, data_left):
         (AsusRouter404Error(), (False, None)),
     ],
 )
-async def test_check_available(api_query_return, expected_result):
+async def test_check_available(
+    api_query_return: tuple[int, str | None, str | None],
+    expected_result: tuple[bool, str | None],
+) -> None:
     """Test check_available function."""
 
     # Mock the api_query function

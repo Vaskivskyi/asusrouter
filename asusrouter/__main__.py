@@ -58,16 +58,22 @@ async def _connect_and_dump(args: argparse.Namespace) -> None:
     _LOGGER.info("Dump finished. Saved to: %s", args.output)
 
 
-def main():
+def main() -> None:
     """Run AsusRouter as a program."""
 
     parser = argparse.ArgumentParser(
         description="AsusRouter package command line interface."
     )
     parser.add_argument(
-        "-o", "--output", type=str, required=True, help="The output folder for the log."
+        "-o",
+        "--output",
+        type=str,
+        required=True,
+        help="The output folder for the log.",
     )
-    parser.add_argument("--dump", action="store_true", help="Perform a full dump.")
+    parser.add_argument(
+        "--dump", action="store_true", help="Perform a full dump."
+    )
     parser.add_argument(
         "--host",
         type=str,
@@ -103,7 +109,9 @@ def main():
         help="The port to connect to. Only when using non-default settings.\
             Default is 80 for HTTP and 443 for HTTPS.",
     )
-    parser.add_argument("--debug", action="store_true", help="Enable debug logging.")
+    parser.add_argument(
+        "--debug", action="store_true", help="Enable debug logging."
+    )
     parser.add_argument(
         "--zip", action="store_true", default=False, help="Zip the output."
     )

@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-import logging
+from collections.abc import Callable
 from enum import Enum
-from typing import Callable, Optional
+import logging
 
 from asusrouter.modules.attributes import AsusRouterAttribute
 from asusrouter.modules.data import AsusData
@@ -35,14 +35,14 @@ class AsusDataMerge(str, Enum):
 class AsusDataFinder:
     """AsusRouter data finder class."""
 
-    def __init__(
+    def __init__(  # noqa: PLR0913
         self,
         endpoint: list[EndpointType] | EndpointType,
         merge: AsusDataMerge = AsusDataMerge.ANY,
-        request: Optional[list[tuple[str, ...]]] = None,
-        nvram: Optional[list[str] | str] = None,
-        method: Optional[Callable] = None,
-        arguments: Optional[AsusRouterAttribute] = None,
+        request: list[tuple[str, ...]] | None = None,
+        nvram: list[str] | str | None = None,
+        method: Callable | None = None,
+        arguments: AsusRouterAttribute | None = None,
     ) -> None:
         """Initialize the data finder."""
 
@@ -146,7 +146,7 @@ ASUSDATA_NVRAM = {
         "dsllog_datarateup",
     ],
 }
-ASUSDATA_NVRAM["aura"].extend([f"ledg_rgb{num}" for num in range(0, 8)])
+ASUSDATA_NVRAM["aura"].extend([f"ledg_rgb{num}" for num in range(8)])
 ASUSDATA_NVRAM["vpnc"].extend(
     [
         f"wgc{num}_{key}"
@@ -283,21 +283,21 @@ ASUSDATA_MAP: dict[AsusData, AsusData | AsusDataFinder] = {
 
 
 def add_conditional_data_rule(data: AsusData, rule: AsusDataFinder) -> None:
-    """A callback to add / change rule for ASUSDATA_MAP."""
+    """Add or change rule for ASUSDATA_MAP."""
 
     ASUSDATA_MAP[data] = rule
     _LOGGER.debug("Added conditional data rule: %s -> %s", data, rule)
 
 
 def add_conditional_data_alias(data: AsusData, origin: AsusData) -> None:
-    """A callback to add / change rule for ASUSDATA_MAP."""
+    """Add or change rule for ASUSDATA_MAP."""
 
     ASUSDATA_MAP[data] = origin
     _LOGGER.debug("Added data alias: %s -> %s", origin, data)
 
 
 def remove_data_rule(data: AsusData) -> None:
-    """A callback to remove rule for ASUSDATA_MAP."""
+    """Remove rule for ASUSDATA_MAP."""
 
     ASUSDATA_MAP.pop(data, None)
     _LOGGER.debug("Removed data rule: %s", data)

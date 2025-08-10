@@ -1,14 +1,16 @@
 """AsusRouter module.
 
-This module contains the main class for interacting with an Asus device."""
+This module contains the main class for interacting with an Asus device.
+"""
 
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Awaitable, Callable
+from datetime import UTC, datetime, timedelta
 import json
 import logging
-from datetime import datetime, timedelta, timezone
-from typing import Any, Awaitable, Callable, Optional
+from typing import Any
 
 import aiohttp
 
@@ -76,17 +78,17 @@ _LOGGER = logging.getLogger(__name__)
 class AsusRouter:
     """The interface class."""
 
-    def __init__(
+    def __init__(  # noqa: PLR0913
         self,
         hostname: str,
         username: str,
         password: str,
-        port: Optional[int] = None,
+        port: int | None = None,
         use_ssl: bool = False,
-        cache_time: Optional[float] = None,
-        session: Optional[aiohttp.ClientSession] = None,
-        dumpback: Optional[Callable[..., Awaitable[None]]] = None,
-    ):  # pylint: disable=too-many-arguments
+        cache_time: float | None = None,
+        session: aiohttp.ClientSession | None = None,
+        dumpback: Callable[..., Awaitable[None]] | None = None,
+    ):
         """Initialize the interface."""
 
         _LOGGER.debug("Initializing a new interface to `%s`", hostname)
@@ -98,18 +100,18 @@ class AsusRouter:
         self._hostname: str = hostname
 
         # Set the device identity
-        self._identity: Optional[AsusDevice] = None
+        self._identity: AsusDevice | None = None
         self._state: dict[AsusData, AsusDataState] = {}
 
         # Set the flags
         self._flags: Flag = Flag()
         # Time for change to take effect before available to fetch
-        self._needed_time: Optional[int] = None
+        self._needed_time: int | None = None
         # ID from the last called service
-        self._last_id: Optional[int] = None
+        self._last_id: int | None = None
 
         # Create an empty connection and save the credentials
-        self._connection: Optional[Connection] = None
+        self._connection: Connection | None = None
         self._username = username
         self._password = password
         self._port = port
@@ -184,14 +186,16 @@ class AsusRouter:
         try:
             if self._connection:
                 await self._connection.async_disconnect()
-        except Exception as ex:  # pylint: disable=broad-except
+        except Exception as ex:  # noqa: BLE001
             await self._async_handle_exception(ex)
 
         return True
 
     async def _async_drop_connection(self) -> None:
-        """Drop the connection in case we know it cannot reply
-        due to our last actions."""
+        """Drop the connection.
+
+        In case we know it cannot reply due to our last actions.
+        """
 
         _LOGGER.debug("Triggered method _async_drop_connection")
 
@@ -338,8 +342,8 @@ class AsusRouter:
     # ---------------------------
 
     def _get_attribute(
-        self, attribute: Optional[AsusRouterAttribute]
-    ) -> Optional[Any]:
+        self, attribute: AsusRouterAttribute | None
+    ) -> Any | None:
         """Get an attribute value."""
 
         if not attribute:
@@ -373,9 +377,9 @@ class AsusRouter:
             await self._async_handle_reboot()
 
     async def async_api_query(
-        self, endpoint: EndpointType, payload: Optional[str] = None
-    ):
-        """A wrapper for the connection query method."""
+        self, endpoint: EndpointType, payload: str | None = None
+    ) -> tuple[int, dict[str, str], str]:
+        """Query the API endpoint."""
 
         if endpoint in ASUSDATA_ENDPOINT_APPEND:
             payload = payload or ""
@@ -454,7 +458,10 @@ class AsusRouter:
         return result
 
     async def async_api_hook(self, request: str) -> dict[str, Any]:
-        """Hook to the device API. Hooks are used to fetch data from the device."""
+        """Perform a hook to the device API.
+
+        Hooks are used to fetch data from the device.
+        """
 
         _LOGGER.debug("Triggered method async_api_hook: %s", request)
 
@@ -465,9 +472,9 @@ class AsusRouter:
 
     async def async_api_command(
         self,
-        commands: Optional[dict[str, str]],
+        commands: dict[str, str] | None,
         endpoint: EndpointType = EndpointControl.COMMAND,
-    ):
+    ) -> dict[str, Any]:
         """Send a command to the device."""
 
         _LOGGER.debug(
@@ -483,9 +490,7 @@ class AsusRouter:
     # <-- Request-related methods
     # ---------------------------
 
-    def _where_to_get_data(
-        self, datatype: AsusData
-    ) -> Optional[AsusDataFinder]:
+    def _where_to_get_data(self, datatype: AsusData) -> AsusDataFinder | None:
         """Get the list of endpoints to get data from."""
 
         _LOGGER.debug("Triggered method _where_to_get_data")
@@ -566,15 +571,19 @@ class AsusRouter:
         return data
 
     def _drop_data(self, datatype: AsusData, endpoint: EndpointType) -> bool:
-        """Check whether data should be dropped. This is required
-        for some data obtained from multiple endpoints."""
+        """Check whether data should be dropped.
+
+        This is required for some data obtained from multiple endpoints.
+        """
 
         if not self._identity:
             return False
 
-        if datatype == AsusData.OPENVPN_CLIENT:
-            if self._identity.merlin is True:
-                return endpoint == Endpoint.HOOK
+        if (
+            datatype == AsusData.OPENVPN_CLIENT
+            and self._identity.merlin is True
+        ):
+            return endpoint == Endpoint.HOOK
 
         return False
 
@@ -586,12 +595,12 @@ class AsusRouter:
         )
 
         # A placeholder for future checks
-        return
 
     async def _check_postrequisites(self, datatype: AsusData) -> None:
         """Check postrequisites after fetching data.
 
-        This method is also used to fetch additional data."""
+        This method is also used to fetch additional data.
+        """
 
         _LOGGER.debug(
             "Triggered method _check_postrequisites for datatype `%s`",
@@ -609,9 +618,8 @@ class AsusRouter:
                 )
                 if release_note:
                     firmware.update(release_note)
-        return
 
-    def _check_state(self, datatype: Optional[AsusData]) -> None:
+    def _check_state(self, datatype: AsusData | None) -> None:
         """Make sure the state object is available."""
 
         _LOGGER.debug("Triggered method _check_state")
@@ -623,8 +631,7 @@ class AsusRouter:
         if datatype not in self._state:
             self._state[datatype] = AsusDataState(
                 timestamp=(
-                    datetime.now(timezone.utc)
-                    - timedelta(seconds=2 * self._cache_time)
+                    datetime.now(UTC) - timedelta(seconds=2 * self._cache_time)
                 )
             )
 
@@ -640,7 +647,7 @@ class AsusRouter:
             own_mac = self._identity.mac if self._identity else None
 
             # Get the device selected
-            device = kwargs.get("device", None)
+            device = kwargs.get("device")
 
             match device:
                 case None:
@@ -657,10 +664,10 @@ class AsusRouter:
 
         return state
 
-    async def async_get_data(
+    async def async_get_data(  # noqa: C901, PLR0912
         self, datatype: AsusData, force: bool = False, **kwargs: Any
     ) -> Any:
-        """Generic method to get data from the device."""
+        """Get data from the device."""
 
         # Check if we have a state object for this data
         self._check_state(datatype)
@@ -675,7 +682,7 @@ class AsusRouter:
                     self._state[datatype].inactive_event.wait(),
                     DEFAULT_TIMEOUT,
                 )
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 _LOGGER.debug(
                     "Timeout while waiting for data. Will try fetching again"
                 )
@@ -683,9 +690,9 @@ class AsusRouter:
         # Check if we have the data already and not forcing a refresh
         if self._state[datatype].data and not force:
             # Check if the data is younger than the cache time
-            if datetime.now(timezone.utc) - self._state[
-                datatype
-            ].timestamp < timedelta(seconds=self._cache_time):
+            if datetime.now(UTC) - self._state[datatype].timestamp < timedelta(
+                seconds=self._cache_time
+            ):
                 _LOGGER.debug(
                     "Using cached data for `%s`: %s",
                     datatype,
@@ -769,13 +776,13 @@ class AsusRouter:
             # Save the data state
             for key, value in result.items():
                 # Transform data if needed
-                value = self._transform_data(key, value)
+                transformed_value = self._transform_data(key, value)
                 # Save the data
-                result[key] = value
+                result[key] = transformed_value
                 # Update the state
                 if key not in self._state:
                     self._state[key] = AsusDataState()
-                self._state[key].update(value)
+                self._state[key].update(transformed_value)
         except (AsusRouterConnectionError, AsusRouterDataError):
             return self._return_state(datatype, **kwargs)
 
@@ -799,8 +806,8 @@ class AsusRouter:
 
     async def async_run_service(
         self,
-        service: Optional[str],
-        arguments: Optional[dict[str, Any]] = None,
+        service: str | None,
+        arguments: dict[str, Any] | None = None,
         apply: bool = False,
         expect_modify: bool = True,
         drop_connection: bool = False,
@@ -837,8 +844,6 @@ class AsusRouter:
         if dependency == AsusData.AURA:
             # Aura state change requires the correct previous state
             await self.async_get_data(AsusData.AURA, force=True)
-
-        return
 
     async def _async_get_state_callback(
         self, state: AsusState
@@ -939,7 +944,7 @@ class AsusRouter:
         self,
         rules: list[PortForwardingRule],
     ) -> bool:
-        """Apply port forwarding rules"""
+        """Apply port forwarding rules."""
 
         request = legacy.compile_port_forwarding(rules)
 
@@ -958,7 +963,7 @@ class AsusRouter:
         rules: PortForwardingRule | list[PortForwardingRule] | None = None,
         apply: bool = True,
     ) -> list[PortForwardingRule]:
-        """Remove port forwarding rules"""
+        """Remove port forwarding rules."""
 
         ips = set() if ips is None else set(safe_list(ips))
         rules = [] if rules is None else safe_list(rules)
@@ -1003,7 +1008,7 @@ class AsusRouter:
         self,
         rules: PortForwardingRule | list[PortForwardingRule],
     ) -> bool:
-        """Set port forwarding rules"""
+        """Set port forwarding rules."""
 
         rules = safe_list(rules)
 
@@ -1012,9 +1017,11 @@ class AsusRouter:
             await self.async_get_data(AsusData.PORT_FORWARDING)
         )["rules"]
 
+        # Make a copy to avoid modifying the original list
+        current_rules = list(current_rules)
+
         # Add new rules
-        for rule in rules:
-            current_rules.append(rule)
+        current_rules.extend(rules)
 
         # Apply new rules
         return await self.async_apply_port_forwarding_rules(current_rules)

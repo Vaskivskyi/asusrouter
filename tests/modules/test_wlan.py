@@ -2,8 +2,6 @@
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import pytest
-
 from asusrouter.modules.wlan import (
     MAP_GWLAN,
     MAP_WLAN,
@@ -14,10 +12,11 @@ from asusrouter.modules.wlan import (
     set_state,
     wlan_nvram_request,
 )
+import pytest
 
 
 @pytest.mark.parametrize(
-    "wlan, guest, expected_request",
+    ("wlan", "guest", "expected_request"),
     [
         # No wlan specified
         (None, False, None),
@@ -46,17 +45,22 @@ from asusrouter.modules.wlan import (
         ),
     ],
 )
-def test_nvram_request(wlan, guest, expected_request):
+def test_nvram_request(
+    wlan: list[Wlan] | None, guest: bool, expected_request: str | None
+) -> None:
     """Test _nvram_request."""
 
-    with patch("asusrouter.modules.wlan.nvram", return_value=expected_request), patch(
-        "asusrouter.modules.wlan.MAP_WLAN",
-        new_callable=lambda: [("wl{}_auth_mode_x"), ("wl{}_bw")],
+    with (
+        patch("asusrouter.modules.wlan.nvram", return_value=expected_request),
+        patch(
+            "asusrouter.modules.wlan.MAP_WLAN",
+            new_callable=lambda: [("wl{}_auth_mode_x"), ("wl{}_bw")],
+        ),
     ):
         assert _nvram_request(wlan, MAP_WLAN, guest) == expected_request
 
 
-def test_wlan_nvram_request():
+def test_wlan_nvram_request() -> None:
     """Test wlan_nvram_request."""
 
     mock = MagicMock()
@@ -65,7 +69,7 @@ def test_wlan_nvram_request():
         mock.assert_called_with([Wlan.FREQ_2G], MAP_WLAN)
 
 
-def test_gwlan_nvram_request():
+def test_gwlan_nvram_request() -> None:
     """Test gwlan_nvram_request."""
 
     mock = MagicMock()
@@ -76,7 +80,14 @@ def test_gwlan_nvram_request():
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    "state, api_type, api_id, expected_service, expected_arguments, expected_result",
+    (
+        "state",
+        "api_type",
+        "api_id",
+        "expected_service",
+        "expected_arguments",
+        "expected_result",
+    ),
     [
         # WLAN
         (AsusWLAN.ON, "wlan", 0, "restart_wireless", {"wl0_radio": 1}, True),
@@ -108,9 +119,14 @@ def test_gwlan_nvram_request():
         (AsusWLAN.ON, None, None, None, None, False),
     ],
 )
-async def test_set_state(
-    state, api_type, api_id, expected_service, expected_arguments, expected_result
-):
+async def test_set_state(  # noqa: PLR0913
+    state: AsusWLAN,
+    api_type: str | None,
+    api_id: int | None,
+    expected_service: str | None,
+    expected_arguments: dict[str, int | None] | None,
+    expected_result: bool,
+) -> None:
     """Test set_state."""
 
     # Mock the callback function to return True

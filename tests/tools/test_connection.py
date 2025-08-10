@@ -2,8 +2,8 @@
 
 import aiohttp
 
-import pytest
 from asusrouter.tools.connection import get_cookie_jar
+import pytest
 
 
 @pytest.mark.asyncio

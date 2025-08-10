@@ -1,10 +1,10 @@
-"""Constants module for AsusRouter"""
+"""Constants module for AsusRouter."""
 
-from enum import Enum
+from enum import IntEnum, StrEnum
 
 
 # Enums
-class ContentType(str, Enum):
+class ContentType(StrEnum):
     """Content type enum."""
 
     UNKNOWN = "unknown"
@@ -16,11 +16,27 @@ class ContentType(str, Enum):
     XML = "application/xml"
 
 
-class RequestType(str, Enum):
+class RequestType(StrEnum):
     """Request type enum."""
 
     GET = "get"
     POST = "post"
+
+
+class HTTPStatus(IntEnum):
+    """HTTP status codes."""
+
+    OK = 200
+    CREATED = 201
+    ACCEPTED = 202
+    NO_CONTENT = 204
+    BAD_REQUEST = 400
+    UNAUTHORIZED = 401
+    FORBIDDEN = 403
+    NOT_FOUND = 404
+    METHOD_NOT_ALLOWED = 405
+    CONFLICT = 409
+    INTERNAL_SERVER_ERROR = 500
 
 
 # Asus constants

@@ -4,7 +4,10 @@
 
 from asusrouter.modules.connection import ConnectionState, ConnectionStatus
 from asusrouter.modules.endpoint.wan import AsusDualWAN
-from asusrouter.modules.ip_address import read_dns_ip_address, read_ip_address_type
+from asusrouter.modules.ip_address import (
+    read_dns_ip_address,
+    read_ip_address_type,
+)
 from asusrouter.modules.openvpn import AsusOVPNServer
 from asusrouter.modules.wireguard import AsusWireGuardServer
 from asusrouter.tools.converters import (
@@ -12,7 +15,6 @@ from asusrouter.tools.converters import (
     safe_int,
     safe_list_csv,
     safe_list_from_string,
-    safe_timestamp_to_utc,
 )
 
 MAP_NETWORK: dict[str, str] = {

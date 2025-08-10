@@ -3,5 +3,7 @@
 from asusrouter import AsusData
 
 expected_result = {
-    AsusData.PING: {"result": [{"loss": "0", "ping": "7.294", "jitter": "7.294"}]}
+    AsusData.PING: {
+        "result": [{"loss": "0", "ping": "7.294", "jitter": "7.294"}]
+    }
 }

@@ -2,15 +2,15 @@
 
 from unittest.mock import MagicMock
 
-import pytest
 from asusrouter.modules.firmware import Firmware, FirmwareType
+import pytest
 
 
 class TestFirmware:
     """Test the Firmware class."""
 
     @pytest.mark.parametrize(
-        "version, major, minor, build, revision, expected",
+        ("version", "major", "minor", "build", "revision", "expected"),
         [
             (
                 "3.0.0.4.388_8_2",
@@ -40,7 +40,15 @@ class TestFirmware:
             ),
         ],
     )
-    def test_init(self, version, major, minor, build, revision, expected):
+    def test_init(  # noqa: PLR0913
+        self,
+        version: str | None,
+        major: str | None,
+        minor: int | None,
+        build: int | None,
+        revision: str | None,
+        expected: dict[str, int | str | None],
+    ) -> None:
         """Test the initialization of the Firmware class."""
 
         fw = Firmware(
@@ -57,13 +65,13 @@ class TestFirmware:
         assert fw.revision == expected["revision"]
 
     @pytest.mark.parametrize(
-        "major, expected",
+        ("major", "expected"),
         [
             ("3.0.0.4", True),
             (None, False),
         ],
     )
-    def test_safe(self, major, expected):
+    def test_safe(self, major: str | None, expected: bool) -> None:
         """Test the safe method."""
 
         fw = Firmware(major=major)
@@ -74,14 +82,14 @@ class TestFirmware:
             assert result is None
 
     @pytest.mark.parametrize(
-        "major, expected_beta",
+        ("major", "expected_beta"),
         [
             ("9.0.0.4", True),
             ("3.0.0.4", False),
             (None, False),
         ],
     )
-    def test_update_beta(self, major, expected_beta):
+    def test_update_beta(self, major: str | None, expected_beta: bool) -> None:
         """Test the update beta method."""
 
         fw = Firmware(major=major)
@@ -94,13 +102,15 @@ class TestFirmware:
             assert not hasattr(fw, "beta")
 
     @pytest.mark.parametrize(
-        "revision, expected_rog",
+        ("revision", "expected_rog"),
         [
             ("123_rog", True),
             ("123", False),
         ],
     )
-    def test_update_rog(self, revision, expected_rog):
+    def test_update_rog(
+        self, revision: str | None, expected_rog: bool
+    ) -> None:
         """Test the update rog method."""
 
         fw = Firmware()
@@ -111,7 +121,7 @@ class TestFirmware:
         assert fw.rog == expected_rog
 
     @pytest.mark.parametrize(
-        "revision, expected_source",
+        ("revision", "expected_source"),
         [
             # Merlin
             (0, FirmwareType.MERLIN),
@@ -126,7 +136,9 @@ class TestFirmware:
             ("anything", FirmwareType.STOCK),
         ],
     )
-    def test_update_source(self, revision, expected_source):
+    def test_update_source(
+        self, revision: str | None, expected_source: FirmwareType
+    ) -> None:
         """Test the update source method."""
 
         fw = Firmware(revision=revision)
@@ -136,7 +148,7 @@ class TestFirmware:
         assert fw.source == expected_source
 
     @pytest.mark.parametrize(
-        "fw_string, major, minor, build, revision, rog, beta",
+        ("fw_string", "major", "minor", "build", "revision", "rog", "beta"),
         [
             ("3.0.0.4.388.7_0_rog", "3.0.0.4", 388, 7, 0, True, False),
             ("3.0.0.4.388.8_2", "3.0.0.4", 388, 8, 2, False, False),
@@ -167,9 +179,16 @@ class TestFirmware:
             ("invalid", None, None, None, None, False, False),
         ],
     )
-    def test_from_string(
-        self, fw_string, major, minor, build, revision, rog, beta
-    ):
+    def test_from_string(  # noqa: PLR0913
+        self,
+        fw_string: str | None,
+        major: str | None,
+        minor: int | None,
+        build: int | None,
+        revision: str | None,
+        rog: bool,
+        beta: bool,
+    ) -> None:
         """Test the from string method."""
 
         fw = Firmware()
@@ -183,33 +202,47 @@ class TestFirmware:
         assert fw.beta == beta
 
     @pytest.mark.parametrize(
-        "major, minor, build, revision, expected_str",
+        ("major", "minor", "build", "revision", "expected_str"),
         [
             ("1", "0", "0", "1234", "1.0.0_1234"),
             ("2", "1", "3", "5678_rog", "2.1.3_5678_rog"),
         ],
     )
-    def test_str(self, major, minor, build, revision, expected_str):
+    def test_str(
+        self,
+        major: str | None,
+        minor: int | None,
+        build: int | None,
+        revision: str | None,
+        expected_str: str | None,
+    ) -> None:
         """Test the string representation of the Firmware class."""
 
         fw = Firmware(major=major, minor=minor, build=build, revision=revision)
         assert str(fw) == expected_str
 
     @pytest.mark.parametrize(
-        "major, minor, build, revision, expected_repr",
+        ("major", "minor", "build", "revision", "expected_repr"),
         [
             ("1", "0", "0", "1234", "1.0.0_1234"),
             ("2", "1", "3", "5678_rog", "2.1.3_5678_rog"),
         ],
     )
-    def test_repr(self, major, minor, build, revision, expected_repr):
+    def test_repr(
+        self,
+        major: str | None,
+        minor: int | None,
+        build: int | None,
+        revision: str | None,
+        expected_repr: str | None,
+    ) -> None:
         """Test the string representation of the Firmware class."""
 
         fw = Firmware(major=major, minor=minor, build=build, revision=revision)
         assert repr(fw) == expected_repr
 
     @pytest.mark.parametrize(
-        "fw1, fw2, expected",
+        ("fw1", "fw2", "expected"),
         [
             # Major version
             (Firmware(major="3.0.0.4"), Firmware(major="3.0.0.4"), True),
@@ -228,13 +261,15 @@ class TestFirmware:
             (Firmware(), "invalid", False),
         ],
     )
-    def test_eq(self, fw1, fw2, expected):
+    def test_eq(
+        self, fw1: FirmwareType, fw2: FirmwareType, expected: bool
+    ) -> None:
         """Test the equal operator."""
 
         assert (fw1 == fw2) == expected
 
     @pytest.mark.parametrize(
-        "fw1, fw2, expected",
+        ("fw1", "fw2", "expected"),
         [
             # Major version
             ("3.0.0.4.123.4_5", "3.0.0.6.123.4_5", True),
@@ -244,15 +279,12 @@ class TestFirmware:
             ("3.0.0.4.123.4_5", "9.0.0.4.123.4_5", False),
             # Minor version
             ("3.0.0.4.123.4_5", "3.0.0.4.124.4_5", True),
-            ("3.0.0.4.123.4_5", "3.0.0.4.123.4_5", False),
             ("3.0.0.4.124.4_5", "3.0.0.4.123.4_5", False),
             # Build version
             ("3.0.0.4.123.4_5", "3.0.0.4.123.5_5", True),
-            ("3.0.0.4.123.4_5", "3.0.0.4.123.4_5", False),
             ("3.0.0.4.123.5_5", "3.0.0.4.123.4_5", False),
             # Revision
             ("3.0.0.4.123.4_5", "3.0.0.4.123.4_6", True),
-            ("3.0.0.4.123.4_5", "3.0.0.4.123.4_5", False),
             ("3.0.0.4.123.4_6", "3.0.0.4.123.4_5", False),
             ("3.0.0.4.123.4_5abc6", "3.0.0.4.123.4_5abc7", True),
             ("3.0.0.4.123.4_5abc6", "3.0.0.4.123.4_5abc6", False),
@@ -318,7 +350,9 @@ class TestFirmware:
             ("3.0.0.4.123.4_5", "invalid", False),
         ],
     )
-    def test_lt(self, fw1, fw2, expected):
+    def test_lt(
+        self, fw1: FirmwareType, fw2: FirmwareType, expected: bool
+    ) -> None:
         """Test the less than operator."""
 
         fw1 = Firmware(fw1)
@@ -327,7 +361,7 @@ class TestFirmware:
         assert (fw1 < fw2) == expected
 
     @pytest.mark.parametrize(
-        "fw1, fw2, expected",
+        ("fw1", "fw2", "expected"),
         [
             (
                 "3.0.0.4.388.5_1",
@@ -341,7 +375,9 @@ class TestFirmware:
             ),
         ],
     )
-    def test_lt_unreachable(self, fw1, fw2, expected):
+    def test_lt_unreachable(
+        self, fw1: FirmwareType, fw2: FirmwareType, expected: bool
+    ) -> None:
         """Test the less than operator with unreachable cases."""
 
         fw1 = Firmware(fw1)
@@ -354,7 +390,7 @@ class TestFirmware:
         assert (fw1 < fw2) == expected
 
     @pytest.mark.parametrize(
-        "fw2, expected",
+        ("fw2", "expected"),
         [
             (None, False),
             ("invalid", False),
@@ -365,7 +401,7 @@ class TestFirmware:
             (Firmware(major="3.0.0.4", minor=123, build=4, revision=5), False),
         ],
     )
-    def test_lt_invalid(self, fw2, expected):
+    def test_lt_invalid(self, fw2: FirmwareType, expected: bool) -> None:
         """Test the less than operator with invalid input."""
 
         fw1 = Firmware("3.0.0.4.123.4_g5")
@@ -373,7 +409,7 @@ class TestFirmware:
         assert (fw1 < fw2) == expected
 
     @pytest.mark.parametrize(
-        "lt, ne, expected",
+        ("lt", "ne", "expected"),
         [
             (False, False, False),
             (True, False, False),
@@ -381,7 +417,7 @@ class TestFirmware:
             (True, True, False),
         ],
     )
-    def test_gt(self, lt, ne, expected):
+    def test_gt(self, lt: bool, ne: bool, expected: bool) -> None:
         """Test the greater-than method."""
 
         fw1 = Firmware()

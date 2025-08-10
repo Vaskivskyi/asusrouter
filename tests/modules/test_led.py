@@ -2,15 +2,14 @@
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import pytest
-
 from asusrouter.modules.endpoint import Endpoint
 from asusrouter.modules.identity import AsusDevice
 from asusrouter.modules.led import AsusLED, keep_state, set_state
+import pytest
 
 
 @pytest.mark.asyncio
-async def test_set_state():
+async def test_set_state() -> None:
     """Test set_state."""
 
     # Arrange
@@ -33,7 +32,7 @@ async def test_set_state():
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    "identity, state, expected, set_state_calls",
+    ("identity", "state", "expected", "set_state_calls"),
     [
         (None, AsusLED.OFF, False, 0),
         (MagicMock(spec=AsusDevice, endpoints={}), AsusLED.OFF, False, 0),
@@ -44,14 +43,21 @@ async def test_set_state():
             0,
         ),
         (
-            MagicMock(spec=AsusDevice, endpoints={Endpoint.SYSINFO: "sysinfo"}),
+            MagicMock(
+                spec=AsusDevice, endpoints={Endpoint.SYSINFO: "sysinfo"}
+            ),
             AsusLED.OFF,
             True,
             2,
         ),
     ],
 )
-async def test_keep_state(identity, state, expected, set_state_calls):
+async def test_keep_state(
+    identity: AsusDevice | None,
+    state: AsusLED,
+    expected: bool,
+    set_state_calls: int,
+) -> None:
     """Test keep_state."""
 
     # Arrange

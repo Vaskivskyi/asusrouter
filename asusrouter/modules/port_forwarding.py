@@ -1,9 +1,10 @@
 """Port forwarding module."""
 
-import logging
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from enum import IntEnum
-from typing import Any, Awaitable, Callable
+import logging
+from typing import Any
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -13,14 +14,14 @@ KEY_PORT_FORWARDING_STATE = "vts_enable_x"
 
 @dataclass(frozen=True)
 class PortForwardingRule:
-    """Port forwarding class"""
+    """Port forwarding class."""
 
-    name: str = str()
-    ip_address: str = str()
-    port: str = str()
-    protocol: str = str()
-    ip_external: str = str()
-    port_external: str = str()
+    name: str = ""
+    ip_address: str = ""
+    port: str = ""
+    protocol: str = ""
+    ip_external: str = ""
+    port_external: str = ""
 
 
 class AsusPortForwarding(IntEnum):
@@ -39,11 +40,13 @@ async def set_state(
     """Set the parental control state."""
 
     # Check if state is available and valid
-    if not isinstance(state, AsusPortForwarding) or not state.value in (0, 1):
+    if not isinstance(state, AsusPortForwarding) or state.value not in (0, 1):
         _LOGGER.debug("No state found in arguments")
         return False
 
-    arguments = {KEY_PORT_FORWARDING_STATE: 1 if state == AsusPortForwarding.ON else 0}
+    arguments = {
+        KEY_PORT_FORWARDING_STATE: 1 if state == AsusPortForwarding.ON else 0
+    }
 
     # Get the correct service call
     service = "restart_firewall"

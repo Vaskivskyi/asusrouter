@@ -1,17 +1,16 @@
 """Tests for the connection module."""
 
-import pytest
-
 from asusrouter.modules.connection import (
     ConnectionType,
     InternetMode,
     get_connection_type,
     get_internet_mode,
 )
+import pytest
 
 
 @pytest.mark.parametrize(
-    "value, result",
+    ("value", "result"),
     [
         # Existing values of InternetMode
         ("allow", InternetMode.ALLOW),
@@ -25,14 +24,14 @@ from asusrouter.modules.connection import (
         (1, InternetMode.UNKNOWN),
     ],
 )
-def test_get_internet_mode(value, result):
+def test_get_internet_mode(value: str | None, result: InternetMode) -> None:
     """Test get_internet_mode."""
 
     assert get_internet_mode(value) == result
 
 
 @pytest.mark.parametrize(
-    "value, result",
+    ("value", "result"),
     [
         # Existing values of ConnectionType
         (0, ConnectionType.WIRED),
@@ -51,7 +50,9 @@ def test_get_internet_mode(value, result):
         (2.3, ConnectionType.WLAN_5G),
     ],
 )
-def test_get_connection_type(value, result):
+def test_get_connection_type(
+    value: int | None, result: ConnectionType
+) -> None:
     """Test get_connection_type."""
 
     assert get_connection_type(value) == result

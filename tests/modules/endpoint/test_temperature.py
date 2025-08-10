@@ -1,14 +1,14 @@
 """Tests for the Temperature endpoint module."""
 
-from typing import Any, Optional
+from typing import Any
 from unittest.mock import call, patch
 
-import pytest
 from asusrouter.config import ARConfig, ARConfigKey
 from asusrouter.modules.data import AsusData
 from asusrouter.modules.endpoint import temperature as temp_mod
 from asusrouter.modules.endpoint.temperature import _scale_temperature, process
 from asusrouter.modules.wlan import Wlan
+import pytest
 
 
 @pytest.fixture(autouse=True)
@@ -19,7 +19,7 @@ def reset_config() -> None:
 
 
 @pytest.mark.parametrize(
-    "mock_vars, expected, optimistic, scaled",
+    ("mock_vars", "expected", "optimistic", "scaled"),
     [
         # Normal values, no scaling
         (
@@ -151,7 +151,7 @@ def test_process(input: dict[str, Any]) -> None:
 
 
 @pytest.mark.parametrize(
-    "temperature, result_temperature, result_scaled",
+    ("temperature", "result_temperature", "result_scaled"),
     [
         # No scaling needed
         ({"val1": 30.0, "val2": 40.0}, {"val1": 30.0, "val2": 40.0}, False),
@@ -176,7 +176,7 @@ def test_process(input: dict[str, Any]) -> None:
     ],
 )
 def test_scale_temperature(
-    temperature: dict[str, Optional[float]],
+    temperature: dict[str, float | None],
     result_temperature: dict[str, float],
     result_scaled: bool,
 ) -> None:

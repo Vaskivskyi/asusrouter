@@ -1,8 +1,7 @@
 """Tests for the wireguard module."""
 
+from typing import Any
 from unittest.mock import AsyncMock
-
-import pytest
 
 from asusrouter.modules.wireguard import (
     AsusWireGuardClient,
@@ -10,10 +9,11 @@ from asusrouter.modules.wireguard import (
     _get_arguments,
     set_state,
 )
+import pytest
 
 
 @pytest.mark.parametrize(
-    "kwargs, expected",
+    ("kwargs", "expected"),
     [
         # Correct arguments
         ({"arguments": {"id": 1}}, 1),
@@ -23,7 +23,7 @@ from asusrouter.modules.wireguard import (
         ({}, 1),
     ],
 )
-def test_get_arguments(kwargs, expected):
+def test_get_arguments(kwargs: Any, expected: int | None) -> None:
     """Test get_arguments."""
 
     assert _get_arguments(**kwargs) == expected
@@ -31,7 +31,14 @@ def test_get_arguments(kwargs, expected):
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    "state, arguments, expect_modify, expected_service, exprected_args, expected_result",
+    (
+        "state",
+        "arguments",
+        "expect_modify",
+        "expected_service",
+        "expected_args",
+        "expected_result",
+    ),
     [
         # Correct states
         (
@@ -71,9 +78,14 @@ def test_get_arguments(kwargs, expected):
         (None, None, False, None, None, False),
     ],
 )
-async def test_set_state(
-    state, arguments, expect_modify, expected_service, exprected_args, expected_result
-):
+async def test_set_state(  # noqa: PLR0913
+    state: AsusWireGuardClient | AsusWireGuardServer,
+    arguments: dict[str, int | None] | None,
+    expect_modify: bool,
+    expected_service: str | None,
+    expected_args: dict[str, int | None] | None,
+    expected_result: bool,
+) -> None:
     """Test set_state."""
 
     # Prepare the callback
@@ -91,7 +103,7 @@ async def test_set_state(
     if expected_result:
         callback.assert_called_once_with(
             service=expected_service,
-            arguments=exprected_args,
+            arguments=expected_args,
             apply=True,
             expect_modify=expect_modify,
         )

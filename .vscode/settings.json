@@ -1,0 +1,16 @@
+{
+  "editor.formatOnSave": true,
+  "[python]": {
+    "editor.codeActionsOnSave": {
+      "source.fixAll": "explicit",
+      "source.organizeImports": "explicit"
+    },
+    "editor.defaultFormatter": null
+  },
+  "python.analysis.typeCheckingMode": "basic",
+  "mypy-type-checker.args": [
+    "--config-file=pyproject.toml"
+  ],
+  "python-envs.defaultEnvManager": "ms-python.python:system",
+  "python-envs.pythonProjects": []
+}

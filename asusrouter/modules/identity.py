@@ -1,13 +1,16 @@
 """Identity module.
 
-This module contains all the classes and method to handle the identity of an Asus device."""
+This module contains all the classes and method to handle
+the identity of an Asus device.
+"""
 
 from __future__ import annotations
 
-import logging
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from itertools import chain
-from typing import Any, Awaitable, Callable, Optional, Tuple
+import logging
+from typing import Any
 
 from asusrouter.error import AsusRouterIdentityError
 from asusrouter.modules.aimesh import AiMeshDevice
@@ -22,8 +25,8 @@ from asusrouter.modules.endpoint import (
 )
 from asusrouter.modules.endpoint.onboarding import (
     process as process_onboarding,
+    read as read_onboarding,
 )
-from asusrouter.modules.endpoint.onboarding import read as read_onboarding
 from asusrouter.modules.firmware import Firmware
 from asusrouter.modules.wlan import WLAN_TYPE, Wlan
 from asusrouter.tools import writers
@@ -36,7 +39,7 @@ from asusrouter.tools.converters import (
 
 _LOGGER = logging.getLogger(__name__)
 
-MAP_IDENTITY: Tuple = (
+MAP_IDENTITY: tuple = (
     ("serial_no", "serial"),
     ("label_mac", "mac"),
     ("lan_hwaddr", "lan_mac"),
@@ -59,24 +62,25 @@ class AsusDevice:  # pylint: disable=too-many-instance-attributes
     """Asus device class.
 
     This class contains information about an Asus device
-    and can represent a router, AiMesh nore or range extender."""
+    and can represent a router, AiMesh nore or range extender.
+    """
 
     # Device-defining values
-    serial: Optional[str] = None
-    mac: Optional[str] = None
-    product_id: Optional[str] = None
-    model: Optional[str] = None
+    serial: str | None = None
+    mac: str | None = None
+    product_id: str | None = None
+    model: str | None = None
     brand: str = "ASUSTek"
 
     # Supported features
     aimesh: bool = False
 
     # Device information
-    firmware: Optional[Firmware] = None
+    firmware: Firmware | None = None
     merlin: bool = False
-    wlan: Optional[list[Wlan]] = None
-    endpoints: Optional[dict[EndpointType, bool]] = None
-    services: Optional[list[str]] = None
+    wlan: list[Wlan] | None = None
+    endpoints: dict[EndpointType, bool] | None = None
+    services: list[str] | None = None
 
     # Flags for device features
     aura: bool = False
@@ -145,7 +149,7 @@ async def collect_identity(
 
 
 # UPDATE THIS METHOD
-def _read_nvram(data: dict[str, Any]) -> dict[str, Any]:
+def _read_nvram(data: dict[str, Any]) -> dict[str, Any]:  # noqa: C901, PLR0912
     """Read the NVRAM identity data."""
 
     # Check the input data

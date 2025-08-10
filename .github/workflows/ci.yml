@@ -52,9 +52,37 @@ jobs:
       - name: Install the project
         run: uv sync --all-groups
 
+  pre-commit:
+    name: Pre-commit
+    needs: prepare
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
+    strategy:
+      matrix:
+        python-version: [3.11, 3.12, 3.13]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4.2.2
+
+      - name: Set up UV and Python
+        uses: astral-sh/setup-uv@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      - name: Install the project
+        run: uv sync --all-groups
+
+      - name: Run pre-commit
+        run: uv run pre-commit run --all-files
+
   unit-tests:
     name: Unit Tests
-    needs: prepare
+    needs: pre-commit
     runs-on: ubuntu-latest
 
     permissions:
@@ -89,7 +117,7 @@ jobs:
 
   device-tests:
     name: Device Tests
-    needs: prepare
+    needs: pre-commit
     runs-on: ubuntu-latest
 
     permissions:

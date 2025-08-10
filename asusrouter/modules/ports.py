@@ -1,6 +1,7 @@
 """Port module for AsusRouter.
 
-This module is for physical ports on the router, e.g. LAN, WAN, USB, etc."""
+This module is for physical ports on the router, e.g. LAN, WAN, USB, etc.
+"""
 
 from enum import IntEnum, StrEnum
 

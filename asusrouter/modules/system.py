@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-import logging
+from collections.abc import Awaitable, Callable
 from enum import Enum
-from typing import Any, Awaitable, Callable
+import logging
+from typing import Any
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -22,7 +23,8 @@ class AsusSystem(str, Enum):
     services depends on the router model and firmware version.
 
     Some services might not be tested and might not work as expected. Use with
-    caution and at your own risk."""
+    caution and at your own risk.
+    """
 
     # ---------------------
     # DISCLAIMER: Migration to the new format
@@ -86,7 +88,7 @@ class AsusSystem(str, Enum):
     RESTART_DISKMON = "restart_diskmon"  # Disk monitor
     RESTART_DNSFILTER = "restart_dnsfilter"  # DNS filter
     RESTART_DNSMASQ = "restart_dnsmasq"  # DNS
-    RESTART_DNSQD = "restart_dnsqd"  #
+    RESTART_DNSQD = "restart_dnsqd"
     RESTART_FIREWALL = "restart_firewall"  # Firewall
     RESTART_FTPD = "restart_ftpd"  # FTP server
     RESTART_FTPSAMBA = "restart_ftpsamba"
@@ -226,8 +228,10 @@ async def set_state(
     # Check and notify if the state is deprecated
     if state in AsusSystemDeprecated:
         repl_state, repl_ver = AsusSystemDeprecated[state]
-        message = f"Deprecated state `{state.name}` from `AsusSystem` \
-enum used. Use `{repl_state.name}` instead"
+        message = (
+            f"Deprecated state `{state.name}` from `AsusSystem` "
+            f"enum used. Use `{repl_state.name}` instead"
+        )
         if repl_ver:
             message += f". This state will be removed in version {repl_ver}"
         _LOGGER.warning(

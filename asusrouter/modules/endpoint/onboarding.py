@@ -35,7 +35,7 @@ CONST_FREQ = [
 
 
 def read(content: str) -> dict[str, Any]:
-    """Read onboarding data"""
+    """Read onboarding data."""
 
     # Preprocess the content
     content = read_preprocess(content)
@@ -59,9 +59,7 @@ def read_preprocess(content: str) -> str:
     content = '{"' + content[:-3] + "}"
 
     # In case we have a trailing comma inside a dict
-    content = content.replace(",}", "}")
-
-    return content
+    return content.replace(",}", "}")
 
 
 def process(data: dict[str, Any]) -> dict[AsusData, Any]:
@@ -109,13 +107,13 @@ def process_aimesh_node(data: dict[str, Any]) -> AiMeshDevice:
     # Get the list of WLAN APs
     ap = {}
     for el, value in CONST_AP.items():
-        if f"ap{el}" in data and data[f"ap{el}"] is not str():
+        if f"ap{el}" in data and data[f"ap{el}"] != "":
             ap[value] = data[f"ap{el}"]
 
     # Get the parent data
     parent = {}
     for el in CONST_FREQ:
-        if f"pap{el}" in data and data[f"pap{el}"] is not str():
+        if f"pap{el}" in data and data[f"pap{el}"] != "":
             parent["connection"] = CONST_AP[el]
             parent["mac"] = data[f"pap{el}"]
             parent["rssi"] = safe_return(data.get(f"rssi{el}"))
@@ -129,13 +127,13 @@ def process_aimesh_node(data: dict[str, Any]) -> AiMeshDevice:
 
     return AiMeshDevice(
         status=safe_bool(data.get("online", 0)) or False,
-        alias=data.get("alias", None),
-        model=data.get("ui_model_name", data.get("model_name", None)),
+        alias=data.get("alias"),
+        model=data.get("ui_model_name", data.get("model_name")),
         product_id=data.get("product_id"),
         ip=data.get("ip"),
-        fw=data.get("fwver", None),
+        fw=data.get("fwver"),
         fw_new=safe_return(data.get("newfwver")),
-        mac=data.get("mac", None),
+        mac=data.get("mac"),
         ap=ap,
         parent=parent,
         type=node_type,

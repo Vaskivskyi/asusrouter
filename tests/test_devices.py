@@ -1,16 +1,13 @@
 """Test AsusRouter with real devices data."""
 
-import importlib
-import logging
-import os
-import re
 from contextlib import contextmanager
 from dataclasses import dataclass
 from enum import Enum
+import importlib
+import logging
 from pathlib import Path
-from typing import Any, Dict, Optional
-
-import pytest
+import re
+from typing import Any
 
 from asusrouter import AsusData
 from asusrouter.modules.endpoint import (
@@ -22,6 +19,7 @@ from asusrouter.modules.endpoint import (
     process,
     read,
 )
+import pytest
 
 # Create a logger
 _LOGGER = logging.getLogger(__name__)
@@ -29,6 +27,8 @@ _LOGGER.setLevel(logging.INFO)
 
 
 class FileExtensions(Enum):
+    """File extensions used in the test data."""
+
     CONTENT = ".content"
     PYTHON = ".py"
 
@@ -38,11 +38,13 @@ class DataItem:
     """A class used to represent a test item."""
 
     content: str
-    result: Dict[AsusData, Any]
+    result: dict[AsusData, Any]
     endpoint: EndpointType
     label: str
 
-    def __repr__(self):
+    def __repr__(self) -> str:
+        """Return a string representation of the data item."""
+
         return self.label
 
 
@@ -73,16 +75,21 @@ def load_expected_result(device_path: Path, module_name: str) -> Any:
     return result_module.expected_result
 
 
-def load_test_item(device_path: Path, module_name: str) -> Optional[DataItem]:
+def load_test_item(device_path: Path, module_name: str) -> DataItem | None:
     """Load a single test item."""
 
     try:
         endpoint_name = re.match(r"(.*)_\d+", module_name).group(1)
 
         endpoint = None
-        for EndpointEnum in [Endpoint, EndpointControl, EndpointService, EndpointTools]:
+        for endpoint_enum in [
+            Endpoint,
+            EndpointControl,
+            EndpointService,
+            EndpointTools,
+        ]:
             try:
-                endpoint = EndpointEnum[endpoint_name.upper()]
+                endpoint = endpoint_enum[endpoint_name.upper()]
                 break
             except KeyError:
                 continue
@@ -99,7 +106,7 @@ def load_test_item(device_path: Path, module_name: str) -> Optional[DataItem]:
             endpoint=endpoint,
             label=f"{device_path.name}_{module_name}",
         )
-    except Exception as ex:  # pylint: disable=broad-except
+    except Exception as ex:  # noqa: BLE001
         _LOGGER.error("Failed to load test item %s: %s", module_name, ex)
         return None
 
@@ -146,13 +153,13 @@ test_ids = [item.label for item in test_data]
 
 
 @pytest.fixture(params=test_data, ids=test_ids)
-def test_item(request):
+def test_item(request) -> DataItem:
     """Yield each item in the test data."""
 
     return request.param
 
 
-def test_asusrouter(test_item: DataItem):  # pylint: disable=redefined-outer-name
+def test_asusrouter(test_item: DataItem) -> None:  # pylint: disable=redefined-outer-name
     """
     Test the asusrouter module with the given test item.
 
@@ -160,10 +167,11 @@ def test_asusrouter(test_item: DataItem):  # pylint: disable=redefined-outer-nam
         test_item (DataItem): The test item to use for the test.
 
     Raises:
-        AssertionError: If the actual processed data does not match the expected result.
+        AssertionError: If the actual processed data does not match
+        the expected result.
     """
 
     actual_read = read(test_item.endpoint, test_item.content)
     actual_processed = process(test_item.endpoint, actual_read)
 
-    assert actual_processed == test_item.result, print(actual_processed)
+    assert actual_processed == test_item.result, print(actual_processed)  # noqa: T201

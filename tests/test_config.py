@@ -6,7 +6,6 @@ import concurrent.futures
 import random
 from typing import Any
 
-import pytest
 from asusrouter.config import (
     CONFIG_DEFAULT_BOOL,
     TYPES_DEFAULT,
@@ -14,6 +13,7 @@ from asusrouter.config import (
     ARConfigKey,
     safe_bool_config,
 )
+import pytest
 
 KEYS_BOOL = [
     ARConfigKey.OPTIMISTIC_DATA,
@@ -80,7 +80,7 @@ class TestConfig:
 
         keys = ARConfig.keys()
         keys.append("something")  # type: ignore[arg-type]
-        assert all(isinstance(key, ARConfigKey) for key in ARConfig.keys())
+        assert all(isinstance(key, ARConfigKey) for key in ARConfig.keys())  # noqa: SIM118
 
     def test_keys_returns_all_enum_members(self) -> None:
         """Test that ARConfig.keys() returns all members of ARConfigKey."""
@@ -95,7 +95,7 @@ class TestConfig:
         types = ARConfig.types
         assert isinstance(types, dict)
         assert len(types) > 0
-        assert all(isinstance(key, ARConfigKey) for key in types.keys())
+        assert all(isinstance(key, ARConfigKey) for key in types)
         assert all(callable(converter) for converter in types.values())
 
 
@@ -186,7 +186,7 @@ class TestThreadSafety:
 
         # Prepare a list of (key, value) pairs
         tasks = [
-            (random.choice(KEYS_BOOL), random.choice([True, False]))
+            (random.choice(KEYS_BOOL), random.choice([True, False]))  # noqa: S311
             for _ in range(100)
         ]
 
@@ -232,7 +232,7 @@ class TestConvert:
     """Tests for the configuration conversion functions."""
 
     @pytest.mark.parametrize(
-        "value, expected",
+        ("value", "expected"),
         [
             (True, True),
             (False, False),

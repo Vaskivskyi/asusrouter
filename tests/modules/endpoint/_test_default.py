@@ -1,6 +1,7 @@
 """Tests for the default endpoint module."""
 
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 from asusrouter.tools.readers import read_json_content
 

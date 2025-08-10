@@ -5,13 +5,13 @@ from __future__ import annotations
 from typing import Any
 from unittest.mock import patch
 
-import pytest
 from asusrouter.modules.ddns import (
     AsusDDNS,
     DDNSStatusCode,
     process_ddns,
     read_ddns_status_code,
 )
+import pytest
 
 ALL_KEYS = [
     "enabled",
@@ -29,7 +29,7 @@ ALL_KEYS = [
 
 
 @pytest.mark.parametrize(
-    "raw,expected",
+    ("raw", "expected"),
     [
         (None, DDNSStatusCode.NONE),
         ("", DDNSStatusCode.NONE),
@@ -61,11 +61,13 @@ def test_read_ddns_status_code(
     raw: str | None,
     expected: DDNSStatusCode,
 ) -> None:
+    """Test the read_ddns_status_code function."""
+
     assert read_ddns_status_code(raw) == expected
 
 
 @pytest.mark.parametrize(
-    "input_data,expected",
+    ("input_data", "expected"),
     [
         # Disabled DDNS, should be INACTIVE regardless of status
         (
@@ -142,7 +144,7 @@ def test_process_ddns(
 
 
 @pytest.mark.parametrize(
-    "input_data,expected",
+    ("input_data", "expected"),
     [
         (
             {
@@ -208,8 +210,8 @@ def test_process_ddns_fields(
         patch("asusrouter.modules.ddns.clean_string", side_effect=lambda x: x),
     ):
         result = process_ddns(input_data)
-        for key in expected:
-            assert result[key] == expected[key]
+        for key, value in expected.items():
+            assert result[key] == value
         # Also check that all expected keys are present
         for key in ALL_KEYS:
             assert key in result

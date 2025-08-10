@@ -1,9 +1,8 @@
 """Tests for the client module."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+from typing import Any
 from unittest import mock
-
-import pytest
 
 from asusrouter.modules.client import (
     CLIENT_MAP_CONNECTION,
@@ -22,12 +21,22 @@ from asusrouter.modules.client import (
     process_disconnected,
     process_history,
 )
-from asusrouter.modules.connection import ConnectionState, ConnectionType, InternetMode
+from asusrouter.modules.connection import (
+    ConnectionState,
+    ConnectionType,
+    InternetMode,
+)
 from asusrouter.modules.ip_address import IPAddressType
+import pytest
 
 
 @pytest.mark.parametrize(
-    "state, history, process_disconnected_calls, process_history_calls",
+    (
+        "state",
+        "history",
+        "process_disconnected_calls",
+        "process_history_calls",
+    ),
     [
         (ConnectionState.CONNECTED, None, 0, 0),
         (ConnectionState.DISCONNECTED, None, 1, 0),
@@ -45,17 +54,17 @@ from asusrouter.modules.ip_address import IPAddressType
 @mock.patch("asusrouter.modules.client.process_client_state")
 @mock.patch("asusrouter.modules.client.process_client_connection")
 @mock.patch("asusrouter.modules.client.process_client_description")
-def test_process_client(
-    process_client_description_mock,
-    process_client_connection_mock,
-    process_client_state_mock,
-    process_disconnected_mock,
-    process_history_mock,
-    state,
-    history,
-    process_disconnected_calls,
-    process_history_calls,
-):
+def test_process_client(  # noqa: PLR0913
+    process_client_description_mock: mock.Mock,
+    process_client_connection_mock: mock.Mock,
+    process_client_state_mock: mock.Mock,
+    process_disconnected_mock: mock.Mock,
+    process_history_mock: mock.Mock,
+    state: ConnectionState,
+    history: AsusClient | None,
+    process_disconnected_calls: int,
+    process_history_calls: int,
+) -> None:
     """Test process_client."""
 
     # Prepare input data
@@ -88,7 +97,7 @@ def test_process_client(
 
 
 @pytest.mark.parametrize(
-    "data, mapping, expected_attribute_values, obj_type",
+    ("data", "mapping", "expected_attribute_values", "obj_type"),
     [
         # AsusClientDescription
         (
@@ -148,10 +157,16 @@ def test_process_client(
         ),
     ],
 )
-@mock.patch("asusrouter.modules.client.safe_unpack_key", side_effect=lambda pair: pair)
+@mock.patch(
+    "asusrouter.modules.client.safe_unpack_key", side_effect=lambda pair: pair
+)
 def test_process_data(
-    safe_unpack_key_mock, data, mapping, expected_attribute_values, obj_type
-):
+    safe_unpack_key_mock: mock.Mock,
+    data: dict[str, Any],
+    mapping: dict[str, list[tuple[str, type | None]]],
+    expected_attribute_values: dict[str, Any],
+    obj_type: type,
+) -> None:
     """Test process_data."""
 
     # Get the result
@@ -163,14 +178,15 @@ def test_process_data(
     # Check that safe_unpack_key_mock was called the correct number of times
     assert safe_unpack_key_mock.call_count == len(mapping)
 
-    # Check that the result has the correct attributes and they were correctly converted
+    # Check that the result has the correct attributes and they were
+    # correctly converted
     for key in mapping:
         assert hasattr(result, key)
         assert getattr(result, key) == expected_attribute_values[key]
 
 
 @mock.patch("asusrouter.modules.client.process_data")
-def test_process_client_description(process_data_mock):
+def test_process_client_description(process_data_mock: mock.Mock) -> None:
     """Test process_client_description."""
 
     # Prepare input data
@@ -190,7 +206,7 @@ def test_process_client_description(process_data_mock):
 
 
 @pytest.mark.parametrize(
-    "connection_type, process_wlan_calls",
+    ("connection_type", "process_wlan_calls"),
     [
         (ConnectionType.WIRED, 0),
         (ConnectionType.WLAN_2G, 1),
@@ -204,11 +220,11 @@ def test_process_client_description(process_data_mock):
 )
 @mock.patch("asusrouter.modules.client.process_client_connection_wlan")
 def test_process_client_connection(
-    process_client_connection_wlan_mock,
-    process_data_mock,
-    connection_type,
-    process_wlan_calls,
-):
+    process_client_connection_wlan_mock: mock.Mock,
+    process_data_mock: mock.Mock,
+    connection_type: ConnectionType,
+    process_wlan_calls: int,
+) -> None:
     """Test process_client_connection."""
 
     # Prepare input data
@@ -226,14 +242,16 @@ def test_process_client_connection(
         data, CLIENT_MAP_CONNECTION, AsusClientConnection()
     )
 
-    # Check that process_client_connection_wlan was called the correct number of times
+    # Check that process_client_connection_wlan was called the correct
+    # number of times
     assert process_client_connection_wlan_mock.call_count == process_wlan_calls
 
 
 @mock.patch(
-    "asusrouter.modules.client.process_data", return_value=AsusClientConnectionWlan()
+    "asusrouter.modules.client.process_data",
+    return_value=AsusClientConnectionWlan(),
 )
-def test_process_client_connection_wlan(process_data_mock):
+def test_process_client_connection_wlan(process_data_mock: mock.Mock) -> None:
     """Test process_client_connection_wlan."""
 
     # Prepare input data
@@ -258,7 +276,15 @@ def test_process_client_connection_wlan(process_data_mock):
 
 
 @pytest.mark.parametrize(
-    "ip_address, connection_type, aimesh, aimesh_support, node, online, expected_result",
+    (
+        "ip_address",
+        "connection_type",
+        "aimesh",
+        "aimesh_support",
+        "node",
+        "online",
+        "expected_result",
+    ),
     [
         # No IP address
         (
@@ -332,9 +358,15 @@ def test_process_client_connection_wlan(process_data_mock):
         ),
     ],
 )
-def test_process_client_state(
-    ip_address, connection_type, aimesh, aimesh_support, node, online, expected_result
-):
+def test_process_client_state(  # noqa: PLR0913
+    ip_address: str | None,
+    connection_type: ConnectionType,
+    aimesh: bool,
+    aimesh_support: bool,
+    node: str | None,
+    online: bool,
+    expected_result: ConnectionState,
+) -> None:
     """Test process_client_state."""
 
     # Prepare input data
@@ -347,11 +379,20 @@ def test_process_client_state(
     )
 
     # Check the result
-    assert process_client_state(connection, aimesh=aimesh_support) == expected_result
+    assert (
+        process_client_state(connection, aimesh=aimesh_support)
+        == expected_result
+    )
 
 
 @pytest.mark.parametrize(
-    "connection_type, ip_method, ip_address, internet_mode, expected_ip_address",
+    (
+        "connection_type",
+        "ip_method",
+        "ip_address",
+        "internet_mode",
+        "expected_ip_address",
+    ),
     [
         (
             ConnectionType.WLAN_2G,
@@ -370,12 +411,12 @@ def test_process_client_state(
     ],
 )
 def test_process_disconnected(
-    connection_type,
-    ip_method,
-    ip_address,
-    internet_mode,
-    expected_ip_address,
-):
+    connection_type: ConnectionType,
+    ip_method: IPAddressType,
+    ip_address: str | None,
+    internet_mode: InternetMode,
+    expected_ip_address: str | None,
+) -> None:
     """Test process_disconnected."""
 
     # Prepare input data
@@ -398,18 +439,48 @@ def test_process_disconnected(
 
 
 @pytest.mark.parametrize(
-    "connection_class, history_class, connection_since, histore_since, expected_result",
+    (
+        "connection_class",
+        "history_class",
+        "connection_since",
+        "histore_since",
+        "expected_result",
+    ),
     [
         # Valid WLAN connection
         # Time difference is less than 10 seconds
         (AsusClientConnectionWlan, AsusClientConnectionWlan, 9, 0, "history"),
         (AsusClientConnectionWlan, AsusClientConnectionWlan, 0, 1, "history"),
         # Time difference is more than 10 seconds
-        (AsusClientConnectionWlan, AsusClientConnectionWlan, 10, 0, "connection"),
-        (AsusClientConnectionWlan, AsusClientConnectionWlan, 0, 11, "connection"),
+        (
+            AsusClientConnectionWlan,
+            AsusClientConnectionWlan,
+            10,
+            0,
+            "connection",
+        ),
+        (
+            AsusClientConnectionWlan,
+            AsusClientConnectionWlan,
+            0,
+            11,
+            "connection",
+        ),
         # No time provided
-        (AsusClientConnectionWlan, AsusClientConnectionWlan, None, 0, "connection"),
-        (AsusClientConnectionWlan, AsusClientConnectionWlan, 0, None, "connection"),
+        (
+            AsusClientConnectionWlan,
+            AsusClientConnectionWlan,
+            None,
+            0,
+            "connection",
+        ),
+        (
+            AsusClientConnectionWlan,
+            AsusClientConnectionWlan,
+            0,
+            None,
+            "connection",
+        ),
         # Not WLAN connection,
         (AsusClientConnection, AsusClientConnectionWlan, 10, 0, "connection"),
         (AsusClientConnectionWlan, AsusClientConnection, 10, 0, "connection"),
@@ -417,8 +488,12 @@ def test_process_disconnected(
     ],
 )
 def test_process_history(
-    connection_class, history_class, connection_since, histore_since, expected_result
-):
+    connection_class: type[AsusClientConnection],
+    history_class: type[AsusClientConnection],
+    connection_since: int | None,
+    histore_since: int | None,
+    expected_result: str,
+) -> None:
     """Test process_history."""
 
     # Prepare input data
@@ -432,7 +507,7 @@ def test_process_history(
         and connection_since is not None
     ):
         data["connection"].since = datetime(
-            2023, 11, 9, 10, 15, connection_since, tzinfo=timezone.utc
+            2023, 11, 9, 10, 15, connection_since, tzinfo=UTC
         )
 
     if (
@@ -440,7 +515,7 @@ def test_process_history(
         and histore_since is not None
     ):
         data["history"].since = datetime(
-            2023, 11, 9, 10, 15, histore_since, tzinfo=timezone.utc
+            2023, 11, 9, 10, 15, histore_since, tzinfo=UTC
         )
 
     # Get the result

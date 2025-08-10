@@ -2,12 +2,11 @@
 
 import asyncio
 import json
-from typing import Any, Optional, Tuple
+from typing import Any
 from unittest.mock import AsyncMock, Mock, patch
 
 import aiohttp
 
-import pytest
 from asusrouter.connection import Connection, generate_credentials
 from asusrouter.const import DEFAULT_TIMEOUT, USER_AGENT, RequestType
 from asusrouter.error import (
@@ -19,6 +18,7 @@ from asusrouter.error import (
     AsusRouterTimeoutError,
 )
 from asusrouter.modules.endpoint import EndpointService
+import pytest
 
 
 @pytest.mark.asyncio
@@ -26,24 +26,26 @@ async def test_generate_credentials() -> None:
     """Test the `generate_credentials`."""
 
     username = "user"
-    password = "pass"
+    password = "pass"  # noqa: S105
     payload, headers = generate_credentials(username, password)
     assert payload == "login_authorization=dXNlcjpwYXNz"
     assert headers == {"user-agent": "asusrouter--DUTUtil-"}
 
 
 class TestConnection:
-    def _assert_connection(
+    """Tests for the Connection class."""
+
+    def _assert_connection(  # noqa: PLR0913
         self,
         conn: Connection,
         hostname: str,
         username: str,
         password: str,
-        port: Optional[int],
+        port: int | None,
         use_ssl: bool,
-        session: Optional[Mock],
+        session: Mock | None,
         timeout: int,
-        dumpback: Optional[Mock],
+        dumpback: Mock | None,
         mock_new_session: Mock,
     ) -> None:
         """Test the Connection object."""
@@ -62,8 +64,16 @@ class TestConnection:
         assert isinstance(conn._connection_lock, asyncio.Lock)
 
     @pytest.mark.parametrize(
-        "hostname, username, password, port, use_ssl, session, timeout,"
-        "dumpback",
+        (
+            "hostname",
+            "username",
+            "password",
+            "port",
+            "use_ssl",
+            "session",
+            "timeout",
+            "dumpback",
+        ),
         [
             ("localhost", "user", "pass", None, False, None, None, None),
             ("localhost", "user", "pass", 8080, True, None, None, None),
@@ -75,7 +85,7 @@ class TestConnection:
         ],
     )
     @patch.object(Connection, "_new_session", return_value=Mock())
-    def test_init(
+    def test_init(  # noqa: PLR0913
         self,
         mock_new_session: Mock,
         hostname: str,
@@ -83,9 +93,9 @@ class TestConnection:
         password: str,
         port: int,
         use_ssl: bool,
-        session: Optional[Mock],
-        timeout: Optional[int],
-        dumpback: Optional[Mock],
+        session: Mock | None,
+        timeout: int | None,
+        dumpback: Mock | None,
     ) -> None:
         """Test the initialization of the connection object."""
 
@@ -123,7 +133,7 @@ class TestConnection:
         conn1 = Connection(
             hostname="localhost1",
             username="user1",
-            password="pass1",
+            password="pass1",  # noqa: S106
             port=8080,
             use_ssl=True,
             timeout=None,
@@ -131,7 +141,7 @@ class TestConnection:
         conn2 = Connection(
             hostname="localhost2",
             username="user2",
-            password="pass2",
+            password="pass2",  # noqa: S106
             port=9090,
             use_ssl=False,
             timeout=1,
@@ -142,7 +152,7 @@ class TestConnection:
             conn1,
             hostname="localhost1",
             username="user1",
-            password="pass1",
+            password="pass1",  # noqa: S106
             port=8080,
             use_ssl=True,
             session=None,
@@ -154,7 +164,7 @@ class TestConnection:
             conn2,
             hostname="localhost2",
             username="user2",
-            password="pass2",
+            password="pass2",  # noqa: S106
             port=9090,
             use_ssl=False,
             session=None,
@@ -182,7 +192,7 @@ class TestConnection:
             connection = Connection(
                 hostname="localhost",
                 username="user",
-                password="pass",
+                password="pass",  # noqa: S106
                 port=8080,
                 use_ssl=True,
             )
@@ -212,7 +222,7 @@ class TestConnection:
             connection = Connection(
                 hostname="localhost",
                 username="user",
-                password="pass",
+                password="pass",  # noqa: S106
                 port=8080,
                 use_ssl=True,
             )
@@ -238,7 +248,7 @@ class TestConnection:
             # Define test parameters
             hostname = "localhost"
             username = "user"
-            password = "pass"
+            password = "pass"  # noqa: S105
             port = 8080
             use_ssl = True
             session = Mock()
@@ -285,7 +295,7 @@ class TestConnection:
         connection = Connection(
             hostname="localhost",
             username="user",
-            password="pass",
+            password="pass",  # noqa: S106
             timeout=30,
         )
 
@@ -332,7 +342,7 @@ class TestConnection:
         connection = Connection(
             hostname="localhost",
             username="user",
-            password="pass",
+            password="pass",  # noqa: S106
         )
 
         # Mock the session
@@ -365,7 +375,7 @@ class TestConnection:
         connection = Connection(
             hostname="localhost",
             username="user",
-            password="pass",
+            password="pass",  # noqa: S106
             timeout=30,
         )
 
@@ -388,8 +398,14 @@ class TestConnection:
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
-        "connected, send_request_result, send_request_side_effect,"
-        "expected_result, expected_exception, exception_message",
+        (
+            "connected",
+            "send_request_result",
+            "send_request_side_effect",
+            "expected_result",
+            "expected_exception",
+            "exception_message",
+        ),
         [
             # Case 1: Already connected
             (True, None, None, True, None, None),
@@ -441,14 +457,14 @@ class TestConnection:
             ),
         ],
     )
-    async def test_async_connect_with_lock(
+    async def test_async_connect_with_lock(  # noqa: PLR0913
         self,
         connected: bool,
-        send_request_result: Optional[tuple[int, Any, str]],
-        send_request_side_effect: Optional[Exception],
-        expected_result: Optional[bool],
-        expected_exception: Optional[type[BaseException]],
-        exception_message: Optional[str],
+        send_request_result: tuple[int, Any, str] | None,
+        send_request_side_effect: Exception | None,
+        expected_result: bool | None,
+        expected_exception: type[BaseException] | None,
+        exception_message: str | None,
     ) -> None:
         """Test `_async_connect_with_lock` with parameterized scenarios."""
 
@@ -456,7 +472,7 @@ class TestConnection:
         connection = Connection(
             hostname="localhost",
             username="user",
-            password="pass",
+            password="pass",  # noqa: S106
         )
 
         # Set the initial connection state
@@ -504,7 +520,7 @@ class TestConnection:
             ):
                 if "asus_token" in json.loads(send_request_result[2]):
                     assert connection._connected is True
-                    assert connection._token == "test_token"
+                    assert connection._token == "test_token"  # noqa: S105
                     assert connection._header == {
                         "user-agent": USER_AGENT,
                         "cookie": "asus_token=test_token",
@@ -514,8 +530,12 @@ class TestConnection:
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
-        "connected, send_request_side_effect, expected_result,"
-        "reset_connection_called",
+        (
+            "connected",
+            "send_request_side_effect",
+            "expected_result",
+            "reset_connection_called",
+        ),
         [
             # Case 1: Logout error is the correct result
             (True, AsusRouterLogoutError("Session is logged out"), True, True),
@@ -529,7 +549,7 @@ class TestConnection:
     async def test_async_disconnect(
         self,
         connected: bool,
-        send_request_side_effect: Optional[Exception],
+        send_request_side_effect: Exception | None,
         expected_result: bool,
         reset_connection_called: bool,
     ) -> None:
@@ -539,7 +559,7 @@ class TestConnection:
         connection = Connection(
             hostname="localhost",
             username="user",
-            password="pass",
+            password="pass",  # noqa: S106
         )
 
         # Set the initial connection state
@@ -582,8 +602,14 @@ class TestConnection:
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
-        "resp_status, resp_headers, resp_content, make_request_side_effect,"
-        "expected_exception, exception_message",
+        (
+            "resp_status",
+            "resp_headers",
+            "resp_content",
+            "make_request_side_effect",
+            "expected_exception",
+            "exception_message",
+        ),
         [
             # Case 1: Successful request
             (200, {"header": "value"}, '{"key": "value"}', None, None, None),
@@ -655,7 +681,7 @@ class TestConnection:
                 None,
                 None,
                 None,
-                asyncio.TimeoutError("operation timed out"),
+                TimeoutError("operation timed out"),
                 AsusRouterTimeoutError,
                 r"Data cannot be retrieved due to an asyncio error\. "
                 r"Connection failed: operation timed out",
@@ -672,14 +698,14 @@ class TestConnection:
             ),
         ],
     )
-    async def test_send_request(
+    async def test_send_request(  # noqa: PLR0913
         self,
-        resp_status: Optional[int],
-        resp_headers: Optional[dict[str, str]],
-        resp_content: Optional[str],
-        make_request_side_effect: Optional[Exception],
-        expected_exception: Optional[type[BaseException]],
-        exception_message: Optional[str],
+        resp_status: int | None,
+        resp_headers: dict[str, str] | None,
+        resp_content: str | None,
+        make_request_side_effect: Exception | None,
+        expected_exception: type[BaseException] | None,
+        exception_message: str | None,
     ) -> None:
         """Test the `_send_request` method with parameterized scenarios."""
 
@@ -687,7 +713,7 @@ class TestConnection:
         connection = Connection(
             hostname="localhost",
             username="user",
-            password="pass",
+            password="pass",  # noqa: S106
         )
 
         # Mock the _make_request method
@@ -756,8 +782,14 @@ class TestConnection:
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
-        "connected, connect_result, send_request_result,"
-        "send_request_side_effect, expected_exception, exception_message",
+        (
+            "connected",
+            "connect_result",
+            "send_request_result",
+            "send_request_side_effect",
+            "expected_exception",
+            "exception_message",
+        ),
         [
             # Case 1: Already connected, successful request
             (
@@ -797,14 +829,14 @@ class TestConnection:
             ),
         ],
     )
-    async def test_async_query(
+    async def test_async_query(  # noqa: PLR0913
         self,
         connected: bool,
-        connect_result: Optional[bool],
-        send_request_result: Optional[Tuple[int, dict[str, str], str]],
-        send_request_side_effect: Optional[Exception],
-        expected_exception: Optional[type[BaseException]],
-        exception_message: Optional[str],
+        connect_result: bool | None,
+        send_request_result: tuple[int, dict[str, str], str] | None,
+        send_request_side_effect: Exception | None,
+        expected_exception: type[BaseException] | None,
+        exception_message: str | None,
     ) -> None:
         """Test the `async_query` method with parameterized scenarios."""
 
@@ -812,7 +844,7 @@ class TestConnection:
         connection = Connection(
             hostname="localhost",
             username="user",
-            password="pass",
+            password="pass",  # noqa: S106
         )
 
         # Set the initial connection state
@@ -872,8 +904,14 @@ class TestConnection:
                 mock_send_request.assert_not_called()
 
     @pytest.mark.parametrize(
-        "connected, token, header, expected_connected, expected_token,"
-        "expected_header",
+        (
+            "connected",
+            "token",
+            "header",
+            "expected_connected",
+            "expected_token",
+            "expected_header",
+        ),
         [
             # Case 1: Connection is active
             (
@@ -895,14 +933,14 @@ class TestConnection:
             ),
         ],
     )
-    def test_reset_connection(
+    def test_reset_connection(  # noqa: PLR0913
         self,
         connected: bool,
-        token: Optional[str],
-        header: Optional[dict[str, str]],
+        token: str | None,
+        header: dict[str, str] | None,
         expected_connected: bool,
-        expected_token: Optional[str],
-        expected_header: Optional[dict[str, str]],
+        expected_token: str | None,
+        expected_header: dict[str, str] | None,
     ) -> None:
         """Test the `reset_connection` method."""
 
@@ -914,7 +952,7 @@ class TestConnection:
             connection = Connection(
                 hostname="localhost",
                 username="user",
-                password="pass",
+                password="pass",  # noqa: S106
             )
 
             # Set the initial state
@@ -934,7 +972,7 @@ class TestConnection:
             mock_new_session.assert_called_once()
 
     @pytest.mark.parametrize(
-        "initial_connected, expected_connected",
+        ("initial_connected", "expected_connected"),
         [
             # Case 1: Connection is active
             (True, True),
@@ -955,7 +993,7 @@ class TestConnection:
             connection = Connection(
                 hostname="localhost",
                 username="user",
-                password="pass",
+                password="pass",  # noqa: S106
             )
 
             # Set the initial state of `_connected`

@@ -2,20 +2,19 @@
 
 from unittest.mock import AsyncMock
 
-import pytest
-
 from asusrouter.modules.port_forwarding import (
     KEY_PORT_FORWARDING_STATE,
     AsusPortForwarding,
     set_state,
 )
+import pytest
 
 async_callback = AsyncMock()
 
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    "state, expect_modify, expect_call, expected_args",
+    ("state", "expect_modify", "expect_call", "expected_args"),
     [
         # Correct states
         (AsusPortForwarding.ON, True, True, {KEY_PORT_FORWARDING_STATE: 1}),
@@ -25,11 +24,18 @@ async_callback = AsyncMock()
         (None, False, False, {}),
     ],
 )
-async def test_set_state(state, expect_modify, expect_call, expected_args):
+async def test_set_state(
+    state: AsusPortForwarding | None,
+    expect_modify: bool,
+    expect_call: bool,
+    expected_args: dict[str, int],
+) -> None:
     """Test set_state."""
 
     # Call the set_state function
-    await set_state(callback=async_callback, state=state, expect_modify=expect_modify)
+    await set_state(
+        callback=async_callback, state=state, expect_modify=expect_modify
+    )
 
     # Check if the callback function was called
     if expect_call:

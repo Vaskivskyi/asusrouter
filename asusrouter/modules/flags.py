@@ -9,4 +9,5 @@ from dataclasses import dataclass
 class Flag(dict):
     """Flag class.
 
-    This is just a wrapper for a dict."""
+    This is just a wrapper for a dict.
+    """
