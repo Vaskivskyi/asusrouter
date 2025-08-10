@@ -1,7 +1,8 @@
 """Test AsusRouter writers tools."""
 
-from asusrouter.tools import writers
 import pytest
+
+from asusrouter.tools import writers
 
 
 @pytest.mark.parametrize(

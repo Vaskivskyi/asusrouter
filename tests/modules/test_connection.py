@@ -1,12 +1,13 @@
 """Tests for the connection module."""
 
+import pytest
+
 from asusrouter.modules.connection import (
     ConnectionType,
     InternetMode,
     get_connection_type,
     get_internet_mode,
 )
-import pytest
 
 
 @pytest.mark.parametrize(

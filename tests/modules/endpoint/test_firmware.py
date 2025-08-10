@@ -2,6 +2,8 @@
 
 from typing import Any
 
+import pytest
+
 from asusrouter.modules.data import AsusData
 from asusrouter.modules.endpoint.firmware import process, read
 from asusrouter.modules.firmware import (
@@ -12,7 +14,6 @@ from asusrouter.modules.firmware import (
     WebsUpgrade,
 )
 from asusrouter.tools.readers import read_js_variables
-import pytest
 
 
 def test_read() -> None:

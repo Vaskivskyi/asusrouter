@@ -1,8 +1,9 @@
 """Test AsusRouter readers tools."""
 
+import pytest
+
 from asusrouter.const import ContentType
 from asusrouter.tools import readers
-import pytest
 
 
 @pytest.mark.parametrize(

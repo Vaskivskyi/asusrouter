@@ -5,13 +5,14 @@ from __future__ import annotations
 from typing import Any
 from unittest.mock import patch
 
+import pytest
+
 from asusrouter.modules.ddns import (
     AsusDDNS,
     DDNSStatusCode,
     process_ddns,
     read_ddns_status_code,
 )
-import pytest
 
 ALL_KEYS = [
     "enabled",

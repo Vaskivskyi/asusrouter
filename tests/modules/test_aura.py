@@ -4,6 +4,8 @@ from typing import Any
 from unittest import mock
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
+
 from asusrouter.modules.aura import (
     DEFAULT_AURA_SCHEME,
     DEFAULT_COLOR_PATTERN,
@@ -21,7 +23,6 @@ from asusrouter.modules.color import ColorRGB, ColorRGBB
 from asusrouter.modules.data import AsusData, AsusDataState
 from asusrouter.modules.endpoint import EndpointTools
 from asusrouter.modules.identity import AsusDevice
-import pytest
 
 
 @pytest.mark.parametrize(

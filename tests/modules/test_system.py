@@ -3,13 +3,14 @@
 from typing import Any
 from unittest import mock
 
+import pytest
+
 from asusrouter.modules.system import (
     ARGUMENTS_APPEND,
     STATE_MAP,
     AsusSystem,
     set_state,
 )
-import pytest
 
 
 @pytest.mark.parametrize(

@@ -3,13 +3,14 @@
 from typing import Any
 from unittest.mock import AsyncMock
 
+import pytest
+
 from asusrouter.modules.wireguard import (
     AsusWireGuardClient,
     AsusWireGuardServer,
     _get_arguments,
     set_state,
 )
-import pytest
 
 
 @pytest.mark.parametrize(

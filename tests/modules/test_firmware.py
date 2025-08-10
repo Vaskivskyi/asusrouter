@@ -2,8 +2,9 @@
 
 from unittest.mock import MagicMock
 
-from asusrouter.modules.firmware import Firmware, FirmwareType
 import pytest
+
+from asusrouter.modules.firmware import Firmware, FirmwareType
 
 
 class TestFirmware:

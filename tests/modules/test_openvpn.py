@@ -2,6 +2,8 @@
 
 from unittest.mock import AsyncMock
 
+import pytest
+
 from asusrouter.modules.firmware import Firmware
 from asusrouter.modules.identity import AsusDevice
 from asusrouter.modules.openvpn import (
@@ -9,7 +11,6 @@ from asusrouter.modules.openvpn import (
     AsusOVPNServer,
     set_state,
 )
-import pytest
 
 FW_MAJOR = "3.0.0.4"
 FW_MINOR_OLD = 386

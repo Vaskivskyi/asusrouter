@@ -2,12 +2,13 @@
 
 from unittest.mock import AsyncMock
 
+import pytest
+
 from asusrouter.modules.port_forwarding import (
     KEY_PORT_FORWARDING_STATE,
     AsusPortForwarding,
     set_state,
 )
-import pytest
 
 async_callback = AsyncMock()
 

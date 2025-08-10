@@ -9,6 +9,8 @@ from pathlib import Path
 import re
 from typing import Any
 
+import pytest
+
 from asusrouter import AsusData
 from asusrouter.modules.endpoint import (
     Endpoint,
@@ -19,7 +21,6 @@ from asusrouter.modules.endpoint import (
     process,
     read,
 )
-import pytest
 
 # Create a logger
 _LOGGER = logging.getLogger(__name__)

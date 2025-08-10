@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-from asusrouter.modules.access_point import AccessPoint
 import pytest
+
+from asusrouter.modules.access_point import AccessPoint
 
 
 @pytest.mark.parametrize(

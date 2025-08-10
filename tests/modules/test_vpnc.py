@@ -3,6 +3,8 @@
 from typing import Any
 from unittest import mock
 
+import pytest
+
 from asusrouter.modules.data import AsusData, AsusDataState
 from asusrouter.modules.led import AsusLED
 from asusrouter.modules.openvpn import AsusOVPNClient
@@ -16,7 +18,6 @@ from asusrouter.modules.vpnc import (
     set_state_vpnc,
 )
 from asusrouter.modules.wireguard import AsusWireGuardClient
-import pytest
 
 
 @pytest.mark.asyncio

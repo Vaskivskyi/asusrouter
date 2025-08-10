@@ -2,6 +2,8 @@
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
+
 from asusrouter.error import AsusRouter404Error
 from asusrouter.modules.endpoint import (
     Endpoint,
@@ -12,7 +14,6 @@ from asusrouter.modules.endpoint import (
     process,
     read,
 )
-import pytest
 
 
 def test_get_module() -> None:

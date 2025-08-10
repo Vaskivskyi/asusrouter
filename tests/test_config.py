@@ -6,6 +6,8 @@ import concurrent.futures
 import random
 from typing import Any
 
+import pytest
+
 from asusrouter.config import (
     CONFIG_DEFAULT_BOOL,
     TYPES_DEFAULT,
@@ -13,7 +15,6 @@ from asusrouter.config import (
     ARConfigKey,
     safe_bool_config,
 )
-import pytest
 
 KEYS_BOOL = [
     ARConfigKey.OPTIMISTIC_DATA,

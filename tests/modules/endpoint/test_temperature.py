@@ -3,12 +3,13 @@
 from typing import Any
 from unittest.mock import call, patch
 
+import pytest
+
 from asusrouter.config import ARConfig, ARConfigKey
 from asusrouter.modules.data import AsusData
 from asusrouter.modules.endpoint import temperature as temp_mod
 from asusrouter.modules.endpoint.temperature import _scale_temperature, process
 from asusrouter.modules.wlan import Wlan
-import pytest
 
 
 @pytest.fixture(autouse=True)

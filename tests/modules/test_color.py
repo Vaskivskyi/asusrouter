@@ -2,6 +2,8 @@
 
 from unittest.mock import patch
 
+import pytest
+
 from asusrouter.modules.color import (
     DEFAULT_COLOR,
     DEFAULT_COLOR_SCALE_ASUS,
@@ -11,7 +13,6 @@ from asusrouter.modules.color import (
     color_zone,
     parse_colors,
 )
-import pytest
 
 
 @pytest.mark.parametrize(

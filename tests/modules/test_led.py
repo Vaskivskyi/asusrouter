@@ -2,10 +2,11 @@
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
+
 from asusrouter.modules.endpoint import Endpoint
 from asusrouter.modules.identity import AsusDevice
 from asusrouter.modules.led import AsusLED, keep_state, set_state
-import pytest
 
 
 @pytest.mark.asyncio

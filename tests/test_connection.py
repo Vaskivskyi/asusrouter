@@ -6,6 +6,7 @@ from typing import Any
 from unittest.mock import AsyncMock, Mock, patch
 
 import aiohttp
+import pytest
 
 from asusrouter.connection import Connection, generate_credentials
 from asusrouter.const import DEFAULT_TIMEOUT, USER_AGENT, RequestType
@@ -18,7 +19,6 @@ from asusrouter.error import (
     AsusRouterTimeoutError,
 )
 from asusrouter.modules.endpoint import EndpointService
-import pytest
 
 
 @pytest.mark.asyncio

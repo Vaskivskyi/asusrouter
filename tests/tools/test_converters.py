@@ -5,8 +5,9 @@ from enum import Enum
 from typing import Any
 from unittest.mock import MagicMock, patch
 
-from asusrouter.tools import converters
 import pytest
+
+from asusrouter.tools import converters
 
 
 @pytest.mark.parametrize(

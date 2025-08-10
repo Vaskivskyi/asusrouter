@@ -3,6 +3,8 @@
 from typing import Any
 from unittest.mock import patch
 
+import pytest
+
 from asusrouter import AsusData
 from asusrouter.modules.aimesh import AiMeshDevice
 from asusrouter.modules.endpoint.onboarding import (
@@ -13,7 +15,6 @@ from asusrouter.modules.endpoint.onboarding import (
     read,
     read_preprocess,
 )
-import pytest
 
 CONTENT_RAW = (
     "get_onboardinglist = [{}][0];\n"

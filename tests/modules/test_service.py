@@ -1,8 +1,9 @@
 """Tests for the service module."""
 
+import pytest
+
 from asusrouter.error import AsusRouterError, AsusRouterServiceError
 from asusrouter.modules.service import async_call_service
-import pytest
 
 
 async def callback(arguments: dict[str, str]) -> dict[str, str]:

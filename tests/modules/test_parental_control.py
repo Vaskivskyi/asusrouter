@@ -3,6 +3,8 @@
 from unittest import mock
 from unittest.mock import AsyncMock
 
+import pytest
+
 from asusrouter.modules.parental_control import (
     KEY_PC_BLOCK_ALL,
     KEY_PC_STATE,
@@ -12,7 +14,6 @@ from asusrouter.modules.parental_control import (
     PCRuleType,
     set_state,
 )
-import pytest
 
 async_callback = AsyncMock()
 

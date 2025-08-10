@@ -4,6 +4,8 @@ from datetime import UTC, datetime
 from typing import Any
 from unittest import mock
 
+import pytest
+
 from asusrouter.modules.client import (
     CLIENT_MAP_CONNECTION,
     CLIENT_MAP_CONNECTION_WLAN,
@@ -27,7 +29,6 @@ from asusrouter.modules.connection import (
     InternetMode,
 )
 from asusrouter.modules.ip_address import IPAddressType
-import pytest
 
 
 @pytest.mark.parametrize(

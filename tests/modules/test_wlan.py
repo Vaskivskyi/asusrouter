@@ -2,6 +2,8 @@
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
+
 from asusrouter.modules.wlan import (
     MAP_GWLAN,
     MAP_WLAN,
@@ -12,7 +14,6 @@ from asusrouter.modules.wlan import (
     set_state,
     wlan_nvram_request,
 )
-import pytest
 
 
 @pytest.mark.parametrize(

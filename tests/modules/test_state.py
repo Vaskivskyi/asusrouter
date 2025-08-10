@@ -3,6 +3,8 @@
 from typing import Any
 from unittest import mock
 
+import pytest
+
 from asusrouter import AsusData
 from asusrouter.modules.state import (
     AsusState,
@@ -18,7 +20,6 @@ from asusrouter.modules.state import (
 from asusrouter.modules.system import AsusSystem
 from asusrouter.modules.vpnc import AsusVPNC
 from asusrouter.modules.wlan import AsusWLAN
-import pytest
 
 mock_state_map = {
     AsusState.SYSTEM: AsusData.SYSTEM,

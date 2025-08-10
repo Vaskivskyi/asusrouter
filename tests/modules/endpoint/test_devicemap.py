@@ -5,10 +5,11 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 from unittest.mock import ANY, MagicMock, patch
 
+import pytest
+
 from asusrouter.config import ARConfigKey
 from asusrouter.modules.data import AsusData, AsusDataState
 from asusrouter.modules.endpoint import devicemap
-import pytest
 
 
 def generate_xml_content(groups: dict[str, Any]) -> str:
