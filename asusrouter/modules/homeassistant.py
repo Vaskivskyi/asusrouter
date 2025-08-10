@@ -3,13 +3,14 @@
 This module is used to convert some of the AsusRouter data
 to a format easy to handle by Home Assistant integration.
 
-Native AsusRouter integration: https://github.com/vaskivskyi/ha-asusrouter."""
+Native AsusRouter integration: https://github.com/vaskivskyi/ha-asusrouter.
+"""
 
 from __future__ import annotations
 
-import logging
 from enum import Enum
-from typing import Any, Optional
+import logging
+from typing import Any
 
 from asusrouter.modules.data import AsusData
 from asusrouter.modules.state import AsusState
@@ -42,8 +43,10 @@ SENSORS_VPN = {
 def convert_to_ha_sensors(
     data: dict[str, Any], datatype: AsusData
 ) -> list[str]:
-    """Convert available data to the list of sensors
-    compatible with Home Assistant."""
+    """Convert available data.
+
+    The result is a list of sensors compatible with Home Assistant.
+    """
 
     sensors = []
 
@@ -70,7 +73,7 @@ def convert_to_ha_data(data: dict[str, Any]) -> dict[str, Any]:
             key: convert_recursive(value)
             if isinstance(value, dict)
             else convert_to_ha_state_bool(value)
-            if key.endswith("state") or key.endswith("link")
+            if key.endswith(("state", "link"))
             else value
             for key, value in data.items()
         }
@@ -81,8 +84,7 @@ def convert_to_ha_data(data: dict[str, Any]) -> dict[str, Any]:
 
     # Convert values to HA-compatible format
     if output is not None:
-        output = convert_recursive(output)
-        return output
+        return convert_recursive(output)
 
     return {}
 
@@ -90,16 +92,16 @@ def convert_to_ha_data(data: dict[str, Any]) -> dict[str, Any]:
 def convert_to_ha_sensors_by_map(
     data: dict[str, Any], sensor_map: list[str]
 ) -> list[str]:
-    """Convert available data to the list of sensors
-    using static map."""
+    """Convert available data to the list of sensors using static map."""
 
     _LOGGER.debug("Converting data to the list of sensors by map: %s", data)
 
     sensors = []
 
     for sensor in data:
-        for sensor_type in sensor_map:
-            sensors.append(f"{sensor}_{sensor_type}")
+        sensors.extend(
+            [f"{sensor}_{sensor_type}" for sensor_type in sensor_map]
+        )
 
     return sensors
 
@@ -107,8 +109,10 @@ def convert_to_ha_sensors_by_map(
 def convert_to_ha_sensors_by_map_2(
     data: dict[str, Any], sensor_map: dict[str, list[str]]
 ) -> list[str]:
-    """Convert available data to the list of sensors
-    using first two levels of the data and static map."""
+    """Convert available data to the list of sensors.
+
+    Use first two levels of the data and static map.
+    """
 
     _LOGGER.debug(
         "Converting data to the list of sensors by 2 levels: %s", data
@@ -116,10 +120,14 @@ def convert_to_ha_sensors_by_map_2(
 
     sensors = []
 
-    for sensor in data:
-        for sensor_id in data[sensor]:
-            for sensor_type in sensor_map.get(sensor, []):
-                sensors.append(f"{sensor}_{sensor_id}_{sensor_type}")
+    for sensor, sensor_ids in data.items():
+        sensors.extend(
+            [
+                f"{sensor}_{sensor_id}_{sensor_type}"
+                for sensor_id in sensor_ids
+                for sensor_type in sensor_map.get(sensor, [])
+            ]
+        )
 
     return sensors
 
@@ -136,9 +144,9 @@ def convert_to_ha_sensors_list(data: dict[str, Any]) -> list[str]:
     return list_from_dict(convert_to_ha_data(data))
 
 
-def convert_to_ha_state_bool(
-    data: AsusState | Optional[bool],
-) -> Optional[bool]:
+def convert_to_ha_state_bool(  # noqa: PLR0911
+    data: AsusState | bool | None,
+) -> bool | None:
     """Convers native state to a binary state."""
 
     # Check whether the state is None
@@ -180,7 +188,7 @@ def convert_to_ha_state_bool(
 
 
 def convert_to_ha_string(data: Any) -> str:
-    """Converts data to a string."""
+    """Convert data to a string."""
 
     # Check if we have None
     if data is None:

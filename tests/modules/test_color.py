@@ -3,6 +3,7 @@
 from unittest.mock import patch
 
 import pytest
+
 from asusrouter.modules.color import (
     DEFAULT_COLOR,
     DEFAULT_COLOR_SCALE_ASUS,
@@ -15,7 +16,7 @@ from asusrouter.modules.color import (
 
 
 @pytest.mark.parametrize(
-    "colors, expected",
+    ("colors", "expected"),
     [
         # Single color
         (ColorRGB(255, 0, 0), ColorRGB(255, 0, 0)),
@@ -41,14 +42,14 @@ from asusrouter.modules.color import (
         ),
     ],
 )
-def test_average_color(colors, expected):
+def test_average_color(colors: list[ColorRGB], expected: ColorRGB) -> None:
     """Test average_color."""
 
     assert average_color(colors) == expected
 
 
 @pytest.mark.parametrize(
-    "color_str, delimiter, expected",
+    ("color_str", "delimiter", "expected"),
     [
         # Correct number of color channels
         ("255,0,0", None, 1),
@@ -65,7 +66,9 @@ def test_average_color(colors, expected):
         ("255|0|0|0|255|0|0|0", "|", 2),
     ],
 )
-def test_color_zone(color_str, delimiter, expected):
+def test_color_zone(
+    color_str: str | None, delimiter: str | None, expected: int
+) -> None:
     """Test color_zone."""
 
     if delimiter:
@@ -75,7 +78,7 @@ def test_color_zone(color_str, delimiter, expected):
 
 
 @pytest.mark.parametrize(
-    "color_str, delimiter, scale, expected",
+    ("color_str", "delimiter", "scale", "expected"),
     [
         # Correct number of color channels
         ("255,0,0", None, 255, [ColorRGBB((255, 0, 0), 255, 255)]),
@@ -125,7 +128,12 @@ def test_color_zone(color_str, delimiter, expected):
         ),
     ],
 )
-def test_parse_colors(color_str, delimiter, scale, expected):
+def test_parse_colors(
+    color_str: str | None,
+    delimiter: str | None,
+    scale: int | None,
+    expected: list[ColorRGBB] | None,
+) -> None:
     """Test parse_colors."""
 
     if delimiter:
@@ -138,7 +146,7 @@ class TestColorRGB:
     """Test the ColorRGB class."""
 
     @pytest.mark.parametrize(
-        "r, g, b, scale, expected",
+        ("r", "g", "b", "scale", "expected"),
         [
             # No values provided
             (None, None, None, None, DEFAULT_COLOR),
@@ -160,7 +168,14 @@ class TestColorRGB:
             (100, 150, 200, 255, (100, 150, 200)),
         ],
     )
-    def test_initialization(self, r, g, b, scale, expected):
+    def test_initialization(
+        self,
+        r: int | tuple[int, ...] | None,
+        g: int | None,
+        b: int | None,
+        scale: int | None,
+        expected: tuple[int, int, int],
+    ) -> None:
         """Test initialization."""
 
         if scale is not None:
@@ -171,7 +186,7 @@ class TestColorRGB:
         assert (color._r, color._g, color._b) == expected
 
     @pytest.mark.parametrize(
-        "input_rgb, expected",
+        ("input_rgb", "expected"),
         [
             # Correct input
             ((100, 150, 200), (100, 150, 200)),
@@ -183,13 +198,19 @@ class TestColorRGB:
             (None, (0, 0, 0)),
         ],
     )
-    def test_normalize_input_rgb(self, input_rgb, expected):
+    def test_normalize_input_rgb(
+        self,
+        input_rgb: str | tuple[int, ...] | ColorRGB | None,
+        expected: tuple[int, int, int],
+    ) -> None:
+        """Test the _normalize_input_rgb method."""
+
         color = ColorRGB()
         result = color._normalize_input_rgb(input_rgb)
         assert result == expected
 
     @pytest.mark.parametrize(
-        "values, scale, expected",
+        ("values", "scale", "expected"),
         [
             # Normal number of values
             ((100, 200, 300), 255, (85, 170, 255)),
@@ -202,7 +223,12 @@ class TestColorRGB:
             ((100, 200, 300, 400), 200, (50, 100, 150, 200)),
         ],
     )
-    def test_normalize_scale(self, values, scale, expected):
+    def test_normalize_scale(
+        self,
+        values: tuple[int, int, int],
+        scale: int,
+        expected: tuple[int, int, int],
+    ) -> None:
         """Test _normalize_scale."""
 
         color = ColorRGB()
@@ -210,7 +236,7 @@ class TestColorRGB:
         assert result == expected
 
     @pytest.mark.parametrize(
-        "input_rgb, expected",
+        ("input_rgb", "expected"),
         [
             # This will scale to the default 128 scale
             ((100, 150, 200), (64, 96, 128)),
@@ -223,7 +249,11 @@ class TestColorRGB:
             (None, (0, 0, 0)),
         ],
     )
-    def test_from_rgb(self, input_rgb, expected):
+    def test_from_rgb(
+        self,
+        input_rgb: str | tuple[int, ...] | None,
+        expected: tuple[int, int, int],
+    ) -> None:
         """Test from_rgb."""
 
         color = ColorRGB()
@@ -231,7 +261,7 @@ class TestColorRGB:
         assert (color._r, color._g, color._b) == expected
 
     @pytest.mark.parametrize(
-        "rgb, scale, expected",
+        ("rgb", "scale", "expected"),
         [
             # This will scale to the default 128 scale
             ((100, 150, 200), 128, (64, 96, 128)),
@@ -244,19 +274,24 @@ class TestColorRGB:
             (None, 255, (0, 0, 0)),
         ],
     )
-    def test_from_rgbs(self, rgb, scale, expected):
+    def test_from_rgbs(
+        self,
+        rgb: str | tuple[int, ...] | None,
+        scale: int | None,
+        expected: tuple[int, int, int] | None,
+    ) -> None:
         """Test from_rgbs."""
 
         with patch.object(ColorRGB, "from_rgb") as mock_from_rgb:
             color = ColorRGB()
             color.from_rgbs(rgb, scale=scale)
 
-            assert mock_from_rgb.call_count == 2
+            assert mock_from_rgb.call_count == 2  # noqa: PLR2004
 
             assert color._scale == scale
 
     @pytest.mark.parametrize(
-        "input_rgb, expected",
+        ("input_rgb", "expected"),
         [
             # Correct input
             ((100, 150, 200), (64, 96, 128)),
@@ -265,14 +300,16 @@ class TestColorRGB:
             (None, (0, 0, 0)),
         ],
     )
-    def test_as_tuple(self, input_rgb, expected):
+    def test_as_tuple(
+        self, input_rgb: tuple[int, ...] | None, expected: tuple[int, int, int]
+    ) -> None:
         """Test as_tuple."""
 
         color = ColorRGB(input_rgb)
         assert color.as_tuple() == expected
 
     @pytest.mark.parametrize(
-        "input_rgb, expected",
+        ("input_rgb", "expected"),
         [
             # Correct input
             ((100, 150, 200), "64,96,128"),
@@ -281,14 +318,16 @@ class TestColorRGB:
             (None, "0,0,0"),
         ],
     )
-    def test_repr(self, input_rgb, expected):
+    def test_repr(
+        self, input_rgb: tuple[int, ...] | None, expected: str
+    ) -> None:
         """Test __repr__."""
 
         color = ColorRGB(input_rgb)
         assert repr(color) == expected
 
     @pytest.mark.parametrize(
-        "input_rgb, expected",
+        ("input_rgb", "expected"),
         [
             # Correct input
             ((100, 150, 200), "64,96,128"),
@@ -297,14 +336,16 @@ class TestColorRGB:
             (None, "0,0,0"),
         ],
     )
-    def test_str(self, input_rgb, expected):
+    def test_str(
+        self, input_rgb: tuple[int, ...] | None, expected: str
+    ) -> None:
         """Test __str__."""
 
         color = ColorRGB(input_rgb)
         assert str(color) == expected
 
     @pytest.mark.parametrize(
-        "color1, color2, expected",
+        ("color1", "color2", "expected"),
         [
             # Equal colors
             (ColorRGB(100, 150, 200, 128), ColorRGB(100, 150, 200, 128), True),
@@ -318,14 +359,16 @@ class TestColorRGB:
             (ColorRGB(32, 64, 96), "test", False),
         ],
     )
-    def test_eq(self, color1, color2, expected):
+    def test_eq(
+        self, color1: ColorRGB, color2: ColorRGB | str, expected: bool
+    ) -> None:
         """Test __eq__."""
 
         assert (color1 == color2) == expected
         assert (color2 == color1) == expected
 
     @pytest.mark.parametrize(
-        "input_rgb, expected",
+        ("input_rgb", "expected"),
         [
             # Correct input
             ((100, 150, 200), (64, 96, 128, 128)),
@@ -334,7 +377,11 @@ class TestColorRGB:
             (None, (0, 0, 0, 128)),
         ],
     )
-    def test_hash(self, input_rgb, expected):
+    def test_hash(
+        self,
+        input_rgb: tuple[int, ...] | None,
+        expected: tuple[int, int, int, int],
+    ) -> None:
         """Test __hash__."""
 
         color = ColorRGB(input_rgb)
@@ -343,7 +390,7 @@ class TestColorRGB:
         assert hash(color) == expected
 
     @pytest.mark.parametrize(
-        "input_rgb, r, g, b, scale, color_brightness",
+        ("input_rgb", "r", "g", "b", "scale", "color_brightness"),
         [
             # Correct input
             ((100, 150, 200), 64, 96, 128, 128, 128),
@@ -352,7 +399,15 @@ class TestColorRGB:
             (None, 0, 0, 0, 128, 0),
         ],
     )
-    def test_properties(self, input_rgb, r, g, b, scale, color_brightness):
+    def test_properties(  # noqa: PLR0913
+        self,
+        input_rgb: tuple[int, ...] | None,
+        r: int,
+        g: int,
+        b: int,
+        scale: int,
+        color_brightness: int,
+    ) -> None:
         """Test properties."""
 
         color = ColorRGB(input_rgb)
@@ -367,7 +422,7 @@ class TestColorRGBB:
     """Test the ColorRGBB class."""
 
     @pytest.mark.parametrize(
-        "rgb, br, scale, expected",
+        ("rgb", "br", "scale", "expected"),
         [
             # Empty
             (None, None, None, (0, 0, 0, 128, 128)),
@@ -378,7 +433,13 @@ class TestColorRGBB:
             ((100, 150, 200), None, 64, (32, 48, 64, 64, 64)),
         ],
     )
-    def test_initialization(self, rgb, br, scale, expected):
+    def test_initialization(
+        self,
+        rgb: tuple[int, ...] | None,
+        br: int | None,
+        scale: int | None,
+        expected: tuple[int, int, int, int, int],
+    ) -> None:
         """Test initialization."""
 
         # Remap None to defaults
@@ -395,7 +456,7 @@ class TestColorRGBB:
         ) == expected
 
     @pytest.mark.parametrize(
-        "br, expected",
+        ("br", "expected"),
         [
             # Correct values
             (64, 64),
@@ -407,7 +468,7 @@ class TestColorRGBB:
             (256, 128),
         ],
     )
-    def test_set_brightness(self, br, expected):
+    def test_set_brightness(self, br: int | None, expected: int) -> None:
         """Test set_brightness."""
 
         color = ColorRGBB()
@@ -415,7 +476,7 @@ class TestColorRGBB:
         assert color._br == expected
 
     @pytest.mark.parametrize(
-        "rgb, scale, expected",
+        ("rgb", "scale", "expected"),
         [
             # Correct input
             ((100, 150, 200), 128, (64, 96, 128)),
@@ -425,7 +486,12 @@ class TestColorRGBB:
             (None, 128, (0, 0, 0)),
         ],
     )
-    def test__from_rgb(self, rgb, scale, expected):
+    def test__from_rgb(
+        self,
+        rgb: str | tuple[int, ...] | None,
+        scale: int | None,
+        expected: tuple[int, int, int],
+    ) -> None:
         """Test _from_rgb."""
 
         color = ColorRGBB()
@@ -433,7 +499,7 @@ class TestColorRGBB:
         assert result == expected
 
     @pytest.mark.parametrize(
-        "rgb, scale, expected",
+        ("rgb", "scale", "expected"),
         [
             # Correct input
             ((100, 150, 200), 128, (64, 96, 128)),
@@ -444,7 +510,12 @@ class TestColorRGBB:
             (None, 128, (0, 0, 0)),
         ],
     )
-    def test_from_rgb(self, rgb, scale, expected):
+    def test_from_rgb(
+        self,
+        rgb: str | tuple[int, ...] | ColorRGB | None,
+        scale: int | None,
+        expected: tuple[int, int, int],
+    ) -> None:
         """Test from_rgb."""
 
         color = ColorRGBB()
@@ -452,7 +523,7 @@ class TestColorRGBB:
         assert (color._r, color._g, color._b) == expected
 
     @pytest.mark.parametrize(
-        "rgb, scale, expected",
+        ("rgb", "scale", "expected"),
         [
             # Correct input
             ((100, 150, 200), 128, (64, 96, 128)),
@@ -462,7 +533,12 @@ class TestColorRGBB:
             (None, 128, (0, 0, 0)),
         ],
     )
-    def test_from_rgbwb(self, rgb, scale, expected):
+    def test_from_rgbwb(
+        self,
+        rgb: str | tuple[int, ...] | ColorRGB | None,
+        scale: int | None,
+        expected: tuple[int, int, int],
+    ) -> None:
         """Test from_rgbwb."""
 
         color = ColorRGBB()
@@ -470,7 +546,7 @@ class TestColorRGBB:
         assert (color._r, color._g, color._b) == expected
 
     @pytest.mark.parametrize(
-        "rgb, scale, rgbb, expected",
+        ("rgb", "scale", "rgbb", "expected"),
         [
             # Self test
             ((32, 48, 64), 128, None, (64, 96, 128)),
@@ -483,7 +559,13 @@ class TestColorRGBB:
             ((32, 48, 64), 128, (100, 150, 200, 64), (50, 64, 64)),
         ],
     )
-    def test__to_rgb(self, rgb, scale, rgbb, expected):
+    def test__to_rgb(
+        self,
+        rgb: tuple[int, ...] | None,
+        scale: int | None,
+        rgbb: tuple[int, ...] | None,
+        expected: tuple[int, int, int],
+    ) -> None:
         """Test _to_rgb."""
 
         color = ColorRGBB(rgb, scale=scale)
@@ -491,7 +573,7 @@ class TestColorRGBB:
         assert result == expected
 
     @pytest.mark.parametrize(
-        "input_color, scale, expected_rgb",
+        ("input_color", "scale", "expected_rgb"),
         [
             (
                 ColorRGBB((255, 0, 0), scale=255),
@@ -502,47 +584,57 @@ class TestColorRGBB:
             (ColorRGBB((0, 0, 255), scale=255), 64, ColorRGB(0, 0, 64, 255)),
         ],
     )
-    def test_to_rgb(self, input_color, scale, expected_rgb):
+    def test_to_rgb(
+        self, input_color: ColorRGBB, scale: int | None, expected_rgb: ColorRGB
+    ) -> None:
         """Test to_rgb."""
 
         result = input_color.to_rgb(scale)
         assert result.as_tuple() == expected_rgb.as_tuple()
 
     @pytest.mark.parametrize(
-        "input_color, expected",
+        ("input_color", "expected"),
         [
             (ColorRGBB((255, 0, 0), 128, 255), "255,0,0,128,255"),
             (ColorRGBB((0, 255, 0), 64, 255), "0,255,0,64,255"),
             (ColorRGBB((0, 0, 255), 32, 255), "0,0,255,32,255"),
         ],
     )
-    def test_repr(self, input_color, expected):
+    def test_repr(self, input_color: ColorRGBB, expected: str) -> None:
         """Test __repr__."""
 
         assert repr(input_color) == expected
 
     @pytest.mark.parametrize(
-        "input_color, expected",
+        ("input_color", "expected"),
         [
             (ColorRGBB((255, 0, 0), 128, 255), "255,0,0,128,255"),
             (ColorRGBB((0, 255, 0), 64, 255), "0,255,0,64,255"),
             (ColorRGBB((0, 0, 255), 32, 255), "0,0,255,32,255"),
         ],
     )
-    def test_str(self, input_color, expected):
+    def test_str(self, input_color: ColorRGBB, expected: str) -> None:
         """Test __str__."""
 
         assert str(input_color) == expected
 
     @pytest.mark.parametrize(
-        "input_color, r, g, b, br, scale",
+        ("input_color", "r", "g", "b", "br", "scale"),
         [
             (ColorRGBB((100, 150, 200), 128, 128), 64, 96, 128, 128, 128),
             (ColorRGBB((100, 150, 200), 64, 128), 64, 96, 128, 64, 128),
             (ColorRGBB((100, 150, 200), 128, 64), 32, 48, 64, 64, 64),
         ],
     )
-    def test_properties(self, input_color, r, g, b, br, scale):
+    def test_properties(  # noqa: PLR0913
+        self,
+        input_color: ColorRGBB,
+        r: int,
+        g: int,
+        b: int,
+        br: int,
+        scale: int,
+    ) -> None:
         """Test properties."""
 
         assert input_color.r == r

@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-import logging
+from collections.abc import Awaitable, Callable
 from enum import IntEnum
-from typing import Any, Awaitable, Callable, Optional
+import logging
+from typing import Any
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -25,7 +26,7 @@ class AsusWireGuardServer(IntEnum):
     ON = 1
 
 
-def _get_arguments(**kwargs: Any) -> Optional[int]:
+def _get_arguments(**kwargs: Any) -> int | None:
     """Get the arguments from kwargs."""
 
     arguments = kwargs.get("arguments", {})
@@ -68,8 +69,14 @@ async def set_state(
     service_map: dict[Any, str] = {
         (AsusWireGuardClient, AsusWireGuardClient.ON): f"start_wgc {wlan_id}",
         (AsusWireGuardClient, AsusWireGuardClient.OFF): f"stop_wgc {wlan_id}",
-        (AsusWireGuardServer, AsusWireGuardServer.ON): "restart_wgs;restart_dnsmasq",
-        (AsusWireGuardServer, AsusWireGuardServer.OFF): "restart_wgs;restart_dnsmasq",
+        (
+            AsusWireGuardServer,
+            AsusWireGuardServer.ON,
+        ): "restart_wgs;restart_dnsmasq",
+        (
+            AsusWireGuardServer,
+            AsusWireGuardServer.OFF,
+        ): "restart_wgs;restart_dnsmasq",
     }
 
     service = service_map.get((type(state), state))

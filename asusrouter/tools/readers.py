@@ -1,11 +1,11 @@
-"""Reading tools for AsusRouter"""
+"""Reading tools for AsusRouter."""
 
 from __future__ import annotations
 
 import json
 import logging
 import re
-from typing import Any, Optional
+from typing import Any
 
 from asusrouter.const import ContentType
 from asusrouter.tools.converters import clean_input
@@ -31,8 +31,10 @@ RANDOM_SYMBOLS: list[str] = [
 def merge_dicts(
     data: dict[Any, Any], merge_data: dict[Any, Any]
 ) -> dict[Any, Any]:
-    """This methods merges two nested dicts into a single one
-    while keeping all the existing values"""
+    """Merge two nested dicts into a single one.
+
+    Keep all the existing values.
+    """
 
     # Create a new dictionary to store the merged data
     merged_data = data.copy()
@@ -53,25 +55,26 @@ def merge_dicts(
         if key not in merged_data:
             # Add the key to the merged data
             merged_data[key] = value
+        # If the key is already in the merged data, compare the values
+        elif merged_data[key] is None:
+            # If the value in the merged data is None, take the value
+            # from the merge data
+            merged_data[key] = value
+        elif value is None:
+            # If the value in the merge data is not None
+            # and the value in the merge data is None, keep the value
+            # in the merged data
+            pass
         else:
-            # If the key is already in the merged data, compare the values
-            if merged_data[key] is None:
-                # If the value in the merged data is None, take the value from the merge data
-                merged_data[key] = value
-            elif value is None:
-                # If the value in the merge data is not None
-                # and the value in the merge data is None, keep the value in the merged data
-                pass
-            else:
-                # If both values are not None, keep the value from the merged data
-                pass
+            # If both values are not None, keep the value from the merged data
+            pass
 
     # Return the merged data
     return merged_data
 
 
 def read_as_snake_case(data: str) -> str:
-    """Convert a string to snake case"""
+    """Convert a string to snake case."""
 
     string = (
         re.sub(r"(?<=[a-z])(?=[A-Z])|[^a-zA-Z]", " ", data)
@@ -86,11 +89,12 @@ def read_as_snake_case(data: str) -> str:
 
 
 def read_content_type(headers: dict[str, str]) -> ContentType:
-    """Get the content type from the headers"""
+    """Get the content type from the headers."""
 
     # Get the content type from the headers
     content_type = headers.get("content-type", "").split(";")[0].strip()
-    # Find the content type in ContentType enum and return correct ContentType enum
+    # Find the content type in ContentType enum and return correct
+    # ContentType enum
     for content_type_enum in ContentType:
         if content_type_enum.value == content_type:
             return content_type_enum
@@ -101,7 +105,7 @@ def read_content_type(headers: dict[str, str]) -> ContentType:
 
 @clean_input
 def read_js_variables(content: str) -> dict[str, Any]:
-    """Get all the JS variables from the content"""
+    """Get all the JS variables from the content."""
 
     # Create a dict to store the data
     js_variables: dict[str, Any] = {}
@@ -113,7 +117,8 @@ def read_js_variables(content: str) -> dict[str, Any]:
 
     # Create a regex to match the data. Consider the following:
     # The key is a string which can contain letters, numbers, underscores
-    # The key and the value are separated by an equal sign (surrounded by spaces or not)
+    # The key and the value are separated by an equal sign
+    # (surrounded by spaces or not)
     regex = re.compile(r"(\w+)\s*=\s*(.*)")
 
     # Go through the lines and fill the match data to the dict
@@ -133,8 +138,8 @@ def read_js_variables(content: str) -> dict[str, Any]:
 
 
 @clean_input
-def read_json_content(content: Optional[str]) -> dict[str, Any]:
-    """Get the json content"""
+def read_json_content(content: str | None) -> dict[str, Any]:
+    """Get the json content."""
 
     if not content:
         return {}
@@ -165,13 +170,12 @@ def read_json_content(content: Optional[str]) -> dict[str, Any]:
 
 
 @clean_input
-def readable_mac(raw: Optional[str]) -> bool:
-    """Checks if string is MAC address"""
+def readable_mac(raw: str | None) -> bool:
+    """Check if string is MAC address."""
 
-    if isinstance(raw, str):
-        if re.search(
+    return bool(
+        isinstance(raw, str)
+        and re.search(
             re.compile("^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$"), raw
-        ):
-            return True
-
-    return False
+        )
+    )

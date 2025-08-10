@@ -28,7 +28,7 @@ def process(data: dict[str, Any]) -> dict[AsusData, Any]:
     """Process ethernet ports data."""
 
     # Ports info
-    ports: dict[PortType, dict] = {
+    ports: dict[PortType, dict[Any, Any]] = {
         PortType.LAN: {},
         PortType.WAN: {},
     }

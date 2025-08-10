@@ -1,7 +1,5 @@
 """Result of processing firmware_001.content."""
 
-from typing import Optional
-
 from asusrouter import AsusData
 from asusrouter.modules.firmware import (
     Firmware,
@@ -11,10 +9,10 @@ from asusrouter.modules.firmware import (
     WebsUpgrade,
 )
 
-_available: Optional[Firmware] = Firmware(
+_available: Firmware | None = Firmware(
     major="3.0.0.4", minor=388, build=4, revision=0
 )
-_available_beta: Optional[Firmware] = None
+_available_beta: Firmware | None = None
 
 expected_result = {
     AsusData.FIRMWARE: {

@@ -7,7 +7,7 @@ from asusrouter.tools import readers
 
 
 @pytest.mark.parametrize(
-    "dict1, dict2, expected",
+    ("dict1", "dict2", "expected"),
     [
         # Test non-nested dictionaries
         ({"a": 1, "b": 2}, {"b": 3, "c": 4}, {"a": 1, "b": 2, "c": 4}),
@@ -29,7 +29,7 @@ def test_merge_dicts(dict1, dict2, expected):
 
 
 @pytest.mark.parametrize(
-    "content, expected",
+    ("content", "expected"),
     [
         ("Test string", "test_string"),  # Upper case
         (
@@ -46,7 +46,7 @@ def test_read_as_snake_case(content, expected):
 
 
 @pytest.mark.parametrize(
-    "headers, expected",
+    ("headers", "expected"),
     [
         ({"content-type": "application/json;charset=UTF-8"}, ContentType.JSON),
         ({"content-type": "application/xml"}, ContentType.XML),
@@ -64,10 +64,13 @@ def test_read_content_type(headers, expected):
 
 
 @pytest.mark.parametrize(
-    "content, expected",
+    ("content", "expected"),
     [
         # JS from the active temperature sensors
-        ('curr_coreTmp_wl0_raw = "44&deg;C";', {"curr_coreTmp_wl0_raw": "44&deg;C"}),
+        (
+            'curr_coreTmp_wl0_raw = "44&deg;C";',
+            {"curr_coreTmp_wl0_raw": "44&deg;C"},
+        ),
         # JS from the disabled temperature sensors
         (
             'curr_coreTmp_wl2_raw = "<i>disabled</i>";',
@@ -84,13 +87,16 @@ def test_read_js_variables(content, expected):
 
 
 @pytest.mark.parametrize(
-    "content, expected",
+    ("content", "expected"),
     [
         # JSON from ethernet ports
         (
-            '{ "portSpeed": { "WAN 0": "G", "LAN 1": "G", "LAN 2": "G", "LAN 3": "G",\
-                "LAN 4": "X", "LAN 5": "X", "LAN 6": "X", "LAN 7": "X", "LAN 8": "G" },\
-                "portCount": { "wanCount": 1, "lanCount": 8 } }',
+            (
+                '{ "portSpeed": { "WAN 0": "G", "LAN 1": "G", "LAN 2": "G", '
+                '"LAN 3": "G", "LAN 4": "X", "LAN 5": "X", "LAN 6": "X", '
+                '"LAN 7": "X", "LAN 8": "G" }, "portCount": { "wanCount": 1, '
+                '"lanCount": 8 } }'
+            ),
             {
                 "portSpeed": {
                     "WAN 0": "G",
@@ -108,11 +114,16 @@ def test_read_js_variables(content, expected):
         ),
         # JSON from sysinfo
         (
-            '{"wlc_0_arr":["11", "11", "11"],"wlc_1_arr":["2", "2", "2"],\
-                "wlc_2_arr":["0", "0", "0"],"wlc_3_arr":["0", "0", "0"],\
-                "conn_stats_arr":["394","56"],"mem_stats_arr":["882.34", "395.23",\
-                "0.00", "52.64", "0.00", "0.00", "85343", "7.61 / 63.00 MB"],\
-                "cpu_stats_arr":["2.18", "2.09", "2.03"]}',
+            (
+                '{"wlc_0_arr":["11", "11", "11"],'
+                '"wlc_1_arr":["2", "2", "2"],'
+                '"wlc_2_arr":["0", "0", "0"],'
+                '"wlc_3_arr":["0", "0", "0"],'
+                '"conn_stats_arr":["394","56"],'
+                '"mem_stats_arr":["882.34", "395.23",'
+                '"0.00", "52.64", "0.00", "0.00", "85343", "7.61 / 63.00 MB"],'
+                '"cpu_stats_arr":["2.18", "2.09", "2.03"]}'
+            ),
             {
                 "wlc_0_arr": ["11", "11", "11"],
                 "wlc_1_arr": ["2", "2", "2"],
@@ -157,7 +168,7 @@ def test_read_json_content(content, expected):
 
 
 @pytest.mark.parametrize(
-    "content, expected",
+    ("content", "expected"),
     [
         # Test valid MAC addresses
         ("01:23:45:67:89:AB", True),

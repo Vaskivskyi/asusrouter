@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Awaitable, Callable
 from enum import IntEnum
-from typing import Any, Awaitable, Callable
+from typing import Any
 
 from asusrouter.modules.endpoint import Endpoint
 

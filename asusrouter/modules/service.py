@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Awaitable, Callable
 import logging
-from typing import Any, Awaitable, Callable, Optional, Tuple
+from typing import Any
 
 from asusrouter.error import AsusRouterServiceError
 from asusrouter.tools.converters import safe_bool, safe_int
@@ -13,11 +14,11 @@ _LOGGER = logging.getLogger(__name__)
 
 async def async_call_service(
     callback: Callable[..., Awaitable[dict[str, Any]]],
-    service: Optional[str],
-    arguments: Optional[dict[str, Any]] = None,
+    service: str | None,
+    arguments: dict[str, Any] | None = None,
     apply: bool = False,
     expect_modify: bool = True,
-) -> Tuple[bool, Optional[int], Optional[int]]:
+) -> tuple[bool, int | None, int | None]:
     """Call a service."""
 
     # Generate commands
@@ -48,10 +49,15 @@ async def async_call_service(
         # Check if the service is run
         run_service = result.get("run_service", None)
         if run_service != service:
-            raise AsusRouterServiceError(f"Service not run. Raw result: {result}")
+            raise AsusRouterServiceError(
+                f"Service not run. Raw result: {result}"
+            )
 
     _LOGGER.debug(
-        "Service `%s` run with arguments `%s`. Result: `%s`", service, arguments, result
+        "Service `%s` run with arguments `%s`. Result: `%s`",
+        service,
+        arguments,
+        result,
     )
 
     last_id = result.get("id") or arguments.get("id")

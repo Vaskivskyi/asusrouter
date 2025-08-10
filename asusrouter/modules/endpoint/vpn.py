@@ -13,7 +13,7 @@ from asusrouter.tools.readers import read_as_snake_case, read_js_variables
 
 from .vpn_const import MAP_OVPN_CLIENT, MAP_OVPN_SERVER
 
-_TO_IGNORE = ("", "None", "0.0.0.0")
+_TO_IGNORE = ("", "None", "0.0.0.0")  # noqa: S104
 
 
 def read(content: str) -> dict[str, Any]:
@@ -77,9 +77,9 @@ def read_ovpn_client(content: str) -> dict[str, Any]:
 
     for value in MAP_OVPN_CLIENT:
         key_old, key_new, method = value
-        value = re.search(f"{key_old},(.*?)(?=>)", content)
-        if value:
-            ovpn_client[key_new] = method(value[1]) if method else value[1]
+        match = re.search(f"{key_old},(.*?)(?=>)", content)
+        if match:
+            ovpn_client[key_new] = method(match[1]) if method else match[1]
 
     # --------------------
     # <-- THIS PART IS LEGACY AND CAN BE REMOVED IN THE FUTURE
@@ -131,8 +131,7 @@ def read_ovpn_server(content: str) -> dict[str, Any]:
             header = re.search(f"HEADER,{key_old},(.*?)(?=>)", content)
             if header:
                 keys_raw = header[1].split(",")
-                for element in keys_raw:
-                    keys.append(read_as_snake_case(element))
+                keys = [read_as_snake_case(element) for element in keys_raw]
                 flag = True
 
             # Hide header
@@ -145,7 +144,7 @@ def read_ovpn_server(content: str) -> dict[str, Any]:
                     break
                 if flag:
                     cut = value[1].split(",")
-                    array = {k: v for k, v in zip(keys, cut)}
+                    array = dict(zip(keys, cut))
                     ovpn_server[key_new].append(array)
                 else:
                     ovpn_server[key_new].append(value[1])

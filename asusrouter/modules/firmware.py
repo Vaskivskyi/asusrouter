@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
+from enum import Enum
 import logging
 import re
-from enum import Enum
-from typing import Any, Optional
+from typing import Any
 
 from asusrouter.tools.converters import clean_string, safe_int
 
@@ -61,24 +61,25 @@ class WebsUpgrade(Enum):
 class Firmware:
     """Firmware class.
 
-    This class contains information about the firmware of a device."""
+    This class contains information about the firmware of a device.
+    """
 
     _fw_warned: list[str] = []
 
     def __init__(
         self,
-        version: Optional[str] = None,
-        major: Optional[str] = None,
-        minor: Optional[int] = None,
-        build: Optional[int] = None,
-        revision: Optional[int | str] = None,
+        version: str | None = None,
+        major: str | None = None,
+        minor: int | None = None,
+        build: int | None = None,
+        revision: int | str | None = None,
     ) -> None:
         """Initialize the firmware object."""
 
-        self.major: Optional[str] = None
-        self.minor: Optional[int] = None
-        self.build: Optional[int] = None
-        self.revision: Optional[int | str] = None
+        self.major: str | None = None
+        self.minor: int | None = None
+        self.build: int | None = None
+        self.revision: int | str | None = None
 
         self.source: FirmwareType = FirmwareType.STOCK
         self.rog: bool = False
@@ -96,7 +97,7 @@ class Firmware:
         self._update_beta()
         self._update_source()
 
-    def safe(self) -> Optional[Firmware]:
+    def safe(self) -> Firmware | None:
         """Return self if exists, otherwise None."""
 
         if self.major:
@@ -137,16 +138,16 @@ class Firmware:
 
         self.source = FirmwareType.STOCK
 
-    def from_string(self, fw_string: Optional[str] = None) -> None:
+    def from_string(self, fw_string: str | None = None) -> None:
         """Read the firmware string."""
 
         fw_string = clean_string(fw_string)
         if not fw_string:
-            return None
+            return
 
         # Special cases for old firmwares and absent data
         if fw_string in ("__", "___"):
-            return None
+            return
 
         pattern = (
             r"^(?P<major>[39].?0.?0.?[46])?[_.]?"
@@ -161,17 +162,17 @@ class Firmware:
             if fw_string not in self._fw_warned:
                 self._fw_warned.append(fw_string)
                 _LOGGER.warning(
-                    "Firmware version cannot be parsed. \
-                        Please report this. The original FW string is: `%s`"
-                    % fw_string
+                    "Firmware version cannot be parsed. "
+                    "Please report this. The original FW string is: "
+                    f"`{fw_string}`"
                 )
-            return None
+            return
 
         # Major version
         major = re_match.group("major")
         major = (
             major[0] + "." + major[1] + "." + major[2] + "." + major[3]
-            if major and "." not in major and len(major) == 4
+            if major and "." not in major and len(major) == 4  # noqa: PLR2004
             else major
         )
         # Only if major version exists and has 0 member
@@ -198,13 +199,18 @@ class Firmware:
 
         return (
             f"{self.major}.{self.minor}.{self.build}_{self.revision}"
-            + f"{'_rog' if self.rog else ''}"
+            f"{'_rog' if self.rog else ''}"
         )
 
     def __repr__(self) -> str:
         """Return the firmware version as a string."""
 
         return self.__str__()
+
+    def __hash__(self) -> int:
+        """Return a hash based on the firmware's identifying attributes."""
+
+        return hash((self.major, self.minor, self.build, self.revision))
 
     def __eq__(self, other: object) -> bool:
         """Compare two firmware versions."""
@@ -221,7 +227,7 @@ class Firmware:
             and self.revision == other.revision
         )
 
-    def __lt__(self, other: object) -> bool:
+    def __lt__(self, other: object) -> bool:  # noqa: C901, PLR0911
         """Compare two firmware versions."""
 
         if not isinstance(other, Firmware):
@@ -253,17 +259,17 @@ class Firmware:
             # attributes of Firmware were not manually overwritten
             _LOGGER.warning(
                 "Code execution reached an unexpected point"
-                + " in Firmware.__lt__.get_prefix()."
-                + " Trying to compare %s and %s" % (self, other)
+                " in Firmware.__lt__.get_prefix()."
+                f" Trying to compare {self} and {other}"
             )
             return v
 
-        def lt_values(v1: Any, v2: Any) -> bool:
+        def lt_values(v1: Any, v2: Any) -> bool:  # noqa: C901, PLR0911
             """Check whether one value is less than the other."""
 
             if v2 is None:
                 return False
-            elif v1 is None:
+            if v1 is None:
                 return True
 
             if isinstance(v1, int) and isinstance(v2, int):

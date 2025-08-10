@@ -1,7 +1,6 @@
 """Connection module."""
 
 from enum import Enum, IntEnum
-from typing import Optional
 
 from asusrouter.modules.wlan import Wlan
 from asusrouter.tools.converters import get_enum_key_by_value, safe_int
@@ -62,7 +61,7 @@ def get_internet_mode(value: str) -> InternetMode:
     return get_enum_key_by_value(InternetMode, value, InternetMode.UNKNOWN)
 
 
-def get_connection_type(value: Optional[int]) -> ConnectionType:
+def get_connection_type(value: int | None) -> ConnectionType:
     """Get connection type."""
 
     # Check that it's actually an int

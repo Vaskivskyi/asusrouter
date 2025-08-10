@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
+from collections.abc import Awaitable, Callable
+from enum import Enum
 import importlib
 import logging
-from enum import Enum
 from types import ModuleType
-from typing import Any, Awaitable, Callable, Optional
+from typing import Any
 
 from asusrouter.modules.aura import AsusAura
 from asusrouter.modules.connection import ConnectionState
@@ -63,7 +64,7 @@ class AsusState(Enum):
     WLAN = AsusWLAN
 
 
-AsusStateMap: dict[AsusState, Optional[AsusData]] = {
+AsusStateMap: dict[AsusState, AsusData | None] = {
     AsusState.NONE: None,
     AsusState.AURA: AsusData.AURA,
     AsusState.BLOCK_ALL: AsusData.PARENTAL_CONTROL,
@@ -84,7 +85,7 @@ AsusStateMap: dict[AsusState, Optional[AsusData]] = {
 
 
 def add_conditional_state(state: AsusState, data: AsusData) -> None:
-    """A callback to add / change AsusStateMap."""
+    """Add or change AsusStateMap."""
 
     if not isinstance(state, AsusState) or not isinstance(data, AsusData):
         _LOGGER.debug("Invalid state or data type: %s -> %s", state, data)
@@ -94,7 +95,7 @@ def add_conditional_state(state: AsusState, data: AsusData) -> None:
     _LOGGER.debug("Added conditional state rule: %s -> %s", state, data)
 
 
-def get_datatype(state: Optional[Any]) -> Optional[AsusData]:
+def get_datatype(state: Any | None) -> AsusData | None:
     """Get the datatype."""
 
     asus_state = get_enum_key_by_value(
@@ -104,7 +105,7 @@ def get_datatype(state: Optional[Any]) -> Optional[AsusData]:
     return AsusStateMap.get(asus_state)
 
 
-def _get_module_name(state: AsusState) -> Optional[str]:
+def _get_module_name(state: AsusState) -> str | None:
     """Get the module name."""
 
     module_class = get_datatype(state)
@@ -114,7 +115,7 @@ def _get_module_name(state: AsusState) -> Optional[str]:
     return None
 
 
-def _get_module(state: AsusState) -> Optional[ModuleType]:
+def _get_module(state: AsusState) -> ModuleType | None:
     """Get the module."""
 
     # Module name
@@ -129,10 +130,8 @@ def _get_module(state: AsusState) -> Optional[ModuleType]:
     module_path = f"asusrouter.modules.{module_name}"
 
     try:
-        # Import the module
-        submodule = importlib.import_module(module_path)
-        # Return the module
-        return submodule
+        # Import and return the module
+        return importlib.import_module(module_path)
     except ModuleNotFoundError:
         _LOGGER.debug("No module found for state %s", state)
         return None
@@ -186,8 +185,8 @@ async def set_state(
 def save_state(
     state: AsusState,
     library: dict[AsusData, AsusDataState],
-    needed_time: Optional[int] = None,
-    last_id: Optional[int] = None,
+    needed_time: int | None = None,
+    last_id: int | None = None,
 ) -> None:
     """Save the state."""
 
@@ -203,7 +202,7 @@ def save_state(
 
 async def keep_state(
     callback: Callable[..., Awaitable[Any]],
-    states: Optional[AsusState | list[AsusState]],
+    states: AsusState | list[AsusState] | None,
     **kwargs: Any,
 ) -> None:
     """Keep the state."""
