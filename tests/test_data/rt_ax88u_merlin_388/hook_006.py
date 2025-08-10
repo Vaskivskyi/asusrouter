@@ -1,5 +1,7 @@
 """Result of processing hook_006.content."""
 
+# ruff: noqa: S104
+
 from asusrouter import AsusData
 from asusrouter.modules.connection import ConnectionState, ConnectionStatus
 from asusrouter.modules.endpoint.wan import AsusDualWAN

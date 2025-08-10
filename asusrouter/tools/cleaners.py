@@ -6,7 +6,7 @@ from typing import Any
 
 
 def clean_content(content: str) -> str:
-    """Clean the content from useless data"""
+    """Clean the content from useless data."""
 
     # Remove the first character if it is a BOM
     if content.startswith("\ufeff"):
@@ -17,10 +17,12 @@ def clean_content(content: str) -> str:
 
 
 def clean_dict(data: dict[str, Any]) -> dict[str, Any]:
-    """Clean a dict from useless data
+    """Clean a dict from useless data.
 
-    This method performs recursively (to all the nested dicts) the following operations:
-    - Convert all values which are empty strings ('') to None"""
+    This method performs recursively (to all the nested dicts)
+    the following operations:
+    - Convert all values which are empty strings ('') to None
+    """
 
     # Go through the dict and clean it
     for key, value in data.items():
@@ -42,7 +44,8 @@ def clean_dict(data: dict[str, Any]) -> dict[str, Any]:
 def clean_dict_key_prefix(data: dict[str, Any], prefix: str) -> dict[str, Any]:
     """Clean dict keys from prefix and an underscore (prefix_).
 
-    This method only cleans the keys, but cannot be used to clean nested dicts."""
+    This method only cleans the keys, but cannot be used to clean nested dicts.
+    """
 
     cleaned_dict: dict[str, Any] = {}
 
@@ -62,8 +65,13 @@ def clean_dict_key_prefix(data: dict[str, Any], prefix: str) -> dict[str, Any]:
     return cleaned_dict
 
 
-def clean_dict_key(data: dict[str, Any], keys: str | list[str]) -> dict[str, Any]:
-    """Clean dict from the keys. This method can be used to clean nested dicts."""
+def clean_dict_key(
+    data: dict[str, Any], keys: str | list[str]
+) -> dict[str, Any]:
+    """Clean dict from the keys.
+
+    This method can be used to clean nested dicts.
+    """
 
     cleaned_dict: dict[str, Any] = {}
 

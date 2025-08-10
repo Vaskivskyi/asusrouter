@@ -3,6 +3,7 @@
 from unittest.mock import AsyncMock
 
 import pytest
+
 from asusrouter.modules.firmware import Firmware
 from asusrouter.modules.identity import AsusDevice
 from asusrouter.modules.openvpn import (
@@ -37,7 +38,15 @@ identity_mock = {
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    "state, vpn_id, identity, expect_modify, expect_call, expected_args, expected_service",
+    (
+        "state",
+        "vpn_id",
+        "identity",
+        "expect_modify",
+        "expect_call",
+        "expected_args",
+        "expected_service",
+    ),
     [
         # Correct states
         (
@@ -160,15 +169,15 @@ identity_mock = {
         ),
     ],
 )
-async def test_set_state(
-    state,
-    vpn_id,
-    identity,
-    expect_modify,
-    expect_call,
-    expected_args,
-    expected_service,
-):
+async def test_set_state(  # noqa: PLR0913
+    state: AsusOVPNClient | AsusOVPNServer | None,
+    vpn_id: int | None,
+    identity: str | None,
+    expect_modify: bool,
+    expect_call: bool,
+    expected_args: dict[str, int],
+    expected_service: str | None,
+) -> None:
     """Test set_state."""
 
     # Create a mock callback function

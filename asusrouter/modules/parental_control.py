@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from enum import IntEnum
-from typing import Any, Awaitable, Callable, Optional
+from typing import Any
 
 from asusrouter.modules.data import AsusData, AsusDataState
 from asusrouter.tools.converters import safe_int, safe_return
@@ -50,7 +51,7 @@ class PCRuleType(IntEnum):
 class ParentalControlRule:
     """Parental control rule class."""
 
-    mac: Optional[str] = None
+    mac: str | None = None
     name: str = ""
     timemap: str = DEFAULT_PC_TIMEMAP
     type: PCRuleType = PCRuleType.UNKNOWN
@@ -85,8 +86,8 @@ async def set_state(
 
     # Check if state is available and valid
     if not isinstance(
-        state, (AsusParentalControl, AsusBlockAll)
-    ) or not state.value in (0, 1):
+        state, AsusParentalControl | AsusBlockAll
+    ) or state.value not in (0, 1):
         return False
 
     service_arguments = {}
@@ -97,7 +98,9 @@ async def set_state(
                 KEY_PC_STATE: 1 if state == AsusParentalControl.ON else 0
             }
         case a if isinstance(a, AsusBlockAll):
-            service_arguments = {KEY_PC_BLOCK_ALL: 1 if state == AsusBlockAll.ON else 0}
+            service_arguments = {
+                KEY_PC_BLOCK_ALL: 1 if state == AsusBlockAll.ON else 0
+            }
 
     # Get the correct service call
     service = "restart_firewall"
@@ -153,7 +156,9 @@ async def set_rule(
     )
 
 
-def check_rule(rule: Optional[ParentalControlRule]) -> Optional[ParentalControlRule]:
+def check_rule(
+    rule: ParentalControlRule | None,
+) -> ParentalControlRule | None:
     """Check the parental control rule."""
 
     # Check if rule is available
@@ -186,7 +191,7 @@ def check_rule(rule: Optional[ParentalControlRule]) -> Optional[ParentalControlR
 
 def add_rule(
     current_rules: dict[str, ParentalControlRule],
-    rule: Optional[ParentalControlRule] = None,
+    rule: ParentalControlRule | None = None,
 ) -> dict[str, ParentalControlRule]:
     """Add a rule."""
 
@@ -208,7 +213,7 @@ def add_rule(
 
 def remove_rule(
     current_rules: dict[str, ParentalControlRule],
-    rule: Optional[ParentalControlRule | str] = None,
+    rule: ParentalControlRule | str | None = None,
 ) -> dict[str, ParentalControlRule]:
     """Remove a rule."""
 
@@ -272,7 +277,7 @@ def write_pc_rules(rules: dict[str, ParentalControlRule]) -> dict[str, str]:
 
     # If no rules are provided, return empty dict
     if not rules:
-        return {key: "" for key in PC_RULE_MAP}
+        return dict.fromkeys(PC_RULE_MAP, "")
 
     # Join the values together
     data = {}

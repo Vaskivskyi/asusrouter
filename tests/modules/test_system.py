@@ -1,9 +1,10 @@
 """Tests for the system module."""
 
-from typing import Any, Optional
+from typing import Any
 from unittest import mock
 
 import pytest
+
 from asusrouter.modules.system import (
     ARGUMENTS_APPEND,
     STATE_MAP,
@@ -13,7 +14,7 @@ from asusrouter.modules.system import (
 
 
 @pytest.mark.parametrize(
-    "state, expected_args",
+    ("state", "expected_args"),
     [
         (AsusSystem.NODE_CONFIG_CHANGE, ["re_mac", "config"]),
         (AsusSystem.NODE_REBOOT, ["device_list"]),
@@ -27,7 +28,7 @@ def test_arguments_append(state: AsusSystem, expected_args: list[str]) -> None:
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    "state, extra_args, should_call",
+    ("state", "extra_args", "should_call"),
     [
         (
             AsusSystem.NODE_CONFIG_CHANGE,
@@ -64,7 +65,7 @@ async def test_set_state(
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    "deprecated_state, repl_state, repl_ver",
+    ("deprecated_state", "repl_state", "repl_ver"),
     [
         (AsusSystem.REBUILD_AIMESH, AsusSystem.AIMESH_REBUILD, None),
         (AsusSystem.REBUILD_AIMESH, AsusSystem.AIMESH_REBUILD, "1.0.0"),
@@ -73,7 +74,7 @@ async def test_set_state(
 async def test_set_state_deprecated(
     deprecated_state: AsusSystem,
     repl_state: AsusSystem,
-    repl_ver: Optional[str],
+    repl_ver: str | None,
 ) -> None:
     """Test set_state with a deprecated state."""
 

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any
 
 from asusrouter.modules.client import process_client
 from asusrouter.modules.data import AsusDataState
@@ -18,8 +18,8 @@ MODEL_WITH_6GHZ = [
 
 def transform_network(
     data: dict[str, Any],
-    services: Optional[list[str]],
-    history: Optional[AsusDataState],
+    services: list[str] | None,
+    history: AsusDataState | None,
     **kwargs: Any,
 ) -> dict[str, Any]:
     """Transform network data."""
@@ -27,20 +27,22 @@ def transform_network(
     # Check if the device has dualwan support
     if not services:
         return data
-    if not "dualwan" in services:
+    if "dualwan" not in services:
         return data
 
     network = data.copy()
     # Add speed if not available - fix first empty value round
     for interface in network:
         for speed in ("rx_speed", "tx_speed"):
-            if not speed in network[interface]:
+            if speed not in network[interface]:
                 network[interface][speed] = 0.0
 
     # Add usb network if not available
-    if not "usb" in network:
+    if "usb" not in network:
         # Check history
-        usb_history = history.data.get("usb") if history and history.data else None
+        usb_history = (
+            history.data.get("usb") if history and history.data else None
+        )
         # Revert to history if available
         if usb_history:
             network["usb"] = usb_history
@@ -55,7 +57,7 @@ def transform_network(
             }
 
     # Get the model if available
-    model = kwargs.get("model", None)
+    model = kwargs.get("model")
 
     # Check if we have 5GHz2 available in the network data
     if "5ghz2" in network:
@@ -73,7 +75,7 @@ def transform_network(
 
 
 def transform_clients(
-    data: dict[str, Any], history: Optional[AsusDataState], **kwargs: Any
+    data: dict[str, Any], history: AsusDataState | None, **kwargs: Any
 ) -> dict[str, Any]:
     """Transform clients data."""
 
@@ -81,7 +83,9 @@ def transform_clients(
     for mac, client in data.items():
         if readable_mac(mac):
             # Check client history
-            client_history = history.data.get(mac) if history and history.data else None
+            client_history = (
+                history.data.get(mac) if history and history.data else None
+            )
             # Process the client
             clients[mac] = process_client(client, client_history, **kwargs)
 
@@ -101,7 +105,7 @@ def transform_cpu(
 
 def transform_ethernet_ports(
     data: dict[str, Any],
-    mac: Optional[str],
+    mac: str | None,
 ) -> dict[str, dict[str, Any]]:
     """Transform the legacy ethernet ports data to the new format."""
 
@@ -121,7 +125,7 @@ def transform_ethernet_ports(
 
 def transform_wan(
     data: dict[str, Any],
-    services: Optional[list[str]],
+    services: list[str] | None,
 ) -> dict[str, Any]:
     """Transform WAN data."""
 

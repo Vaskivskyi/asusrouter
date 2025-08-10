@@ -1,5 +1,6 @@
 """Tests for the vpnc module."""
 
+from typing import Any
 from unittest import mock
 
 import pytest
@@ -21,7 +22,7 @@ from asusrouter.modules.wireguard import AsusWireGuardClient
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    "state, expected_function",
+    ("state", "expected_function"),
     [
         # Real states
         (AsusVPNC.ON, "set_state_vpnc"),
@@ -35,7 +36,10 @@ from asusrouter.modules.wireguard import AsusWireGuardClient
         (None, None),
     ],
 )
-async def test_set_state(state, expected_function):
+async def test_set_state(
+    state: AsusVPNC | AsusOVPNClient | AsusWireGuardClient,
+    expected_function: str | None,
+) -> None:
     """Test set_state."""
 
     # Mock the callback
@@ -45,21 +49,28 @@ async def test_set_state(state, expected_function):
     kwargs = {"fake": "kwargs"}
 
     # Mock the set_state functions
-    with mock.patch(
-        "asusrouter.modules.vpnc.set_state_vpnc"
-    ) as set_state_vpnc_mock, mock.patch(
-        "asusrouter.modules.vpnc.set_state_other"
-    ) as set_state_other_mock:
+    with (
+        mock.patch(
+            "asusrouter.modules.vpnc.set_state_vpnc"
+        ) as set_state_vpnc_mock,
+        mock.patch(
+            "asusrouter.modules.vpnc.set_state_other"
+        ) as set_state_other_mock,
+    ):
         # Call set_state
         await set_state(callback, state, **kwargs)
 
         # Check which function was called
         if expected_function == "set_state_vpnc":
-            set_state_vpnc_mock.assert_called_once_with(callback, state, **kwargs)
+            set_state_vpnc_mock.assert_called_once_with(
+                callback, state, **kwargs
+            )
             set_state_other_mock.assert_not_called()
 
         elif expected_function == "set_state_other":
-            set_state_other_mock.assert_called_once_with(callback, state, **kwargs)
+            set_state_other_mock.assert_called_once_with(
+                callback, state, **kwargs
+            )
             set_state_vpnc_mock.assert_not_called()
 
         else:
@@ -69,8 +80,16 @@ async def test_set_state(state, expected_function):
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    "state, vpnc_unit, router_state, clientlist, get_arguments_call, \
-        get_clientlist_call, callback_call, expected_result",
+    (
+        "state",
+        "vpnc_unit",
+        "router_state",
+        "clientlist",
+        "get_arguments_call",
+        "get_clientlist_call",
+        "callback_call",
+        "expected_result",
+    ),
     [
         # Real state - this should pass
         (
@@ -119,7 +138,16 @@ async def test_set_state(state, expected_function):
         # No state - should fail imidiately
         (None, 1, "fake_state", "clientlist", False, False, False, False),
         # VPNC unit issues - should fail when getting the arguments
-        (AsusVPNC.ON, None, "fake_state", "clientlist", True, False, False, False),
+        (
+            AsusVPNC.ON,
+            None,
+            "fake_state",
+            "clientlist",
+            True,
+            False,
+            False,
+            False,
+        ),
         (
             AsusVPNC.ON,
             "fake_unit",
@@ -134,16 +162,16 @@ async def test_set_state(state, expected_function):
         (AsusVPNC.ON, 1, None, "clientlist", True, False, False, False),
     ],
 )
-async def test_set_state_vpnc_failing(
-    state,
-    vpnc_unit,
-    router_state,
-    clientlist,
-    get_arguments_call,
-    get_clientlist_call,
-    callback_call,
-    expected_result,
-):
+async def test_set_state_vpnc_failing(  # noqa: PLR0913
+    state: AsusVPNC | None,
+    vpnc_unit: int | None,
+    router_state: str | None,
+    clientlist: str | None,
+    get_arguments_call: bool,
+    get_clientlist_call: bool,
+    callback_call: bool,
+    expected_result: bool,
+) -> None:
     """Test set_state_vpnc failing."""
 
     # Mock the callback
@@ -156,13 +184,18 @@ async def test_set_state_vpnc_failing(
     if router_state is not None:
         kwargs["router_state"] = router_state
 
-    with mock.patch(
-        "asusrouter.modules.vpnc.get_arguments", return_value=vpnc_unit
-    ) as get_arguments_mock, mock.patch(
-        "asusrouter.modules.vpnc._get_argument_clientlist", return_value=clientlist
-    ) as get_argument_clientlist_mock, mock.patch.dict(
-        "asusrouter.modules.vpnc.VPNC_STATE_MAPPING",
-        values={AsusVPNC.ON: ("restart_vpnc", 1)},
+    with (
+        mock.patch(
+            "asusrouter.modules.vpnc.get_arguments", return_value=vpnc_unit
+        ) as get_arguments_mock,
+        mock.patch(
+            "asusrouter.modules.vpnc._get_argument_clientlist",
+            return_value=clientlist,
+        ) as get_argument_clientlist_mock,
+        mock.patch.dict(
+            "asusrouter.modules.vpnc.VPNC_STATE_MAPPING",
+            values={AsusVPNC.ON: ("restart_vpnc", 1)},
+        ),
     ):
         # Get the result
         result = await set_state_vpnc(callback, state=state, **kwargs)
@@ -187,7 +220,10 @@ async def test_set_state_vpnc_failing(
         if callback_call:
             callback.assert_called_once_with(
                 service="restart_vpnc",
-                arguments={"vpnc_unit": vpnc_unit, "vpnc_clientlist": "clientlist"},
+                arguments={
+                    "vpnc_unit": vpnc_unit,
+                    "vpnc_clientlist": "clientlist",
+                },
                 apply=True,
                 expect_modify=False,
             )
@@ -197,8 +233,16 @@ async def test_set_state_vpnc_failing(
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    "state, vpn_id, vpnc_data, get_arguments_call, find_vpnc_unit_call, \
-        set_state_vpnc_call, expected_state, expected_result",
+    (
+        "state",
+        "vpn_id",
+        "vpnc_data",
+        "get_arguments_call",
+        "find_vpnc_unit_call",
+        "set_state_vpnc_call",
+        "expected_state",
+        "expected_result",
+    ),
     [
         # Real state - this should pass
         (
@@ -244,19 +288,28 @@ async def test_set_state_vpnc_failing(
             False,
         ),
         # VPN id issues
-        (AsusOVPNClient.ON, None, "some_data", True, False, False, None, False),
+        (
+            AsusOVPNClient.ON,
+            None,
+            "some_data",
+            True,
+            False,
+            False,
+            None,
+            False,
+        ),
     ],
 )
-async def test_set_state_other(
-    state,
-    vpn_id,
-    vpnc_data,
-    get_arguments_call,
-    find_vpnc_unit_call,
-    set_state_vpnc_call,
-    expected_state,
-    expected_result,
-):
+async def test_set_state_other(  # noqa: PLR0913
+    state: AsusOVPNClient | AsusWireGuardClient,
+    vpn_id: int | None,
+    vpnc_data: str | None,
+    get_arguments_call: bool,
+    find_vpnc_unit_call: bool,
+    set_state_vpnc_call: bool,
+    expected_state: AsusVPNC | None,
+    expected_result: bool,
+) -> None:
     """Test set_state_other."""
 
     # Mock the callback
@@ -271,16 +324,21 @@ async def test_set_state_other(
         router_state = {AsusData.VPNC: AsusDataState(vpnc_data)}
         kwargs["router_state"] = router_state
 
-    with mock.patch(
-        "asusrouter.modules.vpnc.get_arguments", return_value=vpn_id
-    ) as get_arguments_mock, mock.patch(
-        "asusrouter.modules.vpnc._find_vpnc_unit"
-    ) as find_vpnc_unit_mock, mock.patch.dict(
-        "asusrouter.modules.vpnc.OTHER_STATE_MAPPING",
-        values={AsusOVPNClient.ON: AsusVPNC.ON},
-    ), mock.patch(
-        "asusrouter.modules.vpnc.set_state_vpnc", return_value=True
-    ) as set_state_vpnc_mock:
+    with (
+        mock.patch(
+            "asusrouter.modules.vpnc.get_arguments", return_value=vpn_id
+        ) as get_arguments_mock,
+        mock.patch(
+            "asusrouter.modules.vpnc._find_vpnc_unit"
+        ) as find_vpnc_unit_mock,
+        mock.patch.dict(
+            "asusrouter.modules.vpnc.OTHER_STATE_MAPPING",
+            values={AsusOVPNClient.ON: AsusVPNC.ON},
+        ),
+        mock.patch(
+            "asusrouter.modules.vpnc.set_state_vpnc", return_value=True
+        ) as set_state_vpnc_mock,
+    ):
         # Get the result
         result = await set_state_other(callback, state=state, **kwargs)
 
@@ -316,7 +374,7 @@ async def test_set_state_other(
 
 
 @pytest.mark.parametrize(
-    "clientlist, vpnc_unit, state, expected_result",
+    ("clientlist", "vpnc_unit", "state", "expected_result"),
     [
         # Test when clientlist, vpnc_unit, or state is None
         (None, 1, 1, None),
@@ -341,7 +399,12 @@ async def test_set_state_other(
         ),
     ],
 )
-def test_get_argument_clientlist(clientlist, vpnc_unit, state, expected_result):
+def test_get_argument_clientlist(
+    clientlist: str | None,
+    vpnc_unit: int | None,
+    state: int | None,
+    expected_result: str | None,
+) -> None:
     """Test _get_argument_clientlist."""
 
     # Get the result
@@ -352,12 +415,17 @@ def test_get_argument_clientlist(clientlist, vpnc_unit, state, expected_result):
 
 
 @pytest.mark.parametrize(
-    "vpnc_data, client_type, client_id, expected_result",
+    ("vpnc_data", "client_type", "client_id", "expected_result"),
     [
         # Test when vpnc_data is None
         (None, AsusOVPNClient.CONNECTED, 1, None),
         # Test when client_type is not AsusOVPNClient or AsusWireGuardClient
-        ({AsusVPNType.OPENVPN: {1: {"vpnc_unit": 1}}}, "UnknownClientType", 1, None),
+        (
+            {AsusVPNType.OPENVPN: {1: {"vpnc_unit": 1}}},
+            "UnknownClientType",
+            1,
+            None,
+        ),
         # Test when search_type is not in vpnc_data
         (
             {AsusVPNType.WIREGUARD: {1: {"vpnc_unit": 1}}},
@@ -373,11 +441,26 @@ def test_get_argument_clientlist(clientlist, vpnc_unit, state, expected_result):
             None,
         ),
         # Test when all inputs are valid
-        ({AsusVPNType.OPENVPN: {1: {"vpnc_unit": 1}}}, AsusOVPNClient.CONNECTED, 1, 1),
-        ({AsusVPNType.WIREGUARD: {1: {"vpnc_unit": 1}}}, AsusWireGuardClient.ON, 1, 1),
+        (
+            {AsusVPNType.OPENVPN: {1: {"vpnc_unit": 1}}},
+            AsusOVPNClient.CONNECTED,
+            1,
+            1,
+        ),
+        (
+            {AsusVPNType.WIREGUARD: {1: {"vpnc_unit": 1}}},
+            AsusWireGuardClient.ON,
+            1,
+            1,
+        ),
     ],
 )
-def test_find_vpnc_unit(vpnc_data, client_type, client_id, expected_result):
+def test_find_vpnc_unit(
+    vpnc_data: dict[AsusVPNType, dict[int, dict[str, Any]]],
+    client_type: AsusOVPNClient | AsusWireGuardClient,
+    client_id: int,
+    expected_result: int | None,
+) -> None:
     """Test _find_vpnc_unit."""
 
     # Get the result

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Optional
+from typing import Any
 
 from asusrouter.tools.converters import clean_input, safe_int, scale_value_int
 
@@ -40,7 +40,7 @@ def average_color(
 
 @clean_input
 def color_zone(
-    color_str: Optional[str],
+    color_str: str | None,
     delimiter: str = ",",
 ) -> int:
     """Return the number of color zones."""
@@ -53,10 +53,10 @@ def color_zone(
 
 @clean_input
 def parse_colors(
-    color_str: Optional[str],
+    color_str: str | None,
     delimiter: str = ",",
     scale: int = DEFAULT_COLOR_SCALE_ASUS,
-) -> Optional[list[ColorRGBB]]:
+) -> list[ColorRGBB] | None:
     """Parse the colors from the string."""
 
     if not color_str:
@@ -94,8 +94,8 @@ class ColorRGB:
     def __init__(
         self,
         r: int | tuple[int, int, int] | Any = DEFAULT_COLOR,
-        g: Optional[int] = None,
-        b: Optional[int] = None,
+        g: int | None = None,
+        b: int | None = None,
         scale: int = DEFAULT_COLOR_SCALE_ASUS,
     ) -> None:
         """Initialize the color."""
@@ -121,7 +121,7 @@ class ColorRGB:
 
     def _normalize_input_rgb(
         self,
-        rgb: Optional[tuple[int, ...] | str],
+        rgb: tuple[int, ...] | str | None,
         delimiter: str = DEFAULT_COLOR_DELIMITER,
     ) -> tuple[int, int, int]:
         """Normalize the RGB input."""
@@ -176,7 +176,7 @@ class ColorRGB:
         self,
         rgb: tuple[int, int, int] | str,
         delimiter: str = DEFAULT_COLOR_DELIMITER,
-        scale: Optional[int] = None,
+        scale: int | None = None,
     ) -> None:
         """Load a color from RGB + Scale values."""
 
@@ -217,22 +217,32 @@ class ColorRGB:
 
     @property
     def r(self) -> int:
+        """Return the red component of the color."""
+
         return self._r
 
     @property
     def g(self) -> int:
+        """Return the green component of the color."""
+
         return self._g
 
     @property
     def b(self) -> int:
+        """Return the blue component of the color."""
+
         return self._b
 
     @property
     def scale(self) -> int:
+        """Return the scale of the color."""
+
         return self._scale
 
     @property
     def color_brightness(self) -> int:
+        """Return the brightness of the color."""
+
         return max(self._r, self._g, self._b)
 
 
@@ -242,7 +252,7 @@ class ColorRGBB(ColorRGB):
     def __init__(
         self,
         rgb: tuple[int, int, int] | ColorRGB = DEFAULT_COLOR,
-        br: Optional[int] = None,
+        br: int | None = None,
         scale: int = DEFAULT_COLOR_SCALE_ASUS,
     ) -> None:
         """Initialize the color."""
@@ -260,7 +270,7 @@ class ColorRGBB(ColorRGB):
         self,
         rgb: tuple[int, ...] | str,
         delimiter: str = DEFAULT_COLOR_DELIMITER,
-        scale: Optional[int] = None,
+        scale: int | None = None,
     ) -> tuple[int, int, int]:
         """Read the RGB values."""
 
@@ -276,7 +286,7 @@ class ColorRGBB(ColorRGB):
         self,
         rgb: tuple[int, ...] | str | ColorRGB,
         delimiter: str = DEFAULT_COLOR_DELIMITER,
-        scale: Optional[int] = None,
+        scale: int | None = None,
     ) -> None:
         """Load a color from RGB values."""
 
@@ -292,7 +302,7 @@ class ColorRGBB(ColorRGB):
         self,
         rgb: tuple[int, ...] | ColorRGB,
         delimiter: str = DEFAULT_COLOR_DELIMITER,
-        scale: Optional[int] = None,
+        scale: int | None = None,
     ) -> None:
         """Load a color from RGB/wb (RGB with B embedded) values."""
 
@@ -313,11 +323,11 @@ class ColorRGBB(ColorRGB):
 
     def _to_rgb(
         self,
-        rgbb: Optional[tuple[int, ...]] = None,
+        rgbb: tuple[int, ...] | None = None,
     ) -> tuple[int, int, int]:
         """Return RGBB color as RGB."""
 
-        if rgbb is not None and len(rgbb) >= 4:
+        if rgbb is not None and len(rgbb) >= 4:  # noqa: PLR2004
             return (
                 scale_value_int(rgbb[0], rgbb[3], self._scale),
                 scale_value_int(rgbb[1], rgbb[3], self._scale),
@@ -332,7 +342,7 @@ class ColorRGBB(ColorRGB):
 
     def to_rgb(
         self,
-        scale: Optional[int] = None,
+        scale: int | None = None,
     ) -> ColorRGB:
         """Return RGBB color as RGB."""
 
@@ -355,4 +365,6 @@ class ColorRGBB(ColorRGB):
 
     @property
     def brightness(self) -> int:
+        """Return the brightness of the color."""
+
         return self._br

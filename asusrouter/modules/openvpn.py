@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-import logging
+from collections.abc import Awaitable, Callable
 from enum import IntEnum
-from typing import Any, Awaitable, Callable
+import logging
+from typing import Any
 
 from asusrouter.modules.firmware import Firmware
 from asusrouter.tools.converters import get_arguments
@@ -48,7 +49,9 @@ async def set_state(
     """Set the OpenVPN state."""
 
     # Check if state is available
-    if not isinstance(state, (AsusOVPNClient, AsusOVPNServer)) or not state.value in (
+    if not isinstance(
+        state, AsusOVPNClient | AsusOVPNServer
+    ) or state.value not in (
         0,
         1,
     ):
@@ -87,7 +90,11 @@ async def set_state(
             ),
             AsusOVPNServer.OFF: "stop_openvpnd;restart_samba;restart_dnsmasq;",
         }
-        service = service_map.get(state) if isinstance(state, AsusOVPNServer) else None
+        service = (
+            service_map.get(state)
+            if isinstance(state, AsusOVPNServer)
+            else None
+        )
         service_arguments["VPNServer_enable"] = (
             "1" if state == AsusOVPNServer.ON else "0"
         )

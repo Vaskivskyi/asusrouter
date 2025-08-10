@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-import threading
+from collections.abc import Callable
 from enum import StrEnum
-from typing import Any, Callable, Dict, Optional
+import threading
+from typing import Any
 
 from asusrouter.tools.converters import safe_bool
 
@@ -23,7 +24,7 @@ CONFIG_DEFAULT_BOOL: bool = False
 def safe_bool_config(value: Any) -> bool:
     """Convert a value to a boolean, defaulting to CONFIG_DEFAULT_BOOL."""
 
-    config_value: Optional[bool] = safe_bool(value)
+    config_value: bool | None = safe_bool(value)
 
     if config_value is None:
         return CONFIG_DEFAULT_BOOL
@@ -31,7 +32,7 @@ def safe_bool_config(value: Any) -> bool:
     return config_value
 
 
-CONFIG_DEFAULT: Dict[ARConfigKey, Any] = {
+CONFIG_DEFAULT: dict[ARConfigKey, Any] = {
     ARConfigKey.OPTIMISTIC_DATA: CONFIG_DEFAULT_BOOL,
     ARConfigKey.OPTIMISTIC_TEMPERATURE: CONFIG_DEFAULT_BOOL,
     # If set, the boottime will be processed with 2 seconds
@@ -39,7 +40,7 @@ CONFIG_DEFAULT: Dict[ARConfigKey, Any] = {
     ARConfigKey.ROBUST_BOOTTIME: CONFIG_DEFAULT_BOOL,
 }
 
-TYPES_DEFAULT: Dict[ARConfigKey, Callable[[Any], Any]] = {
+TYPES_DEFAULT: dict[ARConfigKey, Callable[[Any], Any]] = {
     ARConfigKey.OPTIMISTIC_DATA: safe_bool_config,
     ARConfigKey.OPTIMISTIC_TEMPERATURE: safe_bool_config,
     ARConfigKey.ROBUST_BOOTTIME: safe_bool_config,
@@ -49,18 +50,16 @@ TYPES_DEFAULT: Dict[ARConfigKey, Callable[[Any], Any]] = {
 class Config:
     """Configuration class for AsusRouter."""
 
-    def __init__(
-        self, defaults: Optional[Dict[ARConfigKey, Any]] = None
-    ) -> None:
+    def __init__(self, defaults: dict[ARConfigKey, Any] | None = None) -> None:
         """Initialize the configuration."""
 
         self._lock = threading.Lock()
 
         defaults = defaults or CONFIG_DEFAULT
-        self._options: Dict[ARConfigKey, Any] = {
+        self._options: dict[ARConfigKey, Any] = {
             key: defaults.get(key, None) for key in ARConfigKey
         }
-        self._types: Dict[ARConfigKey, Callable[[Any], Any]] = {
+        self._types: dict[ARConfigKey, Callable[[Any], Any]] = {
             key: TYPES_DEFAULT.get(key, safe_bool_config)
             for key in ARConfigKey
         }
@@ -83,8 +82,7 @@ class Config:
         with self._lock:
             if isinstance(key, ARConfigKey) and key in self._options:
                 return self._options[key]
-            else:
-                raise KeyError(f"Unknown configuration option: {key}")
+            raise KeyError(f"Unknown configuration option: {key}")
 
     def keys(self) -> list[ARConfigKey]:
         """Get the list of configuration keys."""
@@ -97,7 +95,7 @@ class Config:
 
         with self._lock:
             for key in ARConfigKey:
-                self._options[key] = CONFIG_DEFAULT.get(key, None)
+                self._options[key] = CONFIG_DEFAULT.get(key)
                 self._types[key] = TYPES_DEFAULT.get(key, safe_bool_config)
 
     def register_type(
@@ -117,7 +115,7 @@ class Config:
         return key in self._options
 
     @property
-    def types(self) -> Dict[ARConfigKey, Callable[[Any], Any]]:
+    def types(self) -> dict[ARConfigKey, Callable[[Any], Any]]:
         """Get the dictionary of configuration types."""
 
         with self._lock:

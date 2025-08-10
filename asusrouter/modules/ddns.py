@@ -18,8 +18,10 @@ class AsusDDNS(IntEnum):
 
 
 class DDNSStatusCode(IntEnum):
-    """DDNS status codes. Code comments show the original
-    messages from the device code."""
+    """DDNS status codes.
+
+    Code comments show the original messages from the device code.
+    """
 
     ERROR = -1
     NONE = 0
@@ -71,34 +73,47 @@ DDNS_HINT_MAP: dict[DDNSStatusHint, DDNSStatusCode] = {
 DDNS_STATUS_HINT: dict[DDNSStatusCode, str] = {
     DDNSStatusCode.ERROR: "Request error! Please try again.",
     DDNSStatusCode.SUCCESS: "Registration is successful.",
-    DDNSStatusCode.DOMAIN_TAKEN: "This domain name '{hostname}'"
-    + " has been registered. Please use a new domain name.",
-    DDNSStatusCode.REGISTERED_ORIGINAL: "Registered the original hostname"
-    + " successfully.",
+    DDNSStatusCode.DOMAIN_TAKEN: (
+        "This domain name '{hostname}' has been registered."
+        " Please use a new domain name."
+    ),
+    DDNSStatusCode.REGISTERED_ORIGINAL: (
+        "Registered the original hostname successfully."
+    ),
     DDNSStatusCode.REGISTERED_NEW: "Registered the new hostname successfully.",
-    DDNSStatusCode.NEW_DOMAIN_TAKEN: "This domain name '{hostname}' has been"
-    + " registered. The domain name you have registered is as followed:"
-    + " '{old_hostname}'",
-    DDNSStatusCode.NOT_REGISTERED: "The IP and hostname are not registered,"
-    + " please register first.",
-    DDNSStatusCode.CANNOT_START_WITH_NUMBER: "The first character of the host"
-    + " name cannot be a number and the host name cannot include a period '.'"
-    + " (such as '123abc' or 'aaa.bbb')",
-    DDNSStatusCode.INVALID_DOMAIN: "Invalid Domain! The format should be "
-    + "'xxx.asuscomm.com'.",
+    DDNSStatusCode.NEW_DOMAIN_TAKEN: (
+        "This domain name '{hostname}' has been registered."
+        " The domain name you have registered is as followed: '{old_hostname}'"
+    ),
+    DDNSStatusCode.NOT_REGISTERED: (
+        "The IP and hostname are not registered, please register first."
+    ),
+    DDNSStatusCode.CANNOT_START_WITH_NUMBER: (
+        "The first character of the host name cannot be a number and the host"
+        " name cannot include a period '.' (such as '123abc' or 'aaa.bbb')"
+    ),
+    DDNSStatusCode.INVALID_DOMAIN: (
+        "Invalid Domain! The format should be 'xxx.asuscomm.com'."
+    ),
     DDNSStatusCode.INVALID_IP: "Invalid IP Address!",
     DDNSStatusCode.SERVER_ERROR: "Server Error",
     DDNSStatusCode.UNAUTHORIZED: "Unauthorized registration request!",
-    DDNSStatusCode.FIRMWARE_UPDATE_REQUIRED: "Unable to register temporarily."
-    + " Please update your firmware to latest version and try later.",
-    DDNSStatusCode.PROXY_AUTH_REQUIRED: "Client Error: Proxy Authentication"
-    + " Required!",
-    DDNSStatusCode.TIMEOUT: "No response from the DDNS server."
-    + " Please try again.",
+    DDNSStatusCode.FIRMWARE_UPDATE_REQUIRED: (
+        "Unable to register temporarily."
+        " Please update your firmware to latest version and try later."
+    ),
+    DDNSStatusCode.PROXY_AUTH_REQUIRED: (
+        "Client Error: Proxy Authentication Required!"
+    ),
+    DDNSStatusCode.TIMEOUT: (
+        "No response from the DDNS server. Please try again."
+    ),
     DDNSStatusCode.UNKNOWN_ERROR: "Request error! Please try again.",
     DDNSStatusCode.CONNECT_FAIL: "Unable to connect to the Internet",
-    DDNSStatusCode.NO_CHANGE: "Both hostname & IP address have not been"
-    + " changed since the last update.",
+    DDNSStatusCode.NO_CHANGE: (
+        "Both hostname & IP address have not been changed"
+        " since the last update."
+    ),
     DDNSStatusCode.QUERY: "Processing",
     DDNSStatusCode.AUTH_FAIL: "Authentication failed.",
     DDNSStatusCode.OTHER: "Unknown status code",

@@ -1,5 +1,6 @@
 """Tests for the onboarding endpoint module."""
 
+from typing import Any
 from unittest.mock import patch
 
 import pytest
@@ -51,16 +52,19 @@ CONTENT_READ = {
 }
 
 
-def test_read():
+def test_read() -> None:
     """Test read function."""
 
-    with patch(
-        "asusrouter.modules.endpoint.onboarding.read_preprocess",
-        return_value=CONTENT_PREPROCESSED,
-    ) as mock_preprocess, patch(
-        "asusrouter.modules.endpoint.onboarding.read_json_content",
-        return_value=CONTENT_READ,
-    ) as mock_read_json_content:
+    with (
+        patch(
+            "asusrouter.modules.endpoint.onboarding.read_preprocess",
+            return_value=CONTENT_PREPROCESSED,
+        ) as mock_preprocess,
+        patch(
+            "asusrouter.modules.endpoint.onboarding.read_json_content",
+            return_value=CONTENT_READ,
+        ) as mock_read_json_content,
+    ):
         # Get the result
         result = read(CONTENT_RAW)
 
@@ -72,7 +76,7 @@ def test_read():
         mock_read_json_content.assert_called_once_with(CONTENT_PREPROCESSED)
 
 
-def test_read_preprocess():
+def test_read_preprocess() -> None:
     """Test read_preprocess function."""
 
     # Get the result
@@ -123,10 +127,20 @@ RESULT_ALLCLIENTLIST = {
 
 
 @pytest.mark.parametrize(
-    "data_clientlist, data_allclientlist, result_clientlist, result_allclientlist",
+    (
+        "data_clientlist",
+        "data_allclientlist",
+        "result_clientlist",
+        "result_allclientlist",
+    ),
     [
         # Correct data
-        (DATA_CLIENTLIST, DATA_ALLCLIENTLIST, RESULT_CLIENTLIST, RESULT_ALLCLIENTLIST),
+        (
+            DATA_CLIENTLIST,
+            DATA_ALLCLIENTLIST,
+            RESULT_CLIENTLIST,
+            RESULT_ALLCLIENTLIST,
+        ),
         # AiMesh node data missing
         (None, DATA_ALLCLIENTLIST, None, RESULT_ALLCLIENTLIST),
         # Clients data missing
@@ -136,8 +150,11 @@ RESULT_ALLCLIENTLIST = {
     ],
 )
 def test_process(
-    data_clientlist, data_allclientlist, result_clientlist, result_allclientlist
-):
+    data_clientlist: list[dict[str, Any]] | None,
+    data_allclientlist: list[dict[str, Any]] | None,
+    result_clientlist: dict[str, AiMeshDevice] | None,
+    result_allclientlist: dict[str, dict[str, Any]] | None,
+) -> None:
     """Test process function."""
 
     # Test data and expected result
@@ -155,7 +172,9 @@ def test_process(
     expected_result[AsusData.CLIENTS] = result_allclientlist or {}
 
     # Define the side effects for the mocked functions
-    def mock_aimesh_node_side_effect(device):
+    def mock_aimesh_node_side_effect(
+        device: dict[str, Any],
+    ) -> AiMeshDevice | None:
         """Mock the process_aimesh_node function."""
 
         if result_clientlist and device.get("mac") in result_clientlist:
@@ -163,22 +182,28 @@ def test_process(
         return None
 
     # Patch the functions and set their return values
-    with patch(
-        "asusrouter.modules.endpoint.onboarding.process_aimesh_node",
-        side_effect=mock_aimesh_node_side_effect,
-    ) as mock_aimesh_node, patch(
-        "asusrouter.modules.endpoint.onboarding.process_connection",
-        return_value=result_allclientlist,
-    ) as mock_connection:
+    with (
+        patch(
+            "asusrouter.modules.endpoint.onboarding.process_aimesh_node",
+            side_effect=mock_aimesh_node_side_effect,
+        ) as mock_aimesh_node,
+        patch(
+            "asusrouter.modules.endpoint.onboarding.process_connection",
+            return_value=result_allclientlist,
+        ) as mock_connection,
+    ):
         # Get the result
         result = process(data)
 
         # Assert that the result is as expected
         assert result == expected_result
 
-        # Check that mock_aimesh_node was called (if data_clientlist was provided)
+        # Check that mock_aimesh_node was called
+        # (if data_clientlist was provided)
         if data_clientlist is not None:
-            assert len(mock_aimesh_node.call_args_list) == len(data_clientlist[0])
+            assert len(mock_aimesh_node.call_args_list) == len(
+                data_clientlist[0]
+            )
             for i, call in enumerate(mock_aimesh_node.call_args_list):
                 assert call.args[0] == data_clientlist[0][i]
         else:
@@ -191,7 +216,7 @@ def test_process(
             mock_connection.assert_not_called()
 
 
-def test_process_aimesh_node():
+def test_process_aimesh_node() -> None:
     """Test process_aimesh_node function."""
 
     # Test data and expected result
@@ -257,20 +282,26 @@ def test_process_aimesh_node():
 
 
 @pytest.mark.parametrize(
-    "data, expected",
+    ("data", "expected"),
     [
         # An empty string
         ("", {}),
         # Data for a wired connection
         ("wired_mac", {"connection_type": 0, "guest": 0}),
         # Data for a wireless guest connection
-        ("type_1", {"connection_type": CONNECTION_TYPE.get("type") or 0, "guest": 1}),
+        (
+            "type_1",
+            {"connection_type": CONNECTION_TYPE.get("type") or 0, "guest": 1},
+        ),
         # Wrong data
         (None, {}),
         (123, {}),
     ],
 )
-def test_process_connection(data, expected):
+def test_process_connection(
+    data: str | None, expected: dict[str, int]
+) -> None:
     """Test process_connection function."""
+
     result = process_connection(data)
     assert result == expected

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any
 
 import aiohttp
 
@@ -11,7 +11,7 @@ class AsusRouterError(Exception):
     """Base class for errors in AsusRouter library."""
 
     def __init__(
-        self, *args: Any, message: Optional[str] = None, **_kwargs: Any
+        self, *args: Any, message: str | None = None, **_kwargs: Any
     ) -> None:
         """Initialise base error."""
 
@@ -22,7 +22,9 @@ class AsusRouterDataError(AsusRouterError):
     """Any error with received data."""
 
 
-class AsusRouterConnectionError(AsusRouterError, aiohttp.ClientConnectionError):
+class AsusRouterConnectionError(
+    AsusRouterError, aiohttp.ClientConnectionError
+):
     """Connection error."""
 
 

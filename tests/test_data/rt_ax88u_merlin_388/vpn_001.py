@@ -12,7 +12,11 @@ expected_result = {
         5: {"state": AsusOVPNClient.DISCONNECTED},
     },
     AsusData.OPENVPN_SERVER: {
-        1: {"client_list": [], "routing_table": [], "state": AsusOVPNServer.CONNECTED},
+        1: {
+            "client_list": [],
+            "routing_table": [],
+            "state": AsusOVPNServer.CONNECTED,
+        },
         2: {"state": AsusOVPNServer.DISCONNECTED},
     },
 }

@@ -1,5 +1,7 @@
 """Result of processing devicemap_001.content."""
 
+# ruff: noqa: S104
+
 from datetime import datetime, timedelta, timezone
 
 from asusrouter import AsusData

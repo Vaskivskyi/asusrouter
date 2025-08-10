@@ -1,16 +1,18 @@
 """Dump tools for AsusRouter.
 
 This module contains all needed to dump the raw data from the router
-for the following analysis and testing."""
+for the following analysis and testing.
+"""
 
 from __future__ import annotations
 
 import asyncio
+from datetime import UTC, datetime
 import json
 import os
+from types import TracebackType
+from typing import Any, Self
 import zipfile
-from datetime import datetime, timezone
-from typing import Any
 
 from asusrouter.modules.endpoint import Endpoint
 
@@ -32,39 +34,51 @@ class AsusRouterDump:
         self.full_dump = full_dump
         self.zip = archive
 
-        self._init_datetime = datetime.now(timezone.utc)
+        self._init_datetime = datetime.now(UTC)
 
         if self.zip:
             self._zipfile = zipfile.ZipFile(
-                os.path.join(
+                os.path.join(  # noqa: PTH118
                     self._output_folder,
-                    f"AsusRouter-{self._init_datetime.isoformat().replace(':', '-')}.zip",
+                    (
+                        "AsusRouter-"
+                        f"{self._init_datetime.isoformat().replace(':', '-')}"
+                        ".zip"
+                    ),
                 ),
                 "w",
             )
         else:
             # Create subfolder for the dump
-            self._output_folder = os.path.join(
+            self._output_folder = os.path.join(  # noqa: PTH118
                 output_folder,
-                f"AsusRouter-{self._init_datetime.isoformat().replace(':', '-')}",
+                f"AsusRouter-"
+                f"{self._init_datetime.isoformat().replace(':', '-')}",
             )
-            os.makedirs(self._output_folder)
+            os.makedirs(self._output_folder)  # noqa: PTH103
 
-    def __enter__(self):
+    def __enter__(self) -> Self:
         """Enter the runtime context related to this object."""
 
         return self
 
-    def __exit__(self, exc_type, exc_value, traceback):
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType | None,
+    ) -> None:
         """Exit the runtime context and save the log."""
 
         if self.zip:
             # Write the log data to the zip file
-            self._zipfile.writestr("log.json", json.dumps(self.log, default=str))
+            self._zipfile.writestr(
+                "log.json", json.dumps(self.log, default=str)
+            )
             self._zipfile.close()
         else:
-            log_filename = os.path.join(self._output_folder, "log.json")
-            with open(log_filename, "w", encoding="utf-8") as f:
+            log_filename = os.path.join(self._output_folder, "log.json")  # noqa: PTH118
+            with open(log_filename, "w", encoding="utf-8") as f:  # noqa: PTH123
                 json.dump(self.log, f, default=str)
 
     async def dump(
@@ -74,11 +88,11 @@ class AsusRouterDump:
         resp_status: int,
         resp_headers: dict[str, Any],
         resp_content: bytes,
-    ):
+    ) -> None:
         """Dump the data."""
 
         self._endpoint = endpoint
-        self._datetime = datetime.now(timezone.utc).isoformat().replace(":", "-")
+        self._datetime = datetime.now(UTC).isoformat().replace(":", "-")
 
         self.log[self._datetime] = f"Endpoint.{endpoint.name}"
 
@@ -95,7 +109,7 @@ class AsusRouterDump:
         }
         await loop.run_in_executor(None, self._write_metadata, metadata)
 
-    def _write_content(self, content: str):
+    def _write_content(self, content: str) -> None:
         """Write the content to a file."""
 
         if self.full_dump:
@@ -103,20 +117,26 @@ class AsusRouterDump:
             if self.zip:
                 self._zipfile.writestr(filename, content)
             else:
-                with open(
-                    os.path.join(self._output_folder, filename), "w", encoding="utf-8"
+                with open(  # noqa: PTH123
+                    os.path.join(self._output_folder, filename),  # noqa: PTH118
+                    "w",
+                    encoding="utf-8",
                 ) as f:
                     f.write(content)
 
-    def _write_metadata(self, metadata: dict[str, Any]):
+    def _write_metadata(self, metadata: dict[str, Any]) -> None:
         """Write the metadata to a file."""
 
         if self.full_dump:
             filename = f"{self._datetime}-{self._endpoint}.json"
             if self.zip:
-                self._zipfile.writestr(filename, json.dumps(metadata, default=str))
+                self._zipfile.writestr(
+                    filename, json.dumps(metadata, default=str)
+                )
             else:
-                with open(
-                    os.path.join(self._output_folder, filename), "w", encoding="utf-8"
+                with open(  # noqa: PTH123
+                    os.path.join(self._output_folder, filename),  # noqa: PTH118
+                    "w",
+                    encoding="utf-8",
                 ) as f:
                     json.dump(metadata, f, default=str)

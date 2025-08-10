@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 from asusrouter.modules.connection import (
     ConnectionState,
@@ -31,9 +31,9 @@ class AsusClient:
 
     state: ConnectionState = ConnectionState.UNKNOWN
 
-    description: Optional[AsusClientDescription] = None
+    description: AsusClientDescription | None = None
 
-    connection: Optional[AsusClientConnection] = None
+    connection: AsusClientConnection | None = None
 
 
 @dataclass
@@ -41,37 +41,37 @@ class AsusClientConnection:
     """Connection class."""
 
     type: ConnectionType = ConnectionType.DISCONNECTED
-    ip_address: Optional[str] = None
-    ip_method: Optional[str] = None
-    internet_state: Optional[bool] = None
+    ip_address: str | None = None
+    ip_method: str | None = None
+    internet_state: bool | None = None
     internet_mode: InternetMode = InternetMode.UNKNOWN
-    node: Optional[str] = None
+    node: str | None = None
     online: bool = False
 
     # Is an AiMesh node
-    aimesh: Optional[bool] = None
+    aimesh: bool | None = None
 
 
 @dataclass
 class AsusClientConnectionWlan(AsusClientConnection):
     """WLAN connection class."""
 
-    guest: Optional[bool] = None
-    guest_id: Optional[int] = None
-    rssi: Optional[int] = None
-    since: Optional[datetime] = None
-    rx_speed: Optional[float] = None
-    tx_speed: Optional[float] = None
+    guest: bool | None = None
+    guest_id: int | None = None
+    rssi: int | None = None
+    since: datetime | None = None
+    rx_speed: float | None = None
+    tx_speed: float | None = None
 
 
 @dataclass
 class AsusClientDescription:
     """Client description class."""
 
-    name: Optional[str] = None
-    mac: Optional[str] = None
+    name: str | None = None
+    mac: str | None = None
 
-    vendor: Optional[str] = None
+    vendor: str | None = None
 
 
 CLIENT_MAP: dict[str, list[MapValueType]] = {
@@ -188,7 +188,7 @@ CLIENT_MAP_CONNECTION_WLAN: dict[str, list[MapValueType]] = {
 
 
 def process_client(
-    data: dict[str, Any], history: Optional[AsusClient] = None, **kwargs: Any
+    data: dict[str, Any], history: AsusClient | None = None, **kwargs: Any
 ) -> AsusClient:
     """
     Process client data.
@@ -216,10 +216,14 @@ def process_client(
     if history is not None and history.connection is not None:
         connection = process_history(connection, history.connection)
 
-    return AsusClient(state=state, description=description, connection=connection)
+    return AsusClient(
+        state=state, description=description, connection=connection
+    )
 
 
-def process_data(data: dict[str, Any], mapping: dict[str, Any], obj: Any) -> Any:
+def process_data(
+    data: dict[str, Any], mapping: dict[str, Any], obj: Any
+) -> Any:
     """Process data based on a mapping and set attributes on an object."""
 
     # Go through all keys in mapping
@@ -231,7 +235,7 @@ def process_data(data: dict[str, Any], mapping: dict[str, Any], obj: Any) -> Any
             item = data.get(key_to_find)
 
             # Process the value if it's an actual value
-            if item is not None and item != str():
+            if item is not None and item != "":
                 # Apply converters one by one if there are multiple
                 if isinstance(converters, list):
                     for converter in converters:
@@ -258,9 +262,14 @@ def process_client_description(data: dict[str, Any]) -> AsusClientDescription:
 def process_client_connection(data: dict[str, Any]) -> AsusClientConnection:
     """Process client connection data."""
 
-    connection = process_data(data, CLIENT_MAP_CONNECTION, AsusClientConnection())
+    connection = process_data(
+        data, CLIENT_MAP_CONNECTION, AsusClientConnection()
+    )
 
-    if not connection.type in (ConnectionType.WIRED, ConnectionType.DISCONNECTED):
+    if connection.type not in (
+        ConnectionType.WIRED,
+        ConnectionType.DISCONNECTED,
+    ):
         connection = process_client_connection_wlan(data, connection)
 
     return connection
@@ -272,7 +281,9 @@ def process_client_connection_wlan(
     """Process WLAN client connection data."""
 
     wlan_connection = AsusClientConnectionWlan(**base_connection.__dict__)
-    wlan_connection = process_data(data, CLIENT_MAP_CONNECTION_WLAN, wlan_connection)
+    wlan_connection = process_data(
+        data, CLIENT_MAP_CONNECTION_WLAN, wlan_connection
+    )
 
     # Mark `guest` attribute if `guest_id` is non-zero
     wlan_connection.guest = (
@@ -289,7 +300,10 @@ def process_client_state(
     """Process client state."""
 
     # If no IP address or type is disconnected, it's disconnected
-    if connection.ip_address is None or connection.type == ConnectionType.DISCONNECTED:
+    if (
+        connection.ip_address is None
+        or connection.type == ConnectionType.DISCONNECTED
+    ):
         return ConnectionState.DISCONNECTED
 
     # If client is an AiMesh node, it's not a client
@@ -308,7 +322,9 @@ def process_client_state(
     return ConnectionState.DISCONNECTED
 
 
-def process_disconnected(connection: AsusClientConnection) -> AsusClientConnection:
+def process_disconnected(
+    connection: AsusClientConnection,
+) -> AsusClientConnection:
     """Process disconnected client."""
 
     # We keep values set by the user:
@@ -331,14 +347,17 @@ def process_history(
     """Process values from history to avoid oscillating values."""
 
     # Wireless connection
-    if isinstance(connection, AsusClientConnectionWlan) and isinstance(
-        history, AsusClientConnectionWlan
+    if (
+        isinstance(connection, AsusClientConnectionWlan)
+        and isinstance(history, AsusClientConnectionWlan)
+        and connection.since is not None
+        and history.since is not None
     ):
-        # Fix the oscillating connection time ignore any value less than 10 seconds
-        # This comes from the device itself and cannot be fixed from AsusRouter side
-        if connection.since is not None and history.since is not None:
-            diff = abs((history.since - connection.since).total_seconds())
-            if diff < 10:
-                connection.since = history.since
+        # Fix the oscillating connection time: ignore any value less
+        # than 10 seconds. This comes from the device itself and cannot
+        # be fixed from AsusRouter side.
+        diff = abs((history.since - connection.since).total_seconds())
+        if diff < 10:  # noqa: PLR2004
+            connection.since = history.since
 
     return connection

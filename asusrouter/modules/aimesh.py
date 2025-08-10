@@ -8,7 +8,7 @@ from typing import Any
 
 @dataclass
 class AiMeshDevice:
-    """AiMesh device class"""
+    """AiMesh device class."""
 
     # Status
     status: bool = False
@@ -25,7 +25,8 @@ class AiMeshDevice:
 
     # Access point: ap2g, ap5g, ap5g1, ap6g, apdwb
     ap: dict[str, Any] | None = None
-    # Parent AiMesh: pap2g, rssi2g, pap2g_ssid, pap5g, rssi5g, pap5g_ssid, pap6g, rssi6g, pap6g_ssid
+    # Parent AiMesh: pap2g, rssi2g, pap2g_ssid, pap5g, rssi5g, pap5g_ssid,
+    #                pap6g, rssi6g, pap6g_ssid
     parent: dict[str, Any] | None = None
     # Node state
     type: str | None = None
