@@ -12,7 +12,7 @@ from asusrouter.tools.readers import read_json_content
 
 
 def read(content: str) -> dict[str, Any]:
-    """Read sysinfo data"""
+    """Read sysinfo data."""
 
     # Prepare the content
     content = clean_content(content).replace(" = ", '":').replace(";\n", ',"')
@@ -25,7 +25,7 @@ def read(content: str) -> dict[str, Any]:
 
 
 def process(data: dict[str, Any]) -> dict[AsusData, Any]:
-    """Process sysinfo data"""
+    """Process sysinfo data."""
 
     state: dict[AsusData, Any] = {}
 
@@ -60,13 +60,16 @@ def process(data: dict[str, Any]) -> dict[AsusData, Any]:
     if memory_data:
         # Before 388.7
         # JFFS data is presented as a string of `XX.xx / YY.yy MB`
-        # where `XX.xx` is the used space (float) and `YY.yy` is the total space (float)
+        # where `XX.xx` is the used space (float) and `YY.yy` is
+        # the total space (float)
         jffs = memory_data[7]
         if "/" in jffs:
             jffs_data = jffs[:-3].split(" / ")
             jffs_used = safe_float(jffs_data[0])
             jffs_total = safe_float(jffs_data[1])
-            jffs_free = jffs_total - jffs_used if jffs_used and jffs_total else None
+            jffs_free = (
+                jffs_total - jffs_used if jffs_used and jffs_total else None
+            )
         # From 388.7
         # JFFS is just a `free` single float
         else:

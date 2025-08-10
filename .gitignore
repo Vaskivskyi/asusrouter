@@ -18,4 +18,4 @@ local_test*.py
 local/
 
 # VS Code
-.vscode
+.vscode/launch.json

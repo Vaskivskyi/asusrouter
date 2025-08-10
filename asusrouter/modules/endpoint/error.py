@@ -1,12 +1,13 @@
 """Error endpoint module.
 
 This is not an actual endpoint, but rather a module that is used
-to handle errors from any endpoint."""
+to handle errors from any endpoint.
+"""
 
 from __future__ import annotations
 
-import logging
 from enum import IntEnum
+import logging
 from typing import Any
 
 from asusrouter.error import AsusRouterAccessError, AsusRouterLogoutError

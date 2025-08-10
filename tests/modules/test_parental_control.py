@@ -12,7 +12,6 @@ from asusrouter.modules.parental_control import (
     AsusParentalControl,
     ParentalControlRule,
     PCRuleType,
-    set_rule,
     set_state,
 )
 
@@ -21,7 +20,13 @@ async_callback = AsyncMock()
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    "state, expect_modify, expect_call, expected_args, expect_call_rule",
+    (
+        "state",
+        "expect_modify",
+        "expect_call",
+        "expected_args",
+        "expect_call_rule",
+    ),
     [
         # Correct states
         (AsusParentalControl.ON, True, True, {KEY_PC_STATE: 1}, False),
@@ -47,11 +52,17 @@ async_callback = AsyncMock()
     ],
 )
 async def test_set_state(
-    state, expect_modify, expect_call, expected_args, expect_call_rule
-):
+    state: AsusParentalControl | AsusBlockAll | ParentalControlRule | None,
+    expect_modify: bool,
+    expect_call: bool,
+    expected_args: dict[str, int],
+    expect_call_rule: bool,
+) -> None:
     """Test set_state."""
 
-    with mock.patch("asusrouter.modules.parental_control.set_rule") as mock_set_rule:
+    with mock.patch(
+        "asusrouter.modules.parental_control.set_rule"
+    ) as mock_set_rule:
         # Call the set_state function
         await set_state(
             callback=async_callback, state=state, expect_modify=expect_modify

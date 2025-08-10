@@ -32,7 +32,9 @@ mock_state_map = {
 class MockModule:
     """Mock module."""
 
-    def __init__(self, require_state=False, require_identity=False):
+    def __init__(
+        self, require_state: bool = False, require_identity: bool = False
+    ) -> None:
         """Initialize the mock module."""
 
         self.REQUIRE_STATE = require_state  # pylint: disable=invalid-name
@@ -41,19 +43,19 @@ class MockModule:
         self.update_state = mock.Mock()
         self.offset_time = mock.Mock()
 
-    async def set_state(self, **_: Any):
+    async def set_state(self, **_: Any) -> bool:
         """Set the state."""
 
         return True
 
-    async def keep_state(self, *_: Any, **__: Any):
+    async def keep_state(self, *_: Any, **__: Any) -> None:
         """Keep the state."""
 
-        return None
+        return
 
 
 @pytest.mark.parametrize(
-    "state, data, success",
+    ("state", "data", "success"),
     [
         # Existing values of AsusState
         (AsusState.LED, AsusData.LED, True),
@@ -69,7 +71,9 @@ class MockModule:
         (AsusState.CONNECTION, 1, False),
     ],
 )
-def test_add_conditional_state(state, data, success):
+def test_add_conditional_state(
+    state: AsusState, data: AsusData | None, success: bool
+) -> None:
     """Test add_conditional_state."""
 
     # Try to add the state
@@ -84,7 +88,7 @@ def test_add_conditional_state(state, data, success):
 
 
 @pytest.mark.parametrize(
-    "state, expected",
+    ("state", "expected"),
     [
         # Existing values of AsusState
         (AsusSystem.REBOOT, AsusData.SYSTEM),
@@ -97,7 +101,9 @@ def test_add_conditional_state(state, data, success):
         ("string", None),
     ],
 )
-def test_get_datatype(state, expected):
+def test_get_datatype(
+    state: AsusState | None, expected: AsusData | None
+) -> None:
     """Test get_datatype."""
 
     # Try to get the datatype
@@ -109,7 +115,7 @@ def test_get_datatype(state, expected):
 
 
 @pytest.mark.parametrize(
-    "state, expected",
+    ("state", "expected"),
     [
         # Existing values of AsusState
         (AsusState.SYSTEM, AsusData.SYSTEM.value),
@@ -122,12 +128,15 @@ def test_get_datatype(state, expected):
         ("string", None),
     ],
 )
-def test_get_module_name(state, expected):
+def test_get_module_name(
+    state: AsusState | None, expected: str | None
+) -> None:
     """Test _get_module_name."""
 
     # Mock the get_datatype function
     with mock.patch(
-        "asusrouter.modules.state.get_datatype", lambda s: mock_state_map.get(s, None)
+        "asusrouter.modules.state.get_datatype",
+        lambda s: mock_state_map.get(s),
     ):
         result = _get_module_name(state)
 
@@ -136,12 +145,40 @@ def test_get_module_name(state, expected):
 
 
 @pytest.mark.parametrize(
-    "state, module_name, expected_module, import_result, import_exception, expected",
+    (
+        "state",
+        "module_name",
+        "expected_module",
+        "import_result",
+        "import_exception",
+        "expected",
+    ),
     [
         # Existing values of AsusState
-        (AsusState.SYSTEM, "system", "system", mock.MagicMock(), None, "mock_module"),
-        (AsusState.VPNC, "vpnc", "vpnc", mock.MagicMock(), None, "mock_module"),
-        (AsusState.WLAN, "wlan", "wlan", mock.MagicMock(), None, "mock_module"),
+        (
+            AsusState.SYSTEM,
+            "system",
+            "system",
+            mock.MagicMock(),
+            None,
+            "mock_module",
+        ),
+        (
+            AsusState.VPNC,
+            "vpnc",
+            "vpnc",
+            mock.MagicMock(),
+            None,
+            "mock_module",
+        ),
+        (
+            AsusState.WLAN,
+            "wlan",
+            "wlan",
+            mock.MagicMock(),
+            None,
+            "mock_module",
+        ),
         (
             AsusState.WIREGUARD_CLIENT,
             "wireguard_client",
@@ -166,31 +203,38 @@ def test_get_module_name(state, expected):
         ("string", None, None, None, None, None),
     ],
 )
-def test_get_module(
-    state, module_name, expected_module, import_result, import_exception, expected
-):
+def test_get_module(  # noqa: PLR0913
+    state: AsusState | None,
+    module_name: str | None,
+    expected_module: str | None,
+    import_result: Any,
+    import_exception: Exception | None,
+    expected: str | None,
+) -> None:
     """Test _get_module."""
 
-    # Mock the _get_module_name function
-    with mock.patch(
-        "asusrouter.modules.state._get_module_name", return_value=module_name
+    # Mock the _get_module_name function and importlib.import_module function
+    with (
+        mock.patch(
+            "asusrouter.modules.state._get_module_name",
+            return_value=module_name,
+        ),
+        mock.patch("importlib.import_module") as mock_import,
     ):
-        # Mock the importlib.import_module function
-        with mock.patch("importlib.import_module") as mock_import:
-            mock_import.return_value = import_result
-            mock_import.side_effect = import_exception
-            result = _get_module(state)
-            if expected_module and import_result is not None:
-                mock_import.assert_called_once_with(
-                    f"asusrouter.modules.{expected_module}"
-                )
+        mock_import.return_value = import_result
+        mock_import.side_effect = import_exception
+        result = _get_module(state)
+        if expected_module and import_result is not None:
+            mock_import.assert_called_once_with(
+                f"asusrouter.modules.{expected_module}"
+            )
 
     # Check the result
     assert (result is not None) == (expected is not None)
 
 
 @pytest.mark.parametrize(
-    "module, method, expected",
+    ("module", "method", "expected"),
     [
         # Existing method
         (MockModule(), "set_state", True),
@@ -198,7 +242,7 @@ def test_get_module(
         (MockModule(), "non_existing_method", False),
     ],
 )
-def test_has_method(module, method, expected):
+def test_has_method(module: MockModule, method: str, expected: bool) -> None:
     """Test _has_method."""
 
     result = _has_method(module, method)
@@ -208,7 +252,7 @@ def test_has_method(module, method, expected):
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    "has_method, require_state, require_identity, expected",
+    ("has_method", "require_state", "require_identity", "expected"),
     [
         (True, False, False, True),
         (True, True, False, True),
@@ -216,40 +260,48 @@ def test_has_method(module, method, expected):
         (False, False, False, False),
     ],
 )
-async def test_set_state(has_method, require_state, require_identity, expected):
+async def test_set_state(
+    has_method: bool,
+    require_state: bool,
+    require_identity: bool,
+    expected: bool,
+) -> None:
     """Test set_state."""
 
-    # Mock the _get_module function
-    with mock.patch(
-        "asusrouter.modules.state._get_module",
-        return_value=MockModule(require_state, require_identity),
-    ):
-        # Mock the _has_method function
-        with mock.patch(
+    # Mock the _get_module function and _has_method function
+    with (
+        mock.patch(
+            "asusrouter.modules.state._get_module",
+            return_value=MockModule(require_state, require_identity),
+        ),
+        mock.patch(
             "asusrouter.modules.state._has_method", return_value=has_method
-        ):
-            result = await set_state(mock.AsyncMock(), AsusState.SYSTEM)
+        ),
+    ):
+        result = await set_state(mock.AsyncMock(), AsusState.SYSTEM)
 
     assert result == expected
 
 
 @pytest.mark.parametrize(
-    "state, datatype",
+    ("state", "datatype"),
     [
         (AsusState.VPNC, AsusData.VPNC),
         (AsusState.VPNC, None),
     ],
 )
-def test_save_state(state, datatype):
+def test_save_state(state: AsusState, datatype: AsusData | None) -> None:
     """Test save_state."""
 
     # Mock the get_datatype function
-    with mock.patch("asusrouter.modules.state.get_datatype", return_value=datatype):
+    with mock.patch(
+        "asusrouter.modules.state.get_datatype", return_value=datatype
+    ):
         # Mock the AsusDataState objects
         library = {AsusData.VPNC: MockModule()}
 
         # Call the function
-        save_state(state, library)  # type: ignore
+        save_state(state, library)
 
     # Check the calls to the AsusDataState methods
     if datatype is not None:
@@ -259,7 +311,7 @@ def test_save_state(state, datatype):
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    "states, has_method, expected",
+    ("states", "has_method", "expected"),
     [
         ([AsusState.SYSTEM], True, None),
         (AsusState.SYSTEM, True, None),  # Single value, not a list
@@ -267,15 +319,20 @@ def test_save_state(state, datatype):
         (None, False, None),
     ],
 )
-async def test_keep_state(states, has_method, expected):
+async def test_keep_state(
+    states: list[AsusState] | None, has_method: bool, expected: bool | None
+) -> None:
     """Test keep_state."""
 
-    # Mock the _get_module function
-    with mock.patch("asusrouter.modules.state._get_module", return_value=MockModule()):
-        # Mock the _has_method function
-        with mock.patch(
+    # Mock the _get_module function and _has_method function
+    with (
+        mock.patch(
+            "asusrouter.modules.state._get_module", return_value=MockModule()
+        ),
+        mock.patch(
             "asusrouter.modules.state._has_method", return_value=has_method
-        ):
-            result = await keep_state(mock.AsyncMock(), states)
+        ),
+    ):
+        result = await keep_state(mock.AsyncMock(), states)
 
     assert result == expected

@@ -40,7 +40,10 @@ def test_clean_dict_key_prefix():
 
     # Test with empty string
     data = {"prefix_test": "", "test2": ""}
-    assert cleaners.clean_dict_key_prefix(data, "prefix") == {"test": "", "test2": ""}
+    assert cleaners.clean_dict_key_prefix(data, "prefix") == {
+        "test": "",
+        "test2": "",
+    }
 
     # Test with nested dicts
     data = {"prefix_test": {"prefix_test": ""}}

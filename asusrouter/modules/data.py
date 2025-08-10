@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from enum import Enum
-from typing import Any, Optional
+from typing import Any
 
 from asusrouter.tools.converters import safe_bool
 
@@ -19,6 +19,7 @@ class AsusData(str, Enum):
     BOOTTIME = "boottime"
     CLIENTS = "clients"
     CPU = "cpu"
+    DDNS = "ddns"
     DEVICEMAP = "devicemap"
     DSL = "dsl"
     FIRMWARE = "firmware"
@@ -56,8 +57,8 @@ class AsusData(str, Enum):
 class AsusDataState:
     """State of data."""
 
-    data: Optional[Any] = None
-    timestamp: datetime = datetime.now(timezone.utc)
+    data: Any | None = None
+    timestamp: datetime = datetime.now(UTC)
     active: bool = False
     inactive_event: asyncio.Event = asyncio.Event()
 
@@ -78,11 +79,11 @@ class AsusDataState:
 
         self.data = data
         # Set timestamp to the current utc time
-        self.timestamp = datetime.now(timezone.utc)
+        self.timestamp = datetime.now(UTC)
         # Set to inactive
         self.stop()
 
-    def update_state(self, state: Any, last_id: Optional[int] = None) -> None:
+    def update_state(self, state: Any, last_id: int | None = None) -> None:
         """Update a state variable in the data dict."""
 
         # Convert the state if needed
@@ -100,21 +101,21 @@ class AsusDataState:
 
         self.data = {"state": state}
 
-    def offset_time(self, offset: Optional[int]) -> None:
+    def offset_time(self, offset: int | None) -> None:
         """Offset the timestamp."""
 
         if offset is None:
-            self.timestamp = datetime.now(timezone.utc)
+            self.timestamp = datetime.now(UTC)
             return
 
-        self.timestamp = datetime.now(timezone.utc) + timedelta(seconds=offset)
+        self.timestamp = datetime.now(UTC) + timedelta(seconds=offset)
 
 
-def convert_state(state: Any):
+def convert_state(state: Any) -> bool:
     """Convert the state to a correct one."""
 
     # If the state is not boolean, convert it to boolean
     if not isinstance(state, bool):
         state = safe_bool(state)
 
-    return state
+    return bool(state)

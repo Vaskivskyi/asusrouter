@@ -3,6 +3,7 @@
 from typing import Any
 
 import pytest
+
 from asusrouter.modules.data import AsusData
 from asusrouter.modules.endpoint.firmware import process, read
 from asusrouter.modules.firmware import (
@@ -15,7 +16,7 @@ from asusrouter.modules.firmware import (
 from asusrouter.tools.readers import read_js_variables
 
 
-def test_read():
+def test_read() -> None:
     """Test read function."""
 
     # Check if 'read' is the same as 'read_js_variables'
@@ -207,11 +208,8 @@ test_cases = [
 ]
 
 
-@pytest.mark.parametrize("input_data, expected", test_cases)
-def test_process(
-    input_data,
-    expected,
-):
+@pytest.mark.parametrize(("input_data", "expected"), test_cases)
+def test_process(input_data: dict[str, Any], expected: dict[str, Any]) -> None:
     """Test process function."""
 
     result = process(input_data)

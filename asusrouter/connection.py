@@ -1,20 +1,27 @@
 """Connection module.
 
 This module handles the connection between the library and the router
-as well as all the data transfer."""
+as well as all the data transfer.
+"""
 
 from __future__ import annotations
 
 import asyncio
 import base64
+from collections.abc import Awaitable, Callable
 import json
 import logging
-from typing import Any, Awaitable, Callable, Optional, Tuple
+from typing import Any, Self
 from urllib.parse import quote
 
 import aiohttp
 
-from asusrouter.const import DEFAULT_TIMEOUT, USER_AGENT, RequestType
+from asusrouter.const import (
+    DEFAULT_TIMEOUT,
+    USER_AGENT,
+    HTTPStatus,
+    RequestType,
+)
 from asusrouter.error import (
     AsusRouter404Error,
     AsusRouterAccessError,
@@ -32,8 +39,8 @@ _LOGGER = logging.getLogger(__name__)
 
 def generate_credentials(
     username: str, password: str
-) -> Tuple[str, dict[str, str]]:
-    """Generate credentials for connection"""
+) -> tuple[str, dict[str, str]]:
+    """Generate credentials for connection."""
 
     auth = f"{username}:{password}".encode("ascii")
     logintoken = base64.b64encode(auth).decode("ascii")
@@ -46,24 +53,24 @@ def generate_credentials(
 class Connection:  # pylint: disable=too-many-instance-attributes
     """A connection between the library and the device."""
 
-    def __init__(  # pylint: disable=too-many-arguments
+    def __init__(  # noqa: PLR0913
         self,
         hostname: str,
         username: str,
         password: str,
-        port: Optional[int] = None,
+        port: int | None = None,
         use_ssl: bool = False,
-        session: Optional[aiohttp.ClientSession] = None,
-        timeout: Optional[int] = DEFAULT_TIMEOUT,
-        dumpback: Optional[Callable[..., Awaitable[None]]] = None,
+        session: aiohttp.ClientSession | None = None,
+        timeout: int | None = DEFAULT_TIMEOUT,
+        dumpback: Callable[..., Awaitable[None]] | None = None,
     ):
         """Initialize connection."""
 
         _LOGGER.debug("Initializing a new connection to `%s`", hostname)
 
         # Initialize parameters for connection
-        self._token: Optional[str] = None
-        self._header: Optional[dict[str, str]] = None
+        self._token: str | None = None
+        self._header: dict[str, str] | None = None
         self._connected: bool = False
         self._connection_lock: asyncio.Lock = asyncio.Lock()
         self._timeout: int = timeout or DEFAULT_TIMEOUT
@@ -97,7 +104,7 @@ class Connection:  # pylint: disable=too-many-instance-attributes
             _LOGGER.debug("No session provided. Will create a new one")
             self._session = self._new_session()
 
-    async def __aenter__(self) -> Connection:
+    async def __aenter__(self) -> Self:
         """Enter the connection."""
 
         await self.async_connect()
@@ -105,27 +112,27 @@ class Connection:  # pylint: disable=too-many-instance-attributes
 
     async def __aexit__(
         self,
-        exc_type: Any,
-        exc_value: Any,
-        traceback: Any,
+        exc_type: object,
+        exc_value: object,
+        traceback: object,
     ) -> None:
         """Exit the connection."""
 
         await self.async_close()
 
     @classmethod
-    async def create(
+    async def create(  # noqa: PLR0913
         cls,
         hostname: str,
         username: str,
         password: str,
-        port: Optional[int] = None,
+        port: int | None = None,
         use_ssl: bool = False,
-        session: Optional[aiohttp.ClientSession] = None,
-        timeout: Optional[int] = DEFAULT_TIMEOUT,
-        dumpback: Optional[Callable[..., Awaitable[None]]] = None,
+        session: aiohttp.ClientSession | None = None,
+        timeout: int | None = DEFAULT_TIMEOUT,  # noqa: ASYNC109
+        dumpback: Callable[..., Awaitable[None]] | None = None,
     ) -> Connection:
-        """Factory method to create and initialize a connection."""
+        """Create and initialize a connection."""
 
         connection = cls(
             hostname=hostname,
@@ -168,7 +175,7 @@ class Connection:  # pylint: disable=too-many-instance-attributes
         else:
             _LOGGER.debug("No session to close or not managing the session")
 
-    async def async_connect(self, lock: Optional[asyncio.Lock] = None) -> bool:
+    async def async_connect(self, lock: asyncio.Lock | None = None) -> bool:
         """Connect to the device and get a new auth token."""
 
         try:
@@ -176,13 +183,13 @@ class Connection:  # pylint: disable=too-many-instance-attributes
                 self._async_connect_with_lock(lock), timeout=self._timeout
             )
             return True
-        except asyncio.TimeoutError:
+        except TimeoutError:
             _LOGGER.error("Connection to %s timed out", self._hostname)
             return False
 
     async def _async_connect_with_lock(
         self,
-        lock: Optional[asyncio.Lock] = None,
+        lock: asyncio.Lock | None = None,
     ) -> bool:
         """Connect to the device and get a new auth token."""
 
@@ -276,10 +283,10 @@ class Connection:  # pylint: disable=too-many-instance-attributes
     async def _send_request(
         self,
         endpoint: EndpointType,
-        payload: Optional[str] = None,
-        headers: Optional[dict[str, str]] = None,
+        payload: str | None = None,
+        headers: dict[str, str] | None = None,
         request_type: RequestType = RequestType.POST,
-    ) -> Tuple[int, dict[str, str], str]:
+    ) -> tuple[int, dict[str, str], str]:
         """Send a request to the device."""
 
         # Send request
@@ -292,11 +299,11 @@ class Connection:  # pylint: disable=too-many-instance-attributes
             )
 
             # Raise exception on 404
-            if resp_status == 404:
+            if resp_status == HTTPStatus.NOT_FOUND:
                 raise AsusRouter404Error(f"Endpoint {endpoint} not found")
 
             # Raise exception on non-200 status
-            if resp_status != 200:
+            if resp_status != HTTPStatus.OK:
                 raise AsusRouterAccessError(
                     f"Cannot access {endpoint}, status {resp_status}"
                 )
@@ -320,7 +327,7 @@ class Connection:  # pylint: disable=too-many-instance-attributes
                 f"Cannot connect to `{self._hostname}` on port "
                 f"`{self._port}`. Failed in `_send_request` with error: `{ex}`"
             ) from ex
-        except (asyncio.TimeoutError, asyncio.CancelledError) as ex:
+        except (TimeoutError, asyncio.CancelledError) as ex:
             raise AsusRouterTimeoutError(
                 f"Data cannot be retrieved due to an asyncio error. "
                 f"Connection failed: {ex}"
@@ -336,10 +343,10 @@ class Connection:  # pylint: disable=too-many-instance-attributes
     async def async_query(
         self,
         endpoint: EndpointType,
-        payload: Optional[str] = None,
-        headers: Optional[dict[str, str]] = None,
+        payload: str | None = None,
+        headers: dict[str, str] | None = None,
         request_type: RequestType = RequestType.POST,
-    ) -> Tuple[int, dict[str, str], str]:
+    ) -> tuple[int, dict[str, str], str]:
         """Send a request to the device."""
 
         # If not connected, try to connect
@@ -364,8 +371,8 @@ class Connection:  # pylint: disable=too-many-instance-attributes
     async def _make_request(
         self,
         endpoint: EndpointType,
-        payload: Optional[str] = None,
-        headers: Optional[dict[str, str]] = None,
+        payload: str | None = None,
+        headers: dict[str, str] | None = None,
         request_type: RequestType = RequestType.POST,
     ) -> Any:
         """Make a post request to the device."""

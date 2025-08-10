@@ -1,1 +1,1 @@
-"""Tools module"""
+"""Tools module."""

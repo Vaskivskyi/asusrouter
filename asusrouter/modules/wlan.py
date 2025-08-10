@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Awaitable, Callable
 from enum import Enum, IntEnum
-from typing import Any, Awaitable, Callable
+from typing import Any
 
 from asusrouter.modules.const import MapValueType
 from asusrouter.tools.converters import (
@@ -156,8 +157,9 @@ def _nvram_request(
             key, _ = safe_unpack_key(pair)
             index = list(Wlan).index(interface)
             if guest:
-                for gid in range(1, 4):
-                    request.append(key.format(f"{index}.{gid}"))
+                request.extend(
+                    [key.format(f"{index}.{gid}") for gid in range(1, 4)]
+                )
             else:
                 request.append(key.format(index))
 

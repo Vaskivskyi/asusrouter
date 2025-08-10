@@ -1,7 +1,12 @@
 """Result of processing port_status_001.content."""
 
 from asusrouter import AsusData
-from asusrouter.modules.ports import PortCapability, PortSpeed, PortType, USBSpeed
+from asusrouter.modules.ports import (
+    PortCapability,
+    PortSpeed,
+    PortType,
+    USBSpeed,
+)
 
 expected_result = {
     AsusData.NODE_INFO: {

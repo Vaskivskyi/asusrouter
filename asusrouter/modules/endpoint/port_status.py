@@ -25,7 +25,7 @@ _LOGGER = logging.getLogger(__name__)
 
 
 def process(data: dict[str, Any]) -> dict[AsusData, Any]:
-    """Process port status data"""
+    """Process port status data."""
 
     ports: dict[PortType, Any] = {}
 
@@ -72,13 +72,7 @@ def process_node_info(data: dict[str, Any]) -> dict[str, Any]:
     if not node_info:
         return {}
 
-    nodes = {}
-
-    for mac, info in node_info.items():
-        # Save the node info
-        nodes[mac] = info
-
-    return nodes
+    return dict(node_info.items())
 
 
 def process_port_info(
@@ -123,9 +117,11 @@ def process_port_info(
         )
 
     # Special ports
-    if max_rate == PortSpeed.LINK_10000:
-        if port_capabilities.get(PortCapability.SFPP) is True:
-            port_type = PortType.SFPP
+    if (
+        max_rate == PortSpeed.LINK_10000
+        and port_capabilities.get(PortCapability.SFPP) is True
+    ):
+        port_type = PortType.SFPP
 
     # Port state
     port_state = safe_bool(values.get("is_on"))

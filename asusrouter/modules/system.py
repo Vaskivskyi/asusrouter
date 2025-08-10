@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-import logging
+from collections.abc import Awaitable, Callable
 from enum import Enum
-from typing import Any, Awaitable, Callable
+import logging
+from typing import Any
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -22,7 +23,8 @@ class AsusSystem(str, Enum):
     services depends on the router model and firmware version.
 
     Some services might not be tested and might not work as expected. Use with
-    caution and at your own risk."""
+    caution and at your own risk.
+    """
 
     # ---------------------
     # DISCLAIMER: Migration to the new format
@@ -58,6 +60,10 @@ class AsusSystem(str, Enum):
     # Aura
     AURA_RESTART = "restart_ledg"  # Restart Aura RGB
     # ---------------------
+    # DDNS
+    DDNS_RESTART = "restart_ddns_le"  # Restart DDNS
+    RESTART_DDNS_LE = "_depr_restart_ddns_le"  # Restart DDNS / legacy name
+    # ---------------------
     # Firmware
     FIRMWARE_CHECK = "firmware_check"  # Check for firmware update
     # Firmware upgrade will upgrade the firmware to the latest version
@@ -78,12 +84,11 @@ class AsusSystem(str, Enum):
     RESTART_CHPASS = "restart_chpass"
     RESTART_CLOUDSYNC = "restart_cloudsync"  # AiCloud 2.0 sync
     RESTART_CP = "restart_CP"  # Captive Portal
-    RESTART_DDNS_LE = "restart_ddns_le"
     RESTART_DEFAULT_WAN = "restart_default_wan"  # Default WAN
     RESTART_DISKMON = "restart_diskmon"  # Disk monitor
     RESTART_DNSFILTER = "restart_dnsfilter"  # DNS filter
     RESTART_DNSMASQ = "restart_dnsmasq"  # DNS
-    RESTART_DNSQD = "restart_dnsqd"  #
+    RESTART_DNSQD = "restart_dnsqd"
     RESTART_FIREWALL = "restart_firewall"  # Firewall
     RESTART_FTPD = "restart_ftpd"  # FTP server
     RESTART_FTPSAMBA = "restart_ftpsamba"
@@ -154,6 +159,8 @@ class AsusSystem(str, Enum):
 AsusSystemDeprecated = {
     # AiMesh
     AsusSystem.REBUILD_AIMESH: (AsusSystem.AIMESH_REBUILD, None),
+    # DDNS
+    AsusSystem.RESTART_DDNS_LE: (AsusSystem.DDNS_RESTART, None),
     # Upgrades and updates
     AsusSystem.RESTART_UPGRADE: (AsusSystem.UPGRADE_RESTART, None),
     AsusSystem.START_UPGRADE: (AsusSystem.UPGRADE_START, None),
@@ -221,8 +228,10 @@ async def set_state(
     # Check and notify if the state is deprecated
     if state in AsusSystemDeprecated:
         repl_state, repl_ver = AsusSystemDeprecated[state]
-        message = f"Deprecated state `{state.name}` from `AsusSystem` \
-enum used. Use `{repl_state.name}` instead"
+        message = (
+            f"Deprecated state `{state.name}` from `AsusSystem` "
+            f"enum used. Use `{repl_state.name}` instead"
+        )
         if repl_ver:
             message += f". This state will be removed in version {repl_ver}"
         _LOGGER.warning(

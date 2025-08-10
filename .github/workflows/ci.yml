@@ -52,9 +52,61 @@ jobs:
       - name: Install the project
         run: uv sync --all-groups
 
+  ruff-format:
+    name: Ruff Format
+    needs: prepare
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4.2.2
+
+      - name: Set up UV and Python
+        uses: astral-sh/setup-uv@v6
+        with:
+          python-version: 3.13
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      - name: Install the project
+        run: uv sync --all-groups
+
+      - name: Run Ruff Format
+        run: uv run pre-commit run --hook-stage manual ruff-format --all-files --show-diff-on-failure
+
+  ruff-check:
+    name: Ruff Check
+    needs: prepare
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4.2.2
+
+      - name: Set up UV and Python
+        uses: astral-sh/setup-uv@v6
+        with:
+          python-version: 3.13
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      - name: Install the project
+        run: uv sync --all-groups
+
+      - name: Run Ruff Check
+        run: uv run pre-commit run --hook-stage manual ruff-check --all-files --show-diff-on-failure
+
   unit-tests:
     name: Unit Tests
-    needs: prepare
+    needs:
+      - ruff-format
+      - ruff-check
     runs-on: ubuntu-latest
 
     permissions:
@@ -89,7 +141,9 @@ jobs:
 
   device-tests:
     name: Device Tests
-    needs: prepare
+    needs:
+      - ruff-format
+      - ruff-check
     runs-on: ubuntu-latest
 
     permissions:
@@ -139,13 +193,13 @@ jobs:
         uses: actions/checkout@v4.2.2
 
       - name: Download unit-tests coverage from artifacts
-        uses: actions/download-artifact@v4.1.9
+        uses: actions/download-artifact@v5
         with:
           name: unit-tests-cov-${{ matrix.python-version }}
           path: .
 
       - name: Download real-data-tests coverage from artifacts
-        uses: actions/download-artifact@v4.1.9
+        uses: actions/download-artifact@v5
         with:
           name: real-data-tests-cov-${{ matrix.python-version }}
           path: .

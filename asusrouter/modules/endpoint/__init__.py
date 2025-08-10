@@ -2,14 +2,15 @@
 
 from __future__ import annotations
 
-import importlib
-import logging
+from collections.abc import Awaitable, Callable
 from concurrent.futures import ThreadPoolExecutor
 from enum import Enum
+import importlib
+import logging
 from types import ModuleType
-from typing import Any, Awaitable, Callable, Optional, Union
+from typing import Any
 
-from asusrouter.const import RequestType
+from asusrouter.const import HTTPStatus, RequestType
 from asusrouter.error import AsusRouter404Error
 from asusrouter.modules.data import AsusData, AsusDataState
 from asusrouter.modules.firmware import Firmware
@@ -19,8 +20,13 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class Endpoint(str, Enum):
-    """Endpoint enum. These endpoints are used to receive data from the device."""
+    """Endpoint enum.
 
+    These endpoints are used to receive data from the device.
+    """
+
+    CERT_INFO = "ajax_certinfo.asp"
+    DDNS_CODE = "ajax_ddnscode.asp"
     DEVICEMAP = "ajax_status.xml"
     DSL = "ajax_AdslStatus.asp"
     ETHERNET_PORTS = "ajax_ethernet_ports.asp"
@@ -41,7 +47,10 @@ class Endpoint(str, Enum):
 
 
 class EndpointControl(str, Enum):
-    """Control endpoint enum. These endpoints are used to set parameters to the device."""
+    """Control endpoint enum.
+
+    These endpoints are used to set parameters to the device.
+    """
 
     APPLY = "apply.cgi"
     COMMAND = "applyapp.cgi"
@@ -71,7 +80,7 @@ class EndpointNoCheck(str, Enum):
 
 
 # Typehint for the endpoint
-EndpointType = Union[Endpoint, EndpointControl, EndpointService, EndpointTools]
+EndpointType = Endpoint | EndpointControl | EndpointService | EndpointTools
 
 # Force request type for the endpoint
 ENDPOINT_FORCE_REQUEST = {
@@ -82,20 +91,20 @@ ENDPOINT_FORCE_REQUEST = {
 
 def _get_module(
     endpoint: Endpoint | EndpointControl | EndpointTools,
-) -> Optional[ModuleType]:
+) -> ModuleType | None:
     """Attempt to get the module for the endpoint."""
 
     try:
         # Get the module name from the endpoint
         module_name = f"asusrouter.modules.endpoint.{endpoint.name.lower()}"
 
-        # Import the module in a separate thread to avoid blocking the main thread
+        # Import the module in a separate thread
+        # to avoid blocking the main thread
         with ThreadPoolExecutor(max_workers=1) as executor:
             future = executor.submit(importlib.import_module, module_name)
-            submodule = future.result()
+            # Return the module
+            return future.result()
 
-        # Return the module
-        return submodule
     except ModuleNotFoundError:
         _LOGGER.debug("No module found for endpoint %s", endpoint)
         return None
@@ -113,7 +122,10 @@ def read(
 
     # Read the data if module found
     if submodule:
-        return submodule.read(content)
+        result = submodule.read(content)
+        if isinstance(result, dict):
+            return result
+        return {}
 
     return {}
 
@@ -121,9 +133,9 @@ def read(
 def process(
     endpoint: Endpoint,
     data: dict[str, Any],
-    history: Optional[dict[AsusData, AsusDataState]] = None,
-    firmware: Optional[Firmware] = None,
-    wlan: Optional[list[Wlan]] = None,
+    history: dict[AsusData, AsusDataState] | None = None,
+    firmware: Firmware | None = None,
+    wlan: list[Wlan] | None = None,
 ) -> dict[AsusData, Any]:
     """Process the data from an endpoint."""
 
@@ -148,7 +160,10 @@ def process(
             data_set(data, wlan=wlan)
 
         # Process the data
-        return submodule.process(data)
+        result = submodule.process(data)
+        if isinstance(result, dict):
+            return result
+        return {}
 
     return {}
 
@@ -156,19 +171,18 @@ def process(
 def data_set(data: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
     """Append the data to the data dict."""
 
-    # Go through the kwargs and append the data
-    for key, value in kwargs.items():
-        data[key] = value
+    # Update the data dict with kwargs using dictionary comprehension
+    data.update(dict(kwargs.items()))
 
     # Return the data
     return data
 
 
-def data_get(data: dict[str, Any], key: str) -> Optional[Any]:
+def data_get(data: dict[str, Any], key: str) -> Any | None:
     """Extract value from the data dict and update the data dict."""
 
     # Get the value
-    value = data.get(key, None)
+    value = data.get(key)
 
     # Remove the value from the data dict
     data.pop(key, None)
@@ -180,12 +194,12 @@ def data_get(data: dict[str, Any], key: str) -> Optional[Any]:
 async def check_available(
     endpoint: Endpoint | EndpointTools,
     api_query: Callable[..., Awaitable[Any]],
-) -> tuple[bool, Optional[Any]]:
+) -> tuple[bool, Any | None]:
     """Check whether the endpoint is available or returns 404."""
 
     try:
         status, _, content = await api_query(endpoint)
-        if status == 200:
+        if status == HTTPStatus.OK:
             return (True, content)
     except AsusRouter404Error:
         return (False, None)

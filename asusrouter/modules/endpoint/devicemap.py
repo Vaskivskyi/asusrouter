@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timedelta
 import logging
 import re
-from datetime import datetime, timedelta
-from typing import Any, Optional, Tuple
+from typing import Any
 
 import xmltodict
 
+from asusrouter.config import ARConfig, ARConfigKey
 from asusrouter.modules.data import AsusData, AsusDataState
 from asusrouter.modules.endpoint import data_get
 from asusrouter.modules.openvpn import AsusOVPNClient, AsusOVPNServer
@@ -41,7 +42,7 @@ def read(content: str) -> dict[str, Any]:
         if not xml_content:
             _LOGGER.debug("Received empty devicemap XML")
             return devicemap
-    except xmltodict.expat.ExpatError as ex:  # type: ignore
+    except xmltodict.expat.ExpatError as ex:  # pyright: ignore[reportAttributeAccessIssue]
         _LOGGER.debug("Received invalid devicemap XML: %s", ex)
         return devicemap
 
@@ -82,7 +83,8 @@ def read_index(xml_content: dict[str, Any]) -> dict[str, Any]:
     """Read devicemap by index.
 
     This method performs reading of the devicemap by index
-    to simplify the original read_devicemap method."""
+    to simplify the original read_devicemap method.
+    """
 
     # Create a dict to store the data
     devicemap: dict[str, Any] = {}
@@ -114,7 +116,8 @@ def read_key(xml_content: dict[str, Any]) -> dict[str, Any]:
     """Read devicemap by key.
 
     This method performs reading of the devicemap by key
-    to simplify the original read_devicemap method."""
+    to simplify the original read_devicemap method.
+    """
 
     # Create a dict to store the data
     devicemap: dict[str, Any] = {}
@@ -137,7 +140,8 @@ def read_key(xml_content: dict[str, Any]) -> dict[str, Any]:
             if isinstance(xml_input_group, str):
                 xml_input_group = [xml_input_group]
 
-            # Go through the input group data and check if the input value is in it
+            # Go through the input group data and check
+            # if the input value is in it
             for value in xml_input_group:
                 if input_value in value:
                     # Add the input value to the output group data
@@ -165,43 +169,47 @@ def read_special(xml_content: dict[str, Any]) -> dict[str, Any]:
 
 def read_uptime_string(
     content: str,
-) -> Tuple[Optional[datetime], Optional[int]]:
+) -> tuple[datetime | None, int | None]:
     """Read uptime string and return proper datetime object."""
 
     # Split the content into the date/time part and the seconds part
     uptime_parts = content.split("(")
-    if len(uptime_parts) < 2:
+    if len(uptime_parts) < 2:  # noqa: PLR2004
         return (None, None)
 
     # Extract the number of seconds from the seconds part
     seconds_match = re.search("([0-9]+)", uptime_parts[1])
     if not seconds_match:
         return (None, None)
-    seconds = safe_int(seconds_match.group())
+    seconds: int | None = safe_int(seconds_match.group())
 
     when = safe_datetime(uptime_parts[0])
-    if when is None:
+    if when is None or seconds is None:
         return (None, seconds)
 
-    # This part will always work, since seconds are always an integer
-    # unless `safe_int` got broken
     uptime = when - timedelta(seconds=seconds)
+
+    # If robust_boottime is enabled, floor the uptime to even seconds
+    # This will introduce a systematic error with up to 1 second delay
+    # but will avoid raw data uncertainty and the resulting jitter
+    if ARConfig.get(ARConfigKey.ROBUST_BOOTTIME) is True:
+        even_seconds = uptime.second - (uptime.second % 2)
+        uptime = uptime.replace(second=even_seconds, microsecond=0)
+
     return (uptime, seconds)
 
 
 def process(data: dict[str, Any]) -> dict[AsusData, Any]:
     """Process data from devicemap endpoint."""
 
-    # Get the passed awrguments
+    # Get the passed arguments
     history: dict[AsusData, AsusDataState] = data_get(data, "history") or {}
 
     # Devicemap - just the data itself
     devicemap = data
 
     # Boot time
-    prev_boottime_object: Optional[AsusDataState] = history.get(
-        AsusData.BOOTTIME
-    )
+    prev_boottime_object: AsusDataState | None = history.get(AsusData.BOOTTIME)
     prev_boottime = prev_boottime_object.data if prev_boottime_object else None
     boottime, reboot = process_boottime(devicemap, prev_boottime)
 
@@ -223,9 +231,9 @@ def process(data: dict[str, Any]) -> dict[AsusData, Any]:
 
 
 def process_boottime(
-    devicemap: dict[str, Any], prev_boottime: Optional[dict[str, Any]]
-) -> Tuple[dict[str, Any], bool]:
-    """Process boottime data"""
+    devicemap: dict[str, Any], prev_boottime: dict[str, Any] | None
+) -> tuple[dict[str, Any], bool]:
+    """Process boottime data."""
 
     # Reboot flag
     reboot = False
@@ -247,7 +255,7 @@ def process_boottime(
                     delta = time - prev_boottime["datetime"]
 
                     # Check for reboot
-                    if abs(delta.seconds) >= 2 and delta.seconds >= 0:
+                    if abs(delta.seconds) >= 2 and delta.seconds >= 0:  # noqa: PLR2004
                         reboot = True
                     else:
                         boottime = prev_boottime
@@ -258,7 +266,7 @@ def process_boottime(
 
 
 def process_ovpn(devicemap: dict[str, Any]) -> dict[str, Any]:
-    """Process OpenVPN data"""
+    """Process OpenVPN data."""
 
     vpn: dict[str, Any] = {
         "client": {},

@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import logging
 import threading
-from typing import Any, Optional
+from typing import Any
 
-from asusrouter.config import ARConfig
+from asusrouter.config import ARConfig, ARConfigKey
 from asusrouter.modules.data import AsusData
 from asusrouter.modules.wlan import Wlan
 from asusrouter.tools.cleaners import clean_content
@@ -35,7 +35,7 @@ _temperature_warned_lock = threading.Lock()
 def read(content: str) -> dict[str, Any]:
     """Read temperature data."""
 
-    global _temperature_warned
+    global _temperature_warned  # noqa: PLW0603
 
     temperature: dict[str, Any] = {}
 
@@ -84,7 +84,7 @@ def read(content: str) -> dict[str, Any]:
 
     # While this functional is performing a kind of post-processing,
     # it should stay a part of the read method to have access to the raw data
-    if ARConfig.optimistic_temperature is True:
+    if ARConfig.get(ARConfigKey.OPTIMISTIC_TEMPERATURE):
         temperature, scaled = _scale_temperature(temperature)
         with _temperature_warned_lock:
             if scaled and _temperature_warned is False:
@@ -112,7 +112,7 @@ def process(data: dict[str, Any]) -> dict[AsusData, Any]:
 
 
 def _scale_temperature(
-    temperature: dict[str, Optional[float]],
+    temperature: dict[str, float | None],
     range_min: float = EXPECTED_TEMPERATURE_MIN,
     range_max: float = EXPECTED_TEMPERATURE_MAX,
     max_scale_count: int = MAX_SCALE_COUNT,
@@ -120,7 +120,8 @@ def _scale_temperature(
     """Scale temperature values to a range.
 
     This method is a temporary solution for those routers
-    with orders of magnitude lower temperature values."""
+    with orders of magnitude lower temperature values.
+    """
 
     scaled_temperature = {}
     scaled = False
@@ -129,21 +130,21 @@ def _scale_temperature(
         if temp is None:
             continue
 
-        original_temp = temp
+        scaled_temp = temp
 
         count = 0
         # Scale up if too small
-        while temp < range_min and count < max_scale_count:
-            temp *= 10
+        while scaled_temp < range_min and count < max_scale_count:
+            scaled_temp *= 10
             count += 1
 
         # Scale down if too large
-        while temp > range_max and count < max_scale_count:
-            temp /= 10
+        while scaled_temp > range_max and count < max_scale_count:
+            scaled_temp /= 10
             count += 1
 
-        if temp != original_temp:
+        if scaled_temp != temp:
             scaled = True
-        scaled_temperature[key] = round(temp, EXPECTED_DECIMAL_PLACES)
+        scaled_temperature[key] = round(scaled_temp, EXPECTED_DECIMAL_PLACES)
 
     return scaled_temperature, scaled

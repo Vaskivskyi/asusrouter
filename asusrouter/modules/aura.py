@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
+from collections.abc import Awaitable, Callable
+from enum import Enum, IntEnum
 import logging
 import re
-from enum import Enum, IntEnum
-from typing import Any, Awaitable, Callable, Optional
+from typing import Any
 
 from asusrouter.modules.color import (
     ColorRGB,
@@ -108,9 +109,9 @@ def get_scheme_from_state(aura_state: dict) -> AsusAura:
 
 def set_color(
     colors: list[ColorRGBB],
-    color_to_set: Optional[ColorRGB | list[ColorRGB]],
-    zone: Optional[int] = None,
-    zones: Optional[int] = None,
+    color_to_set: ColorRGB | list[ColorRGB] | None,
+    zone: int | None = None,
+    zones: int | None = None,
 ) -> None:
     """Set new color(s) to the existing color list."""
 
@@ -152,8 +153,8 @@ def set_color(
 
 def set_brightness(
     colors: list[ColorRGBB],
-    brightness: Optional[int],
-    zone: Optional[int] = None,
+    brightness: int | None,
+    zone: int | None = None,
 ) -> None:
     """Set the brightness for the zones."""
 
@@ -210,7 +211,8 @@ async def set_state(
     if state.name not in AsusAuraColor.__members__:
         # No color selection for the state
         _LOGGER.debug(
-            "Setting the Aura state to `%s`. No color / brightness support for this state",
+            "Setting the Aura state to `%s`. No color / brightness support"
+            "for this state",
             state.name,
         )
         return await callback(
@@ -305,8 +307,6 @@ def process_aura(data: dict[str, Any]) -> dict[str, Any]:
         active_color.set_brightness(_active_brightness)
         aura["active"]["color"] = active_color
         aura["active"]["brightness"] = _active_brightness
-
-    print(aura["effect"])
 
     # Get number of zones from the Static effect length
     _effect_static = aura["effect"].get(AsusAuraColor.STATIC)

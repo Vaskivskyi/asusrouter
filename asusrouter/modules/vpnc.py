@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-import logging
+from collections.abc import Awaitable, Callable
 from enum import Enum, IntEnum
-from typing import Any, Awaitable, Callable, Optional
+import logging
+from typing import Any
 
 from asusrouter.modules.data import AsusData, AsusDataState
 from asusrouter.modules.openvpn import AsusOVPNClient
@@ -52,7 +53,7 @@ async def set_state(
     match state:
         case a if isinstance(a, AsusVPNC):
             return await set_state_vpnc(callback, a, **kwargs)
-        case a if isinstance(a, (AsusOVPNClient, AsusWireGuardClient)):
+        case a if isinstance(a, AsusOVPNClient | AsusWireGuardClient):
             return await set_state_other(callback, a, **kwargs)
         case _:
             try:
@@ -60,7 +61,9 @@ async def set_state(
                     "Unknown state %s. Cannot find proper handler", state.name
                 )
             except AttributeError:
-                _LOGGER.debug("Unknown state %s. Cannot find proper handler", state)
+                _LOGGER.debug(
+                    "Unknown state %s. Cannot find proper handler", state
+                )
             return False
 
 
@@ -72,7 +75,7 @@ VPNC_STATE_MAPPING = {
 
 async def set_state_vpnc(
     callback: Callable[..., Awaitable[bool]],
-    state: Optional[AsusVPNC],
+    state: AsusVPNC | None,
     **kwargs: Any,
 ) -> bool:
     """Set the VPN Fusion state."""
@@ -97,7 +100,9 @@ async def set_state_vpnc(
 
     # Clientlist is needed to update the state (all clients are in the list).
     # If not available, we cannot update the state.
-    vpnc_clientlist = router_state.get(AsusData.VPNC_CLIENTLIST, AsusDataState()).data
+    vpnc_clientlist = router_state.get(
+        AsusData.VPNC_CLIENTLIST, AsusDataState()
+    ).data
     if not vpnc_clientlist or vpnc_clientlist == "":
         _LOGGER.debug("No VPN Fusion client list found in router state")
         return False
@@ -109,7 +114,9 @@ async def set_state_vpnc(
         return False
 
     # Update the clientlist
-    vpnc_clientlist = _get_argument_clientlist(vpnc_clientlist, vpnc_unit, binary_state)
+    vpnc_clientlist = _get_argument_clientlist(
+        vpnc_clientlist, vpnc_unit, binary_state
+    )
     if not vpnc_clientlist:
         _LOGGER.debug("Something went wrong with creating a new clientlist")
         return False
@@ -148,8 +155,8 @@ async def set_state_other(
 
     # Check if state is available
     if not isinstance(
-        state, (AsusOVPNClient, AsusWireGuardClient)
-    ) or not state.value in (0, 1):
+        state, AsusOVPNClient | AsusWireGuardClient
+    ) or state.value not in (0, 1):
         _LOGGER.debug("No state found in arguments")
         return False
 
@@ -184,11 +191,16 @@ async def set_state_other(
 
 
 def _get_argument_clientlist(
-    clientlist: Optional[str], vpnc_unit: Optional[int], state: Optional[int]
-) -> Optional[str]:
+    clientlist: str | None, vpnc_unit: int | None, state: int | None
+) -> str | None:
     """Generate the clientlist argument."""
 
-    if not clientlist or clientlist == "" or vpnc_unit is None or state is None:
+    if (
+        not clientlist
+        or clientlist == ""
+        or vpnc_unit is None
+        or state is None
+    ):
         return None
 
     # Split clientlist properly
@@ -205,16 +217,14 @@ def _get_argument_clientlist(
     client = ">".join(client_param)
     # Assemble clientlist
     clients[vpnc_unit] = client
-    clientlist = "<".join(clients)
-
-    return clientlist
+    return "<".join(clients)
 
 
 def _find_vpnc_unit(
-    vpnc_data: Optional[dict[AsusVPNType, dict[int, dict[str, Any]]]],
+    vpnc_data: dict[AsusVPNType, dict[int, dict[str, Any]]] | None,
     client_type: AsusOVPNClient | AsusWireGuardClient,
     client_id: int,
-) -> Optional[int]:
+) -> int | None:
     """Find vpnc unit by VPN client_id."""
 
     if vpnc_data is None:

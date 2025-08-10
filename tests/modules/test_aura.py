@@ -1,9 +1,11 @@
 """Tests for the Aura module."""
 
 from typing import Any
+from unittest import mock
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+
 from asusrouter.modules.aura import (
     DEFAULT_AURA_SCHEME,
     DEFAULT_COLOR_PATTERN,
@@ -24,7 +26,7 @@ from asusrouter.modules.identity import AsusDevice
 
 
 @pytest.mark.parametrize(
-    "enum_member, expected_value",
+    ("enum_member", "expected_value"),
     [
         (AsusAura.UNKNOWN, -999),
         (AsusAura.ON, -1),
@@ -38,13 +40,13 @@ from asusrouter.modules.identity import AsusDevice
         (AsusAura.MARQUEE, 7),
     ],
 )
-def test_asus_aura(enum_member, expected_value):
+def test_asus_aura(enum_member: AsusAura, expected_value: int) -> None:
     """Test AsusAura enum."""
 
     assert enum_member.value == expected_value
 
 
-def test_asus_aura_members():
+def test_asus_aura_members() -> None:
     """Test AsusAura members."""
 
     expected_members = {
@@ -64,7 +66,7 @@ def test_asus_aura_members():
 
 
 @pytest.mark.parametrize(
-    "enum_member, expected_value",
+    ("enum_member", "expected_value"),
     [
         (AsusAuraColor.GRADIENT, 1),
         (AsusAuraColor.STATIC, 2),
@@ -72,13 +74,15 @@ def test_asus_aura_members():
         (AsusAuraColor.MARQUEE, 7),
     ],
 )
-def test_asus_aura_color(enum_member, expected_value):
+def test_asus_aura_color(
+    enum_member: AsusAuraColor, expected_value: int
+) -> None:
     """Test AsusAuraColor enum."""
 
     assert enum_member.value == expected_value
 
 
-def test_asus_aura_color_members():
+def test_asus_aura_color_members() -> None:
     """Test AsusAuraColor members."""
 
     expected_members = {
@@ -92,20 +96,22 @@ def test_asus_aura_color_members():
 
 
 @pytest.mark.parametrize(
-    "enum_member, expected_value",
+    ("enum_member", "expected_value"),
     [
         (DefaultAuraColor.COLOR1, ColorRGBB((20, 0, 128))),
         (DefaultAuraColor.COLOR2, ColorRGBB((110, 0, 100))),
         (DefaultAuraColor.COLOR3, ColorRGBB((128, 0, 80))),
     ],
 )
-def test_default_aura_color(enum_member, expected_value):
+def test_default_aura_color(
+    enum_member: DefaultAuraColor, expected_value: ColorRGBB
+) -> None:
     """Test DefaultAuraColor enum."""
 
     assert enum_member.value == expected_value
 
 
-def test_default_aura_color_members():
+def test_default_aura_color_members() -> None:
     """Test DefaultAuraColor members."""
 
     expected_members = {
@@ -117,7 +123,7 @@ def test_default_aura_color_members():
     assert actual_members == expected_members
 
 
-def test_default_color_pattern():
+def test_default_color_pattern() -> None:
     """Test that DEFAULT_COLOR_PATTERN tuple is correct."""
 
     expected_colors = (
@@ -126,17 +132,17 @@ def test_default_color_pattern():
         DefaultAuraColor.COLOR3,
         DefaultAuraColor.COLOR2,
     )
-    assert DEFAULT_COLOR_PATTERN == expected_colors
+    assert expected_colors == DEFAULT_COLOR_PATTERN
 
 
-def test_default_aura_scheme():
+def test_default_aura_scheme() -> None:
     """Test that DEFAULT_AURA_SCHEME is correct."""
 
     assert DEFAULT_AURA_SCHEME == AsusAura.STATIC
 
 
 @pytest.mark.parametrize(
-    "zones, expected_colors",
+    ("zones", "expected_colors"),
     [
         (1, (ColorRGBB((20, 0, 128)),)),
         (2, (ColorRGBB((20, 0, 128)), ColorRGBB((110, 0, 100)))),
@@ -169,7 +175,9 @@ def test_default_aura_scheme():
         ),
     ],
 )
-def test_get_default_aura_color(zones, expected_colors):
+def test_get_default_aura_color(
+    zones: int, expected_colors: tuple[ColorRGBB, ...]
+) -> None:
     """Test get_default_aura_color function with different zone numbers."""
 
     result = get_default_aura_color(zones)
@@ -177,7 +185,7 @@ def test_get_default_aura_color(zones, expected_colors):
 
 
 @pytest.mark.parametrize(
-    "aura_state, expected_scheme",
+    ("aura_state", "expected_scheme"),
     [
         # Known values
         ({"scheme": AsusAura.GRADIENT.value}, AsusAura.GRADIENT),
@@ -208,7 +216,9 @@ def test_get_default_aura_color(zones, expected_colors):
         ({"scheme": "unknown"}, DEFAULT_AURA_SCHEME),
     ],
 )
-def test_get_scheme_from_state(aura_state, expected_scheme):
+def test_get_scheme_from_state(
+    aura_state: dict[str, Any], expected_scheme: AsusAura
+) -> None:
     """Test get_scheme_from_state function with different aura states."""
 
     result = get_scheme_from_state(aura_state)
@@ -216,7 +226,7 @@ def test_get_scheme_from_state(aura_state, expected_scheme):
 
 
 @pytest.mark.parametrize(
-    "initial_colors, color_to_set, zone, zones, expected_colors",
+    ("initial_colors", "color_to_set", "zone", "zones", "expected_colors"),
     [
         # Single color to a specific zone
         (
@@ -306,7 +316,13 @@ def test_get_scheme_from_state(aura_state, expected_scheme):
         ),
     ],
 )
-def test_set_color(initial_colors, color_to_set, zone, zones, expected_colors):
+def test_set_color(
+    initial_colors: list[ColorRGBB],
+    color_to_set: ColorRGB | list[ColorRGB] | None,
+    zone: int | None,
+    zones: int | None,
+    expected_colors: list[ColorRGBB],
+) -> None:
     """Test set_color function."""
 
     set_color(initial_colors, color_to_set, zone, zones)
@@ -314,7 +330,7 @@ def test_set_color(initial_colors, color_to_set, zone, zones, expected_colors):
 
 
 @pytest.mark.parametrize(
-    "initial_colors, brightness, zone, expected_colors",
+    ("initial_colors", "brightness", "zone", "expected_colors"),
     [
         # No brightness
         (
@@ -360,7 +376,12 @@ def test_set_color(initial_colors, color_to_set, zone, zones, expected_colors):
         ),
     ],
 )
-def test_set_brightness(initial_colors, brightness, zone, expected_colors):
+def test_set_brightness(
+    initial_colors: list[ColorRGBB],
+    brightness: int | None,
+    zone: int | None,
+    expected_colors: list[ColorRGBB],
+) -> None:
     """Test set_brightness function."""
 
     set_brightness(initial_colors, brightness, zone)
@@ -375,11 +396,11 @@ def test_set_brightness(initial_colors, brightness, zone, expected_colors):
 @patch("asusrouter.modules.aura.set_color")
 @patch("asusrouter.modules.aura.set_brightness")
 async def test_set_state(
-    mock_set_brightness,
-    mock_set_color,
-    mock_get_scheme_from_state,
-    mock_get_arguments,
-):
+    mock_set_brightness: mock.Mock,
+    mock_set_color: mock.Mock,
+    mock_get_scheme_from_state: mock.Mock,
+    mock_get_arguments: mock.Mock,
+) -> None:
     """Test set_state function with different scenarios."""
 
     # Mock callback
@@ -480,12 +501,12 @@ async def test_set_state(
 @patch("asusrouter.modules.aura.set_brightness")
 @patch("asusrouter.modules.aura.get_default_aura_color")
 async def test_set_state_with_color_support(
-    mock_get_default_aura_color,
-    mock_set_brightness,
-    mock_set_color,
-    mock_get_scheme_from_state,
-    mock_get_arguments,
-):
+    mock_get_default_aura_color: mock.Mock,
+    mock_set_brightness: mock.Mock,
+    mock_set_color: mock.Mock,
+    mock_get_scheme_from_state: mock.Mock,
+    mock_get_arguments: mock.Mock,
+) -> None:
     """Test set_state function with proper color support."""
 
     # Mock callback
@@ -564,7 +585,7 @@ async def test_set_state_with_color_support(
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    "state, kwargs, expected_ledg_scheme, expected_ledg_rgb",
+    ("state", "kwargs", "expected_ledg_scheme", "expected_ledg_rgb"),
     [
         # Static, single color, no zone, no brightness
         (
@@ -618,8 +639,11 @@ async def test_set_state_with_color_support(
     ],
 )
 async def test_set_state_final(
-    state, kwargs, expected_ledg_scheme, expected_ledg_rgb
-):
+    state: AsusAura,
+    kwargs: dict[str, Any],
+    expected_ledg_scheme: int,
+    expected_ledg_rgb: str,
+) -> None:
     """Test set_state function for the final output."""
 
     mock_callback = AsyncMock(return_value=True)
@@ -660,7 +684,7 @@ async def test_set_state_final(
 
 
 @pytest.mark.parametrize(
-    "input_data, expected_output",
+    ("input_data", "expected_output"),
     [
         # On, Marquee, 3 zones
         (
@@ -783,14 +807,16 @@ async def test_set_state_final(
         ),
     ],
 )
-def test_process_aura(input_data, expected_output):
+def test_process_aura(
+    input_data: dict[str, Any], expected_output: dict[str, Any]
+) -> None:
     """Test process_aura function."""
 
     output = process_aura(input_data)
     assert output == expected_output
 
 
-def test_process_aura_unknown(caplog):
+def test_process_aura_unknown(caplog: pytest.LogCaptureFixture) -> None:
     """Test process_aura function for unknown scheme log."""
 
     input_scheme = "unknown_1"
