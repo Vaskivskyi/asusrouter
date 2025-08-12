@@ -40,7 +40,7 @@ jobs:
         python-version: [3.11, 3.12, 3.13]
     steps:
       - name: Checkout
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@v5.0.0
 
       - name: Set up UV and Python
         uses: astral-sh/setup-uv@v6
@@ -62,7 +62,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@v5.0.0
 
       - name: Set up UV and Python
         uses: astral-sh/setup-uv@v6
@@ -87,7 +87,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@v5.0.0
 
       - name: Set up UV and Python
         uses: astral-sh/setup-uv@v6
@@ -117,7 +117,7 @@ jobs:
         python-version: [3.11, 3.12, 3.13]
     steps:
       - name: Checkout
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@v5.0.0
 
       - name: Set up UV and Python
         uses: astral-sh/setup-uv@v6
@@ -154,7 +154,7 @@ jobs:
         python-version: [3.11, 3.12, 3.13]
     steps:
       - name: Checkout
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@v5.0.0
 
       - name: Set up UV and Python
         uses: astral-sh/setup-uv@v6
@@ -190,7 +190,7 @@ jobs:
         python-version: [3.11, 3.12, 3.13]
     steps:
       - name: Checkout
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@v5.0.0
 
       - name: Download unit-tests coverage from artifacts
         uses: actions/download-artifact@v5
