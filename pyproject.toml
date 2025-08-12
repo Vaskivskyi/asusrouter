@@ -36,6 +36,9 @@ dependencies    = [
 [tool.setuptools.packages.find]
 include = ["asusrouter*"]
 
+[tool.setuptools.package-data]
+"asusrouter" = ["py.typed"]
+
 [dependency-groups]
 dev = [
     "mypy>=1.15.0",
