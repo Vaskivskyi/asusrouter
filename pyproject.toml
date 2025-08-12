@@ -1,11 +1,11 @@
 [build-system]
-requires = ["setuptools>=61.0"]
+requires = ["setuptools==80.9.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name            = "asusrouter"
 version         = "2.0.0.dev0"
-license         = {text = "Apache-2.0"}
+license         = "Apache-2.0"
 requires-python = ">=3.11.0"
 readme          = "README.md"
 description     = "API wrapper for communication with ASUSWRT-powered routers using HTTP protocol"
@@ -15,7 +15,6 @@ authors         = [
 classifiers     = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: Apache Software License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
