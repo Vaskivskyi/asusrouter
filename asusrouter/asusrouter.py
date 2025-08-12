@@ -940,6 +940,10 @@ class AsusRouter:
     # This part can be changed / removed in the future
     # It might also not be working properly
 
+    # If any of port forwarding methods gets removed,
+    # notify in https://github.com/Vaskivskyi/asusrouter/issues/611
+    # so that users of these methods will know of a breaking change
+
     async def async_apply_port_forwarding_rules(
         self,
         rules: list[PortForwardingRule],
