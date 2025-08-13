@@ -47,9 +47,10 @@ def clean_jitter(value: _T, jitter: int = 1) -> int | _T:
     """
 
     vint = safe_int(value)
-    if isinstance(vint, int) and jitter > 0:
-        block_size = 2 * jitter + 1
-        return vint - (vint % block_size) + jitter
+    jint = safe_int(jitter, default=1)
+    if isinstance(vint, int) and jint > 0:
+        block_size = 2 * jint + 1
+        return int(vint - (vint % block_size) + jint)
 
     return value
 

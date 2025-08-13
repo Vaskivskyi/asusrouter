@@ -33,7 +33,11 @@ from asusrouter.tools import converters
         ("2", 1, 1),
         (0.9, 2, 2),
         ("4.4", 1, 4),
-        # Any non-int values
+        # Wrong jitter returns the value unchanged
+        (15, -1, 15),
+        (77, 0, 77),
+        ("any", -1, "any"),
+        # Any non-int values are returned unchanged
         (None, None, None),
         ("None", None, "None"),
         ("string", None, "string"),
@@ -41,12 +45,11 @@ from asusrouter.tools import converters
     ],
 )
 def test_clean_jitter(
-    input_value: Any, jitter: int | None, expected_output: Any
+    input_value: Any, jitter: Any | None, expected_output: Any
 ) -> None:
     """Test clean_jitter method."""
 
-    jitter = jitter or 1
-    assert converters.clean_jitter(input_value, jitter) == expected_output
+    assert converters.clean_jitter(input_value, jitter) == expected_output  # type: ignore[arg-type]
 
 
 @pytest.mark.parametrize(
