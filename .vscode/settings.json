@@ -11,7 +11,7 @@
   "mypy-type-checker.args": [
     "--config-file=pyproject.toml"
   ],
-  "python-envs.defaultEnvManager": "ms-python.python:system",
+  "python-envs.defaultEnvManager": "ms-python.python:venv",
   "python-envs.pythonProjects": [],
   "ruff.path": [
     "./.venv/Scripts/ruff"
