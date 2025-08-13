@@ -38,6 +38,23 @@ def clean_input(func: Callable[..., Any]) -> Callable[..., Any]:
     return wrapper
 
 
+def clean_jitter(value: _T, jitter: int = 1) -> int | _T:
+    """Clean jitter from an integer value.
+
+    If input is int-compatible, remove unwanted jitter
+    `jitter` by lowering value resolution. If any other
+    non-compatible value is given, return it unchanged.
+    """
+
+    vint = safe_int(value)
+    jint = safe_int(jitter, default=1)
+    if isinstance(vint, int) and jint > 0:
+        block_size = 2 * jint + 1
+        return int(vint - (vint % block_size) + jint)
+
+    return value
+
+
 def clean_string(content: str | None) -> str | None:
     """Get a clean string or return None if it is empty."""
 

@@ -11,6 +11,48 @@ from asusrouter.tools import converters
 
 
 @pytest.mark.parametrize(
+    ("input_value", "jitter", "expected_output"),
+    [
+        # Real values, jitter 1
+        (0, 1, 1),
+        (1, 1, 1),
+        (2, 1, 1),
+        (3, 1, 4),
+        (4, 1, 4),
+        (5, 1, 4),
+        (6, 1, 7),
+        (7, 1, 7),
+        (8, 1, 7),
+        # Real values, jitter vary
+        (0, 2, 2),
+        (11, 2, 12),
+        (0, 3, 3),
+        (1, 4, 4),
+        (5, 11, 11),
+        # Int-convertible values
+        ("2", 1, 1),
+        (0.9, 2, 2),
+        ("4.4", 1, 4),
+        # Wrong jitter returns the value unchanged
+        (15, -1, 15),
+        (77, 0, 77),
+        ("any", -1, "any"),
+        # Any non-int values are returned unchanged
+        (None, None, None),
+        ("None", None, "None"),
+        ("string", None, "string"),
+        (" ", None, " "),
+    ],
+)
+def test_clean_jitter(
+    input_value: Any, jitter: Any | None, expected_output: Any
+) -> None:
+    """Test clean_jitter method."""
+
+    assert converters.clean_jitter(input_value, jitter) == expected_output  # type: ignore[arg-type]
+
+
+@pytest.mark.parametrize(
     ("content", "result"),
     [
         (None, None),  # Not a string
