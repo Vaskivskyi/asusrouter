@@ -20,7 +20,6 @@ EXPECTED_TEMPERATURE_MIN = 10.0
 EXPECTED_TEMPERATURE_MAX = 150.0
 MAX_SCALE_COUNT = 5
 
-_temperature_warned: bool = False
 _temperature_warned_lock = threading.Lock()
 
 
@@ -34,8 +33,6 @@ _temperature_warned_lock = threading.Lock()
 # CPU temperature is set either in curr_cpuTemp or curr_coreTmp_cpu
 def read(content: str) -> dict[str, Any]:
     """Read temperature data."""
-
-    global _temperature_warned  # noqa: PLW0603
 
     temperature: dict[str, Any] = {}
 
@@ -87,16 +84,20 @@ def read(content: str) -> dict[str, Any]:
     if ARConfig.get(ARConfigKey.OPTIMISTIC_TEMPERATURE):
         temperature, scaled = _scale_temperature(temperature)
         with _temperature_warned_lock:
-            if scaled and _temperature_warned is False:
+            if (
+                scaled
+                and ARConfig.get(ARConfigKey.NOTIFIED_OPTIMISTIC_TEMPERATURE)
+                is False
+            ):
                 _LOGGER.warning(
                     "Temperature values were rescaled due to the issue with "
-                    "the raw data. Please report this. The original data is: "
+                    "the raw data. The original data is: "
                     "`%s` and the expected range is between %s and %s.",
                     variables,
                     EXPECTED_TEMPERATURE_MIN,
                     EXPECTED_TEMPERATURE_MAX,
                 )
-                _temperature_warned = True
+                ARConfig.set(ARConfigKey.NOTIFIED_OPTIMISTIC_TEMPERATURE, True)
 
     return temperature
 

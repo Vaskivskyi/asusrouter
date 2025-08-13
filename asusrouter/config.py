@@ -13,12 +13,17 @@ from asusrouter.tools.converters import safe_bool
 class ARConfigKey(StrEnum):
     """Configuration keys for AsusRouter."""
 
+    # Optimistic data
     OPTIMISTIC_DATA = "optimistic_data"
+    # Optimistic temperature
     OPTIMISTIC_TEMPERATURE = "optimistic_temperature"
+    NOTIFIED_OPTIMISTIC_TEMPERATURE = "notified_optimistic_temperature"
+    # Robust boottime
     ROBUST_BOOTTIME = "robust_boottime"
 
 
 CONFIG_DEFAULT_BOOL: bool = False
+CONFIG_DEFAULT_ALREADY_NOTIFIED: bool = False
 
 
 def safe_bool_config(value: Any) -> bool:
@@ -34,15 +39,22 @@ def safe_bool_config(value: Any) -> bool:
 
 CONFIG_DEFAULT: dict[ARConfigKey, Any] = {
     ARConfigKey.OPTIMISTIC_DATA: CONFIG_DEFAULT_BOOL,
+    # If set, the temperature will be automatically adjusted
+    # to fit the expected range
     ARConfigKey.OPTIMISTIC_TEMPERATURE: CONFIG_DEFAULT_BOOL,
+    ARConfigKey.NOTIFIED_OPTIMISTIC_TEMPERATURE: CONFIG_DEFAULT_ALREADY_NOTIFIED,  # noqa: E501
     # If set, the boottime will be processed with 2 seconds
     # precision to avoid +- 1 second uncertainty in the raw data.
     ARConfigKey.ROBUST_BOOTTIME: CONFIG_DEFAULT_BOOL,
 }
 
 TYPES_DEFAULT: dict[ARConfigKey, Callable[[Any], Any]] = {
+    # Optimistic data
     ARConfigKey.OPTIMISTIC_DATA: safe_bool_config,
+    # Optimistic temperature
     ARConfigKey.OPTIMISTIC_TEMPERATURE: safe_bool_config,
+    ARConfigKey.NOTIFIED_OPTIMISTIC_TEMPERATURE: safe_bool_config,
+    # Robust boottime
     ARConfigKey.ROBUST_BOOTTIME: safe_bool_config,
 }
 
