@@ -3,7 +3,7 @@
 from asusrouter.tools import cleaners
 
 
-def test_clean_content():
+def test_clean_content() -> None:
     """Test clean_content method."""
 
     # Test with BOM
@@ -15,7 +15,7 @@ def test_clean_content():
     assert cleaners.clean_content(content) == "test"
 
 
-def test_clean_dict():
+def test_clean_dict() -> None:
     """Test clean_dict method."""
 
     # Test with empty dict
@@ -31,7 +31,7 @@ def test_clean_dict():
     assert cleaners.clean_dict(data) == {"test": {"test": None}}
 
 
-def test_clean_dict_key_prefix():
+def test_clean_dict_key_prefix() -> None:
     """Test clean_dict_key_prefix method."""
 
     # Test with empty dict
@@ -52,7 +52,7 @@ def test_clean_dict_key_prefix():
     }
 
 
-def test_clean_dict_key():
+def test_clean_dict_key() -> None:
     """Test clean_dict_key method."""
 
     # Test with empty dict
