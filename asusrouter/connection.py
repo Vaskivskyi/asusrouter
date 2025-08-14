@@ -332,7 +332,7 @@ class Connection:  # pylint: disable=too-many-instance-attributes
             _LOGGER.debug(
                 "Sending request to %s with payload: %s",
                 endpoint,
-                payload,
+                payload if endpoint != EndpointService.LOGIN else "[REDACTED]",
             )
             resp_status, resp_headers, resp_content = await self._make_request(
                 endpoint,
@@ -608,8 +608,8 @@ class Connection:  # pylint: disable=too-many-instance-attributes
 
         # Add get parameters if needed
         if request_type == RequestType.GET and payload:
-            payload = payload.replace(";", "&")
-            url = f"{url}?{payload}"
+            url_payload = payload.replace(";", "&")
+            url = f"{url}?{url_payload}"
 
         # Process the payload to be sent
         payload_to_send = quote(payload) if payload else None
