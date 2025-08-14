@@ -9,14 +9,23 @@ from __future__ import annotations
 import asyncio
 import base64
 from collections.abc import Awaitable, Callable
+from enum import StrEnum
 import json
 import logging
-from typing import Any, Self
+import ssl
+from typing import Any, Self, TypeVar
 from urllib.parse import quote
 
 import aiohttp
 
+from asusrouter.config import safe_int_config
+from asusrouter.connection_config import (
+    ARConnectionConfig,
+    ARConnectionConfigKey as ARCCKey,
+)
 from asusrouter.const import (
+    DEFAULT_PORT_HTTP,
+    DEFAULT_PORT_HTTPS,
     DEFAULT_TIMEOUT,
     USER_AGENT,
     HTTPStatus,
@@ -27,7 +36,12 @@ from asusrouter.error import (
     AsusRouterAccessError,
     AsusRouterConnectionError,
     AsusRouterError,
+    AsusRouterFallbackError,
+    AsusRouterFallbackForbiddenError,
+    AsusRouterFallbackLoopError,
     AsusRouterLogoutError,
+    AsusRouterNotImplementedError,
+    AsusRouterSSLCertificateError,
     AsusRouterTimeoutError,
 )
 from asusrouter.modules.endpoint import EndpointService, EndpointType
@@ -35,6 +49,16 @@ from asusrouter.modules.endpoint.error import handle_access_error
 from asusrouter.tools.connection import get_cookie_jar
 
 _LOGGER = logging.getLogger(__name__)
+
+_T = TypeVar("_T")
+
+
+class ConnectionFallback(StrEnum):
+    """Connection fallback strategies."""
+
+    HTTP = "http"
+    HTTPS = "https"
+    HTTPS_UNSAFE = "https_unsafe"
 
 
 def generate_credentials(
@@ -63,10 +87,21 @@ class Connection:  # pylint: disable=too-many-instance-attributes
         session: aiohttp.ClientSession | None = None,
         timeout: int | None = DEFAULT_TIMEOUT,
         dumpback: Callable[..., Awaitable[None]] | None = None,
+        config: dict[ARCCKey, Any] | None = None,
     ):
         """Initialize connection."""
 
         _LOGGER.debug("Initializing a new connection to `%s`", hostname)
+
+        # Initialize configs
+        self._config = ARConnectionConfig()
+        self._used_fallbacks: dict[ConnectionFallback, bool] = {}
+
+        # Initialize startup configs if any provided
+        if isinstance(config, dict):
+            _LOGGER.debug("Using provided connection config: %s", config)
+            for key, value in config.items():
+                self._config.set(key, value)
 
         # Initialize parameters for connection
         self._token: str | None = None
@@ -81,15 +116,16 @@ class Connection:  # pylint: disable=too-many-instance-attributes
         self._password = password
 
         # Set the port and protocol based on the input
-        self._http = "https" if use_ssl else "http"
-        self._port = port or (8443 if use_ssl else 80)
-        self._ssl = use_ssl
-        self._verify_ssl = False
+        self.config.set(
+            ARCCKey.PORT,
+            port or (DEFAULT_PORT_HTTPS if use_ssl else DEFAULT_PORT_HTTP),
+        )
+        self.config.set(ARCCKey.USE_SSL, use_ssl)
         _LOGGER.debug(
             "Using `%s` and port `%s` with ssl flag `%s`",
-            self._http,
-            self._port,
-            self._ssl,
+            self.http,
+            self.config.get(ARCCKey.PORT),
+            use_ssl,
         )
 
         # Callback for dumping data
@@ -131,6 +167,7 @@ class Connection:  # pylint: disable=too-many-instance-attributes
         session: aiohttp.ClientSession | None = None,
         timeout: int | None = DEFAULT_TIMEOUT,  # noqa: ASYNC109
         dumpback: Callable[..., Awaitable[None]] | None = None,
+        config: dict[ARCCKey, Any] | None = None,
     ) -> Connection:
         """Create and initialize a connection."""
 
@@ -143,6 +180,7 @@ class Connection:  # pylint: disable=too-many-instance-attributes
             session=session,
             timeout=timeout or DEFAULT_TIMEOUT,
             dumpback=dumpback,
+            config=config,
         )
         await connection.async_connect()
         return connection
@@ -158,7 +196,7 @@ class Connection:  # pylint: disable=too-many-instance-attributes
 
         # Create the session
         return aiohttp.ClientSession(
-            connector=aiohttp.TCPConnector(ssl=self._verify_ssl),
+            connector=aiohttp.TCPConnector(),
             cookie_jar=get_cookie_jar(),
             timeout=timeout,
         )
@@ -280,7 +318,7 @@ class Connection:  # pylint: disable=too-many-instance-attributes
         # Anything else would mean error when disconnecting
         return False
 
-    async def _send_request(
+    async def _send_request(  # noqa: C901
         self,
         endpoint: EndpointType,
         payload: str | None = None,
@@ -291,6 +329,11 @@ class Connection:  # pylint: disable=too-many-instance-attributes
 
         # Send request
         try:
+            _LOGGER.debug(
+                "Sending request to %s with payload: %s",
+                endpoint,
+                payload,
+            )
             resp_status, resp_headers, resp_content = await self._make_request(
                 endpoint,
                 payload,
@@ -314,18 +357,48 @@ class Connection:  # pylint: disable=too-many-instance-attributes
                     endpoint, resp_status, resp_headers, resp_content
                 )
 
+            # Reset fallback tracker if multiple fallbacks are allowed
+            if self.config.get(ARCCKey.ALLOW_MULTIPLE_FALLBACKS):
+                self._used_fallbacks.clear()
+
             # Return the response
             return (resp_status, resp_headers, resp_content)
+        except ssl.SSLCertVerificationError as ex:
+            if self.config.get(ARCCKey.STRICT_SSL) is False:
+                _LOGGER.warning(
+                    "Cannot verify SSL certificate. Since `STRICT_SSL` "
+                    "configuration is disabled, falling back to HTTP "
+                    "with a default port"
+                )
+                await self._fallback()
+                # Repeat the attempt
+                return await self._send_request(
+                    endpoint, payload, headers, request_type
+                )
+            raise AsusRouterSSLCertificateError(
+                "SSL certificate verification failed. Your configuration "
+                "requires a strict SSL certificate verification."
+            ) from ex
         except aiohttp.ClientConnectorError as ex:
+            # Are automatic fallbacks allowed?
+            if self.config.get(ARCCKey.ALLOW_FALLBACK):
+                return await self._async_handle_fallback(
+                    callback=self._send_request,
+                    endpoint=endpoint,
+                    payload=payload,
+                    headers=headers,
+                    request_type=request_type,
+                )
+
             self.reset_connection()
             raise AsusRouterConnectionError(
                 f"Cannot connect to `{self._hostname}` on port "
-                f"`{self._port}`. Failed in `_send_request` with error: `{ex}`"
+                f"`{self.port}`. Failed in `_send_request` with error: `{ex}`"
             ) from ex
         except (aiohttp.ClientConnectionError, aiohttp.ClientOSError) as ex:
             raise AsusRouterConnectionError(
                 f"Cannot connect to `{self._hostname}` on port "
-                f"`{self._port}`. Failed in `_send_request` with error: `{ex}`"
+                f"`{self.port}`. Failed in `_send_request` with error: `{ex}`"
             ) from ex
         except (TimeoutError, asyncio.CancelledError) as ex:
             raise AsusRouterTimeoutError(
@@ -339,6 +412,141 @@ class Connection:  # pylint: disable=too-many-instance-attributes
                 ex,
             )
             raise ex
+
+    async def _async_handle_fallback(
+        self, callback: Callable[..., Awaitable[_T]], **kwargs: Any
+    ) -> _T:
+        """Handle fallbacks on sending requests.
+
+        The matrix for the automatic feedback is as follows:
+
+        | Con @ Port      | New @ port      | Required config             |
+        | --------------- | --------------- | --------------------------- |
+        | HTTPS @ Custom  | HTTPS @ Default |                             |
+        | HTTPS @ Default | HTTP @ Default  | STRICT_SSL not set          |
+        | HTTP @ Custom   | HTTP @ Default  |                             |
+        | HTTP @ Default  | HTTPS @ Default | ALLOW_UPGRADE_HTTP_TO_HTTPS |
+        """
+
+        if self.config.get(ARCCKey.USE_SSL):
+            # From custom HTTPS to default HTTPS
+            if self.port != DEFAULT_PORT_HTTPS:
+                if self._used_fallbacks.get(ConnectionFallback.HTTPS):
+                    raise AsusRouterFallbackLoopError(
+                        "Fallback loop detected trying to heal HTTPS "
+                        f"connection with set port `{self.port}`"
+                    )
+
+                _LOGGER.warning(
+                    "Cannot connect on the provided HTTPS port `%d`. "
+                    "Will fallback to the default port `%d`",
+                    self.port,
+                    DEFAULT_PORT_HTTPS,
+                )
+                await self._fallback(fallback_type=ConnectionFallback.HTTPS)
+                # Repeat the attempt
+                return await callback(**kwargs)
+
+            # From default HTTPS to default HTTP
+            if self.config.get(ARCCKey.STRICT_SSL):
+                raise AsusRouterFallbackForbiddenError(
+                    "Fallback from HTTPS to HTTP connection is forbidden "
+                    "by the `STRICT_SSL` configuration option"
+                )
+            if self._used_fallbacks.get(ConnectionFallback.HTTP):
+                raise AsusRouterFallbackLoopError(
+                    "Fallback loop detected trying to heal HTTPS "
+                    "by switching to HTTP"
+                )
+            _LOGGER.warning(
+                "Cannot connect on the default HTTPS port `%d`. "
+                "Will fallback to the HTTP connection "
+                "on default port `%d`",
+                DEFAULT_PORT_HTTPS,
+                DEFAULT_PORT_HTTP,
+            )
+            await self._fallback(fallback_type=ConnectionFallback.HTTP)
+            # Repeat the attempt
+            return await callback(**kwargs)
+
+        # From custom HTTP to default HTTP
+        if self.port != DEFAULT_PORT_HTTP:
+            if self._used_fallbacks.get(ConnectionFallback.HTTP):
+                raise AsusRouterFallbackLoopError(
+                    "Fallback loop detected trying to heal HTTP "
+                    "by upgrading to HTTPS"
+                )
+
+            _LOGGER.warning(
+                "Cannot connect on the custom HTTP port `%d`. "
+                "Will try using the default HTTP port `%d`",
+                self.port,
+                DEFAULT_PORT_HTTP,
+            )
+            await self._fallback(fallback_type=ConnectionFallback.HTTP)
+            # Repeat the attempt
+            return await callback(**kwargs)
+
+        # From default HTTP to default HTTPS
+        if self.config.get(ARCCKey.ALLOW_UPGRADE_HTTP_TO_HTTPS):
+            # Force certificate verification
+            self.config.set(ARCCKey.VERIFY_SSL, True)
+            if self._used_fallbacks.get(ConnectionFallback.HTTPS):
+                raise AsusRouterFallbackLoopError(
+                    "Fallback loop detected trying to heal HTTP "
+                    "by upgrading to HTTPS"
+                )
+
+            _LOGGER.warning(
+                "Cannot connect on the default HTTP port `%d`. "
+                "Will try upgrading to the default HTTPS port `%d`",
+                self.port,
+                DEFAULT_PORT_HTTPS,
+            )
+            await self._fallback(fallback_type=ConnectionFallback.HTTPS)
+            # Repeat the attempt
+            return await callback(**kwargs)
+
+        raise AsusRouterFallbackError(
+            "Automatic fallback failed. Consider disabling it."
+        )
+
+    async def _fallback(
+        self, fallback_type: ConnectionFallback | None = None
+    ) -> None:
+        """Perform connection fallback."""
+
+        if not fallback_type:
+            fallback_type = ConnectionFallback.HTTP
+
+        # Mark fallback type as used to avoid loops
+        self._used_fallbacks[fallback_type] = True
+
+        # Set fallback connection parameters
+        match fallback_type:
+            case ConnectionFallback.HTTP:
+                self.config.set(ARCCKey.USE_SSL, False)
+                self.config.set(ARCCKey.PORT, DEFAULT_PORT_HTTP)
+                # We should not change the VERIFY_SSL setting here
+
+            case ConnectionFallback.HTTPS:
+                self.config.set(ARCCKey.USE_SSL, True)
+                self.config.set(ARCCKey.PORT, DEFAULT_PORT_HTTPS)
+                # We should not change the VERIFY_SSL setting here
+
+            case ConnectionFallback.HTTPS_UNSAFE:
+                self.config.set(ARCCKey.USE_SSL, True)
+                self.config.set(ARCCKey.PORT, DEFAULT_PORT_HTTPS)
+                self.config.set(ARCCKey.VERIFY_SSL, False)
+
+            case _:
+                raise AsusRouterNotImplementedError(
+                    f"Connection fallback not implemented: {fallback_type}"
+                )
+
+        # Reconnect with new parameters
+        self.reset_connection()
+        await self.async_connect()
 
     async def async_query(
         self,
@@ -396,11 +604,11 @@ class Connection:  # pylint: disable=too-many-instance-attributes
             headers = self._header
 
         # Generate the url
-        url = f"{self._http}://{self._hostname}:{self._port}/{endpoint.value}"
+        url = f"{self.http}://{self._hostname}:{self.port}/{endpoint.value}"
 
         # Add get parameters if needed
         if request_type == RequestType.GET and payload:
-            payload.replace(";", "&")
+            payload = payload.replace(";", "&")
             url = f"{url}?{payload}"
 
         # Process the payload to be sent
@@ -412,6 +620,7 @@ class Connection:  # pylint: disable=too-many-instance-attributes
             url,
             data=payload_to_send if request_type == RequestType.POST else None,
             headers=headers,
+            ssl=self.config.get(ARCCKey.VERIFY_SSL),
         ) as response:
             # Read the status code
             resp_status = response.status
@@ -448,7 +657,25 @@ class Connection:  # pylint: disable=too-many-instance-attributes
         self._header = None
 
     @property
+    def config(self) -> ARConnectionConfig:
+        """Return connection config."""
+
+        return self._config
+
+    @property
     def connected(self) -> bool:
         """Return connection status."""
 
         return self._connected
+
+    @property
+    def http(self) -> str:
+        """Return HTTP scheme."""
+
+        return "https" if self._config.get(ARCCKey.USE_SSL) else "http"
+
+    @property
+    def port(self) -> int:
+        """Return port number."""
+
+        return safe_int_config(self._config.get(ARCCKey.PORT))
