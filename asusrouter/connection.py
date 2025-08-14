@@ -18,7 +18,7 @@ from urllib.parse import quote
 
 import aiohttp
 
-from asusrouter.config import safe_int_config
+from asusrouter.config import ARConfig, ARConfigKey, safe_int_config
 from asusrouter.connection_config import (
     ARConnectionConfig,
     ARConnectionConfigKey as ARCCKey,
@@ -318,7 +318,7 @@ class Connection:  # pylint: disable=too-many-instance-attributes
         # Anything else would mean error when disconnecting
         return False
 
-    async def _send_request(  # noqa: C901
+    async def _send_request(  # noqa: C901, PLR0912
         self,
         endpoint: EndpointType,
         payload: str | None = None,
@@ -329,11 +329,16 @@ class Connection:  # pylint: disable=too-many-instance-attributes
 
         # Send request
         try:
-            _LOGGER.debug(
-                "Sending request to %s with payload: %s",
-                endpoint,
-                payload if endpoint != EndpointService.LOGIN else "[REDACTED]",
-            )
+            if ARConfig.get(ARConfigKey.DEBUG_PAYLOAD):
+                _LOGGER.debug(
+                    "Sending request to %s with payload: %s",
+                    endpoint,
+                    payload
+                    if endpoint != EndpointService.LOGIN
+                    else "[REDACTED]",
+                )
+            else:
+                _LOGGER.debug("Sending request to %s", endpoint)
             resp_status, resp_headers, resp_content = await self._make_request(
                 endpoint,
                 payload,

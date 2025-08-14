@@ -17,6 +17,8 @@ class ARConfigKeyBase(StrEnum):
 class ARConfigKey(ARConfigKeyBase):
     """Configuration keys for AsusRouter."""
 
+    # Debug payload
+    DEBUG_PAYLOAD = "debug_payload"
     # Optimistic data
     OPTIMISTIC_DATA = "optimistic_data"
     # Optimistic temperature
@@ -54,6 +56,9 @@ def safe_int_config(value: Any) -> int:
 
 
 CONFIG_DEFAULT: dict[ARConfigKey, Any] = {
+    # If set, payload sent to the router will be available
+    # in the debug logs
+    ARConfigKey.DEBUG_PAYLOAD: CONFIG_DEFAULT_BOOL,
     ARConfigKey.OPTIMISTIC_DATA: CONFIG_DEFAULT_BOOL,
     # If set, the temperature will be automatically adjusted
     # to fit the expected range
@@ -65,6 +70,8 @@ CONFIG_DEFAULT: dict[ARConfigKey, Any] = {
 }
 
 TYPES_DEFAULT: dict[ARConfigKey, Callable[[Any], Any]] = {
+    # Debug payload
+    ARConfigKey.DEBUG_PAYLOAD: safe_bool_config,
     # Optimistic data
     ARConfigKey.OPTIMISTIC_DATA: safe_bool_config,
     # Optimistic temperature

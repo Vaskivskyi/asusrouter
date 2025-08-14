@@ -199,9 +199,7 @@ class TestConnectionMakeRequest:
         # Check dumpback called
         connection._dumpback.assert_awaited_once_with(
             EndpointService.LOGIN,
-            payload.replace(";", "&")
-            if request_type == RequestType.GET and isinstance(payload, str)
-            else payload,
+            payload,
             response_status,
             response_headers,
             response_text,
