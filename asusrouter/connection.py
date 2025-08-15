@@ -80,6 +80,14 @@ def generate_credentials(
     return payload, headers
 
 
+def sanitize_data(
+    value: str | None,
+) -> str:
+    """Sanitize data placeholder."""
+
+    return "[SANITIZED PLACEHOLDER]"
+
+
 class Connection:  # pylint: disable=too-many-instance-attributes
     """A connection between the library and the device."""
 
@@ -340,28 +348,34 @@ class Connection:  # pylint: disable=too-many-instance-attributes
         # Resolve security level safely
         level = ARSecurityLevel.from_value(security_level)
 
-        # STRICT: never include payload
-        if level == ARSecurityLevel.STRICT:
+        # STRICT: never include payload | Never include
+        # login payload at any level
+        if (
+            level == ARSecurityLevel.STRICT
+            or endpoint == EndpointService.LOGIN
+        ):
             return None
 
         # Clean from empty strings
         payload = clean_string(payload)
-
-        # Always null login endpoint payload
-        if endpoint == EndpointService.LOGIN:
+        if payload is None:
             return None
 
-        # Remove sensitive information
+        # Sensitive endpoints: only allowed if explicitly set to
+        # UNSAFE by user or are SANITIZED
         if is_sensitive_endpoint(endpoint):
-            if level == ARSecurityLevel.SANITIZED:
-                # TODO: Not implemented yet
-                return "[SANITIZED PLACEHOLDER]"
             if ARSecurityLevel.above_sanitized(level):
+                if level == ARSecurityLevel.SANITIZED:
+                    # Automatically sanitized to remove sensitive data
+                    return sanitize_data(payload)
+                # Only UNSAFE level is above SANITIZED, meaning
+                # Explicitly allowed as raw data by user
                 return payload
+            # Any other level should not log a possible sensitive payload
             return None
 
-        # Non-sensitive endpoints: include payload when available
-        return payload if payload is not None else None
+        # Non-sensitive endpoints: log (unless was blocked by STRICT config)
+        return payload
 
     def _log_request(
         self, endpoint: EndpointType, payload: str | None

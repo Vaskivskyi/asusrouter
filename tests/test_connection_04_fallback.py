@@ -244,7 +244,7 @@ class TestConnectionFallback:
             "not_implemented",
         ],
     )
-    async def test_fallback_function(
+    async def test_fallback(
         self,
         case: dict[str, Any],
         connection_factory: ConnectionFactory,
