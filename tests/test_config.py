@@ -10,16 +10,26 @@ import pytest
 
 from asusrouter.config import (
     CONFIG_DEFAULT_BOOL,
+    CONFIG_DEFAULT_INT,
     TYPES_DEFAULT,
     ARConfig,
     ARConfigKey,
     safe_bool_config,
+    safe_int_config,
+)
+from asusrouter.connection_config import (
+    ARConnectionConfig,
+    ARConnectionConfigKey as ARCCKey,
 )
 
 KEYS_BOOL = [
     ARConfigKey.OPTIMISTIC_DATA,
     ARConfigKey.OPTIMISTIC_TEMPERATURE,
     ARConfigKey.ROBUST_BOOTTIME,
+]
+
+KEYS_INT = [
+    ARCCKey.PORT,
 ]
 
 
@@ -89,6 +99,17 @@ class TestConfig:
         keys = set(ARConfig.keys())
         enum_keys = set(ARConfigKey)
         assert keys == enum_keys
+
+    def test_list(self) -> None:
+        """Test that we can get the full list of configuration options set."""
+
+        options = ARConfig.list()
+        assert isinstance(options, list)
+        assert len(options) > 0
+        assert all(
+            isinstance(option, tuple) and len(option) == 2  # noqa: PLR2004
+            for option in options
+        )
 
     def test_types(self) -> None:
         """Test that we can get the types of configuration keys."""
@@ -243,6 +264,8 @@ class TestConvert:
             (0, False),
             ("1", True),
             ("0", False),
+            ("string", False),
+            (None, False),
         ],
     )
     def test_safe_bool_config(self, value: Any, expected: bool) -> None:
@@ -254,6 +277,27 @@ class TestConvert:
         """Test that safe_bool_config returns default when value is None."""
 
         assert safe_bool_config(None) is CONFIG_DEFAULT_BOOL
+
+    @pytest.mark.parametrize(
+        ("value", "expected"),
+        [
+            (1, 1),
+            (0, 0),
+            ("1", 1),
+            ("0", 0),
+            ("string", 0),
+            (None, 0),
+        ],
+    )
+    def test_safe_int_config(self, value: Any, expected: int) -> None:
+        """Test that safe_int_config converts values correctly."""
+
+        assert safe_int_config(value) == expected
+
+    def test_safe_int_config_default(self) -> None:
+        """Test that safe_int_config returns default when value is None."""
+
+        assert safe_int_config(None) == CONFIG_DEFAULT_INT
 
 
 class TestBoolConfig:
@@ -272,3 +316,23 @@ class TestBoolConfig:
 
         ARConfig.set(key, value)
         assert ARConfig.get(key) is value
+
+
+class TestIntConfig:
+    """Tests for integer configuration options."""
+
+    @pytest.mark.parametrize("key", KEYS_INT)
+    def test_default_int(self, key: ARConfigKey) -> None:
+        """Test the default value of an integer configuration key."""
+
+        configs = ARConnectionConfig()
+        assert configs.get(key) is CONFIG_DEFAULT_INT
+
+    @pytest.mark.parametrize("key", KEYS_INT)
+    @pytest.mark.parametrize("value", [1, 2, 3])
+    def test_set_int(self, key: ARConfigKey, value: int) -> None:
+        """Test setting an integer configuration key."""
+
+        configs = ARConnectionConfig()
+        configs.set(key, value)
+        assert configs.get(key) is value
