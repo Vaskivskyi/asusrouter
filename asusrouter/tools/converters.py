@@ -297,11 +297,11 @@ def safe_convert(
         return default
     try:
         return convert_func(content)
-    except ValueError:
+    except (ValueError, TypeError):
         if fallback_func is not None and isinstance(content, str):
             try:
                 return fallback_func(content)
-            except ValueError:
+            except (ValueError, TypeError):
                 pass
         return default
 
