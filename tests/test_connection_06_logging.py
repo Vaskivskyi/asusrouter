@@ -61,6 +61,10 @@ class TestConnectionLogging:
             ),
             # UNSAFE: sensitive
             (ARSecurityLevel.UNSAFE, SENSITIVE_ENDPOINT, "secret", "secret"),
+            # Empty payload
+            (ARSecurityLevel.DEFAULT, SAFE_ENDPOINT, "", None),
+            # None payload
+            (ARSecurityLevel.DEFAULT, SAFE_ENDPOINT, None, None),
         ],
         ids=[
             "strict",
@@ -71,6 +75,8 @@ class TestConnectionLogging:
             "sanitized_sensitive",
             "unsafe_safe",
             "unsafe_sensitive",
+            "empty_payload",
+            "none_payload",
         ],
     )
     async def test_payload_for_logging(

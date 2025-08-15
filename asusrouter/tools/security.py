@@ -52,19 +52,19 @@ class ARSecurityLevel(IntEnum):
         return cls.UNKNOWN
 
     @classmethod
-    def above_strict(cls, level: ARSecurityLevel) -> bool:
-        """Check if the security level is not strict."""
+    def at_least_strict(cls, level: ARSecurityLevel) -> bool:
+        """Check if the security level is at least strict."""
 
-        return level.value > cls.STRICT.value
-
-    @classmethod
-    def above_default(cls, level: ARSecurityLevel) -> bool:
-        """Check if the security level is not default."""
-
-        return level.value > cls.DEFAULT.value
+        return level.value >= cls.STRICT.value
 
     @classmethod
-    def above_sanitized(cls, level: ARSecurityLevel) -> bool:
-        """Check if the security level is not sanitized."""
+    def at_least_default(cls, level: ARSecurityLevel) -> bool:
+        """Check if the security level is at least default."""
 
-        return level.value > cls.SANITIZED.value
+        return level.value >= cls.DEFAULT.value
+
+    @classmethod
+    def at_least_sanitized(cls, level: ARSecurityLevel) -> bool:
+        """Check if the security level is at least sanitized."""
+
+        return level.value >= cls.SANITIZED.value

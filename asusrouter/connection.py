@@ -364,7 +364,7 @@ class Connection:  # pylint: disable=too-many-instance-attributes
         # Sensitive endpoints: only allowed if explicitly set to
         # UNSAFE by user or are SANITIZED
         if is_sensitive_endpoint(endpoint):
-            if ARSecurityLevel.above_sanitized(level):
+            if ARSecurityLevel.at_least_sanitized(level):
                 if level == ARSecurityLevel.SANITIZED:
                     # Automatically sanitized to remove sensitive data
                     return sanitize_data(payload)
