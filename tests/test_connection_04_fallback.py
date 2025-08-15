@@ -1,5 +1,7 @@
 """Tests for the connection module / Part 4 / Fallback."""
 
+import asyncio
+import logging
 from typing import Any
 
 import pytest
@@ -287,3 +289,101 @@ class TestConnectionFallback:
             # Should call reset_connection and async_connect
             mock_reset.assert_called_once()
             mock_connect.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_fallback_cancels_inflight_connect(
+        self,
+        connection_factory: ConnectionFactory,
+        reset_connection: SyncPatch,
+        async_connect: AsyncPatch,
+    ) -> None:
+        """When a connect task is in-flight.
+
+        _fallback should cancel and await it.
+        """
+
+        connection = connection_factory()
+
+        started = asyncio.Event()
+        cancelled = asyncio.Event()
+
+        async def long_running() -> None:
+            # signal we've started and then sleep until cancelled
+            started.set()
+            try:
+                await asyncio.sleep(60)
+            except asyncio.CancelledError:
+                cancelled.set()
+                raise
+
+        # attach a long-running in-flight connect task
+        connection._connect_task = asyncio.create_task(long_running())
+        await started.wait()
+
+        mock_reset = reset_connection(connection)
+        async_connect(connection)
+
+        # run fallback which should cancel & await the in-flight task,
+        # then reset & reconnect
+        await connection._fallback(ConnectionFallback.HTTP)
+
+        # confirm the old task was cancelled and its cancellation was observed
+        assert cancelled.is_set()
+        # ensure reset_connection and async_connect were invoked
+        # as part of fallback
+        mock_reset.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_fallback_consumes_exception_from_cancelled_inflight_task(
+        self,
+        connection_factory: ConnectionFactory,
+        async_connect: AsyncPatch,
+        reset_connection: SyncPatch,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        """If an in-flight connect is cancelled and raises.
+
+        _fallback should consume/log the exception.
+        """
+        connection = connection_factory()
+
+        # Create a task that raises a RuntimeError when cancelled
+        # (to hit the logging branch)
+        async def old_task_coro() -> None:
+            try:
+                await asyncio.sleep(60)
+            except asyncio.CancelledError as exc:
+                # translate cancel into other exception
+                # to exercise the logging branch
+                raise RuntimeError("boom") from exc
+
+        connection._connect_task = asyncio.create_task(old_task_coro())
+        # ensure the task has started
+        await asyncio.sleep(0)
+
+        mock_reset = reset_connection(connection)
+        mock_connect = async_connect(connection)
+
+        caplog.set_level(logging.DEBUG, logger="asusrouter.connection")
+
+        # Run fallback; it should cancel the old task, await it,
+        # consume the RuntimeError and log it
+        await connection._fallback(ConnectionFallback.HTTP)
+
+        # reset_connection and async_connect must have been called
+        mock_reset.assert_called_once()
+        mock_connect.assert_awaited_once()
+
+        # Ensure we logged the message that the cancelled task finished
+        # with an exception
+        found = any(
+            record.levelno == logging.DEBUG
+            and record.getMessage().startswith(
+                "In-flight connect task finished after cancel with:"
+            )
+            for record in caplog.records
+        )
+        assert found, (
+            "Expected debug log about in-flight task"
+            " finishing after cancel with exception"
+        )

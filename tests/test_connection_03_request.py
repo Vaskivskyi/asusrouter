@@ -266,15 +266,27 @@ class TestConnectionRequests:
         mock_log_request.assert_called_once_with(self.DEFAULT_ENDPOINT, None)
 
     @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("allow_fallback"),
+        [
+            True,
+            False,
+        ],
+        ids=["fallback_allowed", "fallback_not_allowed"],
+    )
     async def test_send_request_ssl_error_non_strict(
         self,
+        allow_fallback: bool,
         connection_factory: ConnectionFactory,
+        fallback: AsyncPatch,
         log_request: SyncPatch,
         make_request: AsyncPatch,
     ) -> None:
         """Test the `_send_request` method with SSL verification errors."""
 
-        connection = connection_factory()
+        connection = connection_factory(
+            config={ARCCKey.ALLOW_FALLBACK: allow_fallback}
+        )
         mock_log_request = log_request(connection)
 
         def make_request_side_effect(*args: Any, **kwargs: Any) -> Any:
@@ -286,19 +298,25 @@ class TestConnectionRequests:
                 raise ssl.SSLCertVerificationError
             return MOCK_REQUEST_RESULT
 
+        mock_fallback = fallback(connection)
         make_request(connection, side_effect=make_request_side_effect)
-
-        with patch.object(
-            connection, "_fallback", new_callable=AsyncMock
-        ) as mock_fallback:
+        if allow_fallback:
+            # should fallback and succeed
             result = await connection._send_request(self.DEFAULT_ENDPOINT)
             mock_fallback.assert_called_once()
             assert result == MOCK_REQUEST_RESULT
-
-        # Check that logging was called with the expected payload
-        mock_log_request.assert_called_with(self.DEFAULT_ENDPOINT, None)
-        # Check that called twice (since it should repeat)
-        assert mock_log_request.call_count == 2  # noqa: PLR2004
+            # Check log calls
+            assert mock_log_request.call_count == 2  # noqa: PLR2004
+            mock_log_request.assert_called_with(self.DEFAULT_ENDPOINT, None)
+        else:
+            # no fallback allowed -> should raise SSL certificate error
+            with pytest.raises(AsusRouterSSLCertificateError):
+                await connection._send_request(self.DEFAULT_ENDPOINT)
+            mock_fallback.assert_not_called()
+            # Check log calls
+            mock_log_request.assert_called_once_with(
+                self.DEFAULT_ENDPOINT, None
+            )
 
     @pytest.mark.asyncio
     async def test_send_request_ssl_error_strict(
