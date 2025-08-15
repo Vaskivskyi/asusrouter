@@ -340,8 +340,7 @@ class Connection:  # pylint: disable=too-many-instance-attributes
         Rules:
         - STRICT: never log payload
         - DEFAULT: log only non-sensitive endpoints
-        - SANITIZED: (not implemented)
-            log sensitive endpoints with automatic redaction
+        - SANITIZED: log sensitive endpoints with automatic sanitization
         - UNSAFE: log sensitive endpoints verbatim
         """
 
