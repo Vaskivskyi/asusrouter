@@ -14,6 +14,7 @@ from asusrouter.error import (
     AsusRouterAccessError,
     AsusRouterError,
     AsusRouterLogoutError,
+    AsusRouterSSLCertificateError,
 )
 from asusrouter.modules.endpoint import EndpointService
 from tests.helpers import AsyncPatch, ConnectionFactory, SyncPatch
@@ -121,6 +122,50 @@ class TestConnectionConnect:
         mock_async_connect_with_lock.side_effect = asyncio.TimeoutError
         result = await connection.async_connect()
         mock_async_connect_with_lock.assert_awaited_once_with(None)
+        assert result is False
+
+    @pytest.mark.asyncio
+    async def test_async_connect_reuses_inflight_task(
+        self,
+        connection_factory: ConnectionFactory,
+        async_connect_with_lock: AsyncPatch,
+    ) -> None:
+        """Ensure async_connect reuses an existing in-flight connect task."""
+
+        connection = connection_factory(timeout=30)
+
+        # Patch the underlying method so we can assert it was NOT called.
+        mock_async_connect_with_lock = async_connect_with_lock(connection)
+
+        # Create a dummy in-flight task that completes immediately.
+        async def dummy_connect() -> bool:
+            return True
+
+        connection._connect_task = asyncio.create_task(dummy_connect())
+
+        # Call async_connect — it should await the existing task and NOT call
+        # _async_connect_with_lock again.
+        result = await connection.async_connect()
+        assert result is True
+        mock_async_connect_with_lock.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_async_connect_cancelled_handling(
+        self,
+        connection_factory: ConnectionFactory,
+        async_connect_with_lock: AsyncPatch,
+    ) -> None:
+        """When the underlying connect is cancelled.
+
+        async_connect should return False.
+        """
+
+        connection = connection_factory(timeout=30)
+
+        mock_async_connect_with_lock = async_connect_with_lock(connection)
+        mock_async_connect_with_lock.side_effect = asyncio.CancelledError()
+
+        result = await connection.async_connect()
         assert result is False
 
     @pytest.mark.asyncio
@@ -413,3 +458,67 @@ class TestConnectionConnect:
 
         # Verify `_new_session` was called during initialization
         mock_new_session.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_async_connect_returns_immediately_if_already_connected(
+        self,
+        connection_factory: ConnectionFactory,
+        async_connect_with_lock: AsyncPatch,
+    ) -> None:
+        """async_connect should return immediately if already connected."""
+        connection = connection_factory()
+        connection._connected = True
+
+        mock_async = async_connect_with_lock(connection)
+
+        result = await connection.async_connect()
+        assert result is True
+        mock_async.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_async_connect_with_lock_translates_ssl_error(
+        self,
+        connection_factory: ConnectionFactory,
+        send_request: AsyncPatch,
+    ) -> None:
+        """If _send_request raises SSLCertVerificationError.
+
+        async_connect should raise AsusRouterAccessError.
+        """
+        connection = connection_factory()
+        mock_send = send_request(connection)
+        mock_send.side_effect = AsusRouterSSLCertificateError("bad cert")
+
+        with pytest.raises(
+            AsusRouterAccessError, match="due to the SSL certificate error"
+        ):
+            await connection._async_connect_with_lock()
+
+    @pytest.mark.asyncio
+    async def test_async_connect_with_lock_respects_race(
+        self,
+        connection_factory: ConnectionFactory,
+        send_request: AsyncPatch,
+    ) -> None:
+        """If another task connected while network IO ran.
+
+        _async_connect_with_lock should not overwrite state.
+        """
+        connection = connection_factory()
+
+        async def send_request_side(
+            *a: Any, **kw: Any
+        ) -> tuple[int, dict[str, str], str]:
+            # simulate another task completing the connection
+            # while we performed network IO
+            connection._connected = True
+            connection._token = "existing-token"
+            return (200, {}, json.dumps({"asus_token": "new-token"}))
+
+        mock_send = send_request(connection)
+        mock_send.side_effect = send_request_side
+
+        result = await connection._async_connect_with_lock()
+        assert result is True
+        # token must remain the one set by the racing task, not overwritten
+        assert connection._token == "existing-token"
