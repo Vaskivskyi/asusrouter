@@ -20,7 +20,7 @@ class ARSecurityLevel(IntEnum):
     # Default     => non-sensitive user-related data is exposed
     DEFAULT = 1
     # SANITIZED   => user-related data is available but
-    #                is automatically pre-sanitized before being exposed
+    #                is automatically sanitized before being exposed
     SANITIZED = 5
     # UNSAFE      => user-related data is exposed
     UNSAFE = 9
