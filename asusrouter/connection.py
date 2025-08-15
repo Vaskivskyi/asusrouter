@@ -51,6 +51,8 @@ from asusrouter.modules.endpoint import (
 )
 from asusrouter.modules.endpoint.error import handle_access_error
 from asusrouter.tools.connection import get_cookie_jar
+from asusrouter.tools.converters import clean_string
+from asusrouter.tools.security import ARSecurityLevel
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -322,6 +324,62 @@ class Connection:  # pylint: disable=too-many-instance-attributes
         # Anything else would mean error when disconnecting
         return False
 
+    def _payload_for_logging(
+        self, security_level: Any, endpoint: EndpointType, payload: str | None
+    ) -> str | None:
+        """Return the payload to log if any.
+
+        Rules:
+        - STRICT: never log payload
+        - DEFAULT: log only non-sensitive endpoints
+        - SANITIZED: (not implemented)
+            log sensitive endpoints with automatic redaction
+        - UNSAFE: log sensitive endpoints verbatim
+        """
+
+        # Resolve security level safely
+        level = ARSecurityLevel.from_value(security_level)
+
+        # STRICT: never include payload
+        if level == ARSecurityLevel.STRICT:
+            return None
+
+        # Clean from empty strings
+        payload = clean_string(payload)
+
+        # Sensitive endpoints
+        if is_sensitive_endpoint(endpoint):
+            if level == ARSecurityLevel.SANITIZED:
+                # TODO: Not implemented yet
+                return payload
+            if ARSecurityLevel.above_sanitized(level):
+                return payload
+            return None
+
+        # Non-sensitive endpoints: include payload when available
+        return payload if payload is not None else None
+
+    def _log_request(
+        self, endpoint: EndpointType, payload: str | None
+    ) -> None:
+        """Log the request details."""
+
+        security_level = ARConfig.get(ARConfigKey.DEBUG_PAYLOAD)
+
+        # Prepare payload to log
+        payload_to_log = self._payload_for_logging(
+            security_level, endpoint, payload
+        )
+
+        if payload_to_log is None:
+            _LOGGER.debug("Sending request to `%s`", endpoint)
+        else:
+            _LOGGER.debug(
+                "Sending request to `%s` with payload: %s",
+                endpoint,
+                payload_to_log,
+            )
+
     async def _send_request(  # noqa: C901, PLR0912
         self,
         endpoint: EndpointType,
@@ -333,17 +391,10 @@ class Connection:  # pylint: disable=too-many-instance-attributes
 
         # Send request
         try:
-            if ARConfig.get(ARConfigKey.DEBUG_PAYLOAD):
-                if is_sensitive_endpoint(endpoint):
-                    _LOGGER.debug("Sending request to %s", endpoint)
-                else:
-                    _LOGGER.debug(
-                        "Sending request to %s with payload: %s",
-                        endpoint,
-                        payload,
-                    )
-            else:
-                _LOGGER.debug("Sending request to %s", endpoint)
+            # Log request
+            self._log_request(endpoint, payload)
+
+            # Make the request
             resp_status, resp_headers, resp_content = await self._make_request(
                 endpoint,
                 payload,

@@ -8,7 +8,6 @@ from unittest.mock import AsyncMock, Mock, patch
 import aiohttp
 import pytest
 
-from asusrouter.config import ARConfigKey
 from asusrouter.connection_config import ARConnectionConfigKey as ARCCKey
 from asusrouter.const import RequestType
 from asusrouter.error import (
@@ -127,6 +126,8 @@ MOCK_REQUEST_RESULT = (200, {"header": "value"}, '{"key": "value"}')
 class TestConnectionRequests:
     """Tests for the Connection class requests."""
 
+    DEFAULT_ENDPOINT = EndpointService.LOGIN
+
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
         (
@@ -149,6 +150,7 @@ class TestConnectionRequests:
         expected_exception: type[BaseException] | None,
         exception_message: str | None,
         connection_factory: ConnectionFactory,
+        log_request: SyncPatch,
         make_request: AsyncPatch,
         reset_connection: SyncPatch,
     ) -> None:
@@ -157,6 +159,7 @@ class TestConnectionRequests:
         # Create a Connection
         connection = connection_factory()
 
+        mock_log_request = log_request(connection)
         mock_reset_connection = reset_connection(connection)
         with patch(
             "asusrouter.connection.handle_access_error"
@@ -187,14 +190,14 @@ class TestConnectionRequests:
                 with pytest.raises(
                     expected_exception, match=exception_message
                 ):
-                    await connection._send_request(EndpointService.LOGIN)
+                    await connection._send_request(self.DEFAULT_ENDPOINT)
             else:
-                result = await connection._send_request(EndpointService.LOGIN)
+                result = await connection._send_request(self.DEFAULT_ENDPOINT)
                 assert result == (resp_status, resp_headers, resp_content)
 
             # Verify _make_request was called with expected parameters
             mock_make_request.assert_called_once_with(
-                EndpointService.LOGIN, None, None, RequestType.POST
+                self.DEFAULT_ENDPOINT, None, None, RequestType.POST
             )
 
             # Verify handle_access_error was called if error_status
@@ -219,60 +222,10 @@ class TestConnectionRequests:
             else:
                 mock_reset_connection.assert_not_called()
 
-    @pytest.mark.asyncio
-    @pytest.mark.parametrize(
-        ("debug_payload", "endpoint", "payload", "expected_log"),
-        [
-            (True, EndpointService.LOGIN, "secret", None),
-            (True, EndpointService.LOGOUT, "logout_payload", "logout_payload"),
-            (False, EndpointService.LOGIN, "secret", None),
-            (False, EndpointService.LOGOUT, "logout_payload", None),
-        ],
-        ids=[
-            "debug_login_redacted",
-            "debug_other_payload",
-            "no_debug_login",
-            "no_debug_other",
-        ],
-    )
-    async def test_send_request_logging_payload(
-        self,
-        debug_payload: bool,
-        endpoint: EndpointService,
-        payload: str,
-        expected_log: str | None,
-        connection_factory: ConnectionFactory,
-        make_request: AsyncPatch,
-        monkeypatch: pytest.MonkeyPatch,
-    ) -> None:
-        """Test that payload logging in _send_request respects config."""
-
-        connection = connection_factory()
-        make_request(connection, return_value=(200, {}, "{}"))
-
-        # Patch ARConfig.get to return debug_payload
-        monkeypatch.setattr(
-            "asusrouter.connection.ARConfig.get",
-            lambda key: debug_payload
-            if key == ARConfigKey.DEBUG_PAYLOAD
-            else None,
-        )
-
-        # Patch logger
-        with patch("asusrouter.connection._LOGGER.debug") as mock_debug:
-            await connection._send_request(endpoint, payload=payload)
-
-            if expected_log is not None:
-                mock_debug.assert_any_call(
-                    "Sending request to %s with payload: %s",
-                    endpoint,
-                    expected_log,
-                )
-            else:
-                mock_debug.assert_any_call("Sending request to %s", endpoint)
-                # Should not log payload
-                for call in mock_debug.call_args_list:
-                    assert payload not in call.args
+            # Check that logging was called with the expected payload
+            mock_log_request.assert_called_once_with(
+                self.DEFAULT_ENDPOINT, None
+            )
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
@@ -288,34 +241,41 @@ class TestConnectionRequests:
         allow_multiple_fallbacks: bool,
         expected_clear_called: bool,
         connection_factory: ConnectionFactory,
+        log_request: SyncPatch,
         make_request: AsyncPatch,
     ) -> None:
         """Test that fallback tracker is reset on successful requests."""
 
         config = {ARCCKey.ALLOW_MULTIPLE_FALLBACKS: allow_multiple_fallbacks}
         connection = connection_factory(config=config)
+        mock_log_request = log_request(connection)
         make_request(connection, return_value=MOCK_REQUEST_RESULT)
 
         # Replace _used_fallbacks with a Mock to track clear calls
         mock_fallbacks = Mock()
         connection._used_fallbacks = mock_fallbacks
 
-        await connection._send_request(EndpointService.LOGIN)
+        await connection._send_request(self.DEFAULT_ENDPOINT)
 
         if expected_clear_called:
             mock_fallbacks.clear.assert_called_once()
         else:
             mock_fallbacks.clear.assert_not_called()
 
+        # Check that logging was called with the expected payload
+        mock_log_request.assert_called_once_with(self.DEFAULT_ENDPOINT, None)
+
     @pytest.mark.asyncio
     async def test_send_request_ssl_error_non_strict(
         self,
         connection_factory: ConnectionFactory,
+        log_request: SyncPatch,
         make_request: AsyncPatch,
     ) -> None:
         """Test the `_send_request` method with SSL verification errors."""
 
         connection = connection_factory()
+        mock_log_request = log_request(connection)
 
         def make_request_side_effect(*args: Any, **kwargs: Any) -> Any:
             """Simulate the behavior of the _make_request method."""
@@ -331,34 +291,46 @@ class TestConnectionRequests:
         with patch.object(
             connection, "_fallback", new_callable=AsyncMock
         ) as mock_fallback:
-            result = await connection._send_request(EndpointService.LOGIN)
+            result = await connection._send_request(self.DEFAULT_ENDPOINT)
             mock_fallback.assert_called_once()
             assert result == MOCK_REQUEST_RESULT
+
+        # Check that logging was called with the expected payload
+        mock_log_request.assert_called_with(self.DEFAULT_ENDPOINT, None)
+        # Check that called twice (since it should repeat)
+        assert mock_log_request.call_count == 2  # noqa: PLR2004
 
     @pytest.mark.asyncio
     async def test_send_request_ssl_error_strict(
         self,
         connection_factory: ConnectionFactory,
+        log_request: SyncPatch,
         make_request: AsyncPatch,
     ) -> None:
         """Test the `_send_request` method with SSL verification errors."""
 
         connection = connection_factory(config={ARCCKey.STRICT_SSL: True})
+        mock_log_request = log_request(connection)
         make_request(connection, side_effect=ssl.SSLCertVerificationError)
 
         with pytest.raises(AsusRouterSSLCertificateError):
-            await connection._send_request(EndpointService.LOGIN)
+            await connection._send_request(self.DEFAULT_ENDPOINT)
+
+        # Check that logging was called with the expected payload
+        mock_log_request.assert_called_once_with(self.DEFAULT_ENDPOINT, None)
 
     @pytest.mark.asyncio
     async def test_send_request_fail_fallback_not_allowed(
         self,
         connection_factory: ConnectionFactory,
+        log_request: SyncPatch,
         make_request: AsyncPatch,
         reset_connection: SyncPatch,
     ) -> None:
         """Test the `_send_request` method when fallback is not allowed."""
 
         connection = connection_factory(config={ARCCKey.ALLOW_FALLBACK: False})
+        mock_log_request = log_request(connection)
         make_request(
             connection,
             side_effect=aiohttp.ClientConnectorError(Mock(), Mock()),
@@ -367,18 +339,23 @@ class TestConnectionRequests:
         mock_reset_connection = reset_connection(connection)
 
         with pytest.raises(AsusRouterConnectionError):
-            await connection._send_request(EndpointService.LOGIN)
+            await connection._send_request(self.DEFAULT_ENDPOINT)
         mock_reset_connection.assert_called_once()
+
+        # Check that logging was called with the expected payload
+        mock_log_request.assert_called_once_with(self.DEFAULT_ENDPOINT, None)
 
     @pytest.mark.asyncio
     async def test_send_request_ssl_error_fallback(
         self,
         connection_factory: ConnectionFactory,
+        log_request: SyncPatch,
         make_request: AsyncPatch,
     ) -> None:
         """Test the `_send_request` method with fallback."""
 
         connection = connection_factory(config={ARCCKey.ALLOW_FALLBACK: True})
+        mock_log_request = log_request(connection)
         make_request(
             connection,
             side_effect=aiohttp.ClientConnectorError(Mock(), Mock()),
@@ -390,15 +367,18 @@ class TestConnectionRequests:
             # Simulate fallback returns dummy response
             mock_handle_fallback.return_value = MOCK_REQUEST_RESULT
 
-            await connection._send_request(EndpointService.LOGIN)
+            await connection._send_request(self.DEFAULT_ENDPOINT)
 
             mock_handle_fallback.assert_called_once_with(
                 callback=connection._send_request,
-                endpoint=EndpointService.LOGIN,
+                endpoint=self.DEFAULT_ENDPOINT,
                 payload=None,
                 headers=None,
                 request_type=RequestType.POST,
             )
+
+        # Check that logging was called with the expected payload
+        mock_log_request.assert_called_once_with(self.DEFAULT_ENDPOINT, None)
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
@@ -493,10 +473,10 @@ class TestConnectionRequests:
         if expected_exception:
             # Verify that the expected exception is raised
             with pytest.raises(expected_exception, match=exception_message):
-                await connection.async_query(EndpointService.LOGIN)
+                await connection.async_query(self.DEFAULT_ENDPOINT)
         else:
             # Call `async_query`
-            result = await connection.async_query(EndpointService.LOGIN)
+            result = await connection.async_query(self.DEFAULT_ENDPOINT)
 
             # Verify the result
             assert result == send_request_result
@@ -510,7 +490,7 @@ class TestConnectionRequests:
         # Verify `_send_request` was called
         if connected or (not connected and connect_result):
             mock_send_request.assert_called_once_with(
-                EndpointService.LOGIN, None, None, RequestType.POST
+                self.DEFAULT_ENDPOINT, None, None, RequestType.POST
             )
         else:
             mock_send_request.assert_not_called()

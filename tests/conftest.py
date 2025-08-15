@@ -127,6 +127,22 @@ def mock_fallback(
     return _patch
 
 
+@pytest.fixture(name="log_request")
+def mock_log_request(
+    universal_mock: UniversalMockPatcher,  # noqa: F811
+) -> SyncPatch:
+    """Fixture to patch the `_log_request` method."""
+
+    def _patch(
+        connection: Any, side_effect: Any = None, return_value: Any = None
+    ) -> Mock:
+        return universal_mock.patch(
+            connection, "_log_request", side_effect, return_value, Mock
+        )
+
+    return _patch
+
+
 @pytest.fixture(name="make_request")
 def mock_make_request(
     universal_mock: UniversalMockPatcher,  # noqa: F811
@@ -154,6 +170,22 @@ def mock_new_session(
     ) -> Mock:
         return universal_mock.patch(
             connection, "_new_session", side_effect, return_value, Mock
+        )
+
+    return _patch
+
+
+@pytest.fixture(name="payload_for_logging")
+def mock_payload_for_logging(
+    universal_mock: UniversalMockPatcher,  # noqa: F811
+) -> SyncPatch:
+    """Fixture to patch the `_payload_for_logging` method."""
+
+    def _patch(
+        connection: Any, side_effect: Any = None, return_value: Any = None
+    ) -> Mock:
+        return universal_mock.patch(
+            connection, "_payload_for_logging", side_effect, return_value, Mock
         )
 
     return _patch
