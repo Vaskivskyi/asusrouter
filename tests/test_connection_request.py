@@ -8,6 +8,7 @@ from unittest.mock import AsyncMock, Mock, patch
 import aiohttp
 import pytest
 
+from asusrouter.config import ARConfigKey
 from asusrouter.connection_config import ARConnectionConfigKey as ARCCKey
 from asusrouter.const import RequestType
 from asusrouter.error import (
@@ -217,6 +218,61 @@ class TestConnectionRequests:
                 mock_reset_connection.assert_called_once()
             else:
                 mock_reset_connection.assert_not_called()
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("debug_payload", "endpoint", "payload", "expected_log"),
+        [
+            (True, EndpointService.LOGIN, "secret", "[REDACTED]"),
+            (True, EndpointService.LOGOUT, "logout_payload", "logout_payload"),
+            (False, EndpointService.LOGIN, "secret", None),
+            (False, EndpointService.LOGOUT, "logout_payload", None),
+        ],
+        ids=[
+            "debug_login_redacted",
+            "debug_other_payload",
+            "no_debug_login",
+            "no_debug_other",
+        ],
+    )
+    async def test_send_request_logging_payload(
+        self,
+        debug_payload: bool,
+        endpoint: EndpointService,
+        payload: str,
+        expected_log: str | None,
+        connection_factory: ConnectionFactory,
+        make_request: AsyncPatch,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Test that payload logging in _send_request respects config."""
+
+        connection = connection_factory()
+        make_request(connection, return_value=(200, {}, "{}"))
+
+        # Patch ARConfig.get to return debug_payload
+        monkeypatch.setattr(
+            "asusrouter.connection.ARConfig.get",
+            lambda key: debug_payload
+            if key == ARConfigKey.DEBUG_PAYLOAD
+            else None,
+        )
+
+        # Patch logger
+        with patch("asusrouter.connection._LOGGER.debug") as mock_debug:
+            await connection._send_request(endpoint, payload=payload)
+
+            if expected_log is not None:
+                mock_debug.assert_any_call(
+                    "Sending request to %s with payload: %s",
+                    endpoint,
+                    expected_log,
+                )
+            else:
+                mock_debug.assert_any_call("Sending request to %s", endpoint)
+                # Should not log payload
+                for call in mock_debug.call_args_list:
+                    assert payload not in call.args
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
