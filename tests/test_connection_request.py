@@ -223,7 +223,7 @@ class TestConnectionRequests:
     @pytest.mark.parametrize(
         ("debug_payload", "endpoint", "payload", "expected_log"),
         [
-            (True, EndpointService.LOGIN, "secret", "[REDACTED]"),
+            (True, EndpointService.LOGIN, "secret", None),
             (True, EndpointService.LOGOUT, "logout_payload", "logout_payload"),
             (False, EndpointService.LOGIN, "secret", None),
             (False, EndpointService.LOGOUT, "logout_payload", None),

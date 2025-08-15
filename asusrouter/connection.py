@@ -44,7 +44,11 @@ from asusrouter.error import (
     AsusRouterSSLCertificateError,
     AsusRouterTimeoutError,
 )
-from asusrouter.modules.endpoint import EndpointService, EndpointType
+from asusrouter.modules.endpoint import (
+    EndpointService,
+    EndpointType,
+    is_sensitive_endpoint,
+)
 from asusrouter.modules.endpoint.error import handle_access_error
 from asusrouter.tools.connection import get_cookie_jar
 
@@ -330,13 +334,14 @@ class Connection:  # pylint: disable=too-many-instance-attributes
         # Send request
         try:
             if ARConfig.get(ARConfigKey.DEBUG_PAYLOAD):
-                _LOGGER.debug(
-                    "Sending request to %s with payload: %s",
-                    endpoint,
-                    payload
-                    if endpoint != EndpointService.LOGIN
-                    else "[REDACTED]",
-                )
+                if is_sensitive_endpoint(endpoint):
+                    _LOGGER.debug("Sending request to %s", endpoint)
+                else:
+                    _LOGGER.debug(
+                        "Sending request to %s with payload: %s",
+                        endpoint,
+                        payload,
+                    )
             else:
                 _LOGGER.debug("Sending request to %s", endpoint)
             resp_status, resp_headers, resp_content = await self._make_request(
