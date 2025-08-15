@@ -127,7 +127,7 @@ class Connection:  # pylint: disable=too-many-instance-attributes
         self._timeout: int = timeout or DEFAULT_TIMEOUT
 
         # Single in-flight connect task (serialize connection attempts)
-        self._connect_task: asyncio.Task | None = None
+        self._connect_task: asyncio.Task[Any] | None = None
         # Lock to guard creation of the connect task
         self._connect_task_lock: asyncio.Lock = asyncio.Lock()
 
