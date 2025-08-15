@@ -8,6 +8,7 @@ import threading
 from typing import Any
 
 from asusrouter.tools.converters import safe_bool, safe_int
+from asusrouter.tools.security import ARSecurityLevel
 
 
 class ARConfigKeyBase(StrEnum):
@@ -58,7 +59,7 @@ def safe_int_config(value: Any) -> int:
 CONFIG_DEFAULT: dict[ARConfigKey, Any] = {
     # If set, payload sent to the router will be available
     # in the debug logs
-    ARConfigKey.DEBUG_PAYLOAD: CONFIG_DEFAULT_BOOL,
+    ARConfigKey.DEBUG_PAYLOAD: ARSecurityLevel.DEFAULT,
     ARConfigKey.OPTIMISTIC_DATA: CONFIG_DEFAULT_BOOL,
     # If set, the temperature will be automatically adjusted
     # to fit the expected range
@@ -71,7 +72,7 @@ CONFIG_DEFAULT: dict[ARConfigKey, Any] = {
 
 TYPES_DEFAULT: dict[ARConfigKey, Callable[[Any], Any]] = {
     # Debug payload
-    ARConfigKey.DEBUG_PAYLOAD: safe_bool_config,
+    ARConfigKey.DEBUG_PAYLOAD: ARSecurityLevel.from_value,
     # Optimistic data
     ARConfigKey.OPTIMISTIC_DATA: safe_bool_config,
     # Optimistic temperature

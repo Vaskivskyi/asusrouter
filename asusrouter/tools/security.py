@@ -10,19 +10,20 @@ from asusrouter.tools.converters import safe_int
 
 @unique
 class ARSecurityLevel(IntEnum):
-    """Security levels for the data processed by AsusRouter."""
+    """Security levels for the data processed by AsusRouter.
 
-    # Unknown
+    Levels:
+    - **STRICT** - no user-related data is exposed outside
+    - **DEFAULT** - non-sensitive user-related data is exposed
+    - **SANITIZED** - user-related data is available but is
+      automatically sanitized before being exposed
+    - **UNSAFE** - user-related data is exposed
+    """
+
     UNKNOWN = -999
-    # Strict      => no user-related data is available except
-    #                for the internal library needs
     STRICT = 0
-    # Default     => non-sensitive user-related data is exposed
     DEFAULT = 1
-    # SANITIZED   => user-related data is available but
-    #                is automatically sanitized before being exposed
     SANITIZED = 5
-    # UNSAFE      => user-related data is exposed
     UNSAFE = 9
 
     @classmethod
