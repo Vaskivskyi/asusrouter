@@ -93,6 +93,7 @@ ENDPOINT_FORCE_REQUEST = {
 SENSITIVE_ENDPOINTS: Final[frozenset[EndpointType]] = frozenset(
     {
         EndpointService.LOGIN,
+        EndpointControl.APPLY,
     }
 )
 

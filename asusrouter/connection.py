@@ -347,11 +347,15 @@ class Connection:  # pylint: disable=too-many-instance-attributes
         # Clean from empty strings
         payload = clean_string(payload)
 
-        # Sensitive endpoints
+        # Always null login endpoint payload
+        if endpoint == EndpointService.LOGIN:
+            return None
+
+        # Remove sensitive information
         if is_sensitive_endpoint(endpoint):
             if level == ARSecurityLevel.SANITIZED:
                 # TODO: Not implemented yet
-                return payload
+                return "[SANITIZED PLACEHOLDER]"
             if ARSecurityLevel.above_sanitized(level):
                 return payload
             return None

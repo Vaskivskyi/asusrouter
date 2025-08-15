@@ -6,8 +6,8 @@ import pytest
 
 from asusrouter.config import ARConfig, ARConfigKey
 from asusrouter.modules.endpoint import (
+    EndpointControl,
     EndpointService,
-    EndpointTools,
     EndpointType,
 )
 from asusrouter.tools.security import ARSecurityLevel
@@ -17,48 +17,60 @@ from tests.helpers import ConnectionFactory, SyncPatch
 class TestConnectionLogging:
     """Test for the Connection class logging."""
 
+    LOGIN_ENDPOINT = EndpointService.LOGIN
+    SENSITIVE_ENDPOINT = EndpointControl.APPLY
+    SAFE_ENDPOINT = EndpointService.LOGOUT
+
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
         ("level", "endpoint", "payload", "expected"),
         [
             # STRICT: never log payloads
-            (ARSecurityLevel.STRICT, EndpointService.LOGOUT, "p", None),
-            # DEFAULT: non-sensitive endpoints log payload
-            (ARSecurityLevel.DEFAULT, EndpointService.LOGOUT, "p", "p"),
-            # DEFAULT: sensitive endpoints do NOT log payload
-            (ARSecurityLevel.DEFAULT, EndpointService.LOGIN, "secret", None),
-            # SANITIZED: sensitive endpoints log placeholder
+            (ARSecurityLevel.STRICT, SAFE_ENDPOINT, "not-a-secret", None),
+            # Login: never log payload even in unsafe mode
+            (ARSecurityLevel.UNSAFE, LOGIN_ENDPOINT, "top-secret", None),
+            # DEFAULT: non-sensitive
+            (
+                ARSecurityLevel.DEFAULT,
+                SAFE_ENDPOINT,
+                "not-a-secret",
+                "not-a-secret",
+            ),
+            # DEFAULT: sensitive
+            (ARSecurityLevel.DEFAULT, SENSITIVE_ENDPOINT, "secret", None),
+            # SANITIZED: non-sensitive
             (
                 ARSecurityLevel.SANITIZED,
-                EndpointService.LOGIN,
-                "secret",
-                "secret",
+                SAFE_ENDPOINT,
+                "not-a-secret",
+                "not-a-secret",
             ),
-            # UNSAFE: sensitive endpoints log verbatim
+            # SANITIZED: sensitive
+            (
+                ARSecurityLevel.SANITIZED,
+                SENSITIVE_ENDPOINT,
+                "secret",
+                "[SANITIZED PLACEHOLDER]",
+            ),
+            # UNSAFE: non-sensitive
             (
                 ARSecurityLevel.UNSAFE,
-                EndpointService.LOGIN,
-                "secret",
-                "secret",
+                SAFE_ENDPOINT,
+                "not-a-secret",
+                "not-a-secret",
             ),
-            # SANITIZED/UNSAFE with None payload -> still None
-            (ARSecurityLevel.SANITIZED, EndpointService.LOGIN, None, None),
-            (ARSecurityLevel.UNSAFE, EndpointService.LOGIN, None, None),
-            # DEFAULT with empty string cleaned -> None
-            (ARSecurityLevel.DEFAULT, EndpointService.LOGOUT, "", None),
-            # DEFAULT with non-sensitive tools endpoint
-            (ARSecurityLevel.DEFAULT, EndpointTools.NETWORK, "np", "np"),
+            # UNSAFE: sensitive
+            (ARSecurityLevel.UNSAFE, SENSITIVE_ENDPOINT, "secret", "secret"),
         ],
         ids=[
-            "strict_logout",
-            "default_logout",
-            "default_login_sensitive",
-            "sanitized_login_sensitive",
-            "unsafe_login_sensitive",
-            "sanitized_login_none",
-            "unsafe_login_none",
-            "default_logout_empty",
-            "default_network",
+            "strict",
+            "login",
+            "default_safe",
+            "default_sensitive",
+            "sanitized_safe",
+            "sanitized_sensitive",
+            "unsafe_safe",
+            "unsafe_sensitive",
         ],
     )
     async def test_payload_for_logging(
