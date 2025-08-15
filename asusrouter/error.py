@@ -36,6 +36,10 @@ class AsusRouterSessionError(AsusRouterError):
     """Session error."""
 
 
+class AsusRouterSSLCertificateError(AsusRouterError):
+    """SSL certificate error."""
+
+
 class AsusRouter404Error(AsusRouterError):
     """Page not found error."""
 
@@ -54,3 +58,19 @@ class AsusRouterLogoutError(AsusRouterError):
 
 class AsusRouterServiceError(AsusRouterError):
     """Service error."""
+
+
+class AsusRouterNotImplementedError(AsusRouterError):
+    """Not implemented error."""
+
+
+class AsusRouterFallbackError(AsusRouterError):
+    """Fallback error."""
+
+
+class AsusRouterFallbackForbiddenError(AsusRouterFallbackError):
+    """Fallback forbidden error."""
+
+
+class AsusRouterFallbackLoopError(AsusRouterFallbackError):
+    """Fallback loop error."""

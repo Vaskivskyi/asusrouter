@@ -15,6 +15,7 @@ from typing import Any
 import aiohttp
 
 from asusrouter.connection import Connection
+from asusrouter.connection_config import ARConnectionConfigKey as ARCCKey
 from asusrouter.const import (
     DEFAULT_CACHE_TIME,
     DEFAULT_RESULT_SUCCESS,
@@ -88,6 +89,7 @@ class AsusRouter:
         cache_time: float | None = None,
         session: aiohttp.ClientSession | None = None,
         dumpback: Callable[..., Awaitable[None]] | None = None,
+        connection_config: dict[ARCCKey, Any] | None = None,
     ):
         """Initialize the interface."""
 
@@ -118,6 +120,7 @@ class AsusRouter:
         self._use_ssl = use_ssl
         self._session = session
         self._dumpback = dumpback
+        self._connection_config = connection_config
 
     # ---------------------------
     # Connection-related methods -->
@@ -137,6 +140,7 @@ class AsusRouter:
             session=self._session,
             timeout=DEFAULT_TIMEOUT,
             dumpback=self._dumpback,
+            config=self._connection_config,
         )
 
     async def async_del_connection(self) -> None:

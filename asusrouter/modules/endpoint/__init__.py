@@ -82,6 +82,7 @@ class EndpointNoCheck(str, Enum):
 # Typehint for the endpoint
 EndpointType = Endpoint | EndpointControl | EndpointService | EndpointTools
 
+
 # Force request type for the endpoint
 ENDPOINT_FORCE_REQUEST = {
     Endpoint.PORT_STATUS: RequestType.GET,
@@ -92,6 +93,7 @@ ENDPOINT_FORCE_REQUEST = {
 SENSITIVE_ENDPOINTS: Final[frozenset[EndpointType]] = frozenset(
     {
         EndpointService.LOGIN,
+        EndpointControl.APPLY,
     }
 )
 

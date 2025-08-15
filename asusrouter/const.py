@@ -41,6 +41,8 @@ class HTTPStatus(IntEnum):
 
 # Asus constants
 USER_AGENT = "asusrouter--DUTUtil-"
+DEFAULT_PORT_HTTP = 80
+DEFAULT_PORT_HTTPS = 8443
 
 # Library defaults
 DEFAULT_CACHE_TIME = 5.0
