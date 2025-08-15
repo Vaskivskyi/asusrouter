@@ -6,14 +6,65 @@ import pytest
 
 from asusrouter.error import AsusRouter404Error
 from asusrouter.modules.endpoint import (
+    SENSITIVE_ENDPOINTS,
     Endpoint,
+    EndpointService,
+    EndpointTools,
+    EndpointType,
     _get_module,
     check_available,
     data_get,
     data_set,
+    is_sensitive_endpoint,
     process,
     read,
 )
+
+TEST_SENSITIVE_ENDPOINTS: tuple[EndpointType, ...] = (EndpointService.LOGIN,)
+IDS_SENSITIVE_ENDPOINTS = ("login",)
+
+
+@pytest.mark.parametrize(
+    ("endpoint"), TEST_SENSITIVE_ENDPOINTS, ids=IDS_SENSITIVE_ENDPOINTS
+)
+def test_marked_sensitive_endpoint(endpoint: EndpointType) -> None:
+    """Test if the endpoint is marked as sensitive."""
+
+    assert endpoint in SENSITIVE_ENDPOINTS
+    assert is_sensitive_endpoint(endpoint) is True
+
+
+def test_sensitive_endpoints_immutable() -> None:
+    """SENSITIVE_ENDPOINTS should be an immutable frozenset."""
+
+    assert isinstance(SENSITIVE_ENDPOINTS, frozenset)
+    # Attempting to call add should raise AttributeError
+    with pytest.raises(AttributeError):
+        SENSITIVE_ENDPOINTS.add(EndpointService.LOGOUT)  # type: ignore[attr-defined]
+
+    # union returns a new frozenset; original remains unchanged
+    new_set = SENSITIVE_ENDPOINTS | frozenset({EndpointService.LOGOUT})
+    assert isinstance(new_set, frozenset)
+    assert EndpointService.LOGOUT not in SENSITIVE_ENDPOINTS
+    assert EndpointService.LOGOUT in new_set
+
+
+@pytest.mark.parametrize(
+    ("endpoint", "expected"),
+    [
+        (EndpointService.LOGIN, True),
+        (Endpoint.PORT_STATUS, False),
+        (EndpointTools.NETWORK, False),
+        (EndpointService.LOGOUT, False),
+    ],
+)
+def test_is_sensitive_endpoint(
+    endpoint: EndpointType,
+    expected: bool,
+) -> None:
+    """is_sensitive_endpoint returns True only for sensitive endpoints."""
+
+    assert is_sensitive_endpoint(endpoint) is expected
 
 
 def test_get_module() -> None:

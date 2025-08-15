@@ -8,7 +8,7 @@ from enum import Enum
 import importlib
 import logging
 from types import ModuleType
-from typing import Any
+from typing import Any, Final
 
 from asusrouter.const import HTTPStatus, RequestType
 from asusrouter.error import AsusRouter404Error
@@ -87,6 +87,19 @@ ENDPOINT_FORCE_REQUEST = {
     Endpoint.PORT_STATUS: RequestType.GET,
     EndpointTools.NETWORK: RequestType.GET,
 }
+
+
+SENSITIVE_ENDPOINTS: Final[frozenset[EndpointType]] = frozenset(
+    {
+        EndpointService.LOGIN,
+    }
+)
+
+
+def is_sensitive_endpoint(endpoint: EndpointType) -> bool:
+    """Check if the endpoint is sensitive."""
+
+    return endpoint in SENSITIVE_ENDPOINTS
 
 
 def _get_module(
