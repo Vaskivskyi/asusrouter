@@ -685,6 +685,7 @@ class Connection:  # pylint: disable=too-many-instance-attributes
         # If there is an in-flight connect task, cancel it first so the
         # fallback can start a fresh immediate connection attempt instead of
         # awaiting the old (failing) task until its timeout.
+        old_task: asyncio.Task | None = None
         async with self._connect_task_lock:
             if (
                 self._connect_task is not None
@@ -694,27 +695,24 @@ class Connection:  # pylint: disable=too-many-instance-attributes
                     "Cancelling in-flight connect attempt to "
                     "allow fallback reconnect"
                 )
-                # Cancel the in-flight connect and await it so any exception
-                # is observed and won't become an unhandled exception.
+                # Capture and cancel the in-flight connect task
+                # so we can await it later (outside the lock)
+                # and consume any exception it raises.
                 old_task = self._connect_task
                 with contextlib.suppress(Exception):
                     old_task.cancel()
-                # Clear reference so new connect can be started
+                # Clear reference so a new connect can be started by fallback
                 self._connect_task = None
 
-                # Await the cancelled task to consume its exception (if any).
-                # Do this outside the connect_task_lock to avoid deadlocks.
-        # end of connect_task_lock
-        old_task = locals().get("old_task", None)
+        # Await the cancelled task to consume its exception (if any).
+        # Do this outside the connect_task_lock to avoid deadlocks.
         if old_task is not None:
             try:
                 await old_task
             except asyncio.CancelledError:
                 # expected due to cancel()
                 pass
-            except (
-                Exception  # noqa: BLE001
-            ) as exc:  # consume/log any other error from the old task
+            except Exception as exc:  # noqa: BLE001 - consume/log other errors
                 _LOGGER.debug(
                     "In-flight connect task finished after cancel with: %s",
                     exc,
