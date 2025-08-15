@@ -9,6 +9,7 @@ from __future__ import annotations
 import asyncio
 import base64
 from collections.abc import Awaitable, Callable
+import contextlib
 from enum import StrEnum
 import json
 import logging
@@ -125,6 +126,11 @@ class Connection:  # pylint: disable=too-many-instance-attributes
         self._connection_lock: asyncio.Lock = asyncio.Lock()
         self._timeout: int = timeout or DEFAULT_TIMEOUT
 
+        # Single in-flight connect task (serialize connection attempts)
+        self._connect_task: asyncio.Task | None = None
+        # Lock to guard creation of the connect task
+        self._connect_task_lock: asyncio.Lock = asyncio.Lock()
+
         # Hostname and credentials
         self._hostname = hostname
         self._username = username
@@ -238,37 +244,69 @@ class Connection:  # pylint: disable=too-many-instance-attributes
 
         timeout = safe_float(t_overwrite) or self._timeout
 
+        # If already connected, return fast
+        if self._connected:
+            return True
+
+        # Ensure only one connect Task is created;
+        # reuse it for concurrent callers
+        async with self._connect_task_lock:
+            if self._connect_task is None or self._connect_task.done():
+                # start the connect attempt as a background task
+                self._connect_task = asyncio.create_task(
+                    self._async_connect_with_lock(lock)
+                )
+
         try:
+            # Await the in-flight connect but don't cancel it on
+            # outer timeout: use shield so that callers timing out
+            # won't cancel the actual attempt.
             await asyncio.wait_for(
-                self._async_connect_with_lock(lock), timeout=timeout
+                asyncio.shield(self._connect_task), timeout=timeout
             )
             return True
         except TimeoutError:
             if not block_error:
                 _LOGGER.error("Connection to %s timed out", self._hostname)
+            # do not cancel the underlying task here; let it finish
+            # and satisfy future callers
             return False
+        except asyncio.CancelledError:
+            # Underlying connect was cancelled (e.g. by fallback).
+            # Treat as failed.
+            if not block_error:
+                _LOGGER.debug("Connection attempt was cancelled")
+            return False
+        finally:
+            # If the task finished, clear it to allow future retries.
+            if self._connect_task is not None and self._connect_task.done():
+                self._connect_task = None
 
     async def _async_connect_with_lock(
         self,
         lock: asyncio.Lock | None = None,
     ) -> bool:
-        """Connect to the device and get a new auth token."""
+        """Connect to the device and get a new auth token.
 
+        Acquire the lock only for state checks/updates. Perform the actual
+        network login outside the lock to avoid deadlocks when fallback
+        triggers a nested connect attempt.
+        """
         _lock = lock or self._connection_lock
 
-        # Make early check holding the lock
+        # Quick check / early exit while holding the lock
         async with _lock:
             if self._connected:
                 _LOGGER.debug("Already connected to %s", self._hostname)
                 return True
             _LOGGER.debug("Initializing connection to %s", self._hostname)
 
-        # Generate payload and header for login request
+        # Prepare auth payload and headers (no lock held)
         payload, headers = generate_credentials(self._username, self._password)
 
-        # Request authorization
         _LOGGER.debug("Requesting authorization")
         try:
+            # Do the network login outside the lock to avoid deadlocks
             _, _, resp_content = await self._send_request(
                 EndpointService.LOGIN, payload, headers
             )
@@ -292,19 +330,18 @@ class Connection:  # pylint: disable=too-many-instance-attributes
                 self._hostname,
                 ex,
             )
-            raise ex
+            raise
 
-        # Convert the response to JSON
+        # Process response and update state while holding the lock
         content = json.loads(resp_content)
-        # Get the auth_token value from the headers
         token = content.get("asus_token")
         if not token:
             _LOGGER.error("No token received")
             return False
 
         async with _lock:
-            # Another task may have connected while we performed the
-            # network IO. If so, avoid overwriting state and return early.
+            # Another task may have connected while we performed
+            # the network IO. If so, avoid overwriting state and return early.
             if self._connected:
                 _LOGGER.debug(
                     "Connection already established to %s by another task",
@@ -645,6 +682,46 @@ class Connection:  # pylint: disable=too-many-instance-attributes
                 )
 
         # Reconnect with new parameters
+        # If there is an in-flight connect task, cancel it first so the
+        # fallback can start a fresh immediate connection attempt instead of
+        # awaiting the old (failing) task until its timeout.
+        async with self._connect_task_lock:
+            if (
+                self._connect_task is not None
+                and not self._connect_task.done()
+            ):
+                _LOGGER.debug(
+                    "Cancelling in-flight connect attempt to "
+                    "allow fallback reconnect"
+                )
+                # Cancel the in-flight connect and await it so any exception
+                # is observed and won't become an unhandled exception.
+                old_task = self._connect_task
+                with contextlib.suppress(Exception):
+                    old_task.cancel()
+                # Clear reference so new connect can be started
+                self._connect_task = None
+
+                # Await the cancelled task to consume its exception (if any).
+                # Do this outside the connect_task_lock to avoid deadlocks.
+        # end of connect_task_lock
+        old_task = locals().get("old_task", None)
+        if old_task is not None:
+            try:
+                await old_task
+            except asyncio.CancelledError:
+                # expected due to cancel()
+                pass
+            except (
+                Exception  # noqa: BLE001
+            ) as exc:  # consume/log any other error from the old task
+                _LOGGER.debug(
+                    "In-flight connect task finished after cancel with: %s",
+                    exc,
+                )
+
+        # Reset connection state and perform a bounded reconnect
+        # for the fallback.
         self.reset_connection()
         await self.async_connect(
             t_overwrite=DEFAULT_TIMEOUT_FALLBACK, block_error=True
