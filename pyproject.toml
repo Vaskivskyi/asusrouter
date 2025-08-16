@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name            = "asusrouter"
-version         = "1.18.2"
+version         = "1.19.0"
 license         = "Apache-2.0"
 requires-python = ">=3.11.0"
 readme          = "README.md"
@@ -106,6 +106,9 @@ ignore = [
     "D213",   # Multi-line docstring summary should start at the second line
 ]
 
+[tool.ruff.lint.flake8-import-conventions.extend-aliases]
+"asusrouter.connection_config.ARConnectionConfigKey" = "ARCCKey"
+
 [tool.ruff.lint.isort]
 force-sort-within-sections = true
 known-first-party = ["asusrouter"]
@@ -114,7 +117,10 @@ split-on-trailing-comma = false
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = [
-    "S101",  # Use of `assert` detected
+    "S101",    # Use of `assert` detected
+    "S105",    # Possible hardcoded password assigned to: "{}"
+    "S106",    # Possible hardcoded password assigned to argument: "{}"
+    "PLR0913", # Too many arguments in function definition ({c_args} > {max_args})
 ]
 
 [tool.ruff.lint.pydocstyle]
