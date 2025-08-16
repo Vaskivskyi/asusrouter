@@ -72,7 +72,7 @@ def test_fromstr(value: Any, member: FakeStrEnum) -> None:
 def test_fromstr_no_unknown() -> None:
     """Test string-based enum resolution without unknowns."""
 
-    with pytest.raises(ValueError):  # noqa: PT011
+    with pytest.raises(ValueError, match="no `UNKNOWN` member is defined"):
         FakeStrEnumNoUnknown.from_value("unknown_value")
 
 
@@ -85,6 +85,7 @@ def test_fromstr_no_unknown() -> None:
         ("one", FakeIntEnum.ONE),
         ("  two  ", FakeIntEnum.TWO),
         ("three", FakeIntEnum.UNKNOWN),
+        (4, FakeIntEnum.UNKNOWN),
         (None, FakeIntEnum.UNKNOWN),
         ((1,), FakeIntEnum.UNKNOWN),
         (object(), FakeIntEnum.UNKNOWN),
@@ -95,6 +96,7 @@ def test_fromstr_no_unknown() -> None:
         "from_parsed_value",
         "from_correct_key",
         "from_parsed_key",
+        "value_does_not_exist",
         "not_value_not_key",
         "not_compatible",
         "wrong_type",
@@ -110,5 +112,5 @@ def test_fromint(value: Any, member: FakeIntEnum) -> None:
 def test_fromint_no_unknown() -> None:
     """Test integer-based enum resolution without unknowns."""
 
-    with pytest.raises(ValueError):  # noqa: PT011
+    with pytest.raises(ValueError, match="no `UNKNOWN` member is defined"):
         FakeIntEnumNoUnknown.from_value("unknown_value")

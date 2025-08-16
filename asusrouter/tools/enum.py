@@ -42,7 +42,8 @@ class FromIntMixin:
             return cast(Self, unknown)
 
         raise ValueError(
-            f"{cls.__name__}.from_value: cannot resolve {value!r}"
+            f"{cls.__name__}.from_value: cannot resolve {value!r} "
+            "and no `UNKNOWN` member is defined"
         )
 
 
@@ -79,5 +80,6 @@ class FromStrMixin:
             return cast(Self, unknown)
 
         raise ValueError(
-            f"{cls.__name__}.from_value: cannot resolve {value!r}"
+            f"{cls.__name__}.from_value: cannot resolve {value!r} "
+            "and no `UNKNOWN` member is defined"
         )
