@@ -13,8 +13,8 @@ from asusrouter.config import (
     CONFIG_DEFAULT_ALREADY_NOTIFIED,
     CONFIG_DEFAULT_BOOL,
     CONFIG_DEFAULT_INT,
+    ARConfigBase,
     ARConfigKeyBase,
-    ConfigBase,
     safe_bool_config,
     safe_int_config,
 )
@@ -89,7 +89,7 @@ CONNECTION_CONFIG_TYPES_DEFAULTS: dict[
 }
 
 
-class ARConnectionConfig(ConfigBase):
+class ARConnectionConfig(ARConfigBase):
     """Connection configuration for AsusRouter."""
 
     def __init__(

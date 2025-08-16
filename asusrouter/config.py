@@ -83,7 +83,7 @@ TYPES_DEFAULT: dict[ARConfigKey, Callable[[Any], Any]] = {
 }
 
 
-class ConfigBase:
+class ARConfigBase:
     """Base class for configuration options."""
 
     def __init__(self) -> None:
@@ -156,7 +156,7 @@ class ConfigBase:
             return self._types.copy()
 
 
-class Config(ConfigBase):
+class ARGlobalConfig(ARConfigBase):
     """Configuration class for AsusRouter."""
 
     def __init__(
@@ -183,4 +183,4 @@ class Config(ConfigBase):
                 self._types[key] = TYPES_DEFAULT.get(key, safe_bool_config)
 
 
-ARConfig: Config = Config()
+ARConfig: ARGlobalConfig = ARGlobalConfig()
