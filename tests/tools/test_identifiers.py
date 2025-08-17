@@ -144,7 +144,7 @@ def test_repr() -> None:
     """Test string representation."""
 
     instance = MacAddress.from_value(CORRECT_MAC)
-    assert repr(instance) == f"MacAddress('{CORRECT_MAC}')"
+    assert repr(instance) == CORRECT_MAC
 
 
 @pytest.mark.parametrize(
