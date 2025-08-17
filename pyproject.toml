@@ -108,6 +108,7 @@ ignore = [
 
 [tool.ruff.lint.flake8-import-conventions.extend-aliases]
 "asusrouter.connection_config.ARConnectionConfigKey" = "ARCCKey"
+"asusrouter.registry.ARCallableRegistry" = "ARCallReg"
 
 [tool.ruff.lint.isort]
 force-sort-within-sections = true
