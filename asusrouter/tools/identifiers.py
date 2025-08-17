@@ -113,7 +113,7 @@ class MacAddress:
     def __repr__(self) -> str:
         """Return the string representation of the MAC address."""
 
-        return f"MacAddress('{str(self)}')"
+        return str(self)
 
     def __eq__(self, other: object) -> bool:
         """Return whether two MAC addresses are equal."""
