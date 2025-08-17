@@ -37,6 +37,7 @@ class ARCallableRegistryBase:
 
     def clear(self) -> None:
         """Clear all registrations."""
+
         with self._lock:
             self._map.clear()
 
