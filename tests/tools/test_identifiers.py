@@ -13,6 +13,10 @@ from asusrouter.tools.identifiers import (
 )
 
 CORRECT_MAC = "aa:bb:cc:dd:ee:ff"
+CORRECT_MAC_HEX = CORRECT_MAC.replace(":", "")
+CORRECT_MAC_BYTES = bytes.fromhex(CORRECT_MAC_HEX)
+CORRECT_MAC_INT = int.from_bytes(CORRECT_MAC_BYTES, "big")
+CORRECT_MAC_AS_ASUS = CORRECT_MAC.upper()
 
 
 def test_from_instance() -> None:
@@ -27,10 +31,8 @@ def test_from_instance() -> None:
 def test_from_bytes() -> None:
     """Test initialization from bytes."""
 
-    b = bytes.fromhex("aabbccddeeff")
-
-    assert str(MacAddress.from_value(b)) == CORRECT_MAC
-    assert str(MacAddress(b)) == CORRECT_MAC
+    assert str(MacAddress.from_value(CORRECT_MAC_BYTES)) == CORRECT_MAC
+    assert str(MacAddress(CORRECT_MAC_BYTES)) == CORRECT_MAC
 
 
 @pytest.mark.parametrize(
@@ -53,7 +55,7 @@ def test_from_bytes_fail(value: bytes) -> None:
 @pytest.mark.parametrize(
     ("value", "result"),
     [
-        (0xAABBCCDDEEFF, CORRECT_MAC),
+        (CORRECT_MAC_INT, CORRECT_MAC),
         (123, "00:00:00:00:00:7b"),
         ("  123  ", "00:00:00:00:00:7b"),
     ],
@@ -83,11 +85,11 @@ def test_from_int_fail(value: int) -> None:
 @pytest.mark.parametrize(
     ("value", "result"),
     [
-        ("aa:bb:cc:dd:ee:ff", CORRECT_MAC),
+        (CORRECT_MAC, CORRECT_MAC),
         ("AA-BB-CC-DD-EE-FF", CORRECT_MAC),
         ("aabb.ccdd.eeff", CORRECT_MAC),
         ("AABBCCDDEEFF", CORRECT_MAC),
-        ("  aa:bb:cc:dd:ee:ff  ", CORRECT_MAC),
+        (f"  {CORRECT_MAC}  ", CORRECT_MAC),
     ],
 )
 def test_from_string(value: str, result: str) -> None:
@@ -129,7 +131,7 @@ def test_from_unsupported(value: Any) -> None:
 @pytest.mark.parametrize(
     ("value", "result"),
     [
-        ("aa:bb:cc:dd:ee:ff", "AA:BB:CC:DD:EE:FF"),
+        (CORRECT_MAC, CORRECT_MAC_AS_ASUS),
         ("00:aa:11:bb:22:cc", "00:AA:11:BB:22:CC"),
     ],
 )
@@ -138,6 +140,20 @@ def test_to_asus(value: str, result: str) -> None:
 
     instance = MacAddress.from_value(value)
     assert instance.as_asus() == result
+
+
+def test_to_bytes() -> None:
+    """Test conversion to bytes."""
+
+    instance = MacAddress.from_value(CORRECT_MAC)
+    assert instance.to_bytes() == CORRECT_MAC_BYTES
+
+
+def test_to_int() -> None:
+    """Test conversion to integer."""
+
+    instance = MacAddress.from_value(CORRECT_MAC)
+    assert instance.to_int() == CORRECT_MAC_INT
 
 
 def test_repr() -> None:
@@ -166,7 +182,7 @@ def test_eq(value: Any, result: bool) -> None:
 def test_eq_returns_notimplemented_for_uncomparable() -> None:
     """Test equality comparison with uncomparable types."""
 
-    mac = MacAddress.from_value("aa:bb:cc:dd:ee:ff")
+    mac = MacAddress.from_value(CORRECT_MAC)
 
     class Uncomparable:
         pass
@@ -185,4 +201,4 @@ def test_hash() -> None:
     """Test hash function."""
 
     instance = MacAddress.from_value(CORRECT_MAC)
-    assert hash(instance) == hash(bytes.fromhex("aabbccddeeff"))
+    assert hash(instance) == hash(CORRECT_MAC_BYTES)
