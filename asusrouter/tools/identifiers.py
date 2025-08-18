@@ -103,6 +103,16 @@ class MacAddress:
 
         return str(self).upper()
 
+    def to_bytes(self) -> bytes:
+        """Return the MAC address as bytes."""
+
+        return self._bytes
+
+    def to_int(self) -> int:
+        """Return the MAC address as a 48-bit integer."""
+
+        return int.from_bytes(self._bytes, "big")
+
     def __str__(self) -> str:
         """Return the string representation of the MAC address."""
 
