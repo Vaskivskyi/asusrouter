@@ -15,6 +15,7 @@ from __future__ import annotations
 import hashlib
 import hmac
 import os
+import threading
 
 from asusrouter.tools.identifiers import MacAddress
 
@@ -41,6 +42,9 @@ if _key_env is not None:
 else:
     _key = os.urandom(32)
 
+# Lock to protect concurrent reads/writes of the module-level key
+_key_lock = threading.RLock()
+
 
 def configure_key(key: bytes | str | None) -> None:
     """Set the key used for deterministic masking."""
@@ -51,21 +55,26 @@ def configure_key(key: bytes | str | None) -> None:
     if isinstance(key, str):
         key = _read_key_from_string(key)
 
-    # If key provided as bytes, use it
-    if isinstance(key, bytes | bytearray):
-        _key = key
+    # Write key under lock to avoid races with readers
+    with _key_lock:
+        if isinstance(key, bytes | bytearray):
+            _key = bytes(key)
+            return
+        # Generate a new key
+        _key = os.urandom(32)
         return
-
-    # Generate a new key
-    _key = os.urandom(32)
-    return
 
 
 def _hmac_digest(data: bytes, key: bytes | None = None) -> bytes:
     """Compute HMAC-SHA256 digest."""
 
     # Use the provided key or the loaded mask key
-    k = key if key is not None else _key
+    if key is not None:
+        k = key
+    else:
+        # Read the module key under lock to ensure a consistent view
+        with _key_lock:
+            k = _key
 
     return hmac.new(k, data, hashlib.sha256).digest()
 

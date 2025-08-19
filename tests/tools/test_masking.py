@@ -1,7 +1,10 @@
 """Tests for the masking tools."""
 
+import hashlib
+import hmac
 import importlib
 import sys
+import threading
 from types import ModuleType
 
 import pytest
@@ -208,3 +211,81 @@ def test_mask_mac_invalid_input_raises(
 
     with pytest.raises(ValueError, match="MAC"):
         mod.mask_mac("not-a-mac")
+
+
+def test_configure_key_thread_safe(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test concurrent configure_key + mask_mac behavior."""
+
+    mod = _reload_masking(monkeypatch)
+
+    # Writer changes the key repeatedly
+    def writer(i: int) -> None:
+        k = bytes([i % 256]) * 32
+        for _ in range(50):
+            mod.configure_key(k)
+
+    # Reader calls mask_mac repeatedly and records success/failure
+    results: list[bytes | tuple[str, str]] = []
+
+    def reader() -> None:
+        for _ in range(50):
+            try:
+                m = mod.mask_mac(TEST_MAC)
+                results.append(m.to_bytes())
+            except Exception as ex:  # noqa: BLE001
+                results.append(("err", str(ex)))
+
+    writers = [threading.Thread(target=writer, args=(i,)) for i in range(4)]
+    readers = [threading.Thread(target=reader) for _ in range(4)]
+
+    for t in writers + readers:
+        t.start()
+    for t in writers + readers:
+        t.join()
+
+    # Ensure no reader observed exceptions
+    assert all(not (isinstance(r, tuple) and r[0] == "err") for r in results)
+    # And at least some successful reads happened
+    assert len(results) > 0
+
+
+def test_hmac_digest_thread_safe(monkeypatch: pytest.MonkeyPatch) -> None:
+    """_hmac_digest must produce the same result when invoked concurrently."""
+
+    mod = _reload_masking(monkeypatch)
+
+    key_bytes = bytes.fromhex(TEST_KEY)
+    data = b"concurrent-payload"
+    expected = hmac.new(key_bytes, data, hashlib.sha256).digest()
+
+    threads_count = 16
+    results: list[bytes | None] = [None] * threads_count
+
+    def worker(idx: int) -> None:
+        """Call the module-level helper without passing explicit key."""
+
+        results[idx] = mod._hmac_digest(data, None)
+
+    threads = [
+        threading.Thread(target=worker, args=(i,))
+        for i in range(threads_count)
+    ]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+
+    assert all(r == expected for r in results)
+
+
+def test_hmac_digest_with_key(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test _hmac_digest with a specific key."""
+
+    mod = _reload_masking(monkeypatch)
+
+    key = bytes.fromhex(TEST_KEY)
+    data = b"payload"
+    expected = hmac.new(key, data, hashlib.sha256).digest()
+
+    result = mod._hmac_digest(data, key)
+    assert result == expected
