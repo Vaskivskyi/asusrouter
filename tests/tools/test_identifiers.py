@@ -156,6 +156,23 @@ def test_to_int() -> None:
     assert instance.to_int() == CORRECT_MAC_INT
 
 
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        ("00:00:00:00:00:00", "02:00:00:00:00:00"),
+        ("44:00:00:00:00:00", "46:00:00:00:00:00"),
+        ("99:00:00:00:00:00", "9a:00:00:00:00:00"),
+        ("ff:00:00:00:00:00", "fe:00:00:00:00:00"),
+    ],
+)
+def test_set_locally_administered(value: str, expected: str) -> None:
+    """Test setting the locally-administered bit."""
+
+    instance = MacAddress.from_value(value)
+    instance.set_locally_administered()
+    assert str(instance) == expected
+
+
 def test_repr() -> None:
     """Test string representation."""
 

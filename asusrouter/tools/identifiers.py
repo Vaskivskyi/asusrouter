@@ -113,6 +113,17 @@ class MacAddress:
 
         return int.from_bytes(self._bytes, "big")
 
+    def set_locally_administered(self) -> None:
+        """Transform the MAC address to a locally-administered address.
+
+        For this, the locally-administered bit (bit 1) is set to 1 and the
+        multicast bit (LSB) is cleared (set to 0).
+        """
+
+        _bytes = bytearray(self._bytes)
+        _bytes[0] = (_bytes[0] & ~0x01) | 0x02
+        self._bytes = bytes(_bytes)
+
     def __str__(self) -> str:
         """Return the string representation of the MAC address."""
 
