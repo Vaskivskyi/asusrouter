@@ -157,5 +157,3 @@ def _scale_temperature(
         scaled_temperature[key] = round(scaled_temp, EXPECTED_DECIMAL_PLACES)
 
     return scaled_temperature, scaled
-    return scaled_temperature, scaled
-    return scaled_temperature, scaled

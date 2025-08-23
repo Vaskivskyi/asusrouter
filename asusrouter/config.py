@@ -104,7 +104,7 @@ class ARConfigBase:
                 self._options[key] = converter(value)
             else:
                 raise KeyError(
-                    f"Unknown configuration option: {key}."
+                    f"Unknown configuration option: {key}. "
                     "Register it before setting."
                 )
 
