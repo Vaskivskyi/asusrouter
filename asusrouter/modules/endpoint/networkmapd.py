@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 
-def read(content: str) -> dict[str, Any]:
+def read(content: str, **kwargs: Any) -> dict[str, Any]:
     """Read networkmapd data."""
 
     # Read the json content

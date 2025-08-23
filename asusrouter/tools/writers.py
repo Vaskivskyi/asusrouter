@@ -10,6 +10,11 @@ from collections.abc import Mapping
 from typing import Any, Final
 from urllib.parse import quote_plus
 
+from asusrouter.config import (
+    CONFIG_DEFAULT_ALREADY_NOTIFIED,
+    ARConfigBase,
+    ARConfigKeyBase,
+)
 from asusrouter.const import RequestType
 from asusrouter.tools.converters import clean_input
 from asusrouter.tools.identifiers import MacAddress
@@ -77,3 +82,17 @@ def dict_to_request(
             parts.append(f"'{esc_k}':'{esc_v}'")
 
     return delimiter.join(parts) if parts else ""
+
+
+def ensure_notification_flag(
+    config: ARConfigBase,
+    key: ARConfigKeyBase,
+) -> None:
+    """Ensure notification flag exists in the configs."""
+
+    if key not in config:
+        config.register(key)
+        config.set(
+            key,
+            CONFIG_DEFAULT_ALREADY_NOTIFIED,
+        )

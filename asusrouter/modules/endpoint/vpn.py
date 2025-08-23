@@ -16,7 +16,7 @@ from .vpn_const import MAP_OVPN_CLIENT, MAP_OVPN_SERVER
 _TO_IGNORE = ("", "None", "0.0.0.0")  # noqa: S104
 
 
-def read(content: str) -> dict[str, Any]:
+def read(content: str, **kwargs: Any) -> dict[str, Any]:
     """Read VPN data."""
 
     vpn: dict[str, Any] = {

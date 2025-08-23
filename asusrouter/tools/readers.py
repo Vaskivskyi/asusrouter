@@ -138,7 +138,7 @@ def read_js_variables(content: str) -> dict[str, Any]:
 
 
 @clean_input
-def read_json_content(content: str | None) -> dict[str, Any]:
+def read_json_content(content: str | None, **kwargs: Any) -> dict[str, Any]:
     """Get the json content."""
 
     if not content:

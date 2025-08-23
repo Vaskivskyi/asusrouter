@@ -26,7 +26,7 @@ LEGACY_WLAN: dict[str, int] = {
 }
 
 
-def read(content: str) -> dict[str, Any]:
+def read(content: str, **kwargs: Any) -> dict[str, Any]:
     """Read update clients data."""
 
     update_clients: dict[str, Any] = {}

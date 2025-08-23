@@ -13,7 +13,7 @@ from asusrouter.tools.readers import read_json_content
 _LOGGER = logging.getLogger(__name__)
 
 
-def read(content: str) -> dict[str, Any]:
+def read(content: str, **kwargs: Any) -> dict[str, Any]:
     """Read ethernet ports data."""
 
     # Read the json content
