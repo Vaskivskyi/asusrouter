@@ -34,7 +34,7 @@ CONST_FREQ = [
 ]
 
 
-def read(content: str) -> dict[str, Any]:
+def read(content: str, **kwargs: Any) -> dict[str, Any]:
     """Read onboarding data."""
 
     # Preprocess the content

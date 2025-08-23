@@ -107,6 +107,7 @@ ignore = [
 ]
 
 [tool.ruff.lint.flake8-import-conventions.extend-aliases]
+"asusrouter.config.ARConfigKey" = "ARConfKey"
 "asusrouter.connection_config.ARConnectionConfigKey" = "ARCCKey"
 "asusrouter.registry.ARCallableRegistry" = "ARCallReg"
 

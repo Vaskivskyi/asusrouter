@@ -5,7 +5,7 @@ from unittest.mock import call, patch
 
 import pytest
 
-from asusrouter.config import ARConfig, ARConfigKey
+from asusrouter.config import ARConfig, ARConfigKey as ARConfKey
 from asusrouter.modules.data import AsusData
 from asusrouter.modules.endpoint import temperature as temp_mod
 from asusrouter.modules.endpoint.temperature import _scale_temperature, process
@@ -16,7 +16,7 @@ from asusrouter.modules.wlan import Wlan
 def reset_config() -> None:
     """Reset the configuration before each test."""
 
-    ARConfig.set(ARConfigKey.OPTIMISTIC_TEMPERATURE, False)
+    ARConfig.set(ARConfKey.OPTIMISTIC_TEMPERATURE, False)
 
 
 @pytest.mark.parametrize(
@@ -93,8 +93,7 @@ def test_read_mocked(
 ) -> None:
     """Test the read function."""
 
-    ARConfig.set(ARConfigKey.OPTIMISTIC_TEMPERATURE, optimistic)
-    temp_mod._temperature_warned = False
+    ARConfig.set(ARConfKey.OPTIMISTIC_TEMPERATURE, optimistic)
 
     with (
         patch.object(
@@ -113,6 +112,11 @@ def test_read_mocked(
             "_scale_temperature",
             side_effect=lambda temp: (expected, scaled),
         ) as mock_scale,
+        patch.object(
+            temp_mod,
+            "ensure_notification_flag",
+            return_value=None,
+        ) as mock_notify,
     ):
         result = temp_mod.read("dummy_content")
         assert result == expected
@@ -131,8 +135,10 @@ def test_read_mocked(
 
         # _scale_temperature should be called only if optimistic is True
         if optimistic:
+            mock_notify.assert_called_once()
             mock_scale.assert_called_once()
         else:
+            mock_notify.assert_not_called()
             mock_scale.assert_not_called()
 
 

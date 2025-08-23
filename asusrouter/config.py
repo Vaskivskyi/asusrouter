@@ -103,7 +103,10 @@ class ARConfigBase:
                 )
                 self._options[key] = converter(value)
             else:
-                raise KeyError(f"Unknown configuration option: {key}")
+                raise KeyError(
+                    f"Unknown configuration option: {key}. "
+                    "Register it before setting."
+                )
 
     def get(self, key: ARConfigKeyBase) -> Any:
         """Get the configuration option."""
@@ -132,21 +135,28 @@ class ARConfigBase:
             self._options = {}
             self._types = {}
 
-    def register_type(
-        self, key: ARConfigKeyBase, converter: Callable[[Any], Any]
+    def register(
+        self,
+        key: ARConfigKeyBase,
+        converter: Callable[[Any], Any] | None = None,
     ) -> None:
         """Register a custom converter for a config key."""
 
         if not isinstance(key, ARConfigKeyBase):
             raise KeyError(f"Unknown configuration key: {key}")
 
+        if not converter:
+            converter = safe_bool_config
+
         with self._lock:
             self._types[key] = converter
+            self._options[key] = converter(None)
 
     def __contains__(self, key: ARConfigKeyBase) -> bool:
         """Check if a configuration key exists."""
 
-        return key in self._options
+        with self._lock:
+            return key in self._options
 
     @property
     def types(self) -> dict[ARConfigKeyBase, Callable[[Any], Any]]:
@@ -184,3 +194,71 @@ class ARGlobalConfig(ARConfigBase):
 
 
 ARConfig: ARGlobalConfig = ARGlobalConfig()
+
+
+class ARInstanceConfig(ARConfigBase):
+    """Configuration class for AsusRouter instances.
+
+    These configurations are used to overwrite the global configuration.
+    If the search key is present in the instance configuration, AR will
+    use it when needed.
+    """
+
+    def __init__(self, defaults: dict[ARConfigKey, Any] | None = None) -> None:
+        """Initialize the instance configuration."""
+
+        super().__init__()
+        self.reset(defaults)
+
+    def reset(self, defaults: dict[ARConfigKey, Any] | None = None) -> None:
+        """Reset all configuration options using the provided defaults.
+
+        This method removes all the existing configuration options
+        and converters. The new defaults will be checked to have a valid
+        type converter. If a converter is found, the value will be written
+        after the conversion.
+
+        Any key with an unknown default converter will be considered a boolean.
+        For any custom converter, it must be registered separately using
+        the `register_type` method after initialization of the key.
+        """
+
+        super().reset()
+
+        with self._lock:
+            defaults = defaults or {}
+            for key, value in defaults.items():
+                # Make sure, this is a valid key
+                if key in ARConfigKey:
+                    # Check if a default converter is available
+                    converter: Callable[[Any], Any] = TYPES_DEFAULT.get(
+                        key, safe_bool_config
+                    )
+
+                    # Save the converter
+                    self._types[key] = converter
+
+                    # Safe apply the value
+                    self._options[key] = converter(value)
+
+    def get(self, key: ARConfigKeyBase) -> Any:
+        """Get configuration option of the instance.
+
+        This method falls back to global ARConfig if not present.
+        """
+
+        # Prefer instance option, otherwise consult global config
+        with self._lock:
+            if key in self._options:
+                return self._options[key]
+
+        # Defer to global configuration
+        return ARConfig.get(key)
+
+    def remove(self, key: ARConfigKeyBase) -> None:
+        """Remove configuration option of the instance."""
+
+        with self._lock:
+            if key in self._options:
+                self._options.pop(key, None)
+                self._types.pop(key, None)
