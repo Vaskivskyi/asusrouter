@@ -126,7 +126,9 @@ def _get_module(
 
 
 def read(
-    endpoint: Endpoint | EndpointControl | EndpointTools, content: str
+    endpoint: Endpoint | EndpointControl | EndpointTools,
+    content: str,
+    **kwargs: Any,
 ) -> dict[str, Any]:
     """Read the data from an endpoint."""
 
@@ -137,7 +139,7 @@ def read(
 
     # Read the data if module found
     if submodule:
-        result = submodule.read(content)
+        result = submodule.read(content, **kwargs)
         if isinstance(result, dict):
             return result
         return {}

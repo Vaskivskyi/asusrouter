@@ -14,6 +14,7 @@ from typing import Any
 
 import aiohttp
 
+from asusrouter.config import ARConfigKey as ARConfKey, ARInstanceConfig
 from asusrouter.connection import Connection
 from asusrouter.connection_config import ARConnectionConfigKey as ARCCKey
 from asusrouter.const import (
@@ -89,11 +90,16 @@ class AsusRouter:
         cache_time: float | None = None,
         session: aiohttp.ClientSession | None = None,
         dumpback: Callable[..., Awaitable[None]] | None = None,
+        config: dict[ARConfKey, Any] | None = None,
         connection_config: dict[ARCCKey, Any] | None = None,
     ):
         """Initialize the interface."""
 
         _LOGGER.debug("Initializing a new interface to `%s`", hostname)
+
+        # Initialize configs
+        _LOGGER.debug("Setting up AR instance config: %s", config)
+        self._config = ARInstanceConfig(defaults=config)
 
         # Set the cache time
         self._cache_time = cache_time or DEFAULT_CACHE_TIME
@@ -441,7 +447,7 @@ class AsusRouter:
 
         # Try to read the content
         try:
-            result = read(endpoint, content)
+            result = read(endpoint, content, config=self.config)
         except json.JSONDecodeError as ex:
             # Not like this is supposed to happen, but just in case
             _LOGGER.debug("Failed to read content from %s", endpoint)
@@ -1047,6 +1053,12 @@ class AsusRouter:
         """Return connection status."""
 
         return self._connection.connected if self._connection else False
+
+    @property
+    def config(self) -> ARInstanceConfig:
+        """Return connection config."""
+
+        return self._config
 
     # ---------------------------
     # <-- Properties

@@ -19,7 +19,11 @@ from urllib.parse import quote
 
 import aiohttp
 
-from asusrouter.config import ARConfig, ARConfigKey, safe_int_config
+from asusrouter.config import (
+    ARConfig,
+    ARConfigKey as ARConfKey,
+    safe_int_config,
+)
 from asusrouter.connection_config import (
     ARConnectionConfig,
     ARConnectionConfigKey as ARCCKey,
@@ -438,7 +442,7 @@ class Connection:  # pylint: disable=too-many-instance-attributes
     ) -> None:
         """Log the request details."""
 
-        security_level = ARConfig.get(ARConfigKey.DEBUG_PAYLOAD)
+        security_level = ARConfig.get(ARConfKey.DEBUG_PAYLOAD)
 
         # Prepare payload to log
         payload_to_log = self._payload_for_logging(

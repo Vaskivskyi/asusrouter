@@ -4,6 +4,7 @@ from typing import Any
 
 import pytest
 
+from asusrouter.const import UNKNOWN_MEMBER
 from asusrouter.tools.security import ARSecurityLevel
 
 
@@ -13,7 +14,7 @@ class TestARSecurityLevel:
     @pytest.mark.parametrize(
         ("name", "value"),
         [
-            ("UNKNOWN", -999),
+            ("UNKNOWN", UNKNOWN_MEMBER),
             ("STRICT", 0),
             ("DEFAULT", 1),
             ("SANITIZED", 5),

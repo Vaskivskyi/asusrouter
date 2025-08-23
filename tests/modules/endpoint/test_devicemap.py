@@ -7,7 +7,7 @@ from unittest.mock import ANY, MagicMock, patch
 
 import pytest
 
-from asusrouter.config import ARConfigKey
+from asusrouter.config import ARConfigKey as ARConfKey
 from asusrouter.modules.data import AsusData, AsusDataState
 from asusrouter.modules.endpoint import devicemap
 
@@ -290,7 +290,7 @@ def test_read_uptime_string_robust(
         "asusrouter.modules.endpoint.devicemap.ARConfig"
     ) as mock_config:
         mock_config.get.side_effect = (
-            lambda key: key == ARConfigKey.ROBUST_BOOTTIME
+            lambda key: key == ARConfKey.ROBUST_BOOTTIME
         )
         # Test with a valid content string
         content = f"Sat, 8 Aug 2025 08:08:{raw_seconds} "
