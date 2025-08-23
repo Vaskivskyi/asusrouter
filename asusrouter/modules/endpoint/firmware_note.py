@@ -8,7 +8,7 @@ from asusrouter.modules.data import AsusData
 from asusrouter.tools.converters import clean_string
 
 
-def read(content: str) -> dict[str, Any]:
+def read(content: str, **kwargs: Any) -> dict[str, Any]:
     """Read firmware release note data."""
 
     raw_note = content.replace("\ufeff", "")

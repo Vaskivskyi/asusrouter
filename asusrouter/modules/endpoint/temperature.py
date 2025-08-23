@@ -6,12 +6,13 @@ import logging
 import threading
 from typing import Any
 
-from asusrouter.config import ARConfig, ARConfigKey
+from asusrouter.config import ARConfig, ARConfigKey as ARConfKey
 from asusrouter.modules.data import AsusData
 from asusrouter.modules.wlan import Wlan
 from asusrouter.tools.cleaners import clean_content
 from asusrouter.tools.converters import safe_float
 from asusrouter.tools.readers import read_js_variables
+from asusrouter.tools.writers import ensure_notification_flag
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -31,10 +32,13 @@ _temperature_warned_lock = threading.Lock()
 # curr_coreTmp_wl3_raw
 # for 2ghz, 5ghz, 5ghz2, 6ghz respectively
 # CPU temperature is set either in curr_cpuTemp or curr_coreTmp_cpu
-def read(content: str) -> dict[str, Any]:
+def read(content: str, **kwargs: Any) -> dict[str, Any]:
     """Read temperature data."""
 
     temperature: dict[str, Any] = {}
+
+    # Get the correct configuration to proceed
+    config = kwargs.get("config", ARConfig)
 
     # Prepare the content. This page is a set of JS variables
     variables = read_js_variables(clean_content(content))
@@ -81,12 +85,16 @@ def read(content: str) -> dict[str, Any]:
 
     # While this functional is performing a kind of post-processing,
     # it should stay a part of the read method to have access to the raw data
-    if ARConfig.get(ARConfigKey.OPTIMISTIC_TEMPERATURE):
+    if config.get(ARConfKey.OPTIMISTIC_TEMPERATURE):
         temperature, scaled = _scale_temperature(temperature)
+        # Check if notification flag is registered
+        ensure_notification_flag(
+            config, ARConfKey.NOTIFIED_OPTIMISTIC_TEMPERATURE
+        )
         with _temperature_warned_lock:
             if (
                 scaled
-                and ARConfig.get(ARConfigKey.NOTIFIED_OPTIMISTIC_TEMPERATURE)
+                and config.get(ARConfKey.NOTIFIED_OPTIMISTIC_TEMPERATURE)
                 is False
             ):
                 _LOGGER.warning(
@@ -97,7 +105,7 @@ def read(content: str) -> dict[str, Any]:
                     EXPECTED_TEMPERATURE_MIN,
                     EXPECTED_TEMPERATURE_MAX,
                 )
-                ARConfig.set(ARConfigKey.NOTIFIED_OPTIMISTIC_TEMPERATURE, True)
+                config.set(ARConfKey.NOTIFIED_OPTIMISTIC_TEMPERATURE, True)
 
     return temperature
 

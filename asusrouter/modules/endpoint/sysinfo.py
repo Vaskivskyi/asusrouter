@@ -11,7 +11,7 @@ from asusrouter.tools.converters import safe_float, safe_int
 from asusrouter.tools.readers import read_json_content
 
 
-def read(content: str) -> dict[str, Any]:
+def read(content: str, **kwargs: Any) -> dict[str, Any]:
     """Read sysinfo data."""
 
     # Prepare the content

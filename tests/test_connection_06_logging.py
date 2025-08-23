@@ -4,7 +4,7 @@ from unittest.mock import patch
 
 import pytest
 
-from asusrouter.config import ARConfig, ARConfigKey
+from asusrouter.config import ARConfig, ARConfigKey as ARConfKey
 from asusrouter.modules.endpoint import (
     EndpointControl,
     EndpointService,
@@ -114,7 +114,7 @@ class TestConnectionLogging:
         connection = connection_factory()
 
         # Set logging config
-        ARConfig.set(ARConfigKey.DEBUG_PAYLOAD, level)
+        ARConfig.set(ARConfKey.DEBUG_PAYLOAD, level)
 
         # Prepare a mock for payload preparation
         mock_payload_for_logging = payload_for_logging(connection)

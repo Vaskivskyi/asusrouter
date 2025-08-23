@@ -13,7 +13,7 @@ from asusrouter.config import (
     CONFIG_DEFAULT_INT,
     TYPES_DEFAULT,
     ARConfig,
-    ARConfigKey,
+    ARConfigKey as ARConfKey,
     safe_bool_config,
     safe_int_config,
 )
@@ -23,9 +23,9 @@ from asusrouter.connection_config import (
 )
 
 KEYS_BOOL = [
-    ARConfigKey.OPTIMISTIC_DATA,
-    ARConfigKey.OPTIMISTIC_TEMPERATURE,
-    ARConfigKey.ROBUST_BOOTTIME,
+    ARConfKey.OPTIMISTIC_DATA,
+    ARConfKey.OPTIMISTIC_TEMPERATURE,
+    ARConfKey.ROBUST_BOOTTIME,
 ]
 
 KEYS_INT = [
@@ -37,9 +37,9 @@ KEYS_INT = [
 def reset_config() -> None:
     """Reset the configuration before each test."""
 
-    ARConfig.set(ARConfigKey.OPTIMISTIC_DATA, CONFIG_DEFAULT_BOOL)
-    ARConfig.set(ARConfigKey.OPTIMISTIC_TEMPERATURE, CONFIG_DEFAULT_BOOL)
-    ARConfig.set(ARConfigKey.ROBUST_BOOTTIME, CONFIG_DEFAULT_BOOL)
+    ARConfig.set(ARConfKey.OPTIMISTIC_DATA, CONFIG_DEFAULT_BOOL)
+    ARConfig.set(ARConfKey.OPTIMISTIC_TEMPERATURE, CONFIG_DEFAULT_BOOL)
+    ARConfig.set(ARConfKey.ROBUST_BOOTTIME, CONFIG_DEFAULT_BOOL)
 
 
 class TestConfig:
@@ -48,9 +48,9 @@ class TestConfig:
     def test_custom_defaults(self) -> None:
         """Test that custom defaults can be set and retrieved correctly."""
 
-        custom = {ARConfigKey.OPTIMISTIC_DATA: True}
+        custom = {ARConfKey.OPTIMISTIC_DATA: True}
         config = type(ARConfig)(custom)
-        assert config.get(ARConfigKey.OPTIMISTIC_DATA) is True
+        assert config.get(ARConfKey.OPTIMISTIC_DATA) is True
 
     @pytest.mark.parametrize(
         "wrong_key",
@@ -84,20 +84,20 @@ class TestConfig:
         keys = ARConfig.keys()
         assert isinstance(keys, list)
         assert len(keys) > 0
-        assert all(isinstance(key, ARConfigKey) for key in keys)
+        assert all(isinstance(key, ARConfKey) for key in keys)
 
     def test_keys_immutable(self) -> None:
         """Test that the keys list is immutable."""
 
         keys = ARConfig.keys()
         keys.append("something")  # type: ignore[arg-type]
-        assert all(isinstance(key, ARConfigKey) for key in ARConfig.keys())  # noqa: SIM118
+        assert all(isinstance(key, ARConfKey) for key in ARConfig.keys())  # noqa: SIM118
 
     def test_keys_returns_all_enum_members(self) -> None:
-        """Test that ARConfig.keys() returns all members of ARConfigKey."""
+        """Test that ARConfig.keys() returns all members of ARConfKey."""
 
         keys = set(ARConfig.keys())
-        enum_keys = set(ARConfigKey)
+        enum_keys = set(ARConfKey)
         assert keys == enum_keys
 
     def test_list(self) -> None:
@@ -117,32 +117,35 @@ class TestConfig:
         types = ARConfig.types
         assert isinstance(types, dict)
         assert len(types) > 0
-        assert all(isinstance(key, ARConfigKey) for key in types)
+        assert all(isinstance(key, ARConfKey) for key in types)
         assert all(callable(converter) for converter in types.values())
 
 
-class TestRegisterType:
-    """Tests for the register_type method of ARConfig."""
+class TestRegister:
+    """Tests for the register method of ARConfig."""
 
-    def test_register_type(self) -> None:
+    def test_register(self) -> None:
         """Test that we can register a new type for a configuration key."""
 
         def int_to_bool(val: Any) -> bool:
             """Convert a string to an integer to a boolean."""
 
+            if not val:
+                return CONFIG_DEFAULT_BOOL
+
             return bool(int(val))
 
-        ARConfig.register_type(ARConfigKey.OPTIMISTIC_DATA, int_to_bool)
-        ARConfig.set(ARConfigKey.OPTIMISTIC_DATA, 1)
-        assert ARConfig.get(ARConfigKey.OPTIMISTIC_DATA) is True
-        ARConfig.set(ARConfigKey.OPTIMISTIC_DATA, 0)
-        assert ARConfig.get(ARConfigKey.OPTIMISTIC_DATA) is False
+        ARConfig.register(ARConfKey.OPTIMISTIC_DATA, int_to_bool)
+        ARConfig.set(ARConfKey.OPTIMISTIC_DATA, 1)
+        assert ARConfig.get(ARConfKey.OPTIMISTIC_DATA) is True
+        ARConfig.set(ARConfKey.OPTIMISTIC_DATA, 0)
+        assert ARConfig.get(ARConfKey.OPTIMISTIC_DATA) is False
 
         # Restore original converter for cleanliness
-        ARConfig.register_type(ARConfigKey.OPTIMISTIC_DATA, safe_bool_config)
+        ARConfig.register(ARConfKey.OPTIMISTIC_DATA, safe_bool_config)
 
-    def test_register_type_overwrites_existing(self) -> None:
-        """Test that register_type overwrites an existing converter."""
+    def test_register_overwrites_existing(self) -> None:
+        """Test that register overwrites an existing converter."""
 
         def always_true(val: Any) -> bool:
             return True
@@ -150,25 +153,34 @@ class TestRegisterType:
         def always_false(val: Any) -> bool:
             return False
 
-        ARConfig.register_type(ARConfigKey.OPTIMISTIC_DATA, always_true)
-        ARConfig.set(ARConfigKey.OPTIMISTIC_DATA, "anything")
-        assert ARConfig.get(ARConfigKey.OPTIMISTIC_DATA) is True
+        ARConfig.register(ARConfKey.OPTIMISTIC_DATA, always_true)
+        ARConfig.set(ARConfKey.OPTIMISTIC_DATA, "anything")
+        assert ARConfig.get(ARConfKey.OPTIMISTIC_DATA) is True
 
-        ARConfig.register_type(ARConfigKey.OPTIMISTIC_DATA, always_false)
-        ARConfig.set(ARConfigKey.OPTIMISTIC_DATA, "anything")
-        assert ARConfig.get(ARConfigKey.OPTIMISTIC_DATA) is False
+        ARConfig.register(ARConfKey.OPTIMISTIC_DATA, always_false)
+        ARConfig.set(ARConfKey.OPTIMISTIC_DATA, "anything")
+        assert ARConfig.get(ARConfKey.OPTIMISTIC_DATA) is False
 
         # Restore original converter
-        ARConfig.register_type(ARConfigKey.OPTIMISTIC_DATA, safe_bool_config)
+        ARConfig.register(ARConfKey.OPTIMISTIC_DATA, safe_bool_config)
 
-    def test_register_type_unknown_key(self) -> None:
-        """Test that register_type raises KeyError for unknown keys."""
+    def test_register_unknown_key(self) -> None:
+        """Test that register raises KeyError for unknown keys."""
 
         class FakeKey:
             pass
 
         with pytest.raises(KeyError):
-            ARConfig.register_type(FakeKey(), lambda x: x)  # type: ignore[arg-type]
+            ARConfig.register(FakeKey(), lambda x: x)  # type: ignore[arg-type]
+
+    def test_register_no_converter(self) -> None:
+        """Test that register with no converter uses boolean conversion."""
+
+        ARConfig.register(ARConfKey.OPTIMISTIC_DATA, None)
+        ARConfig.set(ARConfKey.OPTIMISTIC_DATA, 1)
+        assert ARConfig.get(ARConfKey.OPTIMISTIC_DATA) is True
+        ARConfig.set(ARConfKey.OPTIMISTIC_DATA, 0)
+        assert ARConfig.get(ARConfKey.OPTIMISTIC_DATA) is False
 
 
 class TestReset:
@@ -184,7 +196,7 @@ class TestReset:
 
         # Change a type
         for key in KEYS_BOOL:
-            ARConfig.register_type(key, lambda x: not x)
+            ARConfig.register(key, lambda x: not x)
             assert ARConfig.get(key) is not CONFIG_DEFAULT_BOOL
 
         # Reset to defaults
@@ -200,7 +212,7 @@ class TestThreadSafety:
     def test_set_and_get(self) -> None:
         """Test thread safety for set and get."""
 
-        def set_and_get(key: ARConfigKey, val: Any) -> Any:
+        def set_and_get(key: ARConfKey, val: Any) -> Any:
             """Set a value and return it."""
 
             ARConfig.set(key, val)
@@ -223,14 +235,12 @@ class TestThreadSafety:
             assert key == result_key
             assert result_val == expected_val
 
-    def test_register_type(self) -> None:
-        """Test thread safety for register_type."""
+    def test_register(self) -> None:
+        """Test thread safety for register."""
 
         def register() -> None:
             """Register a type."""
-            ARConfig.register_type(
-                ARConfigKey.OPTIMISTIC_DATA, safe_bool_config
-            )
+            ARConfig.register(ARConfKey.OPTIMISTIC_DATA, safe_bool_config)
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
             futures = [executor.submit(register) for _ in range(20)]
@@ -304,14 +314,14 @@ class TestBoolConfig:
     """Tests for boolean configuration options."""
 
     @pytest.mark.parametrize("key", KEYS_BOOL)
-    def test_default_bool(self, key: ARConfigKey) -> None:
+    def test_default_bool(self, key: ARConfKey) -> None:
         """Test the default value of a boolean configuration key."""
 
         assert ARConfig.get(key) is CONFIG_DEFAULT_BOOL
 
     @pytest.mark.parametrize("key", KEYS_BOOL)
     @pytest.mark.parametrize("value", [True, False])
-    def test_set_bool(self, key: ARConfigKey, value: bool) -> None:
+    def test_set_bool(self, key: ARConfKey, value: bool) -> None:
         """Test setting a boolean configuration key."""
 
         ARConfig.set(key, value)
@@ -322,7 +332,7 @@ class TestIntConfig:
     """Tests for integer configuration options."""
 
     @pytest.mark.parametrize("key", KEYS_INT)
-    def test_default_int(self, key: ARConfigKey) -> None:
+    def test_default_int(self, key: ARConfKey) -> None:
         """Test the default value of an integer configuration key."""
 
         configs = ARConnectionConfig()
@@ -330,7 +340,7 @@ class TestIntConfig:
 
     @pytest.mark.parametrize("key", KEYS_INT)
     @pytest.mark.parametrize("value", [1, 2, 3])
-    def test_set_int(self, key: ARConfigKey, value: int) -> None:
+    def test_set_int(self, key: ARConfKey, value: int) -> None:
         """Test setting an integer configuration key."""
 
         configs = ARConnectionConfig()

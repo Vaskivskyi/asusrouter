@@ -104,7 +104,7 @@ def read_content_type(headers: dict[str, str]) -> ContentType:
 
 
 @clean_input
-def read_js_variables(content: str) -> dict[str, Any]:
+def read_js_variables(content: str, **kwargs: Any) -> dict[str, Any]:
     """Get all the JS variables from the content."""
 
     # Create a dict to store the data
@@ -138,7 +138,7 @@ def read_js_variables(content: str) -> dict[str, Any]:
 
 
 @clean_input
-def read_json_content(content: str | None) -> dict[str, Any]:
+def read_json_content(content: str | None, **kwargs: Any) -> dict[str, Any]:
     """Get the json content."""
 
     if not content:
