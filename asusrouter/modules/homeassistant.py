@@ -97,7 +97,10 @@ def convert_to_ha_sensors_by_map(
     _LOGGER.debug("Converting data to the list of sensors by map: %s", data)
 
     if not isinstance(data, dict):
-        _LOGGER.warning("Invalid data format for sensors generation")
+        _LOGGER.warning(
+            "Invalid data format for sensors generation from a map: %s",
+            sensor_map,
+        )
         return []
 
     sensors = []
@@ -123,7 +126,10 @@ def convert_to_ha_sensors_by_map_2(
     )
 
     if not isinstance(data, dict):
-        _LOGGER.warning("Invalid data format for sensors generation")
+        _LOGGER.warning(
+            "Invalid data format for sensors generation from a map: %s",
+            sensor_map,
+        )
         return []
 
     sensors = []
