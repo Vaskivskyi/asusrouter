@@ -207,7 +207,7 @@ def read_units_as_base(
     if not isinstance(converter, type) or not issubclass(
         converter, UnitConverterBase
     ):
-        raise TypeError("Converter must be an instance of UnitConverterBase")
+        raise TypeError("Converter must be a subclass of UnitConverterBase")
 
     # Convert single check call to a list
     if check_calls is not None and not isinstance(check_calls, list):
