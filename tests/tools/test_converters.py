@@ -358,6 +358,23 @@ def test_safe_bool(
 @pytest.mark.parametrize(
     ("content", "result"),
     [
+        # Boolean-compatible values
+        (True, True),
+        ("False", False),
+        # Non-boolean values
+        (None, False),
+        (object(), False),
+    ],
+)
+def test_safe_bool_nn(content: Any, result: bool) -> None:
+    """Test safe_bool_nn method."""
+
+    assert converters.safe_bool_nn(content) is result
+
+
+@pytest.mark.parametrize(
+    ("content", "result"),
+    [
         ("2021-01-01   ", datetime(2021, 1, 1)),  # Date content
         ("2021-01-01 00:00:00", datetime(2021, 1, 1)),
         (None, None),  # None content

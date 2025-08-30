@@ -11,7 +11,7 @@ from types import ModuleType
 from typing import Any, Final
 
 from asusrouter.const import HTTPStatus, RequestType
-from asusrouter.error import AsusRouter404Error
+from asusrouter.error import AsusRouter404Error, AsusRouterRequestFormatError
 from asusrouter.modules.data import AsusData, AsusDataState
 from asusrouter.modules.firmware import Firmware
 from asusrouter.modules.wlan import Wlan
@@ -70,6 +70,10 @@ class EndpointTools(str, Enum):
     AURA = "set_ledg.cgi"
     # Network tools: ping, jitter, loss
     NETWORK = "netool.cgi"
+    # Traffic analysis group
+    TRAFFIC_BACKHAUL = "get_diag_sta_traffic.cgi"
+    TRAFFIC_ETHERNET = "get_diag_eth_traffic.cgi"
+    TRAFFIC_WIFI = "get_diag_wifi_traffic.cgi"
 
 
 class EndpointNoCheck(str, Enum):
@@ -87,6 +91,9 @@ EndpointType = Endpoint | EndpointControl | EndpointService | EndpointTools
 ENDPOINT_FORCE_REQUEST = {
     Endpoint.PORT_STATUS: RequestType.GET,
     EndpointTools.NETWORK: RequestType.GET,
+    EndpointTools.TRAFFIC_BACKHAUL: RequestType.GET,
+    EndpointTools.TRAFFIC_ETHERNET: RequestType.GET,
+    EndpointTools.TRAFFIC_WIFI: RequestType.GET,
 }
 
 
@@ -98,6 +105,12 @@ SENSITIVE_ENDPOINTS: Final[frozenset[EndpointType]] = frozenset(
 )
 
 
+def get_request_type(endpoint: EndpointType) -> RequestType | None:
+    """Get the request type for the endpoint."""
+
+    return ENDPOINT_FORCE_REQUEST.get(endpoint, RequestType.POST)
+
+
 def is_sensitive_endpoint(endpoint: EndpointType) -> bool:
     """Check if the endpoint is sensitive."""
 
@@ -105,7 +118,7 @@ def is_sensitive_endpoint(endpoint: EndpointType) -> bool:
 
 
 def _get_module(
-    endpoint: Endpoint | EndpointControl | EndpointTools,
+    endpoint: EndpointType,
 ) -> ModuleType | None:
     """Attempt to get the module for the endpoint."""
 
@@ -126,7 +139,7 @@ def _get_module(
 
 
 def read(
-    endpoint: Endpoint | EndpointControl | EndpointTools,
+    endpoint: EndpointType,
     content: str,
     **kwargs: Any,
 ) -> dict[str, Any]:
@@ -218,6 +231,8 @@ async def check_available(
         status, _, content = await api_query(endpoint)
         if status == HTTPStatus.OK:
             return (True, content)
+    except AsusRouterRequestFormatError:
+        return (True, None)
     except AsusRouter404Error:
         return (False, None)
 
