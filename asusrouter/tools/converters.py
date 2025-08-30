@@ -282,6 +282,13 @@ def safe_bool(content: str | float | bool | None) -> bool | None:
     return None
 
 
+def safe_bool_nn(content: Any) -> bool:
+    """Read the content as boolean or return False."""
+
+    result = safe_bool(content)
+    return result if isinstance(result, bool) else False
+
+
 def safe_convert(
     convert_func: Callable[[str | int | float], _T],
     content: str | float | None,

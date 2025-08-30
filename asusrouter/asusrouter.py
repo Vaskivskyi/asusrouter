@@ -18,6 +18,8 @@ from asusrouter.config import ARConfigKey as ARConfKey, ARInstanceConfig
 from asusrouter.connection import Connection
 from asusrouter.connection_config import ARConnectionConfigKey as ARCCKey
 from asusrouter.const import (
+    AR_CALL_GET_STATE,
+    AR_CALL_TRANSLATE_STATE,
     DEFAULT_CACHE_TIME,
     DEFAULT_RESULT_SUCCESS,
     DEFAULT_TIMEOUT,
@@ -62,6 +64,13 @@ from asusrouter.modules.flags import Flag
 from asusrouter.modules.identity import AsusDevice, collect_identity
 from asusrouter.modules.port_forwarding import PortForwardingRule
 from asusrouter.modules.service import async_call_service
+from asusrouter.modules.source import (
+    ARDataSource,
+    ARDataState,
+    ARDataStateDynamic,
+    ARDataStateStatic,
+    ARDataType,
+)
 from asusrouter.modules.state import (
     AsusState,
     add_conditional_state,
@@ -70,9 +79,11 @@ from asusrouter.modules.state import (
     save_state,
     set_state,
 )
+from asusrouter.registry import ARCallableRegistry as ARCallReg
 from asusrouter.tools import legacy
 from asusrouter.tools.converters import get_enum_key_by_value, safe_list
 from asusrouter.tools.readers import merge_dicts
+from asusrouter.tools.types import ARCallbackType
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -103,6 +114,7 @@ class AsusRouter:
 
         # Set the cache time
         self._cache_time = cache_time or DEFAULT_CACHE_TIME
+        self._cache_threshold = timedelta(seconds=self._cache_time)
 
         # Set the host
         self._hostname: str = hostname
@@ -110,6 +122,7 @@ class AsusRouter:
         # Set the device identity
         self._identity: AsusDevice | None = None
         self._state: dict[AsusData, AsusDataState] = {}
+        self._data_states: dict[ARDataSource | ARDataType, ARDataState] = {}
 
         # Set the flags
         self._flags: Flag = Flag()
@@ -674,10 +687,127 @@ class AsusRouter:
 
         return state
 
-    async def async_get_data(  # noqa: C901, PLR0912
+    def _get_callback_for_state(
+        self, source: ARDataSource | ARDataType
+    ) -> ARCallbackType | None:
+        """Get a callback function for the specified state."""
+
+        return self.async_api_load
+
+    def _create_data_state(self, source: ARDataSource | ARDataType) -> bool:
+        """Create a new data state if does not exist."""
+
+        # State already exists
+        if source in self._data_states:
+            return True
+
+        # Try to create a correct state
+        state: ARDataState | None = None
+        if isinstance(source, ARDataSource):
+            state = ARDataStateDynamic(source)
+        elif isinstance(source, ARDataType):
+            state = ARDataStateStatic(source)
+
+        # Did not manage to create a state
+        if state is None:
+            return False
+
+        # Find and assign callback for this state
+        state.callback = self._get_callback_for_state(source)
+
+        self._data_states[source] = state
+        return True
+
+    async def _async_refresh_data_state(
+        self,
+        source: ARDataSource | ARDataType,
+        force: bool = False,
+        **kwargs: Any,
+    ) -> None:
+        """Refresh the data state for the specified source."""
+
+        # Get the state to work with
+        state: ARDataState | None = self._data_states.get(source)
+        if not state:
+            return
+
+        # Get the correct getter from the registry
+        data_caller = ARCallReg.get_callable(source, name=AR_CALL_GET_STATE)
+        if not data_caller:
+            return
+
+        # Get the callback
+        callback = state.callback
+
+        # Fetch the data
+        data = await data_caller(callback, source, force=force, **kwargs)
+        if not data:
+            return
+
+        # Translate the data if a translator is available
+        translator = ARCallReg.get_callable(
+            source, name=AR_CALL_TRANSLATE_STATE
+        )
+        if translator:
+            data = translator(data)
+
+        # Update the state with the new data
+        state.update(data)
+        self._data_states[source] = state
+
+    async def async_get_data_state(
+        self,
+        source: ARDataSource | ARDataType,
+        force: bool = False,
+        **kwargs: Any,
+    ) -> ARDataState:
+        """Get the full data state for the specified source."""
+
+        # Create a state for the source if it doesn't exist
+        self._create_data_state(source)
+
+        # Update the state
+        await self._async_refresh_data_state(source, force=force, **kwargs)
+
+        # Return the state
+        return self._data_states[source]
+
+    async def async_get_data_v2(
+        self,
+        source: ARDataSource | ARDataType,
+        force: bool = False,
+        **kwargs: Any,
+    ) -> Any:
+        """Get data from the specified source."""
+
+        _LOGGER.debug("Querying data V2")
+
+        # Get the new data state
+        data_state: ARDataState | None = await self.async_get_data_state(
+            source, force=force, **kwargs
+        )
+        if not data_state:
+            return None
+
+        # Check if the data is fresh
+        if not data_state.is_fresh(self._cache_threshold):
+            _LOGGER.debug("Data for %s is older than cache threshold", source)
+            return None
+
+        # Return the data
+        return data_state.content
+
+    async def async_get_data(  # noqa: C901, PLR0912, PLR0915
         self, datatype: AsusData, force: bool = False, **kwargs: Any
     ) -> Any:
         """Get data from the device."""
+
+        # --- V2 COMPATIBILITY ---
+        # This small switcher will allow gradual switching from v1 to v2 logic
+        if isinstance(datatype, ARDataSource | ARDataType):
+            return await self.async_get_data_v2(
+                source=datatype, force=force, **kwargs
+            )
 
         # Check if we have a state object for this data
         self._check_state(datatype)
