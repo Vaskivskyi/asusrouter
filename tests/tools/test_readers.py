@@ -7,7 +7,11 @@ import pytest
 
 from asusrouter.const import ContentType
 from asusrouter.tools import readers
-from asusrouter.tools.units import UnitConverterBase
+from asusrouter.tools.units import (
+    DataRateUnitConverter,
+    UnitConverterBase,
+    UnitOfDataRate,
+)
 
 
 class MockConverter(UnitConverterBase):
@@ -298,3 +302,30 @@ def test_read_units_as_base_checks_fail() -> None:
         result = reader(1.5)
         mock_convert_to_base.assert_not_called()
         assert result == fallback_value
+
+
+def test_read_units_data_rate() -> None:
+    """Test read_units_data_rate method."""
+
+    input_value = 42.0
+
+    def return_function(x: Any) -> Any:
+        """Return the input value."""
+
+        return x
+
+    with patch(
+        "asusrouter.tools.readers.read_units_as_base",
+        return_value=return_function,
+    ) as mock_read_units_as_base:
+        result = readers.read_units_data_rate(
+            UnitOfDataRate.MEBIBIT_PER_SECOND
+        )
+
+        assert input_value == result(input_value)
+        mock_read_units_as_base.assert_called_once_with(
+            DataRateUnitConverter,
+            UnitOfDataRate.MEBIBIT_PER_SECOND,
+            readers.is_non_negative,
+            0.0,
+        )
