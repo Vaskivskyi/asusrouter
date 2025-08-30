@@ -72,15 +72,15 @@ def test_clean_string(content: str | None, result: str | None) -> None:
 def test_flatten_dict() -> None:
     """Test flatten_dict method."""
 
-    nested_dict = {"a": {"b": {"c": 1}}, "d": {"e": 2}}
-    expected_output = {"a_b_c": 1, "d_e": 2}
+    nested_dict: dict[str, Any] = {"a": {"b": {"c": 1}}, "d": {"e": 2}}
+    expected_output: dict[str, Any] = {"a_b_c": 1, "d_e": 2}
     assert converters.flatten_dict(nested_dict) == expected_output
 
     # Test with None input
     assert converters.flatten_dict(None) is None
 
     # Test with non-dict input
-    assert converters.flatten_dict("not a dict") == {}
+    assert converters.flatten_dict("not a dict") == {}  # type: ignore[arg-type]
 
     # Test with exclude parameter
     nested_dict = {"a": {"b": {"c": 1}}, "d": 2}
@@ -264,7 +264,7 @@ def test_list_from_dict() -> None:
     assert converters.list_from_dict(["a", "b"]) == ["a", "b"]
 
     # Test with non-dict input
-    assert converters.list_from_dict("not a dict") == []
+    assert converters.list_from_dict("not a dict") == []  # type: ignore[arg-type]
     assert converters.list_from_dict(None) == []
 
 
@@ -284,7 +284,7 @@ def test_nvram_get() -> None:
     ]
 
     # Test with other input
-    assert converters.nvram_get(123) == [("nvram_get", "123")]
+    assert converters.nvram_get(123) == [("nvram_get", "123")]  # type: ignore[arg-type]
 
 
 def test_run_method() -> None:
@@ -428,6 +428,27 @@ def test_safe_float(content: str | float | None, result: float | None) -> None:
     """Test safe_float method."""
 
     assert converters.safe_float(content) == result
+
+
+@pytest.mark.parametrize(
+    ("content", "result"),
+    [
+        (1, 1.0),
+        (1.0, 1.0),
+        ("1", 1.0),
+        ("1.0", 1.0),
+        (None, 0.0),
+        ("", 0.0),
+        ("  ", 0.0),
+        ("unknown", 0.0),
+        ("test", 0.0),
+        ("  test  ", 0.0),
+    ],
+)
+def test_safe_float_nn(content: Any, result: float) -> None:
+    """Test safe_float method."""
+
+    assert converters.safe_float_nn(content) == result
 
 
 @pytest.mark.parametrize(
@@ -615,7 +636,7 @@ def test_safe_unpack_key() -> None:
         assert result[1][1](10) == test_method(10)
 
     # Test with a key and a non-method at index 1
-    result = converters.safe_unpack_key(("key", 123))
+    result = converters.safe_unpack_key(("key", 123))  # type: ignore[arg-type]
     assert result[0] == "key"
     assert result[1] is None
 
