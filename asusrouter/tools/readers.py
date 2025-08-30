@@ -9,7 +9,7 @@ from typing import Any
 
 from asusrouter.const import ContentType
 from asusrouter.tools.converters import clean_input, safe_float, safe_float_nn
-from asusrouter.tools.types import ARConverterType
+from asusrouter.tools.types import ARCallableType
 from asusrouter.tools.units import (
     DataRateUnitConverter,
     UnitConverterBase,
@@ -199,9 +199,9 @@ def readable_mac(raw: str | None) -> bool:
 def read_units_as_base(
     converter: type[UnitConverterBase],
     units: Any,
-    check_calls: ARConverterType | list[ARConverterType] | None = None,
+    check_calls: ARCallableType | list[ARCallableType] | None = None,
     fallback_value: float = 0.0,
-) -> ARConverterType:
+) -> ARCallableType:
     """Create a reader from the units to the base."""
 
     if not isinstance(converter, type) or not issubclass(
@@ -230,7 +230,7 @@ def read_units_as_base(
     return reader
 
 
-def read_units_data_rate(units: UnitOfDataRate) -> ARConverterType:
+def read_units_data_rate(units: UnitOfDataRate) -> ARCallableType:
     """Read data rate values from the specified unit type."""
 
     return read_units_as_base(
