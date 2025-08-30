@@ -2,11 +2,10 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
 import threading
 from typing import Any
 
-CallableType = Callable[..., Any]
+from asusrouter.tools.types import ARCallableType
 
 
 class ARCallableRegistryBase:
@@ -19,10 +18,10 @@ class ARCallableRegistryBase:
     def __init__(self) -> None:
         """Initialize the registry."""
 
-        self._map: dict[type, dict[str, CallableType]] = {}
+        self._map: dict[type, dict[str, ARCallableType]] = {}
         self._lock = threading.RLock()
 
-    def register(self, source_cls: type, **callables: CallableType) -> None:
+    def register(self, source_cls: type, **callables: ARCallableType) -> None:
         """Register one or more named callables for `source_cls`."""
 
         with self._lock:
@@ -41,7 +40,7 @@ class ARCallableRegistryBase:
         with self._lock:
             self._map.clear()
 
-    def get_callable(self, source: Any, name: str) -> CallableType | None:
+    def get_callable(self, source: Any, name: str) -> ARCallableType | None:
         """Return the callable for `source` (instance or class) or None.
 
         Resolves by checking the exact class and then walking the MRO.
@@ -55,14 +54,14 @@ class ARCallableRegistryBase:
                     return entry[name]
         return None
 
-    def get_all_for(self, source: Any) -> dict[str, CallableType]:
+    def get_all_for(self, source: Any) -> dict[str, ARCallableType]:
         """Return all resolved callables for `source` by name (MRO merged).
 
         More specific classes override less specific ones.
         """
 
         cls = source if isinstance(source, type) else type(source)
-        merged: dict[str, CallableType] = {}
+        merged: dict[str, ARCallableType] = {}
         with self._lock:
             # walk MRO from base -> subclass so subclasses override
             for base in reversed(getattr(cls, "__mro__", ())):
