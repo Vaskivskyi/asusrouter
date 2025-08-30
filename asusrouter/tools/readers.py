@@ -8,7 +8,13 @@ import re
 from typing import Any
 
 from asusrouter.const import ContentType
-from asusrouter.tools.converters import clean_input
+from asusrouter.tools.converters import clean_input, safe_float, safe_float_nn
+from asusrouter.tools.types import ARConverterType
+from asusrouter.tools.units import (
+    DataRateUnitConverter,
+    UnitConverterBase,
+    UnitOfDataRate,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -26,6 +32,12 @@ RANDOM_SYMBOLS: list[str] = [
     "\u0008",
     "\u0009",
 ]
+
+
+def is_non_negative(value: Any) -> bool:
+    """Check if the value is non-negative."""
+
+    return safe_float_nn(value) >= 0
 
 
 def merge_dicts(
@@ -158,7 +170,10 @@ def read_json_content(content: str | None, **kwargs: Any) -> dict[str, Any]:
 
     # Return the json content
     try:
-        return json.loads(content.encode().decode("utf-8-sig"))
+        json_data = json.loads(content.encode().decode("utf-8-sig"))
+        if isinstance(json_data, dict):
+            return json_data
+        return {}
     except json.JSONDecodeError as ex:
         _LOGGER.error(
             "Unable to decode json content with exception `%s`.\
@@ -178,4 +193,46 @@ def readable_mac(raw: str | None) -> bool:
         and re.search(
             re.compile("^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$"), raw
         )
+    )
+
+
+def read_units_as_base(
+    converter: type[UnitConverterBase],
+    units: Any,
+    check_calls: ARConverterType | list[ARConverterType] | None = None,
+    fallback_value: float = 0.0,
+) -> ARConverterType:
+    """Create a reader from the units to the base."""
+
+    if not isinstance(converter, type) or not issubclass(
+        converter, UnitConverterBase
+    ):
+        raise TypeError("Converter must be an instance of UnitConverterBase")
+
+    # Convert single check call to a list
+    if check_calls is not None and not isinstance(check_calls, list):
+        check_calls = [check_calls]
+
+    def reader(value: Any) -> float:
+        """Read the value as a base unit."""
+
+        # Use the converter with explicit None on unsupported types
+        fval = safe_float(value)
+
+        # Convert to base if all the checks passed
+        if isinstance(fval, float) and (
+            check_calls is None or all(call(fval) for call in check_calls)
+        ):
+            return converter.convert_to_base(fval, units)
+
+        return fallback_value
+
+    return reader
+
+
+def read_units_data_rate(units: UnitOfDataRate) -> ARConverterType:
+    """Read data rate values from the specified unit type."""
+
+    return read_units_as_base(
+        DataRateUnitConverter, units, is_non_negative, 0.0
     )

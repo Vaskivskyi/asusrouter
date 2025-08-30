@@ -372,6 +372,13 @@ def safe_float(
     return safe_convert(float, content, default)
 
 
+def safe_float_nn(content: Any) -> float:
+    """Read the content as a float or return 0.0."""
+
+    result = safe_float(content)
+    return result if isinstance(result, float) else 0.0
+
+
 @clean_input
 def safe_int(
     content: str | float | None,
