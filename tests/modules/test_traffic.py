@@ -147,29 +147,26 @@ class TestARTrafficSourceEthernet:
         assert issubclass(instance.__class__, ARTrafficSource)
         assert instance.target == vtarget
         assert instance.type == ARTrafficType.ETHERNET
-        assert instance.bh_bool is True
+        assert instance.bh_flag is True
 
     @pytest.mark.parametrize(
-        ("bh_flag", "bh_bool", "bh_value"),
+        ("bh_input", "bh_flag"),
         [
-            (None, False, 0),
-            ("true", True, 1),
-            (False, False, 0),
-            (object(), False, 0),
+            (None, False),
+            ("true", True),
+            (False, False),
+            (object(), False),
         ],
     )
-    def test_properties(
-        self, bh_flag: Any, bh_bool: bool, bh_value: int
-    ) -> None:
+    def test_properties(self, bh_input: Any, bh_flag: bool) -> None:
         """Test the properties."""
 
-        instance = ARTrafficSourceEthernet(vtarget, bh_flag=bh_flag)
+        instance = ARTrafficSourceEthernet(vtarget, bh_flag=bh_input)
 
-        assert instance.bh_bool is bh_bool
-        assert instance.bh == bh_value
+        assert instance.bh_flag is bh_flag
 
-    def test_setter_bh_bool(self) -> None:
-        """Test the bh_bool setter."""
+    def test_setter_bh_flag(self) -> None:
+        """Test the bh_flag setter."""
 
         set_value = "string"
         return_value = True
@@ -180,9 +177,9 @@ class TestARTrafficSourceEthernet:
             "asusrouter.modules.traffic.safe_bool_nn",
             return_value=return_value,
         ) as mock_safe_bool:
-            instance.bh_bool = set_value  # type: ignore[assignment]
+            instance.bh_flag = set_value  # type: ignore[assignment]
 
-            assert instance.bh_bool is return_value
+            assert instance.bh_flag is return_value
             mock_safe_bool.assert_called_once_with(set_value)
 
 

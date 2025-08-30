@@ -129,26 +129,20 @@ class ARTrafficSourceEthernet(ARTrafficSource):
         super().__init__(target, type)
         self.type = ARTrafficType.ETHERNET
 
-        self._bh_bool: bool
-        self.bh_bool = bh_flag
+        self._bh_flag: bool
+        self.bh_flag = bh_flag
 
     @property
-    def bh_bool(self) -> bool:
+    def bh_flag(self) -> bool:
         """Get the backhaul flag."""
 
         return self._bh_bool
 
-    @bh_bool.setter
-    def bh_bool(self, value: Any) -> None:
+    @bh_flag.setter
+    def bh_flag(self, value: Any) -> None:
         """Set the backhaul flag."""
 
         self._bh_bool = safe_bool_nn(value)
-
-    @property
-    def bh(self) -> int:
-        """Get the backhaul value in Asus-compatible format."""
-
-        return 1 if self._bh_bool else 0
 
 
 class ARTrafficSourceBetween(ARTrafficSource):
@@ -258,7 +252,7 @@ async def get_state(
 
     # Add backhaul flag if required
     if isinstance(source, ARTrafficSourceEthernet):
-        arguments["is_bh"] = source.bh
+        arguments["is_bh"] = source.bh_flag
 
     # Add towards channel if required
     if isinstance(source, ARTrafficSourceBackhaul):
