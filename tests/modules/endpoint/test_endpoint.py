@@ -4,7 +4,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from asusrouter.error import AsusRouter404Error
+from asusrouter.const import RequestType
+from asusrouter.error import AsusRouter404Error, AsusRouterRequestFormatError
 from asusrouter.modules.endpoint import (
     SENSITIVE_ENDPOINTS,
     Endpoint,
@@ -15,6 +16,7 @@ from asusrouter.modules.endpoint import (
     check_available,
     data_get,
     data_set,
+    get_request_type,
     is_sensitive_endpoint,
     process,
     read,
@@ -50,6 +52,25 @@ def test_sensitive_endpoints_immutable() -> None:
 
 
 @pytest.mark.parametrize(
+    ("endpoint", "forced_request"),
+    [
+        (Endpoint.PORT_STATUS, RequestType.GET),
+        (EndpointTools.NETWORK, RequestType.GET),
+        (EndpointTools.TRAFFIC_BACKHAUL, RequestType.GET),
+        (EndpointTools.TRAFFIC_ETHERNET, RequestType.GET),
+        (EndpointTools.TRAFFIC_WIFI, RequestType.GET),
+        (EndpointService.LOGIN, RequestType.POST),
+    ],
+)
+def test_get_request_type(
+    endpoint: EndpointType, forced_request: RequestType
+) -> None:
+    """Test get_request_type function."""
+
+    assert get_request_type(endpoint) == forced_request
+
+
+@pytest.mark.parametrize(
     ("endpoint", "expected"),
     [
         (EndpointService.LOGIN, True),
@@ -71,10 +92,11 @@ def test_get_module() -> None:
     """Test _get_module method."""
 
     # Test valid endpoint
-    with patch("importlib.import_module") as mock_import:
-        mock_import.return_value = "mocked_module"
+    with patch(
+        "importlib.import_module", return_value="mocked_module"
+    ) as mock_import:
         result = _get_module(Endpoint.PORT_STATUS)
-        assert result == "mocked_module"
+        assert result == "mocked_module"  # type: ignore[comparison-overlap]
         mock_import.assert_called_once_with(
             "asusrouter.modules.endpoint.port_status"
         )
@@ -112,6 +134,20 @@ def test_read() -> None:
         result = read(Endpoint.PORT_STATUS, "content")
         assert result == {}
         mock_get_module.assert_called_once_with(Endpoint.PORT_STATUS)
+
+
+def test_read_module_return_fail() -> None:
+    """Test read method when the module returns wrong result."""
+
+    mock_module = MagicMock()
+    mock_module.read.return_value = "not_a_dict"
+
+    with patch(
+        "asusrouter.modules.endpoint._get_module", return_value=mock_module
+    ) as mock_get_module:
+        result = read(Endpoint.FIRMWARE, "content")
+        assert result == {}
+        mock_get_module.assert_called_once_with(Endpoint.FIRMWARE)
 
 
 @pytest.mark.parametrize(
@@ -182,6 +218,20 @@ def test_process_no_module() -> None:
         mock_get_module.assert_called_once_with(Endpoint.PORT_STATUS)
 
 
+def test_process_module_return_fail() -> None:
+    """Test process method when the module returns wrong result."""
+
+    mock_module = MagicMock()
+    mock_module.process.return_value = "not_a_dict"
+
+    with patch(
+        "asusrouter.modules.endpoint._get_module", return_value=mock_module
+    ) as mock_get_module:
+        result = process(Endpoint.DEVICEMAP, {"key": "value"})
+        assert result == {}
+        mock_get_module.assert_called_once_with(Endpoint.DEVICEMAP)
+
+
 def test_data_set() -> None:
     """Test data_set function."""
 
@@ -243,6 +293,8 @@ def test_data_get(
         ((200, None, "content"), (True, "content")),
         # Test case: status not 200
         ((403, None, None), (False, None)),
+        # Test case: AsusRouterRequestFormatError is raised
+        (AsusRouterRequestFormatError(), (True, None)),
         # Test case: AsusRouter404Error is raised
         (AsusRouter404Error(), (False, None)),
     ],

@@ -10,7 +10,12 @@ from enum import IntEnum
 import logging
 from typing import Any
 
-from asusrouter.error import AsusRouterAccessError, AsusRouterLogoutError
+from asusrouter.const import UNKNOWN_MEMBER, HTTPStatus
+from asusrouter.error import (
+    AsusRouterAccessError,
+    AsusRouterLogoutError,
+    AsusRouterRequestFormatError,
+)
 from asusrouter.modules.endpoint import EndpointType
 from asusrouter.tools.readers import read_json_content
 
@@ -20,7 +25,9 @@ _LOGGER = logging.getLogger(__name__)
 class AccessError(IntEnum):
     """Access error enum."""
 
-    UNKNOWN = -999
+    UNKNOWN = UNKNOWN_MEMBER
+
+    SUCCESS = HTTPStatus.OK
 
     NO_ERROR = 0
     AUTHORIZATION = 2
@@ -39,14 +46,26 @@ def handle_access_error(
 
     # Read the page as json
     message = read_json_content(content)
-    _LOGGER.debug("Access error message: %s", message)
 
     # Get error code
-    error_status = int(message.get("error_status") or -999)
+    error_status = int(message.get("error_status") or UNKNOWN_MEMBER)
+    # Formatting errors
+    if error_status in (
+        HTTPStatus.JSON_BAD_FORMAT,
+        HTTPStatus.JSON_BAD_REQUEST,
+    ):
+        raise AsusRouterRequestFormatError("JSON format error")
+
     try:
         error = AccessError(error_status)
     except ValueError:
         error = AccessError.UNKNOWN
+
+    # Success
+    if error == AccessError.SUCCESS:
+        return
+
+    _LOGGER.debug("Access error message: %s", message)
 
     # Additional values
     attributes: dict[str, Any] = {}
