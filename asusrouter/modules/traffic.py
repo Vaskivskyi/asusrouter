@@ -136,13 +136,13 @@ class ARTrafficSourceEthernet(ARTrafficSource):
     def bh_flag(self) -> bool:
         """Get the backhaul flag."""
 
-        return self._bh_bool
+        return self._bh_flag
 
     @bh_flag.setter
     def bh_flag(self, value: Any) -> None:
         """Set the backhaul flag."""
 
-        self._bh_bool = safe_bool_nn(value)
+        self._bh_flag = safe_bool_nn(value)
 
 
 class ARTrafficSourceBetween(ARTrafficSource):
