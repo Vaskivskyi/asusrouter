@@ -22,6 +22,7 @@ from asusrouter.const import (
     AR_CALL_TRANSLATE_STATE,
     DEFAULT_CACHE_TIME,
     DEFAULT_PORT_HTTP,
+    DEFAULT_PORT_HTTPS,
     DEFAULT_RESULT_SUCCESS,
     DEFAULT_TIMEOUT,
     RequestType,
@@ -1186,12 +1187,6 @@ class AsusRouter:
         return self._connection.connected if self._connection else False
 
     @property
-    def connection(self) -> Connection | None:
-        """Return the connection instance."""
-
-        return self._connection
-
-    @property
     def config(self) -> ARInstanceConfig:
         """Return connection config."""
 
@@ -1201,10 +1196,14 @@ class AsusRouter:
     def webpanel(self) -> str:
         """Return the web panel URL."""
 
-        if self.connection:
-            return self.connection.webpanel
+        if self._connection:
+            return self._connection.webpanel
 
-        return f"http://{self._hostname}:{DEFAULT_PORT_HTTP}"
+        return (
+            f"https://{self._hostname}:{self._port or DEFAULT_PORT_HTTPS}"
+            if self._use_ssl
+            else f"http://{self._hostname}:{self._port or DEFAULT_PORT_HTTP}"
+        )
 
     # ---------------------------
     # <-- Properties
