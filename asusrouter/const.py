@@ -2,6 +2,11 @@
 
 from enum import IntEnum, StrEnum
 
+from asusrouter.tools.enum import FromIntMixin
+
+UNKNOWN_MEMBER = -999
+UNKNOWN_MEMBER_STR = "unknown"
+
 
 # Enums
 class ContentType(StrEnum):
@@ -23,8 +28,10 @@ class RequestType(StrEnum):
     POST = "post"
 
 
-class HTTPStatus(IntEnum):
+class HTTPStatus(FromIntMixin, IntEnum):
     """HTTP status codes."""
+
+    UNKNOWN = UNKNOWN_MEMBER
 
     OK = 200
     CREATED = 201
@@ -37,12 +44,19 @@ class HTTPStatus(IntEnum):
     METHOD_NOT_ALLOWED = 405
     CONFLICT = 409
     INTERNAL_SERVER_ERROR = 500
+    JSON_BAD_FORMAT = 4002
+    JSON_BAD_REQUEST = 4003
 
 
 # Asus constants
 USER_AGENT = "asusrouter--DUTUtil-"
 DEFAULT_PORT_HTTP = 80
 DEFAULT_PORT_HTTPS = 8443
+
+# AsusRouter definitions
+AR_CALL_GET_STATE = "get_state"
+AR_CALL_SET_STATE = "set_state"
+AR_CALL_TRANSLATE_STATE = "translate_state"
 
 # Library defaults
 DEFAULT_CACHE_TIME = 5.0
@@ -51,8 +65,6 @@ DEFAULT_TIMEOUT = 15
 DEFAULT_TIMEOUT_FALLBACK = 5
 
 DEFAULT_RESULT_SUCCESS = {"statusCode": "200"}
-
-UNKNOWN_MEMBER = -999
 
 # --------------------
 # Value maps -->

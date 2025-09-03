@@ -785,7 +785,7 @@ class Connection:  # pylint: disable=too-many-instance-attributes
             headers = self._header
 
         # Generate the url
-        url = f"{self.http}://{self._hostname}:{self.port}/{endpoint.value}"
+        url = f"{self.webpanel}/{endpoint.value}"
 
         # Add get parameters if needed
         if request_type == RequestType.GET and payload:
@@ -860,3 +860,9 @@ class Connection:  # pylint: disable=too-many-instance-attributes
         """Return port number."""
 
         return safe_int_config(self._config.get(ARCCKey.PORT))
+
+    @property
+    def webpanel(self) -> str:
+        """Return web panel URL."""
+
+        return f"{self.http}://{self._hostname}:{self.port}"

@@ -22,6 +22,10 @@ class AsusRouterDataError(AsusRouterError):
     """Any error with received data."""
 
 
+class AsusRouterRequestFormatError(AsusRouterError):
+    """Request format error."""
+
+
 class AsusRouterConnectionError(
     AsusRouterError, aiohttp.ClientConnectionError
 ):

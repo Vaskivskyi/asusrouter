@@ -282,6 +282,13 @@ def safe_bool(content: str | float | bool | None) -> bool | None:
     return None
 
 
+def safe_bool_nn(content: Any) -> bool:
+    """Read the content as boolean or return False."""
+
+    result = safe_bool(content)
+    return result if isinstance(result, bool) else False
+
+
 def safe_convert(
     convert_func: Callable[[str | int | float], _T],
     content: str | float | None,
@@ -370,6 +377,13 @@ def safe_float(
         str | int | float | None, handle_none_content(content, default)
     )
     return safe_convert(float, content, default)
+
+
+def safe_float_nn(content: Any) -> float:
+    """Read the content as a float or return 0.0."""
+
+    result = safe_float(content)
+    return result if isinstance(result, float) else 0.0
 
 
 @clean_input
