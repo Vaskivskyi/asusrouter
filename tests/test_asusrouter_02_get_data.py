@@ -13,9 +13,7 @@ from asusrouter.modules.source import (
     ARDataType,
 )
 
-hostname = "192.168.1.1"
-username = "admin"
-password = "password"
+from .test_asusrouter_00_common import get_asusrouter_instance
 
 
 class FakeState:
@@ -26,16 +24,6 @@ class FakeState:
 
         self.update = Mock()
         self.callback = Mock()
-
-
-def get_asusrouter_instance() -> AsusRouter:
-    """Get a new instance of the AsusRouter."""
-
-    return AsusRouter(
-        hostname=hostname,
-        username=username,
-        password=password,
-    )
 
 
 def test_get_callback_for_state() -> None:
