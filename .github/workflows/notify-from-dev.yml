@@ -1,5 +1,8 @@
 name: Notify from dev
 
+permissions:
+  contents: read
+
 on:
   push:
     branches:
