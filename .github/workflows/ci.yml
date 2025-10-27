@@ -195,13 +195,13 @@ jobs:
         uses: actions/checkout@v5.0.0
 
       - name: Download unit-tests coverage from artifacts
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v6
         with:
           name: unit-tests-cov-${{ matrix.python-version }}
           path: .
 
       - name: Download real-data-tests coverage from artifacts
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v6
         with:
           name: real-data-tests-cov-${{ matrix.python-version }}
           path: .
