@@ -8,6 +8,7 @@ from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
+from asusrouter import AsusRouter
 from asusrouter.connection import Connection
 from tests.helpers import (
     TCONST_HOST,
@@ -221,3 +222,60 @@ def mock_send_request(
         )
 
     return _patch
+
+
+# MCP-specific fixtures
+@pytest.fixture
+def mock_router() -> Mock:
+    """Create a mock AsusRouter instance."""
+    mock = Mock(spec=AsusRouter)
+    mock.async_connect = AsyncMock(return_value=True)
+    mock.async_get_data = AsyncMock()
+    mock.async_set_state = AsyncMock(return_value=True)
+    return mock
+
+
+@pytest.fixture
+def sample_clients_data() -> dict[str, Any]:
+    """Sample clients data for testing."""
+    return {
+        "clients": {
+            "AA:BB:CC:DD:EE:FF": {
+                "name": "Test Device",
+                "mac": "AA:BB:CC:DD:EE:FF",
+                "ip": "192.168.1.100",
+                "state": 1,
+                "online": True,
+                "internet_mode": "allow"
+            },
+            "11:22:33:44:55:66": {
+                "name": "Kitchen Max",
+                "mac": "11:22:33:44:55:66",
+                "ip": "192.168.1.101",
+                "state": 1,
+                "online": True,
+                "internet_mode": "allow"
+            }
+        }
+    }
+
+
+@pytest.fixture
+def mock_mcp_tools() -> Generator[Mock, None, None]:
+    """Mock MCP server tools."""
+    with patch("asusrouter_mcp.server.router_connection", None) as mock_router_conn:
+        yield mock_router_conn
+
+
+class MockTextContent:
+    """Mock MCP TextContent for testing."""
+
+    def __init__(self, text: str, content_type: str = "text"):
+        self.text = text
+        self.type = content_type
+
+
+@pytest.fixture
+def mock_text_content() -> type[MockTextContent]:
+    """Mock TextContent class."""
+    return MockTextContent

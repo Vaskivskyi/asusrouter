@@ -1,0 +1,16 @@
+{
+  "description": "Example MCP configuration for Claude Desktop",
+  "mcpServers": {
+    "asusrouter": {
+      "command": "uv",
+      "args": ["run", "python", "-m", "asusrouter_mcp.server"],
+      "cwd": "/path/to/asusrouter",
+      "env": {
+        "ASUS_ROUTER_HOST": "192.168.1.1",
+        "ASUS_ROUTER_USERNAME": "admin",
+        "ASUS_ROUTER_PASSWORD": "your_password",
+        "ASUS_ROUTER_USE_SSL": "false"
+      }
+    }
+  }
+}
