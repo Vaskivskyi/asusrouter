@@ -117,6 +117,20 @@ def test_read_content_type(
         ),
         # JS from the VPN
         ('vpn_client1_status = "None";', {"vpn_client1_status": "None"}),
+        # JSON variables
+        (
+            "get_onboardinglist = [{}][0];",
+            {"get_onboardinglist": [{}]},
+        ),
+        # Value with array index, fallback to string
+        ("arr = value[0];", {"arr": "value"}),
+        # Quoted string, not valid JSON or Python literal
+        ("foo = 'bar';", {"foo": "bar"}),
+        ('baz = "qux";', {"baz": "qux"}),
+        # Unquoted string, not valid JSON or Python literal
+        ("plain = not_json;", {"plain": "not_json"}),
+        # Extra quotes
+        ('extra = ""quoted"";', {"extra": '"quoted"'}),
     ],
 )
 def test_read_js_variables(content: str, expected: dict[str, Any]) -> None:
