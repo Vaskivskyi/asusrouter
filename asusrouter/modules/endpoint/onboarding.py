@@ -6,9 +6,10 @@ from typing import Any
 
 from asusrouter.modules.aimesh import AiMeshDevice
 from asusrouter.modules.data import AsusData
-from asusrouter.tools.cleaners import clean_content
 from asusrouter.tools.converters import safe_bool, safe_int, safe_return
-from asusrouter.tools.readers import read_json_content
+from asusrouter.tools.readers import read_js_variables as read
+
+__all__ = ["read"]
 
 CONNECTION_TYPE = {
     "2G": 1,
@@ -32,34 +33,6 @@ CONST_FREQ = [
     "5g",
     "6g",
 ]
-
-
-def read(content: str, **kwargs: Any) -> dict[str, Any]:
-    """Read onboarding data."""
-
-    # Preprocess the content
-    content = read_preprocess(content)
-
-    # Read the json content
-    onboarding: dict[str, Any] = read_json_content(content)
-
-    return onboarding
-
-
-def read_preprocess(content: str) -> str:
-    """Preprocess the content before reading it."""
-
-    # Prepare the content
-    content = (
-        clean_content(content)
-        .replace(" = ", '":')
-        .replace(";\n", ',"')
-        .replace("[0]", "")
-    )
-    content = '{"' + content[:-3] + "}"
-
-    # In case we have a trailing comma inside a dict
-    return content.replace(",}", "}")
 
 
 def process(data: dict[str, Any]) -> dict[AsusData, Any]:
