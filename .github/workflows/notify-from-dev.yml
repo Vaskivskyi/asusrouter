@@ -1,0 +1,29 @@
+name: Notify from dev
+
+permissions:
+  contents: read
+
+on:
+  push:
+    branches:
+      - dev
+
+jobs:
+  notify-ha:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create GitHub App token
+        id: app_token
+        uses: tibdex/github-app-token@v2.1.0
+        with:
+          app_id: ${{ secrets.AR_APP_ID }}
+          private_key: ${{ secrets.AR_APP_KEY }}
+
+      - name: Notify ha-asusrouter
+        uses: peter-evans/repository-dispatch@v4.0.1
+        with:
+          token: ${{ steps.app_token.outputs.token }}
+          repository: Vaskivskyi/ha-asusrouter
+          event-type: ar_dev_push
+          client-payload: |
+            {"repo":"${{ github.repository }}","ref":"${{ github.ref }}","sha":"${{ github.sha }}"}

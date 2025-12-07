@@ -19,12 +19,12 @@ jobs:
 
     steps:
       - name: Labeler
-        uses: actions/labeler@v5
+        uses: actions/labeler@v6
         with:
           repo-token: "${{ secrets.GITHUB_TOKEN }}"
 
       - name: Remove unneeded autolabeler labels
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const pr = context.payload.pull_request;
@@ -67,7 +67,7 @@ jobs:
             }
 
       - name: Add build label if version changed
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const pr = context.payload.pull_request;

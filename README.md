@@ -7,7 +7,7 @@
 
 **AsusRouter** is an API wrapper for communication with ASUSWRT-powered routers using HTTP(S) protocols. The library supports both the stock AsusWRT firmware and AsusWRT-Merlin.
 
-Up till now, it is mostly used for the [custom AsusRouter Home Assistant integration](https://github.com/Vaskivskyi/ha-asusrouter). But I am always open to making it suitable for any other use.
+Up till now, it is mostly used for the [custom AsusRouter Home Assistant integration](https://github.com/Vaskivskyi/ha-asusrouter) and from recently by the core Home Assistant AsusWRT integration. But I am always open to making it suitable for any other use.
 
 ## Installation
 
@@ -55,6 +55,9 @@ loop.run_until_complete(session.close())
 ## Supported devices
 
 AsusRouter supports virtually every AsusWRT-powered device.
+
+> [!TIP]  
+> Version `388.10` of AsusWRT-Merlin firmware is officially **NOT supported** due to the issues with HTTP daemon crashes. Use versions `>=388.10_2` or `<=388.9_2`.
 
 ### WiFi 7 | 802.11be
 

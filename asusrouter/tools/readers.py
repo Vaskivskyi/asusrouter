@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import ast
 import json
 import logging
 import re
@@ -127,10 +128,7 @@ def read_js_variables(content: str, **kwargs: Any) -> dict[str, Any]:
     lines = [line.strip() for line in lines]
     lines = [line[:-1] if line.endswith(";") else line for line in lines]
 
-    # Create a regex to match the data. Consider the following:
-    # The key is a string which can contain letters, numbers, underscores
-    # The key and the value are separated by an equal sign
-    # (surrounded by spaces or not)
+    # Create a regex to match the data
     regex = re.compile(r"(\w+)\s*=\s*(.*)")
 
     # Go through the lines and fill the match data to the dict
@@ -138,6 +136,24 @@ def read_js_variables(content: str, **kwargs: Any) -> dict[str, Any]:
         match = regex.match(line)
         if match:
             key, value = match.groups()
+
+            # Clean value from the array indexes
+            value = re.sub(r"\[\d+\]", "", value)
+
+            # Try JSON
+            try:
+                js_variables[key] = json.loads(
+                    value.encode().decode("utf-8-sig")
+                )
+                continue
+            except json.JSONDecodeError:
+                pass
+            try:
+                # Try python literal eval
+                js_variables[key] = ast.literal_eval(value)
+                continue
+            except (ValueError, SyntaxError):
+                pass
             # Clean the value of quotes if it starts and ends with them
             if (value.startswith("'") and value.endswith("'")) or (
                 value.startswith('"') and value.endswith('"')

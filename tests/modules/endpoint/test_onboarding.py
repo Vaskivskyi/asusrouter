@@ -13,78 +13,8 @@ from asusrouter.modules.endpoint.onboarding import (
     process_aimesh_node,
     process_connection,
     read,
-    read_preprocess,
 )
-
-CONTENT_RAW = (
-    "get_onboardinglist = [{}][0];\n"
-    "get_cfg_clientlist = [[{}]][0];\n"
-    "get_onboardingstatus = [{}][0];\n"
-    "get_wclientlist = [{}][0];\n"
-    "get_wiredclientlist = [{}][0];\n"
-    "get_allclientlist = [{}][0];\n"
-    'cfg_note = "1";\n'
-    'cfg_obre = "";\n'
-    "\n"
-    "\n"
-)
-
-CONTENT_PREPROCESSED = (
-    '{"get_onboardinglist":[{}],'
-    '"get_cfg_clientlist":[[{}]],'
-    '"get_onboardingstatus":[{}],'
-    '"get_wclientlist":[{}],'
-    '"get_wiredclientlist":[{}],'
-    '"get_allclientlist":[{}],'
-    '"cfg_note":"1",'
-    '"cfg_obre":""}'
-)
-
-CONTENT_READ = {
-    "get_onboardinglist": [{}],
-    "get_cfg_clientlist": [[{}]],
-    "get_onboardingstatus": [{}],
-    "get_wclientlist": [{}],
-    "get_wiredclientlist": [{}],
-    "get_allclientlist": [{}],
-    "cfg_note": "1",
-    "cfg_obre": "",
-}
-
-
-def test_read() -> None:
-    """Test read function."""
-
-    with (
-        patch(
-            "asusrouter.modules.endpoint.onboarding.read_preprocess",
-            return_value=CONTENT_PREPROCESSED,
-        ) as mock_preprocess,
-        patch(
-            "asusrouter.modules.endpoint.onboarding.read_json_content",
-            return_value=CONTENT_READ,
-        ) as mock_read_json_content,
-    ):
-        # Get the result
-        result = read(CONTENT_RAW)
-
-        # Check the result
-        assert result == CONTENT_READ
-
-        # Check the calls
-        mock_preprocess.assert_called_once_with(CONTENT_RAW)
-        mock_read_json_content.assert_called_once_with(CONTENT_PREPROCESSED)
-
-
-def test_read_preprocess() -> None:
-    """Test read_preprocess function."""
-
-    # Get the result
-    result = read_preprocess(CONTENT_RAW)
-
-    # Check the result
-    assert result == CONTENT_PREPROCESSED
-
+from asusrouter.tools.readers import read_js_variables
 
 DATA_CLIENTLIST = [[{"mac": "00:aa:11:bb:22:cc", "ip": "192.168.1.1"}]]
 DATA_ALLCLIENTLIST = [
@@ -124,6 +54,13 @@ RESULT_ALLCLIENTLIST = {
         "rssi": -34,
     }
 }
+
+
+def test_read() -> None:
+    """Test read function."""
+
+    # Check if 'read' is the same as 'read_js_variables'
+    assert read == read_js_variables
 
 
 @pytest.mark.parametrize(

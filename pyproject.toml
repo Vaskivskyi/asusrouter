@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name            = "asusrouter"
-version         = "2.0.0.dev0"
+version         = "1.21.1"
 license         = "Apache-2.0"
 requires-python = ">=3.11.0"
 readme          = "README.md"
@@ -42,7 +42,7 @@ include = ["asusrouter*"]
 dev = [
     "mypy>=1.15.0",
     "pydantic>=2.10.6",
-    "ruff>=0.12.8",
+    "ruff>=0.13.0",
     "pre-commit>=4.3.0",
 ]
 test = [
