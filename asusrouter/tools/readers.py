@@ -123,43 +123,47 @@ def read_js_variables(content: str, **kwargs: Any) -> dict[str, Any]:
     # Create a dict to store the data
     js_variables: dict[str, Any] = {}
 
-    # Split the content into lines, strip them, remove the last semicolon
-    lines = content.splitlines()
-    lines = [line.strip() for line in lines]
-    lines = [line[:-1] if line.endswith(";") else line for line in lines]
+    # regex = re.compile(r"(\w+)\s*=\s*(.*?);$", re.DOTALL | re.MULTILINE)
+    regex = re.compile(
+        r"""(?m)                    # multiline mode
+        \b                          # word boundary before variable name
+        (\w+)\s*=\s*                # variable name and assignment
+        (
+            (?:
+                "(?:[^"\\]|\\.)*"   # double-quoted string
+                | '(?:[^'\\]|\\.)*' # single-quoted string
+                | [^;]*?            # or anything up to semicolon
+            )
+        )
+        \s*;                        # semicolon ends the assignment
+        """,
+        re.VERBOSE,
+    )
 
-    # Create a regex to match the data
-    regex = re.compile(r"(\w+)\s*=\s*(.*)")
+    for match in regex.finditer(content):
+        key, value = match.groups()
 
-    # Go through the lines and fill the match data to the dict
-    for line in lines:
-        match = regex.match(line)
-        if match:
-            key, value = match.groups()
+        # Clean value from the array indexes
+        value = re.sub(r"\[\d+\]", "", value)
 
-            # Clean value from the array indexes
-            value = re.sub(r"\[\d+\]", "", value)
-
-            # Try JSON
-            try:
-                js_variables[key] = json.loads(
-                    value.encode().decode("utf-8-sig")
-                )
-                continue
-            except json.JSONDecodeError:
-                pass
-            try:
-                # Try python literal eval
-                js_variables[key] = ast.literal_eval(value)
-                continue
-            except (ValueError, SyntaxError):
-                pass
-            # Clean the value of quotes if it starts and ends with them
-            if (value.startswith("'") and value.endswith("'")) or (
-                value.startswith('"') and value.endswith('"')
-            ):
-                value = value[1:-1]
-            js_variables[key] = value
+        # Try JSON
+        try:
+            js_variables[key] = json.loads(value.encode().decode("utf-8-sig"))
+            continue
+        except json.JSONDecodeError:
+            pass
+        try:
+            # Try python literal eval
+            js_variables[key] = ast.literal_eval(value)
+            continue
+        except (ValueError, SyntaxError):
+            pass
+        # Clean the value of quotes if it starts and ends with them
+        if (value.startswith("'") and value.endswith("'")) or (
+            value.startswith('"') and value.endswith('"')
+        ):
+            value = value[1:-1]
+        js_variables[key] = value
 
     # Return the JS variables
     return js_variables
