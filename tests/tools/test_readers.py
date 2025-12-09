@@ -131,6 +131,47 @@ def test_read_content_type(
         ("plain = not_json;", {"plain": "not_json"}),
         # Extra quotes
         ('extra = ""quoted"";', {"extra": '"quoted"'}),
+        # Multi-line variable
+        (
+            (
+                "multi_line = {\n"
+                '    "key1": "value1",\n'
+                "    \n"
+                '    "key2": "value2"\n'
+                "};"
+            ),
+            {
+                "multi_line": {
+                    "key1": "value1",
+                    "key2": "value2",
+                }
+            },
+        ),
+        (
+            ('if (true) {\n    conditional = "value";\n};'),
+            {"conditional": "value"},
+        ),
+        # Weird formatting
+        (("something var=42;"), {"var": 42}),
+        (("something var='4;2';"), {"var": "4;2"}),
+        (('var="val42";'), {"var": "val42"}),
+        (('var="val;42";'), {"var": "val;42"}),
+        (('if(True){var="val42";}'), {"var": "val42"}),
+        ('if(True){ var="value;amp"; }', {"var": "value;amp"}),
+        (
+            ('if(True){var="val;42";}'),
+            {"var": "val;42"},
+        ),
+        # Other cases
+        ('var="val\\"42";', {"var": 'val"42'}),
+        ("var=42; // comment", {"var": 42}),
+        ('var="foo"; /* block comment */', {"var": "foo"}),
+        ("a=1; b=2;", {"a": 1, "b": 2}),
+        ('   var =   "foo"   ;   ', {"var": "foo"}),
+        ("var=;", {"var": ""}),
+        # Non-string values
+        ("num=123;", {"num": 123}),
+        ("flag=true;", {"flag": True}),
     ],
 )
 def test_read_js_variables(content: str, expected: dict[str, Any]) -> None:
