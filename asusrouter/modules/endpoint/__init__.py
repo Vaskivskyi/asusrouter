@@ -190,10 +190,20 @@ def process(
             data_set(data, wlan=wlan)
 
         # Process the data
-        result = submodule.process(data)
-        if isinstance(result, dict):
-            return result
-        return {}
+        try:
+            result = submodule.process(data)
+            if isinstance(result, dict):
+                return result
+            return {}
+        # Consider attribute and value errors to be possible
+        # in case of unexpected data structure
+        except (AttributeError, ValueError) as ex:
+            _LOGGER.error(
+                "Error processing data from endpoint %s: %s",
+                endpoint,
+                ex,
+            )
+            return {}
 
     return {}
 

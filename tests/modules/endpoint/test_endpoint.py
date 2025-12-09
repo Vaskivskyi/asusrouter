@@ -232,6 +232,27 @@ def test_process_module_return_fail() -> None:
         mock_get_module.assert_called_once_with(Endpoint.DEVICEMAP)
 
 
+@pytest.mark.parametrize(
+    ("error"),
+    [
+        AttributeError,
+        ValueError,
+    ],
+)
+def test_process_module_raises(error: type[Exception]) -> None:
+    """Test process method when an exception is raised."""
+
+    mock_module = MagicMock()
+    mock_module.process.side_effect = error
+
+    with patch(
+        "asusrouter.modules.endpoint._get_module", return_value=mock_module
+    ) as mock_get_module:
+        result = process(Endpoint.DEVICEMAP, {"key": "value"})
+        assert result == {}
+        mock_get_module.assert_called_once_with(Endpoint.DEVICEMAP)
+
+
 def test_data_set() -> None:
     """Test data_set function."""
 
