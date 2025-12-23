@@ -17,12 +17,13 @@ from asusrouter.error import (
     AsusRouterRequestFormatError,
 )
 from asusrouter.modules.endpoint import EndpointType
+from asusrouter.tools.enum import FromIntMixin
 from asusrouter.tools.readers import read_json_content
 
 _LOGGER = logging.getLogger(__name__)
 
 
-class AccessError(IntEnum):
+class AccessError(FromIntMixin, IntEnum):
     """Access error enum."""
 
     UNKNOWN = UNKNOWN_MEMBER
@@ -30,8 +31,12 @@ class AccessError(IntEnum):
     SUCCESS = HTTPStatus.OK
 
     NO_ERROR = 0
+    NO_TOKEN = 1
     AUTHORIZATION = 2
     CREDENTIALS = 3
+    NO_REFERER = 4
+    WEB_NO_REFERER = 5
+    REFERER_FAILED = 6
     TRY_AGAIN = 7
     LOGOUT = 8
     ANOTHER = 9
