@@ -1,11 +1,20 @@
 """Constants module for AsusRouter."""
 
 from enum import IntEnum, StrEnum
+from typing import Final
 
 from asusrouter.tools.enum import FromIntMixin
 
-UNKNOWN_MEMBER = -999
-UNKNOWN_MEMBER_STR = "unknown"
+# Version information
+MAJOR_VERSION: Final[int] = 2
+MINOR_VERSION: Final[int] = 0
+PATCH_VERSION: Final[str] = "0.dev0"
+__version__: Final[str] = f"{MAJOR_VERSION}.{MINOR_VERSION}.{PATCH_VERSION}"
+
+
+# Unknown member constants
+UNKNOWN_MEMBER: Final[int] = -999
+UNKNOWN_MEMBER_STR: Final[str] = "unknown"
 
 
 # Enums
@@ -49,7 +58,7 @@ class HTTPStatus(FromIntMixin, IntEnum):
 
 
 # Asus constants
-USER_AGENT = "asusrouter--DUTUtil-"
+USER_AGENT = f"asusrouter-library-DUTUtil-{__version__}"
 DEFAULT_PORT_HTTP = 80
 DEFAULT_PORT_HTTPS = 8443
 
