@@ -15,6 +15,7 @@ from asusrouter.const import (
     DEFAULT_PORT_HTTP,
     DEFAULT_PORT_HTTPS,
     DEFAULT_TIMEOUT,
+    USER_AGENT,
 )
 from tests.helpers import (
     TCONST_HOST,
@@ -33,7 +34,7 @@ async def test_generate_credentials() -> None:
     password = TCONST_PASS
     payload, headers = generate_credentials(username, password)
     assert payload == "login_authorization=dXNlcjpwYXNz"
-    assert headers == {"user-agent": "asusrouter--DUTUtil-"}
+    assert headers == {"user-agent": USER_AGENT}
 
 
 class TestConnectionInit:
