@@ -19,3 +19,4 @@ local/
 
 # VS Code
 .vscode/launch.json
+.vscode/settings.json
