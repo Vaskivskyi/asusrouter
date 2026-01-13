@@ -412,6 +412,13 @@ def safe_int(
     )
 
 
+def safe_int_nn(content: Any) -> int:
+    """Read the content as an integer or return 0."""
+
+    result = safe_int(content)
+    return result if isinstance(result, int) else 0
+
+
 def safe_list(content: Any) -> list[Any]:
     """Read any content as a list."""
 

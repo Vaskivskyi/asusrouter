@@ -504,6 +504,28 @@ def test_safe_int(
 @pytest.mark.parametrize(
     ("content", "result"),
     [
+        (1, 1),  # Integer content
+        ("1", 1),
+        (1.0, 1),  # Float content
+        ("1.0", 1),
+        ("1.9", 1),  # Float content with decimal
+        (None, 0),  # None content
+        ("", 0),
+        ("  ", 0),
+        ("unknown", 0),  # Non-number content
+        ("test", 0),
+        ("  test  ", 0),
+    ],
+)
+def test_safe_int_nn(content: Any, result: int) -> None:
+    """Test safe_int_nn method."""
+
+    assert converters.safe_int_nn(content) == result
+
+
+@pytest.mark.parametrize(
+    ("content", "result"),
+    [
         (None, []),  # None content
         ("test", ["test"]),  # Single value content
         (1, [1]),
