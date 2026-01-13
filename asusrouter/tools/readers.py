@@ -9,7 +9,12 @@ import re
 from typing import Any
 
 from asusrouter.const import ContentType
-from asusrouter.tools.converters import clean_input, safe_float, safe_float_nn
+from asusrouter.tools.converters import (
+    clean_input,
+    safe_bool,
+    safe_float,
+    safe_float_nn,
+)
 from asusrouter.tools.types import ARCallableType
 from asusrouter.tools.units import (
     DataRateUnitConverter,
@@ -39,6 +44,12 @@ def is_non_negative(value: Any) -> bool:
     """Check if the value is non-negative."""
 
     return safe_float_nn(value) >= 0
+
+
+def is_true_in_dict(value: str, data: dict[str, Any]) -> bool:
+    """Check if the value exists in the dict and is equal to 1."""
+
+    return safe_bool(data.get(value)) is True
 
 
 def merge_dicts(

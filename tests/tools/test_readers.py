@@ -42,6 +42,31 @@ def test_is_non_negative(value: Any, result: bool) -> None:
 
 
 @pytest.mark.parametrize(
+    ("value", "data", "result"),
+    [
+        # Value present and equal to 1
+        ("key1", {"key1": 1}, True),
+        ("key1", {"key1": "1"}, True),
+        ("key1", {"key1": True}, True),
+        # Value present but not equal to 1
+        ("key1", {"key1": 0}, False),
+        ("key1", {"key1": "0"}, False),
+        ("key1", {"key1": False}, False),
+        ("key1", {"key1": "some string"}, False),
+        # Value not present
+        ("key1", {"key2": 1}, False),
+        ("key1", {}, False),
+    ],
+)
+def test_is_true_in_dict(
+    value: str, data: dict[str, Any], result: bool
+) -> None:
+    """Test is_true_in_dict method."""
+
+    assert readers.is_true_in_dict(value, data) is result
+
+
+@pytest.mark.parametrize(
     ("dict1", "dict2", "expected"),
     [
         # Test non-nested dictionaries
