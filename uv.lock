@@ -160,7 +160,7 @@ test = [
 
 [package.metadata]
 requires-dist = [
-    { name = "aiohttp", specifier = ">=3.8.1" },
+    { name = "aiohttp", specifier = ">=3.13.3" },
     { name = "urllib3", specifier = ">=1.26.14" },
     { name = "xmltodict", specifier = ">=0.12.0" },
 ]
