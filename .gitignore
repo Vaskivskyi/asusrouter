@@ -17,6 +17,15 @@ pytest/
 local_test*.py
 local/
 
+# Environment variables (contains credentials)
+.env
+
+# Test logs
+test_logs/
+
+#claude
+.claude/
+
 # VS Code
 .vscode/launch.json
 .vscode/settings.json
