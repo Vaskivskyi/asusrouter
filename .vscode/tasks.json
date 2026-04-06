@@ -21,9 +21,7 @@
       "label": "Prek",
       "type": "shell",
       "command": "uv run prek run --all-files",
-      "dependsOn": [
-        "Install Dev Requirements"
-      ],
+      "dependsOn": ["Install Dev Requirements"],
       "group": {
         "kind": "test",
         "isDefault": true
@@ -37,60 +35,10 @@
       "problemMatcher": []
     },
     {
-      "label": "Run Pytest / 3.11 / Unit",
+      "label": "Run Pytest / Unit",
       "type": "shell",
-      "command": "uv run --python 3.11 pytest --cov=asusrouter --cov-report=xml:pytest/unit311.xml --cov-report=term-missing -vv -k 'not test_devices'",
-      "dependsOn": [
-        "Install Test Requirements"
-      ],
-      "group": {
-        "kind": "test",
-        "isDefault": true
-      },
-      "presentation": {
-        "echo": true,
-        "reveal": "always",
-        "focus": false,
-        "panel": "shared"
-      },
-      "options": {
-        "env": {
-          "PYTHONPATH": "${workspaceFolder}"
-        }
-      },
-      "problemMatcher": []
-    },
-    {
-      "label": "Run Pytest / 3.12 / Unit",
-      "type": "shell",
-      "command": "uv run --python 3.12 pytest --cov=asusrouter --cov-report=xml:pytest/unit312.xml --cov-report=term-missing -vv -k 'not test_devices'",
-      "dependsOn": [
-        "Install Test Requirements"
-      ],
-      "group": {
-        "kind": "test",
-        "isDefault": true
-      },
-      "presentation": {
-        "echo": true,
-        "reveal": "always",
-        "focus": false,
-        "panel": "shared"
-      },
-      "options": {
-        "env": {
-          "PYTHONPATH": "${workspaceFolder}"
-        }
-      },
-      "problemMatcher": []
-    },
-    {
-      "label": "Run Pytest / 3.13 / Unit",
-      "type": "shell",
-      "command": "uv run --python 3.13 pytest --cov=asusrouter --cov-report=xml:pytest/unit313.xml --cov-report=term-missing -vv -k 'not test_devices'",
-      "dependsOn": [
-        "Install Test Requirements"
-      ],
+      "command": "uv run --python 3.14 pytest --cov=asusrouter --cov-report=xml:pytest/unit314.xml --cov-report=term-missing -vv -k 'not test_devices'",
+      "dependsOn": ["Install Test Requirements"],
       "group": {
         "kind": "test",
         "isDefault": true
@@ -111,10 +59,8 @@
     {
       "label": "Run Pytest / Devices",
       "type": "shell",
-      "command": "uv run --python 3.13 pytest tests/test_devices.py --cov=asusrouter --cov-report=term-missing -vv --log-cli-level=INFO",
-      "dependsOn": [
-        "Install Test Requirements"
-      ],
+      "command": "uv run --python 3.14 pytest tests/test_devices.py --cov=asusrouter --cov-report=term-missing -vv --log-cli-level=INFO",
+      "dependsOn": ["Install Test Requirements"],
       "group": {
         "kind": "test",
         "isDefault": false

@@ -66,7 +66,7 @@ exclude = "tests/.*"
 
 [tool.ruff]
 line-length = 79
-required-version = ">=0.14.4"
+required-version = ">=0.15.9"
 src = ["asusrouter"]
 target-version = "py311"
 

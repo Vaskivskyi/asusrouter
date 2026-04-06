@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from enum import Enum
+from enum import StrEnum
 
 
-class AsusDualWAN(str, Enum):
+class AsusDualWAN(StrEnum):
     """Dual WAN class."""
 
     FAILOVER = "fo"

@@ -1,12 +1,12 @@
 """IP address module."""
 
-from enum import Enum
+from enum import StrEnum
 import re
 
 from asusrouter.tools.converters import clean_string
 
 
-class IPAddressType(str, Enum):
+class IPAddressType(StrEnum):
     """IP address type class."""
 
     DHCP = "dhcp"

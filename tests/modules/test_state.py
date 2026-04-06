@@ -134,9 +134,12 @@ def test_get_module_name(
     """Test _get_module_name."""
 
     # Mock the get_datatype function
+    def _mock_get_datatype(s):
+        return mock_state_map.get(s)
+
     with mock.patch(
         "asusrouter.modules.state.get_datatype",
-        lambda s: mock_state_map.get(s),
+        _mock_get_datatype,
     ):
         result = _get_module_name(state)
 

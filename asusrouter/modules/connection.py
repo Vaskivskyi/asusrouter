@@ -1,6 +1,6 @@
 """Connection module."""
 
-from enum import Enum, IntEnum
+from enum import IntEnum, StrEnum
 
 from asusrouter.modules.wlan import Wlan
 from asusrouter.tools.converters import get_enum_key_by_value, safe_int
@@ -26,7 +26,7 @@ class ConnectionStatus(IntEnum):
     CONNECTED = 2
 
 
-class ConnectionType(str, Enum):
+class ConnectionType(StrEnum):
     """Connection type class."""
 
     WIRED = "wired"
@@ -46,7 +46,7 @@ CONNECTION_TYPE = {
 }
 
 
-class InternetMode(str, Enum):
+class InternetMode(StrEnum):
     """Internet mode class."""
 
     ALLOW = "allow"

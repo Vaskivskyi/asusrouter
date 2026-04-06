@@ -30,7 +30,7 @@ SEND_REQUEST_CASES = [
         "",
         None,
         AsusRouter404Error,
-        "Endpoint EndpointService.LOGIN not found",
+        "Endpoint login.cgi not found",
     ),
     # Case 3: Non-200 status code
     (
@@ -39,7 +39,7 @@ SEND_REQUEST_CASES = [
         "",
         None,
         AsusRouterAccessError,
-        "Cannot access EndpointService.LOGIN, status 403",
+        "Cannot access login.cgi, status 403",
     ),
     # Case 4: Access error in content
     (

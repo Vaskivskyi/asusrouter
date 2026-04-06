@@ -197,8 +197,7 @@ class TestConnectionConnect:
                 AsusRouterAccessError("Access denied"),
                 None,
                 AsusRouterAccessError,
-                "Cannot access EndpointService.LOGIN. "
-                "Failed in `async_connect`",
+                "Cannot access login.cgi. Failed in `async_connect`",
             ),
             # Case 4: Unexpected error occurs
             (

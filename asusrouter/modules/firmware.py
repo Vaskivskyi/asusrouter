@@ -252,9 +252,9 @@ class Firmware:
             """Get the prefix of the version."""
 
             if "alpha" in v:
-                return clean_string(v.split("alpha")[0]) or "-1"
+                return clean_string(v.split("alpha", maxsplit=1)[0]) or "-1"
             if "beta" in v:
-                return clean_string(v.split("beta")[0]) or "-1"
+                return clean_string(v.split("beta", maxsplit=1)[0]) or "-1"
             # We should not reach this point ever if
             # attributes of Firmware were not manually overwritten
             _LOGGER.warning(

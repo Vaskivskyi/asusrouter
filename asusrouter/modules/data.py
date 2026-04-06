@@ -5,13 +5,13 @@ from __future__ import annotations
 import asyncio
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 from asusrouter.tools.converters import safe_bool
 
 
-class AsusData(str, Enum):
+class AsusData(StrEnum):
     """AsusRouter data class."""
 
     AIMESH = "aimesh"
