@@ -1,0 +1,90 @@
+"""Support module for AsusRouter.
+
+This module is for services support by devices.
+"""
+
+from __future__ import annotations
+
+from typing import Any
+
+from asusrouter.const import AR_CALL_GET_STATE, AR_CALL_TRANSLATE_STATE
+from asusrouter.modules.endpoint import Endpoint
+from asusrouter.modules.source import ARDataSource
+from asusrouter.modules.support.connection import translate_connection
+from asusrouter.modules.support.flag import ARSupportType
+from asusrouter.modules.support.platform import translate_platform
+from asusrouter.modules.support.usb import (
+    translate_usb_generation,
+    translate_usb_ports,
+    translate_usb_wan,
+)
+from asusrouter.modules.support.wifi import (
+    translate_wifi_generation,
+    translate_wifi_multiband,
+    translate_wifi_units,
+)
+from asusrouter.registry import ARCallableRegistry as ARCallReg
+from asusrouter.tools.types import ARCallableType, ARCallbackType
+
+
+class ARSupportSource(ARDataSource):
+    """AsusRouter support data source."""
+
+    def __init__(self) -> None:
+        """Initialize the support data source."""
+
+        super().__init__()
+
+
+TRANSLATION_TABLE: dict[ARSupportType, ARCallableType] = {
+    ARSupportType.CONNECTIONS: translate_connection,
+    ARSupportType.PLATFORM: translate_platform,
+    ARSupportType.USB_GENERATION: translate_usb_generation,
+    ARSupportType.USB_PORTS: translate_usb_ports,
+    ARSupportType.USB_WAN: translate_usb_wan,
+    ARSupportType.WIFI_GENERATION: translate_wifi_generation,
+    ARSupportType.WIFI_MULTIBAND: translate_wifi_multiband,
+    ARSupportType.WIFI_UNITS: translate_wifi_units,
+}
+
+
+async def get_state(
+    callback: ARCallbackType,
+    source: ARSupportSource,
+    **kwargs: Any,
+) -> dict[str, Any]:
+    """Fetch the support data state."""
+
+    endpoint = Endpoint.HOOK
+    request = "hook=get_ui_support()"
+
+    response = await callback(endpoint=endpoint, request=request)
+
+    if isinstance(response, dict):
+        ui_support = response.get("get_ui_support")
+        if isinstance(ui_support, dict):
+            return ui_support
+
+    return {}
+
+
+def translate_state(
+    data: dict[str, Any],
+    **kwargs: Any,
+) -> dict[str, Any]:
+    """Translate the support data to a simple format."""
+
+    result: dict[str, Any] = {}
+
+    for support_type, interpreter in TRANSLATION_TABLE.items():
+        result[support_type.value] = interpreter(data)
+
+    return result
+
+
+calls: dict[str, ARCallableType] = {
+    AR_CALL_GET_STATE: get_state,
+    AR_CALL_TRANSLATE_STATE: translate_state,
+}
+
+ARCallReg.register(ARSupportSource, **calls)
