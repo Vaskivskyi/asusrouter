@@ -18,9 +18,9 @@
       "problemMatcher": []
     },
     {
-      "label": "Pre-commit",
+      "label": "Prek",
       "type": "shell",
-      "command": "uv run pre-commit run --all-files",
+      "command": "uv run prek run --all-files",
       "dependsOn": [
         "Install Dev Requirements"
       ],
