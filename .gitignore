@@ -20,3 +20,6 @@ local/
 # VS Code
 .vscode/launch.json
 .vscode/settings.json
+
+# Work-in-progress files
+__test*.py

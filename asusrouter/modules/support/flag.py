@@ -1,0 +1,64 @@
+"""Flags for the support module."""
+
+from __future__ import annotations
+
+from enum import StrEnum
+
+from asusrouter.const import UNKNOWN_MEMBER_STR
+from asusrouter.tools.enum import FromStrMixin
+
+
+class ARSupportType(FromStrMixin, StrEnum):
+    """Device support types as stored in the system."""
+
+    UNKNOWN = UNKNOWN_MEMBER_STR
+
+    CONNECTIONS = "connections"
+    PLATFORM = "platform"
+    USB_GENERATION = "usb_generation"
+    USB_PORTS = "usb_ports"
+    USB_WAN = "usb_wan"
+    WIFI_GENERATION = "wifi_generation"
+    WIFI_MULTIBAND = "wifi_multiband"
+    WIFI_UNITS = "wifi_units"
+
+
+class ARSupportValue(FromStrMixin, StrEnum):
+    """Device support values as stored in the system."""
+
+    UNKNOWN = UNKNOWN_MEMBER_STR
+
+    # Connection methods
+    CONNECTION_HTTPS = "HTTPS"
+    CONNECTION_SSH = "ssh"
+
+    # Platform support
+    PLATFORM_BROADCOM = "bcmwifi"
+    PLATFORM_LANTIQ = "lantiq"
+    PLATFORM_MEDIATEK = "rawifi"
+    PLATFORM_QUALCOMM = "qcawifi"
+
+    # USB
+    USB = "usbX"
+    USB_2 = "usbX2"
+    USB_3 = "usb3"
+    USB_PORTS = "usbPortMax"
+    USB_WAN = "usb_bk"
+
+    # WiFi generation
+    WIFI_5 = "11AC"
+    WIFI_6 = "11AX"
+    WIFI_7 = "wifi7"
+
+    # WiFi multiband
+    WIFI_BANDS_DUAL = "dualband"
+    WIFI_BANDS_TRI = "triband"
+    WIFI_BANDS_QUAD = "quadband"
+
+    # WiFi support by units
+    # These parameter defines units at the selected id, but the
+    # actual band can be different depending on the device.
+    WIFI_UNIT_NONE = "noWiFi"  # No wireless modules
+    WIFI_UNIT_0 = "2.4G"
+    WIFI_UNIT_1 = "5G"
+    WIFI_UNIT_2 = "5G-2"  # Regardless of the flag, this can be also 6GHz
