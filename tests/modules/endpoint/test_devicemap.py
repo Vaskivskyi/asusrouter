@@ -289,8 +289,8 @@ def test_read_uptime_string_robust(
     with patch(
         "asusrouter.modules.endpoint.devicemap.ARConfig"
     ) as mock_config:
-        mock_config.get.side_effect = (
-            lambda key: key == ARConfKey.ROBUST_BOOTTIME
+        mock_config.get.side_effect = lambda key: (
+            key == ARConfKey.ROBUST_BOOTTIME
         )
         # Test with a valid content string
         content = f"Sat, 8 Aug 2025 08:08:{raw_seconds} "

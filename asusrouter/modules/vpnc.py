@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
-from enum import Enum, IntEnum
+from enum import IntEnum, StrEnum
 import logging
 from typing import Any
 
@@ -31,7 +31,7 @@ class AsusVPNC(IntEnum):
     ON = CONNECTING
 
 
-class AsusVPNType(str, Enum):
+class AsusVPNType(StrEnum):
     """Asus VPN Fusion type."""
 
     UNKNOWN = "Unknown"

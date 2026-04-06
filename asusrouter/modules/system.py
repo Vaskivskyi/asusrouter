@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
-from enum import Enum
+from enum import StrEnum
 import logging
 from typing import Any
 
@@ -16,7 +16,7 @@ EXPECT_MODIFY = "expect_modify"
 SERVICE = "service"
 
 
-class AsusSystem(str, Enum):
+class AsusSystem(StrEnum):
     """Asus system enum.
 
     This enum contains all known system services. The availability of these

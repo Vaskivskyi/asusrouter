@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
 from concurrent.futures import ThreadPoolExecutor
-from enum import Enum
+from enum import StrEnum
 import importlib
 import logging
 from types import ModuleType
@@ -19,7 +19,7 @@ from asusrouter.modules.wlan import Wlan
 _LOGGER = logging.getLogger(__name__)
 
 
-class Endpoint(str, Enum):
+class Endpoint(StrEnum):
     """Endpoint enum.
 
     These endpoints are used to receive data from the device.
@@ -46,7 +46,7 @@ class Endpoint(str, Enum):
     # RGB = "light_effect.html"
 
 
-class EndpointControl(str, Enum):
+class EndpointControl(StrEnum):
     """Control endpoint enum.
 
     These endpoints are used to set parameters to the device.
@@ -56,14 +56,14 @@ class EndpointControl(str, Enum):
     COMMAND = "applyapp.cgi"
 
 
-class EndpointService(str, Enum):
+class EndpointService(StrEnum):
     """Service endpoints."""
 
     LOGIN = "login.cgi"
     LOGOUT = "Logout.asp"
 
 
-class EndpointTools(str, Enum):
+class EndpointTools(StrEnum):
     """Tools endpoints."""
 
     # AURA control / RGB
@@ -76,7 +76,7 @@ class EndpointTools(str, Enum):
     TRAFFIC_WIFI = "get_diag_wifi_traffic.cgi"
 
 
-class EndpointNoCheck(str, Enum):
+class EndpointNoCheck(StrEnum):
     """Endpoints that should not be checked for availability."""
 
     # AURA control / RGB

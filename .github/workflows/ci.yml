@@ -37,10 +37,10 @@ jobs:
 
     strategy:
       matrix:
-        python-version: [3.11, 3.12, 3.13]
+        python-version: [3.11, 3.12, 3.13, 3.14]
     steps:
       - name: Checkout
-        uses: actions/checkout@v6.0.2
+        uses: actions/checkout@v6
 
       - name: Set up UV and Python
         uses: astral-sh/setup-uv@v7
@@ -62,12 +62,12 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v6.0.2
+        uses: actions/checkout@v6
 
       - name: Set up UV and Python
         uses: astral-sh/setup-uv@v7
         with:
-          python-version: 3.13
+          python-version: 3.14
           enable-cache: true
           cache-dependency-glob: "uv.lock"
 
@@ -87,12 +87,12 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v6.0.2
+        uses: actions/checkout@v6
 
       - name: Set up UV and Python
         uses: astral-sh/setup-uv@v7
         with:
-          python-version: 3.13
+          python-version: 3.14
           enable-cache: true
           cache-dependency-glob: "uv.lock"
 
@@ -114,10 +114,10 @@ jobs:
 
     strategy:
       matrix:
-        python-version: [3.11, 3.12, 3.13]
+        python-version: [3.11, 3.12, 3.13, 3.14]
     steps:
       - name: Checkout
-        uses: actions/checkout@v6.0.2
+        uses: actions/checkout@v6
 
       - name: Set up UV and Python
         uses: astral-sh/setup-uv@v7
@@ -151,10 +151,10 @@ jobs:
 
     strategy:
       matrix:
-        python-version: [3.11, 3.12, 3.13]
+        python-version: [3.11, 3.12, 3.13, 3.14]
     steps:
       - name: Checkout
-        uses: actions/checkout@v6.0.2
+        uses: actions/checkout@v6
 
       - name: Set up UV and Python
         uses: astral-sh/setup-uv@v7
@@ -189,10 +189,10 @@ jobs:
 
     strategy:
       matrix:
-        python-version: [3.11, 3.12, 3.13]
+        python-version: [3.11, 3.12, 3.13, 3.14]
     steps:
       - name: Checkout
-        uses: actions/checkout@v6.0.2
+        uses: actions/checkout@v6
 
       - name: Download unit-tests coverage from artifacts
         uses: actions/download-artifact@v8
@@ -207,7 +207,7 @@ jobs:
           path: .
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v6.0.0
+        uses: codecov/codecov-action@v6
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: true

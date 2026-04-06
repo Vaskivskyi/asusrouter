@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
-from enum import Enum, IntEnum
+from enum import IntEnum, StrEnum
 from typing import Any
 
 from asusrouter.modules.const import MapValueType
@@ -16,7 +16,7 @@ from asusrouter.tools.converters import (
 from asusrouter.tools.writers import nvram
 
 
-class Wlan(str, Enum):
+class Wlan(StrEnum):
     """WLAN type class."""
 
     FREQ_2G = "2ghz"

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from enum import Enum
+from enum import StrEnum
 import logging
 
 from asusrouter.modules.attributes import AsusRouterAttribute
@@ -25,7 +25,7 @@ from asusrouter.tools import converters
 _LOGGER = logging.getLogger(__name__)
 
 
-class AsusDataMerge(str, Enum):
+class AsusDataMerge(StrEnum):
     """AsusRouter data merge class."""
 
     ALL = "all"
