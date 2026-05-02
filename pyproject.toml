@@ -43,7 +43,7 @@ include = ["asusrouter*"]
 dev = [
     "mypy>=1.20.0",
     "pydantic>=2.12.5",
-    "ruff>=0.15.9",
+    "ruff>=0.15.12",
     "prek>=0.3.11",
 ]
 test = [
