@@ -42,7 +42,7 @@ include = ["asusrouter*"]
 [dependency-groups]
 dev = [
     "mypy>=1.20.2",
-    "pydantic>=2.12.5",
+    "pydantic>=2.13.3",
     "ruff>=0.15.12",
     "prek>=0.3.11",
 ]
