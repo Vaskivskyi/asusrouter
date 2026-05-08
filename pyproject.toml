@@ -24,7 +24,7 @@ classifiers     = [
 ]
 dependencies    = [
     "aiohttp >=3.13.5",
-    "urllib3 >=2.6.3",
+    "urllib3 >=2.7.0",
     "xmltodict >=1.0.4",
 ]
 
