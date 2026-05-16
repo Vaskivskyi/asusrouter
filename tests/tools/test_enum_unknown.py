@@ -80,6 +80,12 @@ def test_enums_define_unknown() -> None:
     ]
 
     if missing:
+        # Skip  generic base classes (`ARDataType`)
+        missing = [m for m in missing if not m.endswith("ARDataType")]
+
+        if len(missing) == 0:
+            return
+
         pytest.fail(
             f"Found {total} enums inheriting mixins;"
             f"{len(missing)} missing UNKNOWN: " + ", ".join(missing)
