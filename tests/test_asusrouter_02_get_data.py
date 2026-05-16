@@ -10,7 +10,7 @@ from asusrouter.modules.source import (
     ARDataSource,
     ARDataStateDynamic,
     ARDataStateStatic,
-    ARDataType,
+    ARDataTypeGeneric,
 )
 
 from .test_asusrouter_00_common import get_asusrouter_instance
@@ -60,7 +60,7 @@ def test_create_data_state(
     if case == "datasource":
         source = ARDataSource()
     elif case == "datatype":
-        source = ARDataType.UNKNOWN
+        source = ARDataTypeGeneric.UNKNOWN
     elif case == "invalid":
         source = object()
     elif case == "existing_datasource":

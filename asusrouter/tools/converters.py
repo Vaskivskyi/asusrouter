@@ -619,10 +619,10 @@ def safe_timestamp_to_utc(value: int | None) -> datetime | None:
 
     try:
         return datetime.fromtimestamp(value, UTC)
-    except (ValueError, TypeError, OSError):
+    except (OverflowError, ValueError, TypeError, OSError):
         try:
             return datetime.fromtimestamp(value / 1000, UTC)
-        except (ValueError, TypeError, OSError):
+        except (OverflowError, ValueError, TypeError, OSError):
             return None
 
 

@@ -2,13 +2,17 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable, Iterator
 from datetime import UTC, datetime, timedelta
 from enum import StrEnum
+import logging
 from typing import Any
 
 from asusrouter.const import UNKNOWN_MEMBER_STR
 from asusrouter.tools.enum import FromStrMixin
 from asusrouter.tools.types import ARCallbackType
+
+_LOGGER = logging.getLogger(__name__)
 
 
 class ARDataSource:
@@ -23,9 +27,91 @@ class ARDataSource:
 
 
 class ARDataType(FromStrMixin, StrEnum):
+    """AsusRouter generic data types."""
+
+
+class ARDataTypeGeneric(ARDataType):
     """AsusRouter static data types."""
 
     UNKNOWN = UNKNOWN_MEMBER_STR
+
+
+class ARDataCollection:
+    """AsusRouter data collection class.
+
+    This class is used to represent multiple data types
+    or sources to be managed collectively.
+    """
+
+    def __init__(
+        self,
+        sources: Iterable[ARDataSource | ARDataType],
+    ) -> None:
+        """Initialize the data collection."""
+
+        self._sources: list[ARDataSource | ARDataType] = list(sources)
+
+    def __iter__(self) -> Iterator[ARDataSource | ARDataType]:
+        """Iterate over the data sources."""
+
+        return iter(self._sources)
+
+    def __len__(self) -> int:
+        """Get the number of data sources."""
+
+        return len(self._sources)
+
+    def __getitem__(
+        self, index: int | slice
+    ) -> ARDataSource | ARDataType | ARDataCollection:
+        """Get a data source by index or slice."""
+
+        if isinstance(index, slice):
+            return self.__class__(self._sources[index])
+
+        return self._sources[index]
+
+    def __bool__(self) -> bool:
+        """Check if the data collection has any sources."""
+
+        return bool(self._sources)
+
+    def __repr__(self) -> str:
+        """Get the string representation of the data collection."""
+
+        return f"{self.__class__.__name__}({self._sources!r})"
+
+    @classmethod
+    def from_value(cls, value: Any) -> ARDataCollection | None:
+        """Create a data collection from a value."""
+
+        if isinstance(value, ARDataSource | ARDataType):
+            return cls([value])
+
+        if isinstance(value, (str, bytes, bytearray)):
+            return None
+
+        if isinstance(value, Iterable):
+            valid_sources: list[ARDataSource | ARDataType] = []
+            invalid: list[Any] = []
+
+            for item in value:
+                if isinstance(item, (ARDataSource, ARDataType)):
+                    valid_sources.append(item)
+                else:
+                    invalid.append(item)
+
+            if invalid:
+                _LOGGER.warning(
+                    "Ignored invalid items for ARDataCollection: %s", invalid
+                )
+
+            if not valid_sources:
+                return None
+
+            return cls(valid_sources)
+
+        return None
 
 
 class ARDataState:
