@@ -140,8 +140,13 @@ CLIENT_MAP_DESCRIPTION: dict[str, list[MapValueType]] = {
 
 CLIENT_MAP_CONNECTION: dict[str, list[MapValueType]] = {
     "type": [
-        ("connection_type", get_connection_type),
+        # `isWL` from update_clients.asp is the canonical wireless-band signal
+        # ("1"=2.4G, "2"=5G, "3"=5G2, "4"=6G); it must be consulted before
+        # `connection_type`, which is derived from `ajax_onboarding.asp` and
+        # can be a stale or incorrect 0 (WIRED) for wireless clients on the
+        # root mesh node — see issues #800, #874, #1124 in ha-asusrouter.
         ("isWL", get_connection_type),
+        ("connection_type", get_connection_type),
     ],
     "ip_address": [
         ("ip"),
@@ -169,8 +174,12 @@ CLIENT_MAP_CONNECTION: dict[str, list[MapValueType]] = {
 
 CLIENT_MAP_CONNECTION_WLAN: dict[str, list[MapValueType]] = {
     "guest_id": [
-        ("guest"),
+        # `isGN` from update_clients.asp is the canonical guest-network signal
+        # for the AP a client is actually associated with; it must be consulted
+        # before `guest`, which is derived from `ajax_onboarding.asp` and is
+        # 0 for any wireless client that the root mesh node mis-buckets as wired.
         ("isGN", safe_int),
+        ("guest"),
     ],
     "rssi": [
         ("rssi", safe_int),

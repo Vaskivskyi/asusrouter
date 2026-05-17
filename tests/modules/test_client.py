@@ -524,3 +524,84 @@ def test_process_history(
 
     # Check the result
     assert result == data[expected_result]
+
+
+# Regression tests for CLIENT_MAP_CONNECTION precedence (issues #800/#874/#1124
+# in ha-asusrouter): on AiMesh systems, wireless clients connected to the root
+# mesh node can land in the `wired_mac` bucket of `ajax_onboarding.asp`, which
+# makes the onboarding-derived `connection_type` field a misleading 0 (WIRED).
+# `isWL` and `isGN` from `update_clients.asp` are the canonical signals and
+# must take precedence.
+@pytest.mark.parametrize(
+    ("data", "expected_type"),
+    [
+        # Both signals present, isWL says 2.4G — isWL wins (was: WIRED).
+        (
+            {"connection_type": 0, "isWL": "1"},
+            ConnectionType.WLAN_2G,
+        ),
+        # Both signals present, isWL says 6G — isWL wins.
+        (
+            {"connection_type": 0, "isWL": "4"},
+            ConnectionType.WLAN_6G,
+        ),
+        # Only isWL — used directly.
+        (
+            {"isWL": "2"},
+            ConnectionType.WLAN_5G,
+        ),
+        # Only connection_type — falls back (wired client with no isWL).
+        (
+            {"connection_type": 2},
+            ConnectionType.WLAN_5G,
+        ),
+        # isWL "0" (truly wired, isWL is explicitly zero) — wins as WIRED.
+        (
+            {"connection_type": 0, "isWL": "0"},
+            ConnectionType.WIRED,
+        ),
+    ],
+)
+def test_client_map_connection_type_precedence(
+    data: dict[str, Any], expected_type: ConnectionType
+) -> None:
+    """isWL must take precedence over connection_type in CLIENT_MAP_CONNECTION."""
+
+    result = process_data(data, CLIENT_MAP_CONNECTION, AsusClientConnection())
+    assert result.type == expected_type
+
+
+@pytest.mark.parametrize(
+    ("data", "expected_guest_id"),
+    [
+        # Both signals present, isGN says guest network 2 — isGN wins (was: 0).
+        (
+            {"guest": 0, "isGN": "2"},
+            2,
+        ),
+        # Only isGN — used directly.
+        (
+            {"isGN": "1"},
+            1,
+        ),
+        # Only `guest` from onboarding — falls back.
+        (
+            {"guest": 3},
+            3,
+        ),
+        # isGN "0" (main network) — wins over a stale `guest` value.
+        (
+            {"guest": 1, "isGN": "0"},
+            0,
+        ),
+    ],
+)
+def test_client_map_connection_wlan_guest_id_precedence(
+    data: dict[str, Any], expected_guest_id: int
+) -> None:
+    """isGN must take precedence over `guest` in CLIENT_MAP_CONNECTION_WLAN."""
+
+    result = process_data(
+        data, CLIENT_MAP_CONNECTION_WLAN, AsusClientConnectionWlan()
+    )
+    assert result.guest_id == expected_guest_id
