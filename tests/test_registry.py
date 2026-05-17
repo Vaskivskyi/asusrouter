@@ -71,6 +71,96 @@ def test_get_all_for_merges_mro_correctly() -> None:
     assert merged["set_state"] is a_set
 
 
+def test_register_with_callable_flag_tuple() -> None:
+    """Test registering callable entries with optional metadata."""
+
+    class A:
+        pass
+
+    def get_state(s: Any) -> str:
+        return "state"
+
+    def set_state(s: Any, v: Any) -> str:
+        return "set"
+
+    ARCallReg.register(
+        A,
+        get_state=(get_state, True),
+        set_state=set_state,
+    )
+
+    callable_result = ARCallReg.get_callable(A(), "get_state")
+    assert callable_result is get_state
+
+    assert ARCallReg.get_callable_flag(A(), "get_state") is True
+    assert ARCallReg.get_callable_flag(A(), "set_state") is False
+    assert ARCallReg.get_callable_flag(get_state) is True
+    assert ARCallReg.get_callable_flag(set_state) is False
+
+    all_map = ARCallReg.get_all_for(A())
+    assert all_map["get_state"] == (get_state, True)
+    assert all_map["set_state"] is set_state
+
+
+def test_register_plain_callable_resets_flag_to_false() -> None:
+    """Test that registering a plain callable clears a previous tuple flag."""
+
+    class A:
+        pass
+
+    def get_state(s: Any) -> str:
+        return "state"
+
+    ARCallReg.register(A, get_state=(get_state, True))
+    assert ARCallReg.get_callable_flag(get_state) is True
+
+    ARCallReg.register(A, get_state=get_state)
+    assert ARCallReg.get_callable_flag(get_state) is False
+    assert ARCallReg.get_callable(A(), "get_state") is get_state
+
+
+def test_get_callable_flag_returns_false_when_source_is_not_callable() -> None:
+    """Test get_callable_flag returns False for non-callables."""
+
+    assert ARCallReg.get_callable_flag("not_callable") is False
+
+
+def test_get_callable_flag_returns_false_for_missing_name() -> None:
+    """Test get_callable_flag returns False when the named entry is missing."""
+
+    class A:
+        pass
+
+    assert ARCallReg.get_callable_flag(A(), "missing") is False
+
+
+def test_unregister_rebuilds_flags_for_tuple_entries() -> None:
+    """Test that unregister rebuilds flags and removes tuple-based entries."""
+
+    class A:
+        pass
+
+    class B:
+        pass
+
+    def get_state_a(s: Any) -> str:
+        return "state-a"
+
+    def get_state_b(s: Any) -> str:
+        return "state-b"
+
+    ARCallReg.register(A, get_state=(get_state_a, True))
+    ARCallReg.register(B, get_state=(get_state_b, False))
+
+    assert ARCallReg.get_callable_flag(get_state_a) is True
+    assert ARCallReg.get_callable_flag(get_state_b) is False
+
+    ARCallReg.unregister(A)
+
+    assert ARCallReg.get_callable_flag(get_state_a) is False
+    assert ARCallReg.get_callable_flag(get_state_b) is False
+
+
 def test_unregister_and_clear() -> None:
     """Test unregistering and clearing the registry."""
 
