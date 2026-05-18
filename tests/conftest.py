@@ -3,19 +3,24 @@
 from __future__ import annotations
 
 from collections.abc import Generator
-from typing import Any
-from unittest.mock import AsyncMock, Mock, patch
+from typing import Any, cast
+from unittest.mock import AsyncMock, Mock
 
 import pytest
 
+from asusrouter.asusrouter import AsusRouter
 from asusrouter.connection import Connection
+from asusrouter.modules.source import ARDataSource, ARDataStateDynamic
 from tests.helpers import (
     TCONST_HOST,
     TCONST_PASS,
     TCONST_USER,
     AsyncPatch,
+    BindStateFactory,
     ConnectionFactory,
+    MakeStateFactory,
     SyncPatch,
+    UniversalMockPatcher,
 )
 
 
@@ -34,40 +39,6 @@ def connection_factory() -> ConnectionFactory:
         )
 
     return _factory
-
-
-class UniversalMockPatcher:
-    """Universal mock patcher for async methods."""
-
-    def __init__(self) -> None:
-        """Initialize the UniversalMockPatcher."""
-
-        self.patches: list[Any] = []
-
-    def patch(
-        self,
-        obj: Any,
-        method_name: str,
-        side_effect: Any = None,
-        return_value: Any = None,
-        mock_type: type = AsyncMock,
-    ) -> AsyncMock | Mock:
-        """Patch a method on the provided object."""
-
-        patcher = patch.object(obj, method_name, new_callable=mock_type)
-        mock_method = patcher.start()
-        self.patches.append(patcher)
-        if side_effect is not None:
-            mock_method.side_effect = side_effect
-        elif return_value is not None:
-            mock_method.return_value = return_value
-        return mock_method
-
-    def stop(self) -> None:
-        """Stop all patches."""
-
-        for patcher in self.patches:
-            patcher.stop()
 
 
 @pytest.fixture
@@ -221,3 +192,66 @@ def mock_send_request(
         )
 
     return _patch
+
+
+@pytest.fixture
+def router() -> AsusRouter:
+    """Provide a fresh AsusRouter instance for each test."""
+
+    return AsusRouter(
+        hostname=TCONST_HOST,
+        username=TCONST_USER,
+        password=TCONST_PASS,
+    )
+
+
+@pytest.fixture
+def source() -> ARDataSource:
+    """Provide a fresh data source for each test."""
+
+    return ARDataSource()
+
+
+@pytest.fixture
+def make_state() -> MakeStateFactory:
+    """Create a state object with mocked update behavior."""
+
+    def _make_state(
+        source: ARDataSource,
+        callback: Any = None,
+        caller: Any = None,
+        translator: Any = None,
+    ) -> ARDataStateDynamic:
+        state = ARDataStateDynamic(source)
+        cast(Any, state).update = Mock()
+        state.callback = callback
+        state.state_caller = caller
+        state.translate_caller = translator
+        return state
+
+    return _make_state
+
+
+@pytest.fixture
+def bind_state(
+    router: AsusRouter,
+    make_state: MakeStateFactory,
+) -> BindStateFactory:
+    """Create a state and bind it to the router."""
+
+    def _bind_state(
+        source: ARDataSource,
+        callback: Any = None,
+        caller: Any = None,
+        translator: Any = None,
+    ) -> ARDataStateDynamic:
+        state = make_state(
+            source,
+            callback=callback,
+            caller=caller,
+            translator=translator,
+        )
+        router._data_states[source] = state
+        return state
+
+    return _bind_state

@@ -259,7 +259,8 @@ class TestARDataState:
     def test_properties(self) -> None:
         """Test the properties."""
 
-        instance = ARDataState(ARDataTypeGeneric.UNKNOWN)
+        source = ARDataTypeGeneric.UNKNOWN
+        instance = ARDataState(source)
 
         async def mock_async_callback() -> None:
             """Mock an async callback."""
@@ -277,6 +278,7 @@ class TestARDataState:
         instance._state_caller = mock_async_callable
         instance._translate_caller = mock_async_translate
 
+        assert instance.source == source
         assert instance.content == "content"
         assert instance.last_update == datetime_value
         assert instance.callback == mock_async_callback

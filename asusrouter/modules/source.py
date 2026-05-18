@@ -159,6 +159,12 @@ class ARDataState:
         return self._last_update + threshold > datetime.now(UTC)
 
     @property
+    def source(self) -> ARDataSource | ARDataType:
+        """Get the data source or type."""
+
+        return self._source
+
+    @property
     def content(self) -> Any | None:
         """Get the content."""
 

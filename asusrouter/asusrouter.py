@@ -6,7 +6,8 @@ This module contains the main class for interacting with an Asus device.
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Awaitable, Callable
+from collections import defaultdict
+from collections.abc import Awaitable, Callable, Iterable
 from datetime import UTC, datetime, timedelta
 import json
 import logging
@@ -67,6 +68,7 @@ from asusrouter.modules.identity import AsusDevice, collect_identity
 from asusrouter.modules.port_forwarding import PortForwardingRule
 from asusrouter.modules.service import async_call_service
 from asusrouter.modules.source import (
+    ARDataCollection,
     ARDataSource,
     ARDataState,
     ARDataStateDynamic,
@@ -85,9 +87,11 @@ from asusrouter.registry import ARCallableRegistry as ARCallReg
 from asusrouter.tools import legacy
 from asusrouter.tools.converters import get_enum_key_by_value, safe_list
 from asusrouter.tools.readers import merge_dicts
-from asusrouter.tools.types import ARCallbackType
+from asusrouter.tools.types import ARCallableType, ARCallbackType
 
 _LOGGER = logging.getLogger(__name__)
+
+ARDataRequest = ARDataSource | ARDataType | Iterable[ARDataSource | ARDataType]
 
 
 class AsusRouter:
@@ -696,87 +700,229 @@ class AsusRouter:
 
         return self.async_api_load
 
-    def _create_data_state(self, source: ARDataSource | ARDataType) -> bool:
+    def _create_data_state(self, cllctn: ARDataCollection) -> bool:
         """Create a new data state if does not exist."""
 
-        # State already exists
-        if source in self._data_states:
-            return True
-
-        # Try to create a correct state
-        state: ARDataState | None = None
-        if isinstance(source, ARDataSource):
-            state = ARDataStateDynamic(source)
-        elif isinstance(source, ARDataType):
-            state = ARDataStateStatic(source)
-
-        # Did not manage to create a state
-        if state is None:
+        if not isinstance(cllctn, ARDataCollection) or not cllctn:
             return False
 
-        # Find and assign callback for this state
-        state.callback = self._get_callback_for_state(source)
+        # Check which items we don't have states for yet
+        not_set = [item for item in cllctn if item not in self._data_states]
+        if not not_set:
+            return True
 
-        self._data_states[source] = state
+        for item in not_set:
+            # Create a correct state
+            state: ARDataState = (
+                ARDataStateDynamic(item)
+                if isinstance(item, ARDataSource)
+                else ARDataStateStatic(item)
+            )
+
+            # Find and assign callback and callables for this state
+            state.callback = self._get_callback_for_state(item)
+            state.state_caller = ARCallReg.get_callable(
+                item, name=AR_CALL_GET_STATE
+            )
+            state.translate_caller = ARCallReg.get_callable(
+                item, name=AR_CALL_TRANSLATE_STATE
+            )
+
+            self._data_states[item] = state
+
         return True
+
+    def _get_call_matrix(
+        self,
+        states: list[ARDataState],
+    ) -> dict[tuple[ARCallableType, ARCallbackType], list[ARDataState]]:
+        """Get a call matrix for the specified states."""
+
+        matrix: dict[
+            tuple[ARCallableType, ARCallbackType], list[ARDataState]
+        ] = defaultdict(list)
+
+        for state in states:
+            caller = state.state_caller
+            callback = state.callback
+
+            if not caller or not callback:
+                continue
+
+            matrix[(caller, callback)].append(state)
+
+        return matrix
+
+    def _save_data_state(
+        self,
+        state: ARDataState,
+        data: dict[ARDataSource | ARDataType, Any],
+    ) -> None:
+        """Save the data state for the specified state."""
+
+        if state.source in data:
+            state.update(data[state.source])
+            self._data_states[state.source] = state
+
+    def _translate_multidata_raw(
+        self,
+        data: dict[ARDataSource | ARDataType, Any],
+        states: list[ARDataState],
+    ) -> None:
+        """Save raw multicaller output for states without a translator."""
+
+        for state in states:
+            self._save_data_state(state, data)
+
+    def _translate_multidata_batch(
+        self,
+        translator: ARCallableType,
+        states: list[ARDataState],
+        data: dict[ARDataSource | ARDataType, Any],
+    ) -> None:
+        """Translate a full multicaller result using a batch translator."""
+
+        translated = translator(data)
+        if not isinstance(translated, dict):
+            _LOGGER.debug(
+                "Translator %s returned %s instead of dict",
+                getattr(translator, "__name__", repr(translator)),
+                type(translated).__name__,
+            )
+            return
+
+        for state in states:
+            self._save_data_state(state, translated)
+
+    def _translate_multidata_single(
+        self,
+        translator: ARCallableType,
+        states: list[ARDataState],
+        data: dict[ARDataSource | ARDataType, Any],
+    ) -> None:
+        """Translate individual state entries from multicaller output."""
+
+        for state in states:
+            state_source = state.source
+            if state_source not in data:
+                continue
+
+            translated = translator(data[state_source])
+            state.update(translated)
+            self._data_states[state.source] = state
+
+    def _translate_multidata(
+        self,
+        data: dict[ARDataSource | ARDataType, Any],
+        states: list[ARDataState],
+    ) -> None:
+        """Translate data obtained from a multicaller."""
+
+        if not isinstance(data, dict):
+            _LOGGER.debug(  # type: ignore[unreachable]
+                "Multicaller result must be a dict, got %s",
+                type(data).__name__,
+            )
+            return
+
+        translators: dict[ARCallableType | None, list[ARDataState]] = (
+            defaultdict(list)
+        )
+        for state in states:
+            translators[state.translate_caller].append(state)
+
+        for translator, grouped_states in translators.items():
+            if translator is None:
+                self._translate_multidata_raw(data, grouped_states)
+                continue
+
+            if ARCallReg.get_callable_flag(translator):
+                self._translate_multidata_batch(
+                    translator,
+                    grouped_states,
+                    data,
+                )
+                continue
+
+            self._translate_multidata_single(
+                translator,
+                grouped_states,
+                data,
+            )
 
     async def _async_refresh_data_state(
         self,
-        source: ARDataSource | ARDataType,
+        cllctn: ARDataCollection,
         force: bool = False,
         **kwargs: Any,
     ) -> None:
         """Refresh the data state for the specified source."""
 
-        # Get the state to work with
-        state: ARDataState | None = self._data_states.get(source)
-        if not state:
+        if not isinstance(cllctn, ARDataCollection) or not cllctn:
             return
 
-        # Get the correct getter from the registry
-        data_caller = ARCallReg.get_callable(source, name=AR_CALL_GET_STATE)
-        if not data_caller:
+        # Get the states to work with
+        data_states = self._data_states
+        _states: list[ARDataState] = [
+            data_states[item] for item in cllctn if item in data_states
+        ]
+        if not _states:
             return
 
-        # Get the callback
-        callback = state.callback
+        # Build call matrix
+        matrix = self._get_call_matrix(_states)
 
         # Fetch the data
-        data = await data_caller(callback, source, force=force, **kwargs)
-        if not data:
-            return
+        for (caller, callback), states in matrix.items():
+            sources = [state.source for state in states]
 
-        # Translate the data if a translator is available
-        translator = ARCallReg.get_callable(
-            source, name=AR_CALL_TRANSLATE_STATE
-        )
-        if translator:
-            data = translator(data)
+            multicaller = ARCallReg.get_callable_flag(caller)
 
-        # Update the state with the new data
-        state.update(data)
-        self._data_states[source] = state
+            if multicaller is True:
+                data = await caller(callback, sources, force=force, **kwargs)
+                self._translate_multidata(data, states)
+
+            else:
+                for state in states:
+                    data = await caller(
+                        callback, state.source, force=force, **kwargs
+                    )
+                    translator = state.translate_caller
+                    if translator:
+                        data = translator(data)
+
+                    state.update(data)
+                    self._data_states[state.source] = state
 
     async def async_get_data_state(
         self,
-        source: ARDataSource | ARDataType,
+        source: ARDataRequest,
         force: bool = False,
         **kwargs: Any,
-    ) -> ARDataState:
+    ) -> dict[ARDataSource | ARDataType, ARDataState]:
         """Get the full data state for the specified source."""
 
+        # Convert source to a collection
+        cllctn = ARDataCollection.from_value(source)
+        if not cllctn:
+            return {}
+
         # Create a state for the source if it doesn't exist
-        self._create_data_state(source)
+        self._create_data_state(cllctn)
 
         # Update the state
-        await self._async_refresh_data_state(source, force=force, **kwargs)
+        await self._async_refresh_data_state(cllctn, force=force, **kwargs)
 
         # Return the state
-        return self._data_states[source]
+        return {
+            item: self._data_states[item]
+            for item in cllctn
+            if item in self._data_states
+        }
 
     async def async_get_data_v2(
         self,
-        source: ARDataSource | ARDataType,
+        source: ARDataRequest,
         force: bool = False,
         **kwargs: Any,
     ) -> Any:
@@ -785,19 +931,23 @@ class AsusRouter:
         _LOGGER.debug("Querying data V2")
 
         # Get the new data state
-        data_state: ARDataState | None = await self.async_get_data_state(
+        data_state = await self.async_get_data_state(
             source, force=force, **kwargs
         )
         if not data_state:
             return None
 
         # Check if the data is fresh
-        if not data_state.is_fresh(self._cache_threshold):
-            _LOGGER.debug("Data for %s is older than cache threshold", source)
+        fresh_state = {
+            key: state
+            for key, state in data_state.items()
+            if state.is_fresh(self._cache_threshold)
+        }
+        if not fresh_state:
             return None
 
         # Return the data
-        return data_state.content
+        return {key: state.content for key, state in fresh_state.items()}
 
     async def async_get_data(  # noqa: C901, PLR0912, PLR0915
         self, datatype: AsusData, force: bool = False, **kwargs: Any
