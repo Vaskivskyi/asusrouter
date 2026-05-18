@@ -10,7 +10,7 @@ from typing import Any
 
 from asusrouter.const import UNKNOWN_MEMBER_STR
 from asusrouter.tools.enum import FromStrMixin
-from asusrouter.tools.types import ARCallbackType
+from asusrouter.tools.types import ARCallableType, ARCallbackType
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -135,6 +135,8 @@ class ARDataState:
         self._content: Any | None = None
         self._last_update: datetime | None = None
         self._callback: ARCallbackType | None = None
+        self._state_caller: ARCallableType | None = None
+        self._translate_caller: ARCallableType | None = None
 
     def update(self, content: Any) -> None:
         """Update the last update timestamp to the current time."""
@@ -179,6 +181,30 @@ class ARDataState:
         """Set the callback function."""
 
         self._callback = value
+
+    @property
+    def state_caller(self) -> ARCallableType | None:
+        """Get the state getter callable."""
+
+        return self._state_caller
+
+    @state_caller.setter
+    def state_caller(self, value: ARCallableType | None) -> None:
+        """Set the state getter callable."""
+
+        self._state_caller = value
+
+    @property
+    def translate_caller(self) -> ARCallableType | None:
+        """Get the state translator callable."""
+
+        return self._translate_caller
+
+    @translate_caller.setter
+    def translate_caller(self, value: ARCallableType | None) -> None:
+        """Set the state translator callable."""
+
+        self._translate_caller = value
 
 
 class ARDataStateStatic(ARDataState):
