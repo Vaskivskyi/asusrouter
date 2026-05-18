@@ -264,25 +264,46 @@ class TestARDataState:
         async def mock_async_callback() -> None:
             """Mock an async callback."""
 
+        async def mock_async_callable() -> None:
+            """Mock async callable."""
+
+        async def mock_async_translate() -> None:
+            """Mock async translate callable."""
+
         # Mock the properties
         instance._content = "content"
         instance._last_update = datetime_value
         instance._callback = mock_async_callback
+        instance._state_caller = mock_async_callable
+        instance._translate_caller = mock_async_translate
 
         assert instance.content == "content"
         assert instance.last_update == datetime_value
         assert instance.callback == mock_async_callback
+        assert instance.state_caller == mock_async_callable
+        assert instance.translate_caller == mock_async_translate
 
-    def test_setter_callback(self) -> None:
-        """Test the setter for the callback property."""
+    def test_setters(self) -> None:
+        """Test the setters for the properties."""
 
         instance = ARDataState(ARDataTypeGeneric.UNKNOWN)
 
         async def mock_async_callback() -> None:
             """Mock an async callback."""
 
+        async def mock_async_callable() -> None:
+            """Mock async callable."""
+
+        async def mock_async_translate() -> None:
+            """Mock async translate callable."""
+
         instance.callback = mock_async_callback
+        instance.state_caller = mock_async_callable
+        instance.translate_caller = mock_async_translate
+
         assert instance.callback == mock_async_callback
+        assert instance.state_caller == mock_async_callable
+        assert instance.translate_caller == mock_async_translate
 
 
 class TestARDataStateStatic:
