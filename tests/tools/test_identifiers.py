@@ -128,6 +128,13 @@ def test_from_unsupported(value: Any) -> None:
         MacAddress.from_value(value)
 
 
+def test_from_value_safe_unsupported_type() -> None:
+    """Test safe mode returns None for unsupported non-MAC inputs."""
+
+    assert MacAddress.from_value_safe(None) is None
+    assert MacAddress.from_value_safe(object()) is None
+
+
 @pytest.mark.parametrize(
     ("value", "result"),
     [
