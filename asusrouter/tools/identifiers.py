@@ -95,6 +95,19 @@ class MacAddress:
         parsed = cls._to_bytes(value)
         return cls(parsed)
 
+    @classmethod
+    def from_value_safe(cls, value: Any) -> MacAddress | None:
+        """Create a MacAddress from various representations.
+
+        Returns a new MacAddress if the input is valid, or `None` if the
+        provided value cannot be parsed as a MAC address.
+        """
+
+        try:
+            return cls.from_value(value)
+        except ValueError:
+            return None
+
     def as_asus(self) -> str:
         """Return the MAC address in ASUS format.
 
