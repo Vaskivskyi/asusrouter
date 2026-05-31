@@ -6,29 +6,28 @@ import pytest
 
 from asusrouter.modules.support.flag import ARSupportValue
 from asusrouter.modules.support.wifi import (
-    ARSupportWiFiGeneration,
-    ARSupportWiFiMultiBand,
     translate_wifi_generation,
     translate_wifi_multiband,
     translate_wifi_units,
 )
+from asusrouter.modules.wifi import ARWiFiGeneration, ARWiFiMultiBand
 
 
 @pytest.mark.parametrize(
     ("data", "expected"),
     [
-        ({}, ARSupportWiFiGeneration.UNKNOWN),
-        ({ARSupportValue.WIFI_7.value: 1}, ARSupportWiFiGeneration.WIFI_7),
-        ({ARSupportValue.WIFI_6.value: 1}, ARSupportWiFiGeneration.WIFI_6),
-        ({ARSupportValue.WIFI_5.value: 1}, ARSupportWiFiGeneration.WIFI_5),
+        ({}, ARWiFiGeneration.UNKNOWN),
+        ({ARSupportValue.WIFI_7.value: 1}, ARWiFiGeneration.WIFI_7),
+        ({ARSupportValue.WIFI_6.value: 1}, ARWiFiGeneration.WIFI_6),
+        ({ARSupportValue.WIFI_5.value: 1}, ARWiFiGeneration.WIFI_5),
         # Multiple true, should return the highest (first in table)
         (
             {ARSupportValue.WIFI_7.value: 1, ARSupportValue.WIFI_6.value: 1},
-            ARSupportWiFiGeneration.WIFI_7,
+            ARWiFiGeneration.WIFI_7,
         ),
         (
             {ARSupportValue.WIFI_6.value: 1, ARSupportValue.WIFI_5.value: 1},
-            ARSupportWiFiGeneration.WIFI_6,
+            ARWiFiGeneration.WIFI_6,
         ),
         (
             {
@@ -36,20 +35,20 @@ from asusrouter.modules.support.wifi import (
                 ARSupportValue.WIFI_6.value: 0,
                 ARSupportValue.WIFI_5.value: 0,
             },
-            ARSupportWiFiGeneration.UNKNOWN,
+            ARWiFiGeneration.UNKNOWN,
         ),
         (
             {ARSupportValue.WIFI_7.value: "enabled"},
-            ARSupportWiFiGeneration.WIFI_7,
+            ARWiFiGeneration.WIFI_7,
         ),
-        ({ARSupportValue.WIFI_6.value: "on"}, ARSupportWiFiGeneration.WIFI_6),
-        ({ARSupportValue.WIFI_5.value: "1"}, ARSupportWiFiGeneration.WIFI_5),
+        ({ARSupportValue.WIFI_6.value: "on"}, ARWiFiGeneration.WIFI_6),
+        ({ARSupportValue.WIFI_5.value: "1"}, ARWiFiGeneration.WIFI_5),
         # Not a dict
-        ("not_a_dict", ARSupportWiFiGeneration.UNKNOWN),
+        ("not_a_dict", ARWiFiGeneration.UNKNOWN),
     ],
 )
 def test_translate_wifi_generation(
-    data: dict[str, Any], expected: ARSupportWiFiGeneration
+    data: dict[str, Any], expected: ARWiFiGeneration
 ) -> None:
     """Test translate_wifi_generation returns correct generation type."""
 
@@ -60,18 +59,18 @@ def test_translate_wifi_generation(
 @pytest.mark.parametrize(
     ("data", "expected"),
     [
-        ({}, ARSupportWiFiMultiBand.UNKNOWN),
+        ({}, ARWiFiMultiBand.UNKNOWN),
         (
             {ARSupportValue.WIFI_BANDS_QUAD.value: 1},
-            ARSupportWiFiMultiBand.QUADBAND,
+            ARWiFiMultiBand.QUADBAND,
         ),
         (
             {ARSupportValue.WIFI_BANDS_TRI.value: 1},
-            ARSupportWiFiMultiBand.TRIBAND,
+            ARWiFiMultiBand.TRIBAND,
         ),
         (
             {ARSupportValue.WIFI_BANDS_DUAL.value: 1},
-            ARSupportWiFiMultiBand.DUALBAND,
+            ARWiFiMultiBand.DUALBAND,
         ),
         # Multiple true, should return the highest (quad > tri > dual)
         (
@@ -79,14 +78,14 @@ def test_translate_wifi_generation(
                 ARSupportValue.WIFI_BANDS_QUAD.value: 1,
                 ARSupportValue.WIFI_BANDS_TRI.value: 1,
             },
-            ARSupportWiFiMultiBand.QUADBAND,
+            ARWiFiMultiBand.QUADBAND,
         ),
         (
             {
                 ARSupportValue.WIFI_BANDS_TRI.value: 1,
                 ARSupportValue.WIFI_BANDS_DUAL.value: 1,
             },
-            ARSupportWiFiMultiBand.TRIBAND,
+            ARWiFiMultiBand.TRIBAND,
         ),
         (
             {
@@ -94,26 +93,26 @@ def test_translate_wifi_generation(
                 ARSupportValue.WIFI_BANDS_TRI.value: 0,
                 ARSupportValue.WIFI_BANDS_DUAL.value: 0,
             },
-            ARSupportWiFiMultiBand.UNKNOWN,
+            ARWiFiMultiBand.UNKNOWN,
         ),
         (
             {ARSupportValue.WIFI_BANDS_QUAD.value: "enabled"},
-            ARSupportWiFiMultiBand.QUADBAND,
+            ARWiFiMultiBand.QUADBAND,
         ),
         (
             {ARSupportValue.WIFI_BANDS_TRI.value: "on"},
-            ARSupportWiFiMultiBand.TRIBAND,
+            ARWiFiMultiBand.TRIBAND,
         ),
         (
             {ARSupportValue.WIFI_BANDS_DUAL.value: "1"},
-            ARSupportWiFiMultiBand.DUALBAND,
+            ARWiFiMultiBand.DUALBAND,
         ),
         # Not a dict
-        ("not_a_dict", ARSupportWiFiMultiBand.UNKNOWN),
+        ("not_a_dict", ARWiFiMultiBand.UNKNOWN),
     ],
 )
 def test_translate_wifi_multiband(
-    data: dict[str, Any], expected: ARSupportWiFiMultiBand
+    data: dict[str, Any], expected: ARWiFiMultiBand
 ) -> None:
     """Test translate_wifi_multiband returns correct multiband type."""
 

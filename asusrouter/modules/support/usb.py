@@ -2,42 +2,30 @@
 
 from __future__ import annotations
 
-from enum import IntEnum
 from typing import Any
 
-from asusrouter.const import UNKNOWN_MEMBER
 from asusrouter.modules.support.flag import ARSupportValue
+from asusrouter.modules.usb import ARUSBGeneration
 from asusrouter.tools.converters import safe_bool_nn, safe_int_nn
-from asusrouter.tools.enum import FromIntMixin
 from asusrouter.tools.readers import is_true_in_dict
 
 
-class ARSupportUSBGeneration(FromIntMixin, IntEnum):
-    """USB generation types."""
-
-    UNKNOWN = UNKNOWN_MEMBER
-
-    USB = 1
-    USB_2 = 2
-    USB_3 = 3
-
-
-def translate_usb_generation(data: dict[str, Any]) -> ARSupportUSBGeneration:
-    """Translate USB generation data to ARSupportUSBGeneration."""
+def translate_usb_generation(data: dict[str, Any]) -> ARUSBGeneration:
+    """Translate USB generation data to ARUSBGeneration."""
 
     if not isinstance(data, dict):
-        return ARSupportUSBGeneration.UNKNOWN  # type: ignore[unreachable]
+        return ARUSBGeneration.UNKNOWN  # type: ignore[unreachable]
 
     if is_true_in_dict(ARSupportValue.USB_3.value, data):
-        return ARSupportUSBGeneration.USB_3
+        return ARUSBGeneration.USB_3
 
     if is_true_in_dict(ARSupportValue.USB_2.value, data):
-        return ARSupportUSBGeneration.USB_2
+        return ARUSBGeneration.USB_2
 
     if is_true_in_dict(ARSupportValue.USB.value, data):
-        return ARSupportUSBGeneration.USB
+        return ARUSBGeneration.USB
 
-    return ARSupportUSBGeneration.UNKNOWN
+    return ARUSBGeneration.UNKNOWN
 
 
 def translate_usb_ports(data: dict[str, Any]) -> int:
