@@ -10,6 +10,16 @@ from typing import Any
 from asusrouter.const import AR_CALL_GET_STATE, AR_CALL_TRANSLATE_STATE
 from asusrouter.modules.endpoint import Endpoint
 from asusrouter.modules.source import ARDataSource
+from asusrouter.modules.support.aimesh import (
+    translate_aimesh,
+    translate_aimesh_features,
+    translate_aimesh_generation,
+)
+from asusrouter.modules.support.aura import (
+    translate_aura,
+    translate_aura_night_mode,
+    translate_aura_zone,
+)
 from asusrouter.modules.support.connection import translate_connection
 from asusrouter.modules.support.flag import ARSupportType
 from asusrouter.modules.support.platform import translate_platform
@@ -36,7 +46,17 @@ class ARSupportSource(ARDataSource):
         super().__init__()
 
 
+# A universal instance of the support source (preferred)
+ARSupportSourceUniversal: ARSupportSource = ARSupportSource()
+
+
 TRANSLATION_TABLE: dict[ARSupportType, ARCallableType] = {
+    ARSupportType.AIMESH: translate_aimesh,
+    ARSupportType.AIMESH_FEATURES: translate_aimesh_features,
+    ARSupportType.AIMESH_GENERATION: translate_aimesh_generation,
+    ARSupportType.AURA: translate_aura,
+    ARSupportType.AURA_NIGHT_MODE: translate_aura_night_mode,
+    ARSupportType.AURA_ZONE: translate_aura_zone,
     ARSupportType.CONNECTIONS: translate_connection,
     ARSupportType.PLATFORM: translate_platform,
     ARSupportType.USB_GENERATION: translate_usb_generation,
@@ -77,7 +97,7 @@ def translate_state(
     result: dict[str, Any] = {}
 
     for support_type, interpreter in TRANSLATION_TABLE.items():
-        result[support_type.value] = interpreter(data)
+        result[support_type] = interpreter(data)
 
     return result
 

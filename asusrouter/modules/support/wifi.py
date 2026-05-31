@@ -2,41 +2,26 @@
 
 from __future__ import annotations
 
-from enum import IntEnum
 from typing import Any
 
-from asusrouter.const import UNKNOWN_MEMBER
 from asusrouter.modules.support.flag import ARSupportValue
-from asusrouter.tools.enum import FromIntMixin
+from asusrouter.modules.wifi import ARWiFiGeneration, ARWiFiMultiBand
 from asusrouter.tools.readers import is_true_in_dict
-
-
-class ARSupportWiFiGeneration(FromIntMixin, IntEnum):
-    """WiFi generation types."""
-
-    UNKNOWN = UNKNOWN_MEMBER
-
-    WIFI_5 = 5
-    WIFI_6 = 6
-    WIFI_7 = 7
-
 
 # Tranalstion table should be ordered
 # from the highest to the lowest generation
-TRANSLATION_TABLE_WIFI_GENERATION: dict[
-    ARSupportValue, ARSupportWiFiGeneration
-] = {
-    ARSupportValue.WIFI_7: ARSupportWiFiGeneration.WIFI_7,
-    ARSupportValue.WIFI_6: ARSupportWiFiGeneration.WIFI_6,
-    ARSupportValue.WIFI_5: ARSupportWiFiGeneration.WIFI_5,
+TRANSLATION_TABLE_WIFI_GENERATION: dict[ARSupportValue, ARWiFiGeneration] = {
+    ARSupportValue.WIFI_7: ARWiFiGeneration.WIFI_7,
+    ARSupportValue.WIFI_6: ARWiFiGeneration.WIFI_6,
+    ARSupportValue.WIFI_5: ARWiFiGeneration.WIFI_5,
 }
 
 
-def translate_wifi_generation(data: dict[str, Any]) -> ARSupportWiFiGeneration:
-    """Translate WiFi generation data to ARSupportWiFiGeneration."""
+def translate_wifi_generation(data: dict[str, Any]) -> ARWiFiGeneration:
+    """Translate WiFi generation data to ARWiFiGeneration."""
 
     if not isinstance(data, dict):
-        return ARSupportWiFiGeneration.UNKNOWN  # type: ignore[unreachable]
+        return ARWiFiGeneration.UNKNOWN  # type: ignore[unreachable]
 
     for (
         support_value,
@@ -45,35 +30,25 @@ def translate_wifi_generation(data: dict[str, Any]) -> ARSupportWiFiGeneration:
         if is_true_in_dict(support_value.value, data):
             return generation_type
 
-    return ARSupportWiFiGeneration.UNKNOWN
+    return ARWiFiGeneration.UNKNOWN
 
 
-class ARSupportWiFiMultiBand(FromIntMixin, IntEnum):
-    """WiFi multiband types."""
-
-    UNKNOWN = UNKNOWN_MEMBER
-
-    DUALBAND = 2
-    TRIBAND = 3
-    QUADBAND = 4
-
-
-def translate_wifi_multiband(data: dict[str, Any]) -> ARSupportWiFiMultiBand:
-    """Translate WiFi multiband data to ARSupportWiFiMultiBand."""
+def translate_wifi_multiband(data: dict[str, Any]) -> ARWiFiMultiBand:
+    """Translate WiFi multiband data to ARWiFiMultiBand."""
 
     if not isinstance(data, dict):
-        return ARSupportWiFiMultiBand.UNKNOWN  # type: ignore[unreachable]
+        return ARWiFiMultiBand.UNKNOWN  # type: ignore[unreachable]
 
     if is_true_in_dict(ARSupportValue.WIFI_BANDS_QUAD.value, data):
-        return ARSupportWiFiMultiBand.QUADBAND
+        return ARWiFiMultiBand.QUADBAND
 
     if is_true_in_dict(ARSupportValue.WIFI_BANDS_TRI.value, data):
-        return ARSupportWiFiMultiBand.TRIBAND
+        return ARWiFiMultiBand.TRIBAND
 
     if is_true_in_dict(ARSupportValue.WIFI_BANDS_DUAL.value, data):
-        return ARSupportWiFiMultiBand.DUALBAND
+        return ARWiFiMultiBand.DUALBAND
 
-    return ARSupportWiFiMultiBand.UNKNOWN
+    return ARWiFiMultiBand.UNKNOWN
 
 
 def translate_wifi_units(data: dict[str, Any]) -> list[int]:

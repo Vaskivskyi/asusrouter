@@ -6,28 +6,28 @@ import pytest
 
 from asusrouter.modules.support.flag import ARSupportValue
 from asusrouter.modules.support.usb import (
-    ARSupportUSBGeneration,
     translate_usb_generation,
     translate_usb_ports,
     translate_usb_wan,
 )
+from asusrouter.modules.usb import ARUSBGeneration
 
 
 @pytest.mark.parametrize(
     ("data", "expected"),
     [
-        ({}, ARSupportUSBGeneration.UNKNOWN),
-        ({ARSupportValue.USB_3.value: 1}, ARSupportUSBGeneration.USB_3),
-        ({ARSupportValue.USB_2.value: 1}, ARSupportUSBGeneration.USB_2),
-        ({ARSupportValue.USB.value: 1}, ARSupportUSBGeneration.USB),
+        ({}, ARUSBGeneration.UNKNOWN),
+        ({ARSupportValue.USB_3.value: 1}, ARUSBGeneration.USB_3),
+        ({ARSupportValue.USB_2.value: 1}, ARUSBGeneration.USB_2),
+        ({ARSupportValue.USB.value: 1}, ARUSBGeneration.USB),
         # Multiple true, should return the first found
         (
             {ARSupportValue.USB_3.value: 1, ARSupportValue.USB_2.value: 1},
-            ARSupportUSBGeneration.USB_3,
+            ARUSBGeneration.USB_3,
         ),
         (
             {ARSupportValue.USB_2.value: 1, ARSupportValue.USB.value: 1},
-            ARSupportUSBGeneration.USB_2,
+            ARUSBGeneration.USB_2,
         ),
         (
             {
@@ -35,20 +35,20 @@ from asusrouter.modules.support.usb import (
                 ARSupportValue.USB_2.value: 0,
                 ARSupportValue.USB.value: 0,
             },
-            ARSupportUSBGeneration.UNKNOWN,
+            ARUSBGeneration.UNKNOWN,
         ),
         (
             {ARSupportValue.USB_3.value: "enabled"},
-            ARSupportUSBGeneration.USB_3,
+            ARUSBGeneration.USB_3,
         ),
-        ({ARSupportValue.USB_2.value: "on"}, ARSupportUSBGeneration.USB_2),
-        ({ARSupportValue.USB.value: "1"}, ARSupportUSBGeneration.USB),
+        ({ARSupportValue.USB_2.value: "on"}, ARUSBGeneration.USB_2),
+        ({ARSupportValue.USB.value: "1"}, ARUSBGeneration.USB),
         # Not a dict
-        ("not_a_dict", ARSupportUSBGeneration.UNKNOWN),
+        ("not_a_dict", ARUSBGeneration.UNKNOWN),
     ],
 )
 def test_translate_usb_generation(
-    data: dict[str, Any], expected: ARSupportUSBGeneration
+    data: dict[str, Any], expected: ARUSBGeneration
 ) -> None:
     """Test translate_usb_generation returns correct generation type."""
 

@@ -4,10 +4,8 @@ from typing import Any
 
 import pytest
 
-from asusrouter.modules.support.connection import (
-    ARSupportConnection,
-    translate_connection,
-)
+from asusrouter.modules.connection_v2 import ARConnection
+from asusrouter.modules.support.connection import translate_connection
 from asusrouter.modules.support.flag import ARSupportValue
 
 
@@ -15,14 +13,14 @@ from asusrouter.modules.support.flag import ARSupportValue
     ("data", "expected"),
     [
         ({}, []),
-        ({ARSupportValue.CONNECTION_HTTPS: 1}, [ARSupportConnection.HTTPS]),
-        ({ARSupportValue.CONNECTION_SSH: 1}, [ARSupportConnection.SSH]),
+        ({ARSupportValue.CONNECTION_HTTPS: 1}, [ARConnection.HTTPS]),
+        ({ARSupportValue.CONNECTION_SSH: 1}, [ARConnection.SSH]),
         (
             {
                 ARSupportValue.CONNECTION_HTTPS: 1,
                 ARSupportValue.CONNECTION_SSH: 1,
             },
-            [ARSupportConnection.HTTPS, ARSupportConnection.SSH],
+            [ARConnection.HTTPS, ARConnection.SSH],
         ),
         (
             {
@@ -36,21 +34,21 @@ from asusrouter.modules.support.flag import ARSupportValue
                 ARSupportValue.CONNECTION_HTTPS: True,
                 ARSupportValue.CONNECTION_SSH: False,
             },
-            [ARSupportConnection.HTTPS],
+            [ARConnection.HTTPS],
         ),
         (
             {
                 ARSupportValue.CONNECTION_HTTPS: "0",
                 ARSupportValue.CONNECTION_SSH: "1",
             },
-            [ARSupportConnection.SSH],
+            [ARConnection.SSH],
         ),
         # Not a dict
         ("not_a_dict", []),
     ],
 )
 def test_translate_connection(
-    data: dict[str, Any], expected: list[ARSupportConnection]
+    data: dict[str, Any], expected: list[ARConnection]
 ) -> None:
     """Test translate_connection returns correct connection types."""
 

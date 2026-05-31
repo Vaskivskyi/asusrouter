@@ -13,6 +13,15 @@ class ARSupportType(FromStrMixin, StrEnum):
 
     UNKNOWN = UNKNOWN_MEMBER_STR
 
+    # AiMesh
+    AIMESH = "aimesh"
+    AIMESH_FEATURES = "aimesh_features"
+    AIMESH_GENERATION = "aimesh_generation"
+    # Aura
+    AURA = "aura"
+    AURA_NIGHT_MODE = "aura_night_mode"
+    AURA_ZONE = "aura_zone"
+
     CONNECTIONS = "connections"
     PLATFORM = "platform"
     USB_GENERATION = "usb_generation"
@@ -27,6 +36,17 @@ class ARSupportValue(FromStrMixin, StrEnum):
     """Device support values as stored in the system."""
 
     UNKNOWN = UNKNOWN_MEMBER_STR
+
+    # AiMesh
+    AIMESH = "amas"
+    AIMESH_NEW_ONBOARDING = "AMAS_NEWOB"
+    AIMESH_NODE = "amasNode"
+    AIMESH_ROUTER = "amasRouter"
+
+    # Aura
+    AURA = "ledg"
+    AURA_NIGHT_MODE = "ledg_night_mode"
+    AURA_ZONE = "ledg_count"
 
     # Connection methods
     CONNECTION_HTTPS = "HTTPS"
