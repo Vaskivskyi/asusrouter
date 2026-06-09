@@ -1,6 +1,6 @@
 """Constants for hook endpoint module."""
 
-# Network
+from __future__ import annotations
 
 from asusrouter.modules.connection import ConnectionState, ConnectionStatus
 from asusrouter.modules.endpoint.wan import AsusDualWAN

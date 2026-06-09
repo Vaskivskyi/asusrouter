@@ -1,5 +1,7 @@
 """Tests for the support Aura module."""
 
+from __future__ import annotations
+
 from typing import Any
 
 import pytest

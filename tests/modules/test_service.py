@@ -1,5 +1,7 @@
 """Tests for the service module."""
 
+from __future__ import annotations
+
 import pytest
 
 from asusrouter.error import AsusRouterError, AsusRouterServiceError

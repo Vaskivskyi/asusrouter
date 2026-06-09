@@ -1,5 +1,7 @@
 """Tests for the connection module / Part 5 / Make Request."""
 
+from __future__ import annotations
+
 from unittest.mock import AsyncMock, MagicMock
 from urllib.parse import quote
 

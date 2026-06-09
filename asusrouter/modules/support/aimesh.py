@@ -42,6 +42,6 @@ def translate_aimesh_generation(data: dict[str, bool]) -> int:
     """Translate AiMesh generation."""
 
     if not isinstance(data, dict):
-        return None  # type: ignore[unreachable]
+        return 0  # type: ignore[unreachable]
 
     return safe_int_nn(data.get(ARSupportValue.AIMESH.value))

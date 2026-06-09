@@ -1,5 +1,7 @@
 """Constants for the VPN endpoint module."""
 
+from __future__ import annotations
+
 from asusrouter.tools.converters import safe_datetime, safe_int
 
 MAP_OVPN_CLIENT = [

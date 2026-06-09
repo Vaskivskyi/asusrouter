@@ -1,5 +1,7 @@
 """Tests for the enum tools."""
 
+from __future__ import annotations
+
 from enum import IntEnum, StrEnum
 from typing import Any
 

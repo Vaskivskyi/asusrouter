@@ -1,5 +1,7 @@
 """Tests for the Hook endpoint module."""
 
+from __future__ import annotations
+
 from asusrouter.modules.endpoint.hook import read
 
 from ._test_default import _test_read

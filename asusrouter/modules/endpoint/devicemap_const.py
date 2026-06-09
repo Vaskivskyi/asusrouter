@@ -1,5 +1,7 @@
 """Constants for the devicemap endpoint module."""
 
+from __future__ import annotations
+
 # These values are just stored directly in this order in the corresponding node
 # Format: (output_group, input_group, [input_values])
 DEVICEMAP_BY_INDEX = [

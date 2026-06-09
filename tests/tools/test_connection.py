@@ -1,5 +1,7 @@
 """Test AsusRouter connection tools."""
 
+from __future__ import annotations
+
 import aiohttp
 import pytest
 

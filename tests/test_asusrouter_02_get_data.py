@@ -1,5 +1,7 @@
 """Tests for the asusrouter module / Part 2 / Get Data."""
 
+from __future__ import annotations
+
 from typing import Any, cast
 from unittest.mock import AsyncMock, Mock
 

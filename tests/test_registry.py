@@ -1,5 +1,7 @@
 """Test registry module."""
 
+from __future__ import annotations
+
 from collections.abc import Callable, Generator
 import threading
 from typing import Any

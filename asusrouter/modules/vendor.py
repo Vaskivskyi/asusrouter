@@ -1,5 +1,7 @@
 """Vendor module."""
 
+from __future__ import annotations
+
 
 def replace_vendor(vendor: str) -> str:
     """Replace vendor name."""

@@ -1,5 +1,7 @@
 """Result of processing ethernet_ports_001.content."""
 
+from __future__ import annotations
+
 from asusrouter import AsusData
 from asusrouter.modules.ports import PortSpeed, PortType
 

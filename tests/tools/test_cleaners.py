@@ -1,5 +1,7 @@
 """Test AsusRouter cleaners tools."""
 
+from __future__ import annotations
+
 from asusrouter.tools import cleaners
 
 

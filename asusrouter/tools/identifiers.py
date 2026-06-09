@@ -90,8 +90,7 @@ class MacAddress:
         if isinstance(value, cls):
             return value
 
-        # Use the shared parser to obtain bytes, then construct using the
-        # bytes fast-path in __init__.
+        # Reuse _to_bytes, then construct via bytes fast-path
         parsed = cls._to_bytes(value)
         return cls(parsed)
 

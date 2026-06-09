@@ -1,5 +1,7 @@
 """Tests for the masking tools."""
 
+from __future__ import annotations
+
 import hashlib
 import hmac
 import importlib

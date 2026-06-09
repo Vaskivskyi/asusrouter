@@ -144,7 +144,7 @@ async def collect_identity(
         identity["merlin"] = True
         _LOGGER.debug("Merlin FW detected")
 
-    # Return the identity convered from a dict
+    # Return the identity converted from a dict
     return AsusDevice(**identity)
 
 

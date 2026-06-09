@@ -1,5 +1,7 @@
 """Result of processing onboarding_002.content."""
 
+from __future__ import annotations
+
 from asusrouter import AsusData
 from asusrouter.modules.aimesh import AiMeshDevice
 

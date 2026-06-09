@@ -1,5 +1,7 @@
 """Test AsusRouter devicemap endpoint module."""
 
+from __future__ import annotations
+
 from collections.abc import Generator
 from datetime import datetime, timedelta, timezone
 from typing import Any

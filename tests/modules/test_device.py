@@ -1,5 +1,7 @@
 """Tests for device module."""
 
+from __future__ import annotations
+
 import pytest
 
 from asusrouter.const import UNKNOWN_MEMBER

@@ -1,5 +1,7 @@
 """Test for the configuration module / Instance."""
 
+from __future__ import annotations
+
 import pytest
 
 from asusrouter.config import (

@@ -1,5 +1,7 @@
 """Tests for the default endpoint module."""
 
+from __future__ import annotations
+
 from collections.abc import Callable
 from typing import Any
 
