@@ -1,0 +1,156 @@
+# This workflow is partially AI-generated
+name: Sync ruff version
+
+on:
+  pull_request:
+    types: [opened]
+    branches: [dev]
+  workflow_dispatch:
+  schedule:
+    - cron: "23 4 * * *"
+  push:
+    branches: [dev]
+    paths:
+      - ".github/workflows/sync-ruff.yml"
+
+concurrency:
+  group: sync-ruff
+  cancel-in-progress: true
+
+jobs:
+  sync-ruff:
+    name: Sync ruff version
+    runs-on: ubuntu-latest
+    if: >
+      (github.event_name == 'pull_request' &&
+       github.actor == 'dependabot[bot]' &&
+       contains(github.event.pull_request.title, 'ruff')) ||
+      github.event_name == 'schedule' ||
+      github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'push'
+
+    permissions:
+      contents: read
+      pull-requests: read
+
+    steps:
+      - name: Create GitHub App token
+        id: app_token
+        uses: tibdex/github-app-token@v2.1.0
+        with:
+          app_id: ${{ secrets.AR_APP_ID }}
+          private_key: ${{ secrets.AR_APP_KEY }}
+
+      - name: Resolve dependabot ruff PR
+        id: dep_pr
+        env:
+          GH_TOKEN: ${{ steps.app_token.outputs.token }}
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            NUMBER="${{ github.event.pull_request.number }}"
+            HEAD_REF="${{ github.event.pull_request.head.ref }}"
+          else
+            JSON=$(gh pr list \
+              --repo "${{ github.repository }}" \
+              --author "dependabot[bot]" \
+              --base dev \
+              --json number,headRefName,title \
+              --jq '[.[] | select(.title | contains("ruff"))] | .[0] // empty')
+            if [ -z "$JSON" ]; then
+              echo "No open dependabot ruff PR — skipping"
+              exit 0
+            fi
+            NUMBER=$(echo "$JSON" | jq -r '.number')
+            HEAD_REF=$(echo "$JSON" | jq -r '.headRefName')
+          fi
+          echo "number=$NUMBER" >> "$GITHUB_OUTPUT"
+          echo "head_ref=$HEAD_REF" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout dependabot branch
+        if: steps.dep_pr.outputs.number != ''
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ steps.dep_pr.outputs.head_ref }}
+          sparse-checkout: uv.lock
+          sparse-checkout-cone-mode: false
+
+      - name: Extract ruff version
+        if: steps.dep_pr.outputs.number != ''
+        id: ruff
+        run: |
+          VERSION=$(grep -A1 '^name = "ruff"$' uv.lock | grep -oP 'version = "\K[^"]+')
+          if [ -z "$VERSION" ]; then
+            echo "::error::ruff not found in uv.lock"
+            exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "branch=bot/bump-ruff-$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Check for existing bot PR
+        if: steps.dep_pr.outputs.number != ''
+        id: existing
+        env:
+          GH_TOKEN: ${{ steps.app_token.outputs.token }}
+        run: |
+          URL=$(gh pr list \
+            --repo "${{ github.repository }}" \
+            --head "${{ steps.ruff.outputs.branch }}" \
+            --json url \
+            --jq '.[0].url // ""')
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout dev
+        if: steps.dep_pr.outputs.number != '' && steps.existing.outputs.url == ''
+        uses: actions/checkout@v6
+        with:
+          ref: dev
+          token: ${{ steps.app_token.outputs.token }}
+
+      - name: Set up uv
+        if: steps.dep_pr.outputs.number != '' && steps.existing.outputs.url == ''
+        uses: astral-sh/setup-uv@v7
+        with:
+          python-version: "3.14"
+          enable-cache: true
+
+      - name: Patch version pins and regenerate lock
+        if: steps.dep_pr.outputs.number != '' && steps.existing.outputs.url == ''
+        run: |
+          V="${{ steps.ruff.outputs.version }}"
+          sed -i 's/"ruff>=[^"]*"/"ruff>='"$V"'"/' pyproject.toml
+          sed -i '\|astral-sh/ruff-pre-commit|{n; s/rev: .*/rev: v'"$V"'/}' .pre-commit-config.yaml
+          uv lock --upgrade-package ruff
+
+      - name: Commit and push
+        if: steps.dep_pr.outputs.number != '' && steps.existing.outputs.url == ''
+        run: |
+          git config user.name "asusrouter-bot[bot]"
+          git config user.email "asusrouter-bot[bot]@users.noreply.github.com"
+          git checkout -b "${{ steps.ruff.outputs.branch }}"
+          git add pyproject.toml .pre-commit-config.yaml uv.lock
+          git commit -m "Bump ruff to ${{ steps.ruff.outputs.version }}"
+          git push origin "${{ steps.ruff.outputs.branch }}" --force-with-lease
+
+      - name: Create bot PR
+        if: steps.dep_pr.outputs.number != '' && steps.existing.outputs.url == ''
+        id: create_pr
+        env:
+          GH_TOKEN: ${{ steps.app_token.outputs.token }}
+        run: |
+          URL=$(gh pr create \
+            --title "Bump ruff to ${{ steps.ruff.outputs.version }}" \
+            --body "Bumps \`ruff\` to \`${{ steps.ruff.outputs.version }}\` in \`pyproject.toml\`, \`.pre-commit-config.yaml\`, and \`uv.lock\`." \
+            --base dev \
+            --head "${{ steps.ruff.outputs.branch }}")
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+
+      - name: Close dependabot PR
+        if: steps.dep_pr.outputs.number != ''
+        env:
+          GH_TOKEN: ${{ steps.app_token.outputs.token }}
+        run: |
+          BOT_PR="${{ steps.create_pr.outputs.url || steps.existing.outputs.url }}"
+          gh pr close "${{ steps.dep_pr.outputs.number }}" \
+            --repo "${{ github.repository }}" \
+            --comment "Superseded by $BOT_PR which also updates \`pyproject.toml\` and \`.pre-commit-config.yaml\`." \
+            || true
