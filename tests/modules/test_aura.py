@@ -1,5 +1,7 @@
 """Tests for the Aura module."""
 
+from __future__ import annotations
+
 from typing import Any
 from unittest import mock
 from unittest.mock import AsyncMock, MagicMock, patch

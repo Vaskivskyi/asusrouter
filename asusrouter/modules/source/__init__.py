@@ -27,11 +27,11 @@ class ARDataSource:
 
 
 class ARDataType(FromStrMixin, StrEnum):
-    """AsusRouter generic data types."""
+    """AsusRouter data type."""
 
 
 class ARDataTypeGeneric(ARDataType):
-    """AsusRouter static data types."""
+    """AsusRouter generic data types."""
 
     UNKNOWN = UNKNOWN_MEMBER_STR
 

@@ -46,7 +46,7 @@ class ARSupportSource(ARDataSource):
         super().__init__()
 
 
-# A universal instance of the support source (preferred)
+# Universal instance - preferred
 ARSupportSourceUniversal: ARSupportSource = ARSupportSource()
 
 

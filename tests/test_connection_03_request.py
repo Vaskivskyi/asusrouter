@@ -1,5 +1,7 @@
 """Tests for the connection module / Part 3 / Requests."""
 
+from __future__ import annotations
+
 import asyncio
 import ssl
 from typing import Any

@@ -1,5 +1,7 @@
 """Connection module."""
 
+from __future__ import annotations
+
 from enum import IntEnum, StrEnum
 
 from asusrouter.modules.wlan import Wlan

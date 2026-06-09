@@ -1,5 +1,7 @@
 """Tests for the unit tools."""
 
+from __future__ import annotations
+
 from enum import StrEnum
 from typing import Any
 from unittest.mock import patch

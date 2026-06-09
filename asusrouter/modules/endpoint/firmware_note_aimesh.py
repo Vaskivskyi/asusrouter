@@ -2,3 +2,5 @@
 
 This module is an alias for the firmware release notes endpoint module.
 """
+
+from __future__ import annotations

@@ -1,5 +1,7 @@
 """Tests to ensure inherited enums define `UNKNOWN` members."""
 
+from __future__ import annotations
+
 from collections.abc import Iterator
 from enum import Enum
 import importlib

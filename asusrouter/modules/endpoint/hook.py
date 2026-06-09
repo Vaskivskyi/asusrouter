@@ -72,7 +72,7 @@ def process(data: dict[str, Any]) -> dict[AsusData, Any]:  # noqa: C901, PLR0912
 
     state: dict[AsusData, Any] = {}
 
-    # Get the passed awrguments
+    # Get the passed arguments
     history: dict[AsusData, AsusDataState] = data_get(data, "history") or {}
     wlan = data_get(data, "wlan") or []
 
@@ -403,7 +403,7 @@ def process_ram(memory_usage: dict[str, Any]) -> dict[str, Any]:
 
     ram: dict[str, Any] = {}
     # Data is in KiB. To get MB as they are shown in the device Web-GUI,
-    # should be devided by 1024 (yes, those will be MiB)
+    # should be divided by 1024 (yes, those will be MiB)
 
     # Populate RAM with known values
     ram = {

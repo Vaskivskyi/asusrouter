@@ -57,8 +57,8 @@ class ARNvramType(ARDataType):
     # Software information (configurable by user)
     SW_MODE = "sw_mode"
 
-    # Everything further should be groupped by category
-    # Categories go in alphabetical order, some for items in them
+    # Everything further is grouped by category
+    # Categories go in alphabetical order, same for items in item
 
     # AI Board
     AI_FW_PATH = "ai_fw_path"
@@ -139,7 +139,7 @@ TRANSLATION_TABLE: dict[ARNvramType, ARCallableType] = {
 async def get_state(
     callback: ARCallbackType,
     source: ARNvramType | Iterable[ARNvramType],
-    **kwargs: dict[str, str],
+    **kwargs: Any,
 ) -> dict[ARNvramType, str]:
     """Fetch the NVRAM data state."""
 

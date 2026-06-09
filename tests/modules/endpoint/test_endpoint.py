@@ -1,5 +1,7 @@
 """Test for the main endpoint module."""
 
+from __future__ import annotations
+
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest

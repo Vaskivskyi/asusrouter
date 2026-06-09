@@ -1,5 +1,7 @@
 """Test AsusRouter with real devices data."""
 
+from __future__ import annotations
+
 from contextlib import contextmanager
 from dataclasses import dataclass
 from enum import Enum

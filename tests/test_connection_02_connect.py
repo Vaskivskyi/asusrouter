@@ -1,5 +1,7 @@
 """Tests for the connection module / Part 2 / Connect & Disconnect."""
 
+from __future__ import annotations
+
 import asyncio
 import json
 from typing import Any

@@ -1,5 +1,7 @@
 """Tests for the connection module."""
 
+from __future__ import annotations
+
 import pytest
 
 from asusrouter.modules.connection import (

@@ -507,23 +507,7 @@ def safe_unpack_key(
     | str
     | tuple[str],
 ) -> tuple[str, Callable[..., Any] | list[Callable[..., Any]] | None]:
-    """
-    Unpacks a tuple containing a key and a method.
-
-    The input can be a tuple of a string and a method, a single string,
-    or a single-item tuple with a string.
-    If the input is a string or a single-item tuple, the returned method
-    is None.
-    If the input is a tuple of a string and a method, both are returned as is.
-
-    Args:
-        content: A tuple of a string and a method, a single string,
-        or a single-item tuple with a string.
-
-    Returns:
-        A tuple containing a string and a method.
-        If no method was provided in the input, None is returned as the method.
-    """
+    """Unpack a (key, method) tuple, returning (key, None) for bare strings."""
 
     if isinstance(content, tuple):
         key = content[0]

@@ -1,5 +1,7 @@
 """Initialize AsusRouter."""
 
+from __future__ import annotations
+
 from .asusrouter import AsusRouter
 from .error import AsusRouterError
 from .modules.data import AsusData

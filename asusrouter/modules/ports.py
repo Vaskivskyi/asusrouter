@@ -3,6 +3,8 @@
 This module is for physical ports on the router, e.g. LAN, WAN, USB, etc.
 """
 
+from __future__ import annotations
+
 from enum import IntEnum, StrEnum
 
 

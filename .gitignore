@@ -1,6 +1,9 @@
 ### Python
 
 __pycache__/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
 
 dist/
 *.egg-info
@@ -23,3 +26,6 @@ local/
 
 # Work-in-progress files
 __test*.py
+
+# Claude Code local settings
+.claude/settings.local.json

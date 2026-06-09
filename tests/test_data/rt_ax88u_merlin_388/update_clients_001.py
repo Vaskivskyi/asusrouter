@@ -1,5 +1,7 @@
 """Result of processing update_clients_001.content."""
 
+from __future__ import annotations
+
 from asusrouter import AsusData
 
 expected_result = {

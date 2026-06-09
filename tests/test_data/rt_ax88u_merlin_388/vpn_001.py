@@ -1,5 +1,7 @@
 """Result of processing vpn_001.content."""
 
+from __future__ import annotations
+
 from asusrouter import AsusData
 from asusrouter.modules.openvpn import AsusOVPNClient, AsusOVPNServer
 

@@ -1,5 +1,7 @@
 """Tests for the unit tools / data units."""
 
+from __future__ import annotations
+
 import pytest
 
 from asusrouter.tools.units import (

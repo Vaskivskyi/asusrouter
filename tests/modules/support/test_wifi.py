@@ -1,5 +1,7 @@
 """Tests for the support wifi module."""
 
+from __future__ import annotations
+
 from typing import Any
 
 import pytest

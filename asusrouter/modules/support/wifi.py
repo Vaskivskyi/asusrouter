@@ -8,7 +8,7 @@ from asusrouter.modules.support.flag import ARSupportValue
 from asusrouter.modules.wifi import ARWiFiGeneration, ARWiFiMultiBand
 from asusrouter.tools.readers import is_true_in_dict
 
-# Tranalstion table should be ordered
+# Translation table should be ordered
 # from the highest to the lowest generation
 TRANSLATION_TABLE_WIFI_GENERATION: dict[ARSupportValue, ARWiFiGeneration] = {
     ARSupportValue.WIFI_7: ARWiFiGeneration.WIFI_7,
@@ -57,7 +57,7 @@ def translate_wifi_units(data: dict[str, Any]) -> list[int]:
     if not isinstance(data, dict):
         return []  # type: ignore[unreachable]
 
-    # Short-pass for no WiFi
+    # Fast-path for no WiFi
     if is_true_in_dict(ARSupportValue.WIFI_UNIT_NONE.value, data):
         return []
 

@@ -1,5 +1,7 @@
 """Tests for the connection module / Part 6 / Logging."""
 
+from __future__ import annotations
+
 from unittest.mock import patch
 
 import pytest

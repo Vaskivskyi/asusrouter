@@ -1,5 +1,7 @@
 """Tests for the connection module / Part 4 / Fallback."""
 
+from __future__ import annotations
+
 import asyncio
 import logging
 from typing import Any
