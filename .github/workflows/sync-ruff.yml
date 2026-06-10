@@ -113,7 +113,7 @@ jobs:
         if: steps.dep_pr.outputs.number != '' && steps.existing.outputs.url == ''
         run: |
           V="${{ steps.ruff.outputs.version }}"
-          sed -i 's/"ruff>=[^"]*"/"ruff>='"$V"'"/' pyproject.toml
+          sed -i 's/"ruff==[^"]*"/"ruff=='"$V"'"/' pyproject.toml
           sed -i '\|astral-sh/ruff-pre-commit|{n; s/rev: .*/rev: v'"$V"'/}' .pre-commit-config.yaml
           uv lock --upgrade-package ruff
 
