@@ -10,4 +10,3 @@ github_actions:
 dependencies:
   - changed-files:
       - any-glob-to-any-file: "uv.lock"
-      - any-glob-to-any-file: "requirements*.txt"
