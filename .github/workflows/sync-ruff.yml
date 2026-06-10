@@ -5,6 +5,8 @@ on:
   pull_request:
     types: [opened, synchronize]
     branches: [dev]
+    paths:
+      - ".github/workflows/sync-ruff.yml"
   workflow_dispatch:
   schedule:
     - cron: "23 4 * * *"
@@ -96,21 +98,30 @@ jobs:
           echo "url=$URL" >> "$GITHUB_OUTPUT"
 
       - name: Checkout dev
-        if: steps.dep_pr.outputs.number != '' && steps.existing.outputs.url == ''
+        if: >
+          steps.dep_pr.outputs.number != '' &&
+          steps.existing.outputs.url == '' &&
+          github.event_name != 'pull_request'
         uses: actions/checkout@v6
         with:
           ref: dev
           token: ${{ steps.app_token.outputs.token }}
 
       - name: Set up uv
-        if: steps.dep_pr.outputs.number != '' && steps.existing.outputs.url == ''
+        if: >
+          steps.dep_pr.outputs.number != '' &&
+          steps.existing.outputs.url == '' &&
+          github.event_name != 'pull_request'
         uses: astral-sh/setup-uv@v7
         with:
           python-version: "3.14"
           enable-cache: true
 
       - name: Patch version pins and regenerate lock
-        if: steps.dep_pr.outputs.number != '' && steps.existing.outputs.url == ''
+        if: >
+          steps.dep_pr.outputs.number != '' &&
+          steps.existing.outputs.url == '' &&
+          github.event_name != 'pull_request'
         run: |
           V="${{ steps.ruff.outputs.version }}"
           sed -i 's/"ruff==[^"]*"/"ruff=='"$V"'"/' pyproject.toml
@@ -118,7 +129,10 @@ jobs:
           uv lock --upgrade-package ruff
 
       - name: Commit and push
-        if: steps.dep_pr.outputs.number != '' && steps.existing.outputs.url == ''
+        if: >
+          steps.dep_pr.outputs.number != '' &&
+          steps.existing.outputs.url == '' &&
+          github.event_name != 'pull_request'
         run: |
           git config user.name "asusrouter-bot[bot]"
           git config user.email "asusrouter-bot[bot]@users.noreply.github.com"
@@ -128,7 +142,10 @@ jobs:
           git push origin "${{ steps.ruff.outputs.branch }}" --force-with-lease
 
       - name: Create bot PR
-        if: steps.dep_pr.outputs.number != '' && steps.existing.outputs.url == ''
+        if: >
+          steps.dep_pr.outputs.number != '' &&
+          steps.existing.outputs.url == '' &&
+          github.event_name != 'pull_request'
         id: create_pr
         env:
           GH_TOKEN: ${{ steps.app_token.outputs.token }}
@@ -141,7 +158,9 @@ jobs:
           echo "url=$URL" >> "$GITHUB_OUTPUT"
 
       - name: Close dependabot PR
-        if: steps.dep_pr.outputs.number != ''
+        if: >
+          steps.dep_pr.outputs.number != '' &&
+          github.event_name != 'pull_request'
         env:
           GH_TOKEN: ${{ steps.app_token.outputs.token }}
         run: |
