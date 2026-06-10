@@ -40,10 +40,9 @@ from asusrouter.tools.converters import (
     safe_usage,
     safe_usage_historic,
 )
-from asusrouter.tools.readers import (
-    merge_dicts,
-    read_json_content as read,  # noqa: F401
-)
+from asusrouter.tools.readers import merge_dicts, read_json_content as read
+
+__all__ = ["read"]
 
 from .hook_const import (
     MAP_NETWORK,

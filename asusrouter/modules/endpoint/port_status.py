@@ -19,7 +19,9 @@ from asusrouter.tools.converters import (
     safe_bool,
     safe_int,
 )
-from asusrouter.tools.readers import read_json_content as read  # noqa: F401
+from asusrouter.tools.readers import read_json_content as read
+
+__all__ = ["read"]
 
 _LOGGER = logging.getLogger(__name__)
 

@@ -122,7 +122,7 @@ def test_gwlan_nvram_request() -> None:
         (AsusWLAN.ON, None, None, None, None, False),
     ],
 )
-async def test_set_state(  # noqa: PLR0913
+async def test_set_state(
     state: AsusWLAN,
     api_type: str | None,
     api_id: int | None,

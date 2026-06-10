@@ -164,7 +164,7 @@ async def test_set_state(
         (AsusVPNC.ON, 1, None, "clientlist", True, False, False, False),
     ],
 )
-async def test_set_state_vpnc_failing(  # noqa: PLR0913
+async def test_set_state_vpnc_failing(
     state: AsusVPNC | None,
     vpnc_unit: int | None,
     router_state: str | None,
@@ -302,7 +302,7 @@ async def test_set_state_vpnc_failing(  # noqa: PLR0913
         ),
     ],
 )
-async def test_set_state_other(  # noqa: PLR0913
+async def test_set_state_other(
     state: AsusOVPNClient | AsusWireGuardClient,
     vpn_id: int | None,
     vpnc_data: str | None,

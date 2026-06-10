@@ -43,7 +43,7 @@ class TestFirmware:
             ),
         ],
     )
-    def test_init(  # noqa: PLR0913
+    def test_init(
         self,
         version: str | None,
         major: str | None,
@@ -182,7 +182,7 @@ class TestFirmware:
             ("invalid", None, None, None, None, False, False),
         ],
     )
-    def test_from_string(  # noqa: PLR0913
+    def test_from_string(
         self,
         fw_string: str | None,
         major: str | None,

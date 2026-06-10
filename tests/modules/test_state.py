@@ -208,7 +208,7 @@ def test_get_module_name(
         ("string", None, None, None, None, None),
     ],
 )
-def test_get_module(  # noqa: PLR0913
+def test_get_module(
     state: AsusState | None,
     module_name: str | None,
     expected_module: str | None,

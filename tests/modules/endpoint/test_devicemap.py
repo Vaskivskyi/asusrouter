@@ -128,9 +128,9 @@ def test_read_with_data(
     # Check the calls to the mocked functions
     mock_functions["read_index"].assert_called_with(common_group)
     mock_functions["read_key"].assert_called_with(common_group)
-    assert mock_functions["merge_dicts"].call_count == 2  # noqa: PLR2004
+    assert mock_functions["merge_dicts"].call_count == 2
     mock_functions["clean_dict"].assert_called_with(expected_devicemap)
-    assert mock_functions["clean_dict_key_prefix"].call_count == 3  # noqa: PLR2004
+    assert mock_functions["clean_dict_key_prefix"].call_count == 3
 
 
 @pytest.fixture

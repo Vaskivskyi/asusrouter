@@ -288,7 +288,7 @@ class TestColorRGB:
             color = ColorRGB()
             color.from_rgbs(rgb, scale=scale)
 
-            assert mock_from_rgb.call_count == 2  # noqa: PLR2004
+            assert mock_from_rgb.call_count == 2
 
             assert color._scale == scale
 
@@ -401,7 +401,7 @@ class TestColorRGB:
             (None, 0, 0, 0, 128, 0),
         ],
     )
-    def test_properties(  # noqa: PLR0913
+    def test_properties(
         self,
         input_rgb: tuple[int, ...] | None,
         r: int,
@@ -628,7 +628,7 @@ class TestColorRGBB:
             (ColorRGBB((100, 150, 200), 128, 64), 32, 48, 64, 64, 64),
         ],
     )
-    def test_properties(  # noqa: PLR0913
+    def test_properties(
         self,
         input_color: ColorRGBB,
         r: int,

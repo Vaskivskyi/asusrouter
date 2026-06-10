@@ -507,7 +507,7 @@ def test_traffic_module_registers_callables(
     importlib.reload(traffic_module)
 
     # Expect three registrations (Ethernet, WiFi, Backhaul)
-    assert mock_register.call_count == 3  # noqa: PLR2004
+    assert mock_register.call_count == 3
 
     expected_kwargs = {
         AR_CALL_GET_STATE: traffic_module.get_state,

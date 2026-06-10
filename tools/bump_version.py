@@ -49,7 +49,7 @@ def update_pyproject(
         flags=re.MULTILINE,
     )
     if n == 0:
-        print("Warning: version field not found in pyproject.toml.")  # noqa: T201
+        print("Warning: version field not found in pyproject.toml.")
     if text != orig_text:
         pyproject_path.write_text(text, encoding="utf-8")
 
@@ -60,19 +60,19 @@ def sync_uv_lock() -> None:
     try:
         uv_path = shutil.which("uv")
         if uv_path is None:
-            print("Warning: uv executable not found in PATH.")  # noqa: T201
+            print("Warning: uv executable not found in PATH.")
             return
-        subprocess.run([uv_path, "sync"], check=True)  # noqa: S603
-        print("uv.lock synced successfully.")  # noqa: T201
-    except Exception as e:  # noqa: BLE001
-        print(f"Failed to sync uv.lock: {e}")  # noqa: T201
+        subprocess.run([uv_path, "sync"], check=True)
+        print("uv.lock synced successfully.")
+    except Exception as e:
+        print(f"Failed to sync uv.lock: {e}")
 
 
 def main() -> None:
     """Bump version."""
 
-    if len(sys.argv) != 4:  # noqa: PLR2004
-        print("Usage: python tools/bump_version.py <MAJOR> <MINOR> <PATCH>")  # noqa: T201
+    if len(sys.argv) != 4:
+        print("Usage: python tools/bump_version.py <MAJOR> <MINOR> <PATCH>")
         sys.exit(1)
 
     major, minor, patch = sys.argv[1:4]
@@ -82,7 +82,7 @@ def main() -> None:
     pyproject = root / "pyproject.toml"
     update_const_py(const_py, int(major), int(minor), patch)
     update_pyproject(pyproject, int(major), int(minor), patch)
-    print(f"Bumped version to {major}.{minor}.{patch}")  # noqa: T201
+    print(f"Bumped version to {major}.{minor}.{patch}")
 
     sync_uv_lock()
 

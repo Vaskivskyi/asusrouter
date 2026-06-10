@@ -65,7 +65,7 @@ async def callback(arguments: dict[str, str]) -> dict[str, str]:
         ),  # Special service
     ],
 )
-async def test_async_call_service(  # noqa: PLR0913
+async def test_async_call_service(
     service: str | None,
     arguments: dict[str, str] | None,
     apply: bool,

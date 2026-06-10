@@ -234,7 +234,7 @@ def test_configure_key_thread_safe(monkeypatch: pytest.MonkeyPatch) -> None:
             try:
                 m = mod.mask_mac(TEST_MAC)
                 results.append(m.to_bytes())
-            except Exception as ex:  # noqa: BLE001
+            except Exception as ex:
                 results.append(("err", str(ex)))
 
     writers = [threading.Thread(target=writer, args=(i,)) for i in range(4)]
