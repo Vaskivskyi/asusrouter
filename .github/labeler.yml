@@ -1,6 +1,19 @@
+main:
+  - changed-files:
+      - any-glob-to-any-file: "asusrouter/*.py"
+modules:
+  - changed-files:
+      - any-glob-to-any-file: "asusrouter/modules/**"
+tools:
+  - changed-files:
+      - any-glob-to-any-file: "asusrouter/tools/**"
 testing:
   - changed-files:
       - any-glob-to-any-file: "tests/**"
+documentation:
+  - changed-files:
+      - any-glob-to-any-file: "docs/**"
+      - any-glob-to-any-file: "*.md"
 github:
   - changed-files:
       - any-glob-to-any-file: ".github/**"
@@ -10,3 +23,4 @@ github_actions:
 dependencies:
   - changed-files:
       - any-glob-to-any-file: "uv.lock"
+      - any-glob-to-any-file: "pyproject.toml"

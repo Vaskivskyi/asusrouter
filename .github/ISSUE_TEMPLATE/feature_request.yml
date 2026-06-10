@@ -1,35 +1,24 @@
 name: Feature request
-description: Do you want a new feature for AsusRouter library?
+description: Request a new feature for AsusRouter
 title: "[Feature] "
 labels: ["enhancement"]
-assignees:
-  - vaskivskyi
 body:
   - type: markdown
     attributes:
       value: >
-        This form is for feature requests only (something new you would like to see) in AsusRouter Python library.
-        If you have a bug report or you would like to report some device as supported (meaning everything works as expected),
-        please, use the appropriate form.
+        Use this form to request a new feature for the AsusRouter library.
+        For a bug report or a device compatibility report, please use the appropriate form.
   - type: textarea
     validations:
       required: true
     attributes:
       label: The idea
-      description: >
-        Please, describe your idea. The more details you provide, the easier it would be to understand it.
-
-        How would this be useful?
-  - type: markdown
-    attributes:
-      value: >
-        # Environment and device
+      description: Describe what you'd like to see and why it would be useful.
   - type: dropdown
     id: firmware_type
     attributes:
-      label: Firmware type
-      description: >
-        Does this feature depend on the firmware type?
+      label: Firmware dependency
+      description: Does this feature depend on a specific firmware type?
       options:
         - Any
         - Stock

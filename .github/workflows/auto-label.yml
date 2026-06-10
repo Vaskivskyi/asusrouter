@@ -1,89 +1,69 @@
-name: Auto Label PRs
+name: Auto Label
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened, edited]
+    types: [opened, synchronize, reopened]
+  issues:
+    types: [opened, edited]
+  discussion:
+    types: [created]
 
-permissions:
-  contents: read
-  pull-requests: write
+concurrency:
+  group: auto-label-${{ github.event_name }}-${{ github.event.pull_request.number || github.event.issue.number || github.event.discussion.number }}
+  cancel-in-progress: true
 
 jobs:
-  label:
-    name: Label PRs
+  label-pr:
+    name: Label PR
     runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
 
     permissions:
       contents: read
-      pull-requests: write
 
     steps:
-      - name: Labeler
+      - name: Generate bot token
+        id: bot-token
+        uses: actions/create-github-app-token@v3.2.0
+        with:
+          client-id: ${{ secrets.AR_APP_ID }}
+          private-key: ${{ secrets.AR_APP_KEY }}
+
+      - name: Assign maintainer
+        if: github.event.action == 'opened'
+        uses: actions/github-script@v9
+        with:
+          github-token: ${{ steps.bot-token.outputs.token }}
+          script: |
+            await github.rest.issues.addAssignees({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+              assignees: ['vaskivskyi'],
+            });
+
+      - name: Label by changed files
         uses: actions/labeler@v6
         with:
-          repo-token: "${{ secrets.GITHUB_TOKEN }}"
+          repo-token: ${{ steps.bot-token.outputs.token }}
+          sync-labels: true
 
-      - name: Remove unneeded autolabeler labels
+      - name: Add or remove build label
         uses: actions/github-script@v9
         with:
-          script: |
-            const pr = context.payload.pull_request;
-            const labelsToCheck = ['testing', 'github', 'github_actions', 'dependencies'];
-            const files = await github.rest.pulls.listFiles({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                pull_number: pr.number,
-            });
-            const filenames = files.data.map(f => f.filename);
-
-            // Define your label rules (same as in .github/labeler.yml)
-            const labelRules = {
-                testing: f => f.startsWith('tests/'),
-                github: f => f.startsWith('.github/'),
-                github_actions: f => f.startsWith('.github/workflows/'),
-                dependencies: f => f === 'uv.lock' || f.startsWith('requirements'),
-            };
-
-            // Find which labels should be present
-            const shouldHave = new Set();
-            for (const [label, rule] of Object.entries(labelRules)) {
-                if (filenames.some(rule)) {
-                shouldHave.add(label);
-                }
-            }
-
-            // Remove labels that are present but not needed
-            for (const label of pr.labels.map(l => l.name)) {
-                if (labelsToCheck.includes(label) && !shouldHave.has(label)) {
-                try {
-                    await github.rest.issues.removeLabel({
-                    owner: context.repo.owner,
-                    repo: context.repo.repo,
-                    issue_number: pr.number,
-                    name: label,
-                    });
-                } catch (e) {}
-                }
-            }
-
-      - name: Add build label if version changed
-        uses: actions/github-script@v9
-        with:
+          github-token: ${{ steps.bot-token.outputs.token }}
           script: |
             const pr = context.payload.pull_request;
             const files = await github.rest.pulls.listFiles({
               owner: context.repo.owner,
               repo: context.repo.repo,
               pull_number: pr.number,
+              per_page: 100,
             });
-            let buildLabel = false;
-            for (const file of files.data) {
-              if (file.filename === 'pyproject.toml' && file.patch && /^[+-]\s*version\s*=/.test(file.patch)) {
-                buildLabel = true;
-                break;
-              }
-            }
-            if (buildLabel) {
+            const versionChanged = files.data.some(
+              f => f.filename === 'pyproject.toml' && f.patch && /^[+-]\s*version\s*=/.test(f.patch)
+            );
+            if (versionChanged) {
               await github.rest.issues.addLabels({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
@@ -91,7 +71,6 @@ jobs:
                 labels: ['build'],
               });
             } else {
-              // Remove the build label if it exists
               try {
                 await github.rest.issues.removeLabel({
                   owner: context.repo.owner,
@@ -99,7 +78,137 @@ jobs:
                   issue_number: pr.number,
                   name: 'build',
                 });
-              } catch (e) {
-                // Ignore if label does not exist
-              }
+              } catch (e) {}
             }
+
+  label-issue:
+    name: Label Issue
+    runs-on: ubuntu-latest
+    if: github.event_name == 'issues'
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Generate bot token
+        id: bot-token
+        uses: actions/create-github-app-token@v3.2.0
+        with:
+          client-id: ${{ secrets.AR_APP_ID }}
+          private-key: ${{ secrets.AR_APP_KEY }}
+
+      - name: Assign maintainer
+        if: github.event.action == 'opened'
+        uses: actions/github-script@v9
+        with:
+          github-token: ${{ steps.bot-token.outputs.token }}
+          script: |
+            await github.rest.issues.addAssignees({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.issue.number,
+              assignees: ['vaskivskyi'],
+            });
+
+      - name: Label by keywords
+        uses: actions/github-script@v9
+        with:
+          github-token: ${{ steps.bot-token.outputs.token }}
+          script: |
+            const issue = context.payload.issue;
+            const text = `${issue.title} ${issue.body || ''}`.toLowerCase();
+            const current = issue.labels.map(l => l.name);
+
+            const rules = [
+              { label: 'bug',           pattern: /\b(bug|error|fail|broken|crash|not working|incorrect|regression)\b/ },
+              { label: 'enhancement',   pattern: /\b(feature|request|add|improve|enhancement|suggestion)\b/ },
+              { label: 'documentation', pattern: /\b(docs?|documentation|readme|typo|contributing)\b/ },
+              { label: 'question',      pattern: /\?|\b(how to|what is|why|question|help|clarify)\b/ },
+            ];
+
+            const toAdd = rules
+              .filter(r => r.pattern.test(text) && !current.includes(r.label))
+              .map(r => r.label);
+
+            if (toAdd.length) {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                labels: toAdd,
+              });
+            }
+
+      - name: Label by device model
+        uses: actions/github-script@v9
+        with:
+          github-token: ${{ steps.bot-token.outputs.token }}
+          script: |
+            const issue = context.payload.issue;
+
+            const { data: currentLabels } = await github.rest.issues.listLabelsOnIssue({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issue.number,
+            });
+            const labelNames = currentLabels.map(l => l.name);
+
+            if (!labelNames.includes('bug') && !labelNames.includes('device-report')) return;
+
+            const body = issue.body || '';
+            const match = body.match(/### Device model\s*\n+([^\n#]+)/);
+            if (!match) return;
+
+            const model = match[1].trim();
+            if (!model || model === '_No response_') return;
+
+            const labelName = `device: ${model}`;
+
+            try {
+              await github.rest.issues.createLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                name: labelName,
+                color: 'ededed',
+              });
+            } catch (e) {}
+
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issue.number,
+              labels: [labelName],
+            });
+
+  assign-discussion:
+    name: Assign Discussion
+    runs-on: ubuntu-latest
+    if: github.event_name == 'discussion'
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Generate bot token
+        id: bot-token
+        uses: actions/create-github-app-token@v3.2.0
+        with:
+          client-id: ${{ secrets.AR_APP_ID }}
+          private-key: ${{ secrets.AR_APP_KEY }}
+
+      - name: Assign maintainer
+        uses: actions/github-script@v9
+        with:
+          github-token: ${{ steps.bot-token.outputs.token }}
+          script: |
+            const { data: user } = await github.rest.users.getByUsername({ username: 'vaskivskyi' });
+            await github.graphql(`
+              mutation($assignableId: ID!, $assigneeIds: [ID!]!) {
+                addAssigneesToAssignable(input: { assignableId: $assignableId, assigneeIds: $assigneeIds }) {
+                  assignable { ... on Discussion { id } }
+                }
+              }
+            `, {
+              assignableId: context.payload.discussion.node_id,
+              assigneeIds: [user.node_id],
+            });
