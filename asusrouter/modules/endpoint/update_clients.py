@@ -18,6 +18,13 @@ from asusrouter.tools.readers import (
 
 _LOGGER = logging.getLogger(__name__)
 
+# Field count/index constants for legacy client data parsers
+_NM_CLIENT_FIELD_MIN = 4  # networkmap: [?, name, ip, mac]
+_NMP_CLIENT_FIELD_MIN = 5  # nmpclient: [mac_hex, ?, name, ?, type]
+_NMP_TYPE_IDX = 4  # nmpclient: index of type field
+_IDX_2 = 2  # bounds guard for index-2 field access
+_IDX_3 = 3  # bounds guard for index-3 field access
+
 
 LEGACY_WLAN: dict[str, int] = {
     "2g": 1,
@@ -147,13 +154,15 @@ def read_legacy_networmap(
         if client_line == "":
             continue
         client = client_line.split(">")
-        if len(client) < 4 or not readable_mac(client[3].upper()):  # noqa: PLR2004
+        if len(client) < _NM_CLIENT_FIELD_MIN or not readable_mac(
+            client[3].upper()
+        ):
             continue
         mac = client[3].upper()
         output[mac] = {
             "mac": mac,
             "name": client[1] if len(client) > 1 else None,
-            "ip": client[2] if len(client) > 2 else None,  # noqa: PLR2004
+            "ip": client[2] if len(client) > _IDX_2 else None,
             "ipMethod": "dhcp",
             "isWL": 0,
             "isOnline": 1,
@@ -176,18 +185,18 @@ def read_legacy_nmpclient(
         # Split the string into a list by `>`
         client = client_info.split(">")
         # Check if client has enough elements
-        if len(client) < 5:  # noqa: PLR2004
+        if len(client) < _NMP_CLIENT_FIELD_MIN:
             continue
         # 0 element is the MAC address written in lowercase and without `:`
         # We need to convert it to uppercase and add `:`
         mac = ":".join([client[0][i : i + 2].upper() for i in range(0, 12, 2)])
-        client_type = client[4] if len(client) > 4 else None  # noqa: PLR2004
+        client_type = client[4] if len(client) > _NMP_TYPE_IDX else None
         if mac in output:
             output[mac]["type"] = client_type
             continue
         output[mac] = {
             "mac": mac,
-            "name": client[2] if len(client) > 2 else None,  # noqa: PLR2004
+            "name": client[2] if len(client) > _IDX_2 else None,
             "type": client_type,
             "isOnline": 0,
         }
@@ -214,7 +223,7 @@ def read_legacy_staticlist(
             continue
         output[mac] = {
             "mac": mac,
-            "name": client[2] if len(client) > 2 else None,  # noqa: PLR2004
+            "name": client[2] if len(client) > _IDX_2 else None,
             "ip": client[1] if len(client) > 1 else None,
             "ipMethod": "static",
             "isWL": 0,
@@ -237,8 +246,8 @@ def read_legacy_wlan_info(
             if not readable_mac(mac):
                 continue
             cur_tx = client[1] if len(client) > 1 else None
-            cur_rx = client[2] if len(client) > 2 else None  # noqa: PLR2004
-            wl_connect_time = client[3] if len(client) > 3 else None  # noqa: PLR2004
+            cur_rx = client[2] if len(client) > _IDX_2 else None
+            wl_connect_time = client[3] if len(client) > _IDX_3 else None
             if mac in output:
                 output[mac]["curTx"] = cur_tx
                 output[mac]["curRx"] = cur_rx

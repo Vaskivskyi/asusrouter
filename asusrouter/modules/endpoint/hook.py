@@ -61,6 +61,9 @@ REQUIRE_WLAN = True
 
 _LOGGER = logging.getLogger(__name__)
 
+_SPEEDTEST_MIN_STEPS = 2
+_VPNC_PART_MIN_FIELDS = 7
+
 
 def process(data: dict[str, Any]) -> dict[AsusData, Any]:  # noqa: C901, PLR0912
     """Process hook data."""
@@ -471,7 +474,7 @@ def process_speedtest_last_step(
     last_step: dict[str, Any] = {}
 
     # Check the length of the data
-    if not data or len(data) < 2:  # noqa: PLR2004
+    if not data or len(data) < _SPEEDTEST_MIN_STEPS:
         return last_step
 
     # Check the last step
@@ -507,7 +510,7 @@ def process_vpnc(  # noqa: C901
             part = client.split(">")
             # Format: name, type, id, login, password, active,
             #         vpnc_id, ?, ?, ?, ?, `Web`
-            if len(part) < 7:  # noqa: PLR2004
+            if len(part) < _VPNC_PART_MIN_FIELDS:
                 continue
             vpnc_id = safe_int(part[6])
             vpnc[vpnc_id] = {

@@ -9,7 +9,7 @@ from __future__ import annotations
 import asyncio
 from datetime import UTC, datetime
 import json
-import os
+from pathlib import Path
 from types import TracebackType
 from typing import Any, Self
 import zipfile
@@ -30,32 +30,29 @@ class AsusRouterDump:
 
         self.log: dict[str, str] = {}
 
-        self._output_folder = output_folder
+        self._output_folder = Path(output_folder)
         self.full_dump = full_dump
         self.zip = archive
 
         self._init_datetime = datetime.now(UTC)
 
         if self.zip:
+            zip_name = (
+                "AsusRouter-"
+                f"{self._init_datetime.isoformat().replace(':', '-')}"
+                ".zip"
+            )
             self._zipfile = zipfile.ZipFile(
-                os.path.join(  # noqa: PTH118
-                    self._output_folder,
-                    (
-                        "AsusRouter-"
-                        f"{self._init_datetime.isoformat().replace(':', '-')}"
-                        ".zip"
-                    ),
-                ),
+                self._output_folder / zip_name,
                 "w",
             )
         else:
             # Create subfolder for the dump
-            self._output_folder = os.path.join(  # noqa: PTH118
-                output_folder,
-                f"AsusRouter-"
-                f"{self._init_datetime.isoformat().replace(':', '-')}",
+            self._output_folder = self._output_folder / (
+                "AsusRouter-"
+                f"{self._init_datetime.isoformat().replace(':', '-')}"
             )
-            os.makedirs(self._output_folder)  # noqa: PTH103
+            self._output_folder.mkdir(parents=True)
 
     def __enter__(self) -> Self:
         """Enter the runtime context related to this object."""
@@ -77,8 +74,9 @@ class AsusRouterDump:
             )
             self._zipfile.close()
         else:
-            log_filename = os.path.join(self._output_folder, "log.json")  # noqa: PTH118
-            with open(log_filename, "w", encoding="utf-8") as f:  # noqa: PTH123
+            with (self._output_folder / "log.json").open(
+                "w", encoding="utf-8"
+            ) as f:
                 json.dump(self.log, f, default=str)
 
     async def dump(
@@ -117,10 +115,8 @@ class AsusRouterDump:
             if self.zip:
                 self._zipfile.writestr(filename, content)
             else:
-                with open(  # noqa: PTH123
-                    os.path.join(self._output_folder, filename),  # noqa: PTH118
-                    "w",
-                    encoding="utf-8",
+                with (self._output_folder / filename).open(
+                    "w", encoding="utf-8"
                 ) as f:
                     f.write(content)
 
@@ -134,9 +130,7 @@ class AsusRouterDump:
                     filename, json.dumps(metadata, default=str)
                 )
             else:
-                with open(  # noqa: PTH123
-                    os.path.join(self._output_folder, filename),  # noqa: PTH118
-                    "w",
-                    encoding="utf-8",
+                with (self._output_folder / filename).open(
+                    "w", encoding="utf-8"
                 ) as f:
                     json.dump(metadata, f, default=str)

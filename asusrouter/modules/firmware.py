@@ -11,6 +11,8 @@ from asusrouter.tools.converters import clean_string, safe_int
 
 _LOGGER = logging.getLogger(__name__)
 
+_MAJOR_VER_LEN = 4
+
 
 class FirmwareType(Enum):
     """Type of firmware."""
@@ -172,7 +174,7 @@ class Firmware:
         major = re_match.group("major")
         major = (
             major[0] + "." + major[1] + "." + major[2] + "." + major[3]
-            if major and "." not in major and len(major) == 4  # noqa: PLR2004
+            if major and "." not in major and len(major) == _MAJOR_VER_LEN
             else major
         )
         # Only if major version exists and has 0 member

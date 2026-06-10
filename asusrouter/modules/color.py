@@ -9,6 +9,8 @@ from asusrouter.tools.converters import clean_input, safe_int, scale_value_int
 
 _LOGGER = logging.getLogger(__name__)
 
+_RGBB_COMPONENTS = 4
+
 DEFAULT_COLOR = (0, 0, 0)
 DEFAULT_COLOR_SCALE = 255
 DEFAULT_COLOR_SCALE_ASUS = 128
@@ -327,7 +329,7 @@ class ColorRGBB(ColorRGB):
     ) -> tuple[int, int, int]:
         """Return RGBB color as RGB."""
 
-        if rgbb is not None and len(rgbb) >= 4:  # noqa: PLR2004
+        if rgbb is not None and len(rgbb) >= _RGBB_COMPONENTS:
             return (
                 scale_value_int(rgbb[0], rgbb[3], self._scale),
                 scale_value_int(rgbb[1], rgbb[3], self._scale),

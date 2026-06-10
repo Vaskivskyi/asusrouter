@@ -91,7 +91,7 @@ class TestConfig:
 
         keys = ARConfig.keys()
         keys.append("something")  # type: ignore[arg-type]
-        assert all(isinstance(key, ARConfKey) for key in ARConfig)
+        assert all(isinstance(key, ARConfKey) for key in ARConfig.keys())  # noqa: SIM118
 
     def test_keys_returns_all_enum_members(self) -> None:
         """Test that ARConfig.keys() returns all members of ARConfKey."""
