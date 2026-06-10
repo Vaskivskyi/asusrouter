@@ -41,15 +41,15 @@ include = ["asusrouter*"]
 
 [dependency-groups]
 dev = [
-    "mypy>=2.1.0",
-    "pydantic>=2.13.4",
-    "ruff>=0.15.16",
-    "prek>=0.4.0",
+    "mypy==2.1.0",
+    "pydantic==2.13.4",
+    "ruff==0.15.16",
+    "prek==0.4.0",
 ]
 test = [
-    "pytest>=9.0.3",
-    "pytest-asyncio>=1.3.0",
-    "pytest-cov>=7.1.0",
+    "pytest==9.0.3",
+    "pytest-asyncio==1.3.0",
+    "pytest-cov==7.1.0",
 ]
 
 [tool.pytest.ini_options]
