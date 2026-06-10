@@ -23,7 +23,7 @@ classifiers     = [
     "Topic :: Software Development :: Libraries",
 ]
 dependencies    = [
-    "aiohttp >=3.13.5",
+    "aiohttp >=3.14.1",
     "urllib3 >=2.7.0",
     "xmltodict >=1.0.4",
 ]
