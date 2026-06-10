@@ -116,6 +116,7 @@ jobs:
         with:
           python-version: "3.14"
           enable-cache: true
+          cache-dependency-glob: "uv.lock"
 
       - name: Patch version pins and regenerate lock
         if: >
