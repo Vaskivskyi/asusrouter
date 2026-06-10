@@ -19,6 +19,15 @@ from asusrouter.tools.converters import flatten_dict, list_from_dict
 
 _LOGGER = logging.getLogger(__name__)
 
+_VPNC_BOOL_MAP: dict[AsusVPNC, bool] = {
+    AsusVPNC.CONNECTED: True,
+    AsusVPNC.CONNECTING: True,
+    AsusVPNC.ON: True,
+    AsusVPNC.OFF: False,
+    AsusVPNC.DISCONNECTED: False,
+    AsusVPNC.ERROR: False,
+}
+
 SENSORS_CPU = ["total", "usage", "used"]
 SENSORS_NETWORK = ["rx", "rx_speed", "tx", "tx_speed"]
 SENSORS_VPN = {
@@ -158,7 +167,7 @@ def convert_to_ha_sensors_list(data: dict[str, Any]) -> list[str]:
     return list_from_dict(convert_to_ha_data(data))
 
 
-def convert_to_ha_state_bool(  # noqa: PLR0911
+def convert_to_ha_state_bool(
     data: AsusState | bool | None,
 ) -> bool | None:
     """Convers native state to a binary state."""
@@ -173,30 +182,11 @@ def convert_to_ha_state_bool(  # noqa: PLR0911
 
     # Special cases
     if isinstance(data, AsusVPNC):
-        match data:
-            case a if a in (
-                AsusVPNC.CONNECTED,
-                AsusVPNC.CONNECTING,
-                AsusVPNC.ON,
-            ):
-                return True
-            case a if a in (
-                AsusVPNC.OFF,
-                AsusVPNC.DISCONNECTED,
-                AsusVPNC.ERROR,
-            ):
-                return False
-            case _:
-                return None
+        return _VPNC_BOOL_MAP.get(data)
 
     # Check whether the state is based on (int, Enum)
     if isinstance(data, int) and isinstance(data, Enum):
-        if data.value == 0:
-            return False
-        if data.value > 0:
-            return True
-        if data.value < 0:
-            return None
+        return None if data.value < 0 else data.value > 0
 
     return None
 
