@@ -9,16 +9,12 @@ on:
       - "**/*.py"
       - ".github/workflows/**"
       - "pyproject.toml"
-      - "setup.cfg"
-      - "requirements*.txt"
       - "uv.lock"
   pull_request:
     paths:
       - "**/*.py"
       - "tests/**/*.py"
       - "pyproject.toml"
-      - "setup.cfg"
-      - "requirements*.txt"
       - "uv.lock"
   schedule:
     - cron: "0 0 * * *"

@@ -6,14 +6,15 @@ build-backend = "setuptools.build_meta"
 name            = "asusrouter"
 version         = "2.0.0.dev0"
 license         = "Apache-2.0"
-requires-python = ">=3.11.0"
+license-files   = ["LICENSE"]
+requires-python = ">=3.11"
 readme          = "README.md"
 description     = "API wrapper for communication with ASUSWRT-powered routers using HTTP protocol"
 authors         = [
     { name="Yevhenii Vaskivskyi", email="yevhenii@vaskivskyi.com" },
 ]
 classifiers     = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3.11",
@@ -23,9 +24,9 @@ classifiers     = [
     "Topic :: Software Development :: Libraries",
 ]
 dependencies    = [
-    "aiohttp >=3.14.1",
-    "urllib3 >=2.7.0",
-    "xmltodict >=1.0.4",
+    "aiohttp>=3.14.1",
+    "urllib3>=2.7.0",
+    "xmltodict>=1.0.4",
 ]
 
 [project.urls]
@@ -53,20 +54,11 @@ test = [
 ]
 
 [tool.pytest.ini_options]
-testpaths = [
-    "tests",
-]
-
-[tool.mypy]
-python_version = "3.11"
-strict = true
-ignore_missing_imports = true
-show_error_codes = true
-exclude = "tests/.*"
+testpaths = ["tests"]
+asyncio_mode = "auto"
 
 [tool.ruff]
 line-length = 79
-required-version = ">=0.15.9"
 src = ["asusrouter"]
 target-version = "py311"
 
@@ -103,8 +95,6 @@ select = [
 
 ignore = [
     "D202",   # No blank lines allowed after function docstring (found {num_lines})
-    "D203",   # 1 blank line required before class docstring
-    "D213",   # Multi-line docstring summary should start at the second line
 ]
 
 [tool.ruff.lint.flake8-import-conventions.extend-aliases]
