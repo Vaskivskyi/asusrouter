@@ -52,7 +52,7 @@ def universal_mock() -> Generator[UniversalMockPatcher, None, None]:
 
 @pytest.fixture(name="async_connect")
 def mock_async_connect(
-    universal_mock: UniversalMockPatcher,  # noqa: F811
+    universal_mock: UniversalMockPatcher,
 ) -> AsyncPatch:
     """Fixture to patch the `async_connect` method."""
 
@@ -68,7 +68,7 @@ def mock_async_connect(
 
 @pytest.fixture(name="async_connect_with_lock")
 def mock_async_connect_with_lock(
-    universal_mock: UniversalMockPatcher,  # noqa: F811
+    universal_mock: UniversalMockPatcher,
 ) -> AsyncPatch:
     """Fixture to patch the `_async_connect_with_lock` method with a lock."""
 
@@ -84,7 +84,7 @@ def mock_async_connect_with_lock(
 
 @pytest.fixture(name="fallback")
 def mock_fallback(
-    universal_mock: UniversalMockPatcher,  # noqa: F811
+    universal_mock: UniversalMockPatcher,
 ) -> AsyncPatch:
     """Fixture to patch the `_fallback` method."""
 
@@ -100,7 +100,7 @@ def mock_fallback(
 
 @pytest.fixture(name="log_request")
 def mock_log_request(
-    universal_mock: UniversalMockPatcher,  # noqa: F811
+    universal_mock: UniversalMockPatcher,
 ) -> SyncPatch:
     """Fixture to patch the `_log_request` method."""
 
@@ -116,7 +116,7 @@ def mock_log_request(
 
 @pytest.fixture(name="make_request")
 def mock_make_request(
-    universal_mock: UniversalMockPatcher,  # noqa: F811
+    universal_mock: UniversalMockPatcher,
 ) -> AsyncPatch:
     """Fixture to patch the `_make_request` method."""
 
@@ -132,7 +132,7 @@ def mock_make_request(
 
 @pytest.fixture(name="new_session")
 def mock_new_session(
-    universal_mock: UniversalMockPatcher,  # noqa: F811
+    universal_mock: UniversalMockPatcher,
 ) -> SyncPatch:
     """Fixture to patch the `_new_session` method."""
 
@@ -148,7 +148,7 @@ def mock_new_session(
 
 @pytest.fixture(name="payload_for_logging")
 def mock_payload_for_logging(
-    universal_mock: UniversalMockPatcher,  # noqa: F811
+    universal_mock: UniversalMockPatcher,
 ) -> SyncPatch:
     """Fixture to patch the `_payload_for_logging` method."""
 
@@ -164,7 +164,7 @@ def mock_payload_for_logging(
 
 @pytest.fixture(name="reset_connection")
 def mock_reset_connection(
-    universal_mock: UniversalMockPatcher,  # noqa: F811
+    universal_mock: UniversalMockPatcher,
 ) -> SyncPatch:
     """Fixture to patch the `reset_connection` method."""
 
@@ -180,7 +180,7 @@ def mock_reset_connection(
 
 @pytest.fixture(name="send_request")
 def mock_send_request(
-    universal_mock: UniversalMockPatcher,  # noqa: F811
+    universal_mock: UniversalMockPatcher,
 ) -> AsyncPatch:
     """Fixture to patch the `_send_request` method."""
 

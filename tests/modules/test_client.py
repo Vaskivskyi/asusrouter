@@ -57,7 +57,7 @@ from asusrouter.modules.ip_address import IPAddressType
 @mock.patch("asusrouter.modules.client.process_client_state")
 @mock.patch("asusrouter.modules.client.process_client_connection")
 @mock.patch("asusrouter.modules.client.process_client_description")
-def test_process_client(  # noqa: PLR0913
+def test_process_client(
     process_client_description_mock: mock.Mock,
     process_client_connection_mock: mock.Mock,
     process_client_state_mock: mock.Mock,
@@ -361,7 +361,7 @@ def test_process_client_connection_wlan(process_data_mock: mock.Mock) -> None:
         ),
     ],
 )
-def test_process_client_state(  # noqa: PLR0913
+def test_process_client_state(
     ip_address: str | None,
     connection_type: ConnectionType,
     aimesh: bool,

@@ -81,7 +81,7 @@ class TestUnitConverter(UnitConverterBase):
         ):
             self.convert(1.0, unit1, unit2)
 
-            assert mock_validate_unit.call_count == 2  # noqa: PLR2004
+            assert mock_validate_unit.call_count == 2
             assert mock_validate_unit.call_args_list[0][0] == (unit1,)
             assert mock_validate_unit.call_args_list[1][0] == (unit2,)
 

@@ -24,6 +24,8 @@ from asusrouter.tools.converters import (
     safe_unpack_key,
 )
 
+_OSCILLATION_THRESHOLD_SECONDS = 10
+
 
 @dataclass
 class AsusClient:
@@ -357,7 +359,7 @@ def process_history(
         # than 10 seconds. This comes from the device itself and cannot
         # be fixed from AsusRouter side.
         diff = abs((history.since - connection.since).total_seconds())
-        if diff < 10:  # noqa: PLR2004
+        if diff < _OSCILLATION_THRESHOLD_SECONDS:
             connection.since = history.since
 
     return connection

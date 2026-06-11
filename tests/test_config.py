@@ -107,7 +107,7 @@ class TestConfig:
         assert isinstance(options, list)
         assert len(options) > 0
         assert all(
-            isinstance(option, tuple) and len(option) == 2  # noqa: PLR2004
+            isinstance(option, tuple) and len(option) == 2
             for option in options
         )
 
@@ -220,7 +220,7 @@ class TestThreadSafety:
 
         # Prepare a list of (key, value) pairs
         tasks = [
-            (random.choice(KEYS_BOOL), random.choice([True, False]))  # noqa: S311
+            (random.choice(KEYS_BOOL), random.choice([True, False]))
             for _ in range(100)
         ]
 

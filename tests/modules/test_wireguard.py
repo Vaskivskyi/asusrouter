@@ -81,7 +81,7 @@ def test_get_arguments(kwargs: Any, expected: int | None) -> None:
         (None, None, False, None, None, False),
     ],
 )
-async def test_set_state(  # noqa: PLR0913
+async def test_set_state(
     state: AsusWireGuardClient | AsusWireGuardServer,
     arguments: dict[str, int | None] | None,
     expect_modify: bool,

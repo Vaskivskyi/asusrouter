@@ -150,7 +150,7 @@ def test_get_enum_key_by_value() -> None:
         converters.get_enum_key_by_value(EnumForTest, 3, EnumForTest.A)
         == EnumForTest.A
     )
-    with pytest.raises(ValueError):  # noqa: PT011
+    with pytest.raises(ValueError, match="Invalid value: 3"):
         converters.get_enum_key_by_value(EnumForTest, 3)
 
 

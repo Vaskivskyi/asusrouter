@@ -541,13 +541,15 @@ def safe_unpack_keys(
 ) -> tuple[Any, ...]:
     """Unpack key/key_to_use/method tuple even if some values are missing."""
 
+    _full = 3  # (key, key_to_use, method)
+    _partial = 2  # (key, key_to_use)
     if isinstance(content, tuple):
         # All 3 values are present
-        if len(content) == 3:  # noqa: PLR2004
+        if len(content) == _full:
             return content
 
         # No method selected
-        if len(content) == 2:  # noqa: PLR2004
+        if len(content) == _partial:
             return content + (None,)
 
     # No method and key_to_use selected

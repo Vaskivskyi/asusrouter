@@ -92,4 +92,4 @@ def assert_state_not_updated(state: ARDataStateDynamic) -> None:
 
 TCONST_HOST = "localhost"
 TCONST_USER = "user"
-TCONST_PASS = "pass"  # noqa: S105
+TCONST_PASS = "pass"

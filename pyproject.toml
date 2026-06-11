@@ -109,11 +109,21 @@ combine-as-imports = true
 split-on-trailing-comma = false
 
 [tool.ruff.lint.per-file-ignores]
+"tools/*" = [
+    "BLE001",  # Do not catch blind exception: `Exception`
+    "PLR2004", # Magic value used in comparison
+    "S603",    # `subprocess` call: check for execution of untrusted input
+    "T201",    # `print` found
+]
 "tests/*" = [
+    "BLE001",  # Do not catch blind exception: `Exception`
+    "PLR0913", # Too many arguments in function definition ({c_args} > {max_args})
+    "PLR2004", # Magic value used in comparison
     "S101",    # Use of `assert` detected
+    "S104",    # Possible binding to all interfaces
     "S105",    # Possible hardcoded password assigned to: "{}"
     "S106",    # Possible hardcoded password assigned to argument: "{}"
-    "PLR0913", # Too many arguments in function definition ({c_args} > {max_args})
+    "S311",    # Standard pseudo-random generators are not suitable for cryptographic purposes
 ]
 
 [tool.ruff.lint.pydocstyle]

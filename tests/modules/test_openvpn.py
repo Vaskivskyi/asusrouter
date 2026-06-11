@@ -171,7 +171,7 @@ identity_mock = {
         ),
     ],
 )
-async def test_set_state(  # noqa: PLR0913
+async def test_set_state(
     state: AsusOVPNClient | AsusOVPNServer | None,
     vpn_id: int | None,
     identity: str | None,

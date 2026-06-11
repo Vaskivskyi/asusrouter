@@ -109,7 +109,7 @@ def load_test_item(device_path: Path, module_name: str) -> DataItem | None:
             endpoint=endpoint,
             label=f"{device_path.name}_{module_name}",
         )
-    except Exception as ex:  # noqa: BLE001
+    except Exception as ex:
         _LOGGER.error("Failed to load test item %s: %s", module_name, ex)
         return None
 
@@ -177,4 +177,4 @@ def test_asusrouter(test_item: DataItem) -> None:  # pylint: disable=redefined-o
     actual_read = read(test_item.endpoint, test_item.content)
     actual_processed = process(test_item.endpoint, actual_read)
 
-    assert actual_processed == test_item.result, print(actual_processed)  # noqa: T201
+    assert actual_processed == test_item.result, str(actual_processed)

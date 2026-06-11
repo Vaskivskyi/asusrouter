@@ -716,7 +716,7 @@ class Connection:  # pylint: disable=too-many-instance-attributes
             except asyncio.CancelledError:
                 # expected due to cancel()
                 pass
-            except Exception as exc:  # noqa: BLE001 - consume/log other errors
+            except Exception as exc:  # noqa: BLE001
                 _LOGGER.debug(
                     "In-flight connect task finished after cancel with: %s",
                     exc,

@@ -25,6 +25,9 @@ from .devicemap_const import (
 
 _LOGGER = logging.getLogger(__name__)
 
+_UPTIME_MIN_PARTS = 2
+_REBOOT_DELTA_THRESHOLD = 2
+
 REQUIRE_HISTORY = True
 
 
@@ -174,7 +177,7 @@ def read_uptime_string(
 
     # Split the content into the date/time part and the seconds part
     uptime_parts = content.split("(")
-    if len(uptime_parts) < 2:  # noqa: PLR2004
+    if len(uptime_parts) < _UPTIME_MIN_PARTS:
         return (None, None)
 
     # Extract the number of seconds from the seconds part
@@ -255,7 +258,10 @@ def process_boottime(
                     delta = time - prev_boottime["datetime"]
 
                     # Check for reboot
-                    if abs(delta.seconds) >= 2 and delta.seconds >= 0:  # noqa: PLR2004
+                    if (
+                        abs(delta.seconds) >= _REBOOT_DELTA_THRESHOLD
+                        and delta.seconds >= 0
+                    ):
                         reboot = True
                     else:
                         boottime = prev_boottime

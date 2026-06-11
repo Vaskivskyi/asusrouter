@@ -308,7 +308,7 @@ class TestConnectionRequests:
             mock_fallback.assert_called_once()
             assert result == MOCK_REQUEST_RESULT
             # Check log calls
-            assert mock_log_request.call_count == 2  # noqa: PLR2004
+            assert mock_log_request.call_count == 2
             mock_log_request.assert_called_with(self.DEFAULT_ENDPOINT, None)
         else:
             # no fallback allowed -> should raise SSL certificate error
