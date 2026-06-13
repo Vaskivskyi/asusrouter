@@ -1,4 +1,4 @@
-"""Tests for the identifiers tools."""
+"""Tests for the MAC address tools."""
 
 from __future__ import annotations
 
@@ -6,12 +6,12 @@ from typing import Any
 
 import pytest
 
-from asusrouter.tools.identifiers import (
+from asusrouter.tools.identifiers import MacAddress
+from asusrouter.tools.identifiers.mac import (
     ERROR_MAC_BYTE,
     ERROR_MAC_INT,
     ERROR_MAC_STR,
     ERROR_MAC_UNSUPPORTED_TYPE,
-    MacAddress,
 )
 
 CORRECT_MAC = "aa:bb:cc:dd:ee:ff"

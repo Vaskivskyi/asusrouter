@@ -1,4 +1,4 @@
-"""Identifier tools."""
+"""MAC address tools."""
 
 from __future__ import annotations
 
