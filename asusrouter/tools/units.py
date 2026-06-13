@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from enum import StrEnum
-from functools import lru_cache
+from functools import cache
+from typing import ClassVar
 
 from asusrouter.error import AsusRouterError
 
@@ -64,19 +65,29 @@ class UnitOfDataRate(StrEnum):
 class UnitConverterBase:
     """AsusRouter Unit Converter."""
 
-    UNIT_CLASS: str
-    UNIT_BASE: StrEnum
-    VALUE_UNITS: set[StrEnum]
-
-    _UNIT_RATIO: dict[StrEnum, float]
+    UNIT_CLASS: ClassVar[str]
+    _UNIT_RATIO: ClassVar[dict[StrEnum, float]]
 
     @classmethod
     def _validate_unit(cls, unit: StrEnum) -> None:
         """Validate that a unit is supported."""
 
-        if not isinstance(unit, StrEnum) or unit not in cls.VALUE_UNITS:
+        if unit not in cls._UNIT_RATIO:
             raise AsusRouterError(
                 f"Unknown unit `{unit}` encountered during "
+                f"conversion of `{cls.UNIT_CLASS}`"
+            )
+
+    @classmethod
+    @cache
+    def get_unit_ratio(cls, from_unit: StrEnum, to_unit: StrEnum) -> float:
+        """Get unit ratio between units of measurement."""
+
+        try:
+            return cls._UNIT_RATIO[from_unit] / cls._UNIT_RATIO[to_unit]
+        except KeyError as ex:
+            raise AsusRouterError(
+                f"Unknown unit `{ex.args[0]}` encountered during "
                 f"conversion of `{cls.UNIT_CLASS}`"
             )
 
@@ -86,22 +97,24 @@ class UnitConverterBase:
     ) -> float:
         """Convert a value from one unit to another."""
 
-        cls._validate_unit(from_unit)
-        cls._validate_unit(to_unit)
-        return cls.converter_factory(from_unit, to_unit)(value)
+        if from_unit == to_unit:
+            return value
+        return value * cls.get_unit_ratio(from_unit, to_unit)
 
     @classmethod
     def convert_to_base(cls, value: float, from_unit: StrEnum) -> float:
         """Convert a value to the base unit."""
 
-        cls._validate_unit(from_unit)
-        if from_unit == cls.UNIT_BASE:
-            return value
-
-        return cls.converter_factory(from_unit, cls.UNIT_BASE)(value)
+        try:
+            return value * cls._UNIT_RATIO[from_unit]
+        except KeyError:
+            raise AsusRouterError(
+                f"Unknown unit `{from_unit}` encountered during "
+                f"conversion of `{cls.UNIT_CLASS}`"
+            )
 
     @classmethod
-    @lru_cache
+    @cache
     def converter_factory(
         cls, from_unit: StrEnum, to_unit: StrEnum
     ) -> Callable[[float], float]:
@@ -110,39 +123,14 @@ class UnitConverterBase:
         if from_unit == to_unit:
             return lambda value: value
 
-        from_ratio, to_ratio = cls._get_ratios(from_unit, to_unit)
-        return lambda value: (value * from_ratio) / to_ratio
-
-    @classmethod
-    def _get_ratios(
-        cls, from_unit: StrEnum, to_unit: StrEnum
-    ) -> tuple[float, float]:
-        """Get the conversion ratios for two units."""
-
-        unit_ratios = cls._UNIT_RATIO
-        try:
-            return unit_ratios[from_unit], unit_ratios[to_unit]
-        except KeyError as ex:
-            raise AsusRouterError(
-                f"Unknown unit `{ex.args[0]}` encountered during "
-                f"conversion of `{cls.UNIT_CLASS}`"
-            )
-
-    @classmethod
-    @lru_cache
-    def get_unit_ratio(cls, from_unit: StrEnum, to_unit: StrEnum) -> float:
-        """Get unit ratio between units of measurement."""
-
-        from_ratio, to_ratio = cls._get_ratios(from_unit, to_unit)
-        return from_ratio / to_ratio
+        factor = cls.get_unit_ratio(from_unit, to_unit)
+        return lambda value: value * factor
 
 
 class DataUnitConverter(UnitConverterBase):
     """Data Unit Converter."""
 
     UNIT_CLASS = "data"
-    UNIT_BASE = UnitOfData.BIT
-    VALUE_UNITS = set(UnitOfData)
 
     _UNIT_RATIO = {
         UnitOfData.BIT: 1,
@@ -170,8 +158,6 @@ class DataRateUnitConverter(UnitConverterBase):
     """Data Rate Unit Converter."""
 
     UNIT_CLASS = "data_rate"
-    UNIT_BASE = UnitOfDataRate.BIT_PER_SECOND
-    VALUE_UNITS = set(UnitOfDataRate)
 
     _UNIT_RATIO = {
         UnitOfDataRate.BIT_PER_SECOND: 1,
