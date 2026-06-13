@@ -1,4 +1,4 @@
-"""Tests for the identifiers tools."""
+"""Tests for the MAC address tools."""
 
 from __future__ import annotations
 
@@ -6,12 +6,12 @@ from typing import Any
 
 import pytest
 
-from asusrouter.tools.identifiers import (
+from asusrouter.tools.identifiers import MacAddress
+from asusrouter.tools.identifiers.mac import (
     ERROR_MAC_BYTE,
     ERROR_MAC_INT,
     ERROR_MAC_STR,
     ERROR_MAC_UNSUPPORTED_TYPE,
-    MacAddress,
 )
 
 CORRECT_MAC = "aa:bb:cc:dd:ee:ff"
@@ -38,7 +38,7 @@ def test_from_bytes() -> None:
 
 
 @pytest.mark.parametrize(
-    ("value"),
+    "value",
     [
         bytes.fromhex("00"),
         bytes.fromhex("aabbff"),
@@ -71,7 +71,7 @@ def test_from_int(value: int, result: str) -> None:
 
 
 @pytest.mark.parametrize(
-    ("value"),
+    "value",
     [
         -1,
         1 << 48,
@@ -82,6 +82,9 @@ def test_from_int_fail(value: int) -> None:
 
     with pytest.raises(ValueError, match=ERROR_MAC_INT):
         MacAddress.from_value(value)
+
+    with pytest.raises(ValueError, match=ERROR_MAC_INT):
+        MacAddress(value)
 
 
 @pytest.mark.parametrize(
@@ -103,7 +106,7 @@ def test_from_string(value: str, result: str) -> None:
 
 
 @pytest.mark.parametrize(
-    ("value"),
+    "value",
     [
         "not a mac",
         "ff:aa:bb:cc:dd:ee:ff",
@@ -115,9 +118,12 @@ def test_from_string_fail(value: str) -> None:
     with pytest.raises(ValueError, match=ERROR_MAC_STR):
         MacAddress.from_value(value)
 
+    with pytest.raises(ValueError, match=ERROR_MAC_STR):
+        MacAddress(value)
+
 
 @pytest.mark.parametrize(
-    ("value"),
+    "value",
     [
         None,
         object(),
@@ -129,10 +135,14 @@ def test_from_unsupported(value: Any) -> None:
     with pytest.raises(ValueError, match=ERROR_MAC_UNSUPPORTED_TYPE):
         MacAddress.from_value(value)
 
+    with pytest.raises(ValueError, match=ERROR_MAC_UNSUPPORTED_TYPE):
+        MacAddress(value)
 
-def test_from_value_safe_unsupported_type() -> None:
-    """Test safe mode returns None for unsupported non-MAC inputs."""
 
+def test_from_value_safe() -> None:
+    """Test safe mode returns MacAddress for valid input and None otherwise."""
+
+    assert MacAddress.from_value_safe(CORRECT_MAC) == MacAddress(CORRECT_MAC)
     assert MacAddress.from_value_safe(None) is None
     assert MacAddress.from_value_safe(object()) is None
 

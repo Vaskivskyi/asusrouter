@@ -1,11 +1,11 @@
-"""Identifier tools."""
+"""MAC address tools."""
 
 from __future__ import annotations
 
 import re
 from typing import Any, Final
 
-from asusrouter.tools.converters import clean_string, safe_int
+from asusrouter.tools.converters import safe_int
 
 MAC_CLEAN_RE: Final[re.Pattern[str]] = re.compile(r"[^0-9a-fA-F]")
 MAC_LENGTH_BYTES: Final[int] = 6
@@ -68,12 +68,9 @@ class MacAddress:
             return int.to_bytes(vint, 6, "big")
 
         # String-compatible
-        vstr = clean_string(value)
-        if isinstance(vstr, str):
-            cleaned = MAC_CLEAN_RE.sub("", vstr).lower()
-            if len(cleaned) != MAC_LENGTH_STR or not all(
-                c in "0123456789abcdef" for c in cleaned
-            ):
+        if isinstance(value, str):
+            cleaned = MAC_CLEAN_RE.sub("", value)
+            if len(cleaned) != MAC_LENGTH_STR:
                 raise ValueError(ERROR_MAC_STR)
             return bytes.fromhex(cleaned)
 
@@ -113,7 +110,7 @@ class MacAddress:
         The default Asus format is XX:XX:XX:XX:XX:XX.
         """
 
-        return str(self).upper()
+        return self._bytes.hex(":").upper()
 
     def to_bytes(self) -> bytes:
         """Return the MAC address as bytes."""
@@ -139,14 +136,12 @@ class MacAddress:
     def __str__(self) -> str:
         """Return the string representation of the MAC address."""
 
-        hx = self._bytes.hex()
-        pairs = [hx[i : i + 2] for i in range(0, 12, 2)]
-        return ":".join(pairs)
+        return self._bytes.hex(":")
 
     def __repr__(self) -> str:
         """Return the string representation of the MAC address."""
 
-        return str(self)
+        return self._bytes.hex(":")
 
     def __eq__(self, other: object) -> bool:
         """Return whether two MAC addresses are equal."""
@@ -154,7 +149,7 @@ class MacAddress:
         if isinstance(other, MacAddress):
             return self._bytes == other._bytes
         try:
-            other_obj = MacAddress.from_value(other)
+            other_obj = type(self).from_value(other)
         except ValueError:
             return NotImplemented
         return self._bytes == other_obj._bytes
