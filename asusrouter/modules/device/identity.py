@@ -6,7 +6,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from asusrouter.const import DEFAULT_IDENTITY_BRAND
-from asusrouter.modules.firmware import Firmware
+from asusrouter.modules.firmware import ARFirmware
 from asusrouter.modules.nvram import ARNvramType
 from asusrouter.modules.support import ARSupportSourceUniversal
 from asusrouter.modules.support.flag import ARSupportType
@@ -17,14 +17,13 @@ from asusrouter.tools.identifiers import MacAddress
 IdentityData = Mapping[Any, Any]
 
 
-# TODO: Redo this legacy part
-def _translate_firmware(data: IdentityData) -> Firmware:
+def _translate_firmware(data: IdentityData) -> ARFirmware:
     """Build firmware information from raw data."""
 
-    return Firmware(
-        f"{data.get(ARNvramType.FW_MAJOR, '')}."
-        f"{data.get(ARNvramType.FW_MINOR, '')}."
-        f"{data.get(ARNvramType.FW_BUILD, '')}"
+    return ARFirmware.from_nvram(
+        data.get(ARNvramType.FW_MAJOR),
+        data.get(ARNvramType.FW_MINOR),
+        data.get(ARNvramType.FW_BUILD),
     )
 
 
@@ -70,7 +69,7 @@ class ARDeviceIdentity:
         """Initialize the device identity."""
 
         self._brand: str = DEFAULT_IDENTITY_BRAND
-        self._firmware: Firmware = Firmware()
+        self._firmware: ARFirmware = ARFirmware()
         self._mac: MacAddress | None = None
         self._model: str | None = None
         self._model_original: str | None = None
@@ -85,7 +84,7 @@ class ARDeviceIdentity:
         return self._brand
 
     @property
-    def firmware(self) -> Firmware:
+    def firmware(self) -> ARFirmware:
         """Get the firmware information."""
 
         return self._firmware
