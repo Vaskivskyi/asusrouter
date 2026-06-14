@@ -419,7 +419,12 @@ async def test_async_get_data_v2(
 
     result = await router.async_get_data_v2(source, force=True, extra_kw="x")
 
-    async_get.assert_awaited_once_with(source, force=True, extra_kw="x")
+    async_get.assert_awaited_once_with(
+        source,
+        force=True,
+        extra_kw="x",
+        get_data_callback=router.async_get_data_v2,
+    )
 
     if is_fresh_expected is not None:
         fake_state.is_fresh.assert_called_once_with(router._cache_threshold)

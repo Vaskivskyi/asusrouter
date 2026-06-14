@@ -930,6 +930,9 @@ class AsusRouter:
 
         _LOGGER.debug("Querying data V2")
 
+        # Allow recursive calls
+        kwargs["get_data_callback"] = self.async_get_data_v2
+
         # Get the new data state
         data_state = await self.async_get_data_state(
             source, force=force, **kwargs
