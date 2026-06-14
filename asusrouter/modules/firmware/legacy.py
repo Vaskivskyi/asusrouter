@@ -229,7 +229,7 @@ class Firmware:
             and self.revision == other.revision
         )
 
-    def __lt__(self, other: object) -> bool:  # noqa: C901, PLR0911
+    def __lt__(self, other: object) -> bool:  # noqa: C901, PLR0911, PLR0912
         """Compare two firmware versions."""
 
         if not isinstance(other, Firmware):
