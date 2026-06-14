@@ -75,6 +75,10 @@ DEFAULT_SLEEP_TIME = 0.1
 DEFAULT_TIMEOUT = 15
 DEFAULT_TIMEOUT_FALLBACK = 5
 
+# Other defaults
+DEFAULT_IDENTITY_BRAND = "ASUSTek"
+
+
 DEFAULT_RESULT_SUCCESS = {"statusCode": "200"}
 
 # --------------------
