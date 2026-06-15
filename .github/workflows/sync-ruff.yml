@@ -42,12 +42,15 @@ jobs:
         id: dep_pr
         env:
           GH_TOKEN: ${{ steps.app_token.outputs.token }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           if [ "${{ github.event_name }}" = "pull_request_target" ] && \
              [ "${{ github.actor }}" = "dependabot[bot]" ] && \
-             echo "${{ github.event.pull_request.title }}" | grep -qi "ruff"; then
-            NUMBER="${{ github.event.pull_request.number }}"
-            HEAD_REF="${{ github.event.pull_request.head.ref }}"
+             echo "$PR_TITLE" | grep -qi "ruff"; then
+            NUMBER="$PR_NUMBER"
+            HEAD_REF="$PR_HEAD_REF"
           else
             JSON=$(gh pr list \
               --repo "${{ github.repository }}" \
@@ -65,20 +68,15 @@ jobs:
           echo "number=$NUMBER" >> "$GITHUB_OUTPUT"
           echo "head_ref=$HEAD_REF" >> "$GITHUB_OUTPUT"
 
-      - name: Checkout dependabot branch
-        if: steps.dep_pr.outputs.number != ''
-        uses: actions/checkout@v6
-        with:
-          ref: ${{ steps.dep_pr.outputs.head_ref }}
-          path: .depbot
-          sparse-checkout: uv.lock
-          sparse-checkout-cone-mode: false
-
       - name: Extract ruff version
         if: steps.dep_pr.outputs.number != ''
         id: ruff
+        env:
+          GH_TOKEN: ${{ steps.app_token.outputs.token }}
+          HEAD_REF: ${{ steps.dep_pr.outputs.head_ref }}
         run: |
-          VERSION=$(grep -A1 '^name = "ruff"$' .depbot/uv.lock | grep -oP 'version = "\K[^"]+')
+          VERSION=$(gh api "repos/${{ github.repository }}/contents/uv.lock?ref=$HEAD_REF" \
+            --jq '.content' | base64 -d | grep -A1 '^name = "ruff"$' | grep -oP 'version = "\K[^"]+')
           if [ -z "$VERSION" ]; then
             echo "::error::ruff not found in uv.lock"
             exit 1
