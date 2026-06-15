@@ -2,7 +2,7 @@
 name: Sync ruff version
 
 on:
-  pull_request:
+  pull_request_target:
     types: [opened, synchronize]
     branches: [dev]
     paths:
@@ -43,7 +43,7 @@ jobs:
         env:
           GH_TOKEN: ${{ steps.app_token.outputs.token }}
         run: |
-          if [ "${{ github.event_name }}" = "pull_request" ] && \
+          if [ "${{ github.event_name }}" = "pull_request_target" ] && \
              [ "${{ github.actor }}" = "dependabot[bot]" ] && \
              echo "${{ github.event.pull_request.title }}" | grep -qi "ruff"; then
             NUMBER="${{ github.event.pull_request.number }}"
