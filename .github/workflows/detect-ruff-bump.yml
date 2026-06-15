@@ -15,6 +15,10 @@ jobs:
       github.actor == 'dependabot[bot]' &&
       contains(github.event.pull_request.title, 'ruff')
 
+    permissions:
+      contents: read
+      actions: write
+
     steps:
       - uses: actions/checkout@v6
         with:
