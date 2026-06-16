@@ -28,6 +28,9 @@ class ARSupportType(FromStrMixin, StrEnum):
     # DSL
     DSL = "dsl"
 
+    # LAN
+    LAN_CAPABILITIES = "lan_capabilities"
+
     PLATFORM = "platform"
 
     # USB
@@ -68,6 +71,9 @@ class ARSupportValue(FromStrMixin, StrEnum):
 
     # DSL
     DSL = "dsl"
+
+    # LAN capabilities
+    LAN_AGGREGATION = "lacp"
 
     # Device mode
     MODE_REPEATER = "repeater"
