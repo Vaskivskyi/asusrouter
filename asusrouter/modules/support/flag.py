@@ -17,12 +17,17 @@ class ARSupportType(FromStrMixin, StrEnum):
     AIMESH = "aimesh"
     AIMESH_FEATURES = "aimesh_features"
     AIMESH_GENERATION = "aimesh_generation"
+
     # Aura
     AURA = "aura"
     AURA_NIGHT_MODE = "aura_night_mode"
     AURA_ZONE = "aura_zone"
 
     CONNECTIONS = "connections"
+
+    # DSL
+    DSL = "dsl"
+
     PLATFORM = "platform"
 
     # USB
