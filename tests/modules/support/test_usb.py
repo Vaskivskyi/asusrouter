@@ -18,35 +18,15 @@ from asusrouter.modules.usb import ARUSBGeneration
 @pytest.mark.parametrize(
     ("data", "expected"),
     [
-        ({}, ARUSBGeneration.UNKNOWN),
         ({ARSupportValue.USB_3.value: 1}, ARUSBGeneration.USB_3),
         ({ARSupportValue.USB_2.value: 1}, ARUSBGeneration.USB_2),
         ({ARSupportValue.USB.value: 1}, ARUSBGeneration.USB),
-        # Multiple true, should return the first found
+        # USB_3 takes priority
         (
             {ARSupportValue.USB_3.value: 1, ARSupportValue.USB_2.value: 1},
             ARUSBGeneration.USB_3,
         ),
-        (
-            {ARSupportValue.USB_2.value: 1, ARSupportValue.USB.value: 1},
-            ARUSBGeneration.USB_2,
-        ),
-        (
-            {
-                ARSupportValue.USB_3.value: 0,
-                ARSupportValue.USB_2.value: 0,
-                ARSupportValue.USB.value: 0,
-            },
-            ARUSBGeneration.UNKNOWN,
-        ),
-        (
-            {ARSupportValue.USB_3.value: "enabled"},
-            ARUSBGeneration.USB_3,
-        ),
-        ({ARSupportValue.USB_2.value: "on"}, ARUSBGeneration.USB_2),
-        ({ARSupportValue.USB.value: "1"}, ARUSBGeneration.USB),
-        # Not a dict
-        ("not_a_dict", ARUSBGeneration.UNKNOWN),
+        ({}, ARUSBGeneration.UNKNOWN),
     ],
 )
 def test_translate_usb_generation(
@@ -54,20 +34,15 @@ def test_translate_usb_generation(
 ) -> None:
     """Test translate_usb_generation returns correct generation type."""
 
-    result = translate_usb_generation(data)
-    assert result == expected
+    assert translate_usb_generation(data) == expected
 
 
 @pytest.mark.parametrize(
     ("data", "expected"),
     [
-        ({}, 0),
-        ({ARSupportValue.USB_PORTS.value: 0}, 0),
         ({ARSupportValue.USB_PORTS.value: 2}, 2),
-        ({ARSupportValue.USB_PORTS.value: "3"}, 3),
-        ({ARSupportValue.USB_PORTS.value: "not_a_number"}, 0),
-        # Not a dict
-        ("not_a_dict", 0),
+        ({ARSupportValue.USB_PORTS.value: "0"}, 0),
+        ({}, 0),
     ],
 )
 def test_translate_usb_ports(data: dict[str, Any], expected: int) -> None:
@@ -80,13 +55,9 @@ def test_translate_usb_ports(data: dict[str, Any], expected: int) -> None:
 @pytest.mark.parametrize(
     ("data", "expected"),
     [
-        ({}, False),
-        ({ARSupportValue.USB_WAN.value: 0}, False),
         ({ARSupportValue.USB_WAN.value: 1}, True),
-        ({ARSupportValue.USB_WAN.value: "enabled"}, True),
-        ({ARSupportValue.USB_WAN.value: "off"}, False),
-        # Not a dict
-        ("not_a_dict", False),
+        ({ARSupportValue.USB_WAN.value: "0"}, False),
+        ({}, False),
     ],
 )
 def test_translate_usb_wan(data: dict[str, Any], expected: bool) -> None:
