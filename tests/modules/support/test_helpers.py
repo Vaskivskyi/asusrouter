@@ -189,6 +189,18 @@ def test_support_available(
             ARConnection.HTTPS,
             False,
         ),
+        # item found in multi-item list → True
+        (
+            {
+                ARSupportType.CONNECTIONS: [
+                    ARConnection.HTTPS,
+                    ARConnection.SSH,
+                ]
+            },
+            ARSupportType.CONNECTIONS,
+            ARConnection.SSH,
+            True,
+        ),
         # key absent → False
         ({}, ARSupportType.CONNECTIONS, ARConnection.HTTPS, False),
         # non-list value → False
