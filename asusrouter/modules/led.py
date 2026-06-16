@@ -43,7 +43,7 @@ async def keep_state(
 ) -> bool:
     """Keep the LED state."""
 
-    identity = kwargs.get("identity")
+    identity = kwargs.get("identity")  # TODO: Identity migration
 
     # Check if identity is available and if endpoints are defined
     if identity is None or not identity.endpoints:

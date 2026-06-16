@@ -64,7 +64,7 @@ from asusrouter.modules.endpoint import (
     read,
 )
 from asusrouter.modules.endpoint.error import AccessError
-from asusrouter.modules.firmware import ARFirmwareType, Firmware
+from asusrouter.modules.firmware import ARFirmware, ARFirmwareType
 from asusrouter.modules.flags import Flag
 from asusrouter.modules.identity import AsusDevice, collect_identity
 from asusrouter.modules.port_forwarding import PortForwardingRule
@@ -85,6 +85,8 @@ from asusrouter.modules.state import (
     save_state,
     set_state,
 )
+from asusrouter.modules.support.flag import ARSupportType
+from asusrouter.modules.support.helpers import support_available
 from asusrouter.registry import ARCallableRegistry as ARCallReg
 from asusrouter.tools import legacy
 from asusrouter.tools.converters import get_enum_key_by_value, safe_list
@@ -209,7 +211,12 @@ class AsusRouter:
         result = await self.async_get_data_v2(
             ARDeviceSourceUniversal, force=True
         )
-        return result is not None
+        if result is None:
+            return False
+
+        # Collect legacy identity and apply conditional data rules
+        await self.async_get_identity()
+        return True
 
     async def async_disconnect(self) -> bool:
         """Disconnect from the device."""
@@ -254,7 +261,7 @@ class AsusRouter:
             await keep_state(
                 callback=self.async_run_service,
                 states=led_state.data["state"],
-                identity=self._identity,
+                identity=self.description,
             )
 
         # Reset the reboot flag
@@ -305,64 +312,64 @@ class AsusRouter:
         )
 
         # Add conditional data rules
-        if self._identity:
-            firmware = self._identity.firmware
-            merlin = self._identity.merlin
-            fw_388 = Firmware(major="3.0.0.4", minor=388, build=0)
-            # Stock
-            if not merlin:
-                _LOGGER.debug("Adding conditional rules for stock firmware")
-                if fw_388 < firmware:
-                    add_conditional_state(
-                        AsusState.OPENVPN_CLIENT, AsusData.VPNC
-                    )
-                    add_conditional_state(
-                        AsusState.WIREGUARD_CLIENT, AsusData.VPNC
-                    )
-                    add_conditional_data_alias(
-                        AsusData.OPENVPN_CLIENT, AsusData.VPNC
-                    )
-                    add_conditional_data_alias(
-                        AsusData.WIREGUARD_CLIENT, AsusData.VPNC
-                    )
-                    add_conditional_data_rule(
-                        AsusData.OPENVPN_SERVER,
-                        AsusDataFinder(
-                            Endpoint.HOOK,
-                            nvram=ASUSDATA_NVRAM["openvpn_server_388"],
-                        ),
-                    )
-            # Merlin
-            else:
-                _LOGGER.debug("Adding conditional rules for Merlin firmware")
-                if fw_388 < firmware:
-                    add_conditional_data_rule(
-                        AsusData.VPNC,
-                        AsusDataFinder(
-                            Endpoint.HOOK,
-                            nvram=ASUSDATA_NVRAM["vpnc"],
-                        ),
-                    )
-            # Before 388
-            if firmware < fw_388:
-                # Remove VPNC rules
-                remove_data_rule(AsusData.VPNC)
-                remove_data_rule(AsusData.VPNC_CLIENTLIST)
-                # Remove WireGuard rules
-                remove_data_rule(AsusData.WIREGUARD)
-                remove_data_rule(AsusData.WIREGUARD_CLIENT)
-                remove_data_rule(AsusData.WIREGUARD_SERVER)
+        firmware = self.description.firmware
+        merlin = firmware.firmware_type in (
+            ARFirmwareType.MERLIN,
+            ARFirmwareType.GNUTON,
+        )
+        fw_388 = ARFirmware(major=(3, 0, 0, 4), minor=388)
+        # Stock
+        if not merlin:
+            _LOGGER.debug("Adding conditional rules for stock firmware")
+            if fw_388 < firmware:
+                add_conditional_state(AsusState.OPENVPN_CLIENT, AsusData.VPNC)
+                add_conditional_state(
+                    AsusState.WIREGUARD_CLIENT, AsusData.VPNC
+                )
+                add_conditional_data_alias(
+                    AsusData.OPENVPN_CLIENT, AsusData.VPNC
+                )
+                add_conditional_data_alias(
+                    AsusData.WIREGUARD_CLIENT, AsusData.VPNC
+                )
+                add_conditional_data_rule(
+                    AsusData.OPENVPN_SERVER,
+                    AsusDataFinder(
+                        Endpoint.HOOK,
+                        nvram=ASUSDATA_NVRAM["openvpn_server_388"],
+                    ),
+                )
+        # Merlin / Gnuton
+        else:
+            _LOGGER.debug("Adding conditional rules for Merlin firmware")
+            if fw_388 < firmware:
+                add_conditional_data_rule(
+                    AsusData.VPNC,
+                    AsusDataFinder(
+                        Endpoint.HOOK,
+                        nvram=ASUSDATA_NVRAM["vpnc"],
+                    ),
+                )
+        # Before 388
+        if firmware < fw_388:
+            # Remove VPNC rules
+            remove_data_rule(AsusData.VPNC)
+            remove_data_rule(AsusData.VPNC_CLIENTLIST)
+            # Remove WireGuard rules
+            remove_data_rule(AsusData.WIREGUARD)
+            remove_data_rule(AsusData.WIREGUARD_CLIENT)
+            remove_data_rule(AsusData.WIREGUARD_SERVER)
 
-            # DSL connection
-            if self._identity.dsl is False:
-                remove_data_rule(AsusData.DSL)
+        # DSL connection
+        if not support_available(self.support, ARSupportType.DSL):
+            remove_data_rule(AsusData.DSL)
 
-            # Ookla Speedtest
-            if self._identity.ookla is False:
-                remove_data_rule(AsusData.SPEEDTEST)
-                # remove_data_rule(AsusData.SPEEDTEST_HISTORY)
-                remove_data_rule(AsusData.SPEEDTEST_RESULT)
-                # remove_data_rule(AsusData.SPEEDTEST_SERVERS)
+        # Ookla Speedtest
+        if not support_available(self.support, ARSupportType.SPEEDTEST):
+            remove_data_rule(AsusData.SPEEDTEST)
+            # remove_data_rule(AsusData.SPEEDTEST_HISTORY)
+            remove_data_rule(AsusData.SPEEDTEST_RESULT)
+            # remove_data_rule(AsusData.SPEEDTEST_SERVERS)
 
         # Return new identity
         return self._identity
@@ -1338,6 +1345,12 @@ class AsusRouter:
         if state and isinstance(state.content, ARDeviceIdentity):
             return state.content
         return ARDeviceIdentity()
+
+    @property
+    def support(self) -> dict[ARSupportType, Any]:
+        """Return the device support data."""
+
+        return self.description.support
 
     @property
     def connected(self) -> bool:
