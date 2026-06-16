@@ -66,7 +66,6 @@ from asusrouter.modules.endpoint import (
 from asusrouter.modules.endpoint.error import AccessError
 from asusrouter.modules.firmware import ARFirmware, ARFirmwareType
 from asusrouter.modules.flags import Flag
-from asusrouter.modules.identity import AsusDevice, collect_identity
 from asusrouter.modules.port_forwarding import PortForwardingRule
 from asusrouter.modules.service import async_call_service
 from asusrouter.modules.source import (
@@ -129,8 +128,6 @@ class AsusRouter:
         # Set the host
         self._hostname: str = hostname
 
-        # Set the device identity
-        self._identity: AsusDevice | None = None
         self._state: dict[AsusData, AsusDataState] = {}
         self._data_states: dict[ARDataSource | ARDataType, ARDataState] = {}
 
@@ -211,12 +208,10 @@ class AsusRouter:
         result = await self.async_get_data_v2(
             ARDeviceSourceUniversal, force=True
         )
-        if result is None:
-            return False
-
-        # Collect legacy identity and apply conditional data rules
+        # Apply legacy conditional data rules
         await self.async_get_identity()
-        return True
+
+        return result is not None
 
     async def async_disconnect(self) -> bool:
         """Disconnect from the device."""
@@ -296,20 +291,10 @@ class AsusRouter:
     # Identity-related methods -->
     # ---------------------------
 
-    async def async_get_identity(self, force: bool = False) -> AsusDevice:
-        """Get the device identity."""
+    async def async_get_identity(self) -> None:
+        """Apply conditional data rules based on device description."""
 
         _LOGGER.debug("Triggered method async_get_identity")
-
-        # Check whether we already have the identity and not forcing a refresh
-        if self._identity and not force:
-            return self._identity
-
-        # Collect the identity
-        self._identity = await collect_identity(
-            api_hook=self.async_api_hook,
-            api_query=self.async_api_query,
-        )
 
         # Add conditional data rules
         firmware = self.description.firmware
@@ -371,9 +356,6 @@ class AsusRouter:
             remove_data_rule(AsusData.SPEEDTEST_RESULT)
             # remove_data_rule(AsusData.SPEEDTEST_SERVERS)
 
-        # Return new identity
-        return self._identity
-
     # ---------------------------
     # <-- Identity-related methods
     # ---------------------------
@@ -392,11 +374,10 @@ class AsusRouter:
 
         match attribute:
             case AsusRouterAttribute.MAC:
-                if self._identity:
-                    return self._identity.mac
-            case AsusRouterAttribute.WLAN_LIST:
-                if self._identity:
-                    return self._identity.wlan
+                mac = self.description.mac
+                return str(mac) if mac else None
+            case AsusRouterAttribute.WLAN_LIST:  # TODO: Identity migration
+                return self.description
 
         return None
 
@@ -547,16 +528,9 @@ class AsusRouter:
             return None
 
         # Check if endpoints are available
+        # TODO: Identity migration
         for endpoint in data_map.endpoint:
-            # Check endpoint availability in identity
-            if self._identity.endpoints and self._identity.endpoints.get(
-                endpoint
-            ) in (
-                False,
-                None,
-            ):
-                # Remove the endpoint from the map
-                data_map.endpoint.remove(endpoint)
+            pass
 
         _LOGGER.debug("Endpoints to check: %s", data_map.endpoint)
 
@@ -574,7 +548,7 @@ class AsusRouter:
             return transform_clients(
                 data,
                 self._state.get(AsusData.CLIENTS),
-                aimesh=self._identity.aimesh if self._identity else False,
+                aimesh=support_available(self.support, ARSupportType.AIMESH),
             )
 
         if datatype == AsusData.CPU:
@@ -593,14 +567,14 @@ class AsusRouter:
             _LOGGER.debug("Transforming port data")
             return transform_ethernet_ports(
                 data,
-                self._identity.mac if self._identity else None,
+                str(mac) if (mac := self.description.mac) else None,
             )
 
         if datatype == AsusData.WAN:
             _LOGGER.debug("Transforming WAN data")
             return transform_wan(
                 data,
-                self._identity.services if self._identity else [],
+                self.support,
             )
 
         return data
@@ -1054,8 +1028,7 @@ class AsusRouter:
                     endpoint,
                     data,
                     self._state,
-                    self._identity.firmware,
-                    self._identity.wlan,
+                    description=self.description,
                 )
 
                 # Check whether data should be dropped
@@ -1186,7 +1159,7 @@ class AsusRouter:
             state=state,
             expect_modify=expect_modify,
             router_state=self._state,
-            identity=self._identity,
+            identity=self.description,
             **kwargs,
         )
 

@@ -125,7 +125,7 @@ def transform_ethernet_ports(
 
 def transform_wan(
     data: dict[str, Any],
-    services: list[str] | None,
+    services: list[str] | None,  # TODO: Identity migration
 ) -> dict[str, Any]:
     """Transform WAN data."""
 

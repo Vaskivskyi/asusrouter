@@ -18,7 +18,7 @@ from asusrouter.tools.readers import read_js_variables as read
 
 __all__ = ["read"]
 
-REQUIRE_FIRMWARE = True
+REQUIRE_FIRMWARE = True  # TODO: Identity migration
 
 
 def process(data: dict[str, Any]) -> dict[AsusData, Any]:

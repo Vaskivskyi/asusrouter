@@ -59,7 +59,9 @@ async def set_state(
         return False
 
     # Get the arguments
-    vpn_id, identity = get_arguments(("id", "identity"), **kwargs)
+    vpn_id, identity = get_arguments(
+        ("id", "identity"), **kwargs
+    )  # TODO: Identity migration
 
     if not vpn_id:
         _LOGGER.debug("No VPN id found in arguments")

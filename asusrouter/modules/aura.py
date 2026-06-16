@@ -185,7 +185,9 @@ async def set_state(
     """Set the Aura state."""
 
     # Get the identity
-    identity: AsusDevice = kwargs.get("identity", AsusDevice())
+    identity: AsusDevice = kwargs.get(
+        "identity", AsusDevice()
+    )  # TODO: Identity migration
     # Get the number of zones
     zones = identity.aura_zone
     if zones < 1:

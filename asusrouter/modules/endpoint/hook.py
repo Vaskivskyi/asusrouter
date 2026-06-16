@@ -232,7 +232,8 @@ def process_cpu_usage(raw: dict[str, Any]) -> dict[str | int, Any]:
 
 
 def process_gwlan(
-    data: dict[str, Any], wlan_list: list[Wlan]
+    data: dict[str, Any],
+    wlan_list: list[Wlan],  # TODO: Identity migration
 ) -> dict[str, Any]:
     """Process GWLAN data."""
 
@@ -727,7 +728,8 @@ def process_wireguard_server(  # noqa: C901
 
 
 def process_wlan(
-    data: dict[str, Any], wlan_list: list[Wlan]
+    data: dict[str, Any],
+    wlan_list: list[Wlan],  # TODO: Identity migration
 ) -> dict[str, Any]:
     """Process WLAN data."""
 

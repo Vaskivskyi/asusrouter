@@ -8,13 +8,14 @@ from enum import StrEnum
 import importlib
 import logging
 from types import ModuleType
-from typing import Any, Final
+from typing import TYPE_CHECKING, Any, Final
 
 from asusrouter.const import HTTPStatus, RequestType
 from asusrouter.error import AsusRouter404Error, AsusRouterRequestFormatError
 from asusrouter.modules.data import AsusData, AsusDataState
-from asusrouter.modules.firmware import Firmware
-from asusrouter.modules.wlan import Wlan
+
+if TYPE_CHECKING:
+    from asusrouter.modules.device.identity import ARDeviceIdentity
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -164,8 +165,7 @@ def process(
     endpoint: Endpoint,
     data: dict[str, Any],
     history: dict[AsusData, AsusDataState] | None = None,
-    firmware: Firmware | None = None,
-    wlan: list[Wlan] | None = None,
+    description: ARDeviceIdentity | None = None,
 ) -> dict[AsusData, Any]:
     """Process the data from an endpoint."""
 
@@ -183,10 +183,14 @@ def process(
         # Check if the submodule requires identity
         require_firmware = getattr(submodule, "REQUIRE_FIRMWARE", False)
         if require_firmware:
+            firmware = (
+                description.firmware if description else None
+            )  # TODO: Identity migration
             data_set(data, firmware=firmware)
         # Check if the submodule requires wlan
         require_wlan = getattr(submodule, "REQUIRE_WLAN", False)
         if require_wlan:
+            wlan = None  # TODO: Identity migration
             data_set(data, wlan=wlan)
 
         # Process the data
