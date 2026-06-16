@@ -32,10 +32,10 @@ def translate_usb_generation(data: dict[str, Any]) -> ARUSBGeneration:
 def translate_usb_ports(data: dict[str, Any]) -> int:
     """Translate USB ports data to number of ports."""
 
-    if isinstance(data, dict):
-        return safe_int_nn(data.get(ARSupportValue.USB_PORTS.value))
+    if not isinstance(data, dict):
+        return 0  # type: ignore[unreachable]
 
-    return 0  # type: ignore[unreachable]
+    return safe_int_nn(data.get(ARSupportValue.USB_PORTS.value))
 
 
 translate_usb_wan = make_bool_translator(ARSupportValue.USB_WAN.value)

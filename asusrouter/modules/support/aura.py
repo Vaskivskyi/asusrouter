@@ -15,7 +15,7 @@ translate_aura_night_mode = make_bool_translator(
 def translate_aura_zone(data: dict[str, bool]) -> int:
     """Translate Aura zone count."""
 
-    if isinstance(data, dict):
-        return safe_int_nn(data.get(ARSupportValue.AURA_ZONE.value))
+    if not isinstance(data, dict):
+        return 0  # type: ignore[unreachable]
 
-    return 0  # type: ignore[unreachable]
+    return safe_int_nn(data.get(ARSupportValue.AURA_ZONE.value))
