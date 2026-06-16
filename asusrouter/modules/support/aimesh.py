@@ -6,8 +6,10 @@ from typing import Any
 
 from asusrouter.modules.aimesh import ARAiMeshFeature
 from asusrouter.modules.support.flag import ARSupportValue
-from asusrouter.modules.support.helpers import make_bool_translator
-from asusrouter.tools.converters import safe_int_nn
+from asusrouter.modules.support.helpers import (
+    make_bool_translator,
+    make_int_translator,
+)
 from asusrouter.tools.readers import is_true_in_dict
 
 TRANSLATION_TABLE_AIMESH: dict[ARSupportValue, ARAiMeshFeature] = {
@@ -36,10 +38,4 @@ def translate_aimesh_features(data: dict[str, Any]) -> list[ARAiMeshFeature]:
     ]
 
 
-def translate_aimesh_generation(data: dict[str, Any]) -> int:
-    """Translate AiMesh generation."""
-
-    if not isinstance(data, dict):
-        return 0  # type: ignore[unreachable]
-
-    return safe_int_nn(data.get(ARSupportValue.AIMESH.value))
+translate_aimesh_generation = make_int_translator(ARSupportValue.AIMESH.value)

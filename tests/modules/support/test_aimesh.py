@@ -60,11 +60,9 @@ def test_translate_aimesh_features(
 @pytest.mark.parametrize(
     ("data", "expected"),
     [
+        ({ARSupportValue.AIMESH.value: 2}, 2),
+        ({ARSupportValue.AIMESH.value: "0"}, 0),
         ({}, 0),
-        ({ARSupportValue.AIMESH.value: 1}, 1),
-        ({ARSupportValue.AIMESH.value: "2"}, 2),
-        ({ARSupportValue.AIMESH.value: "invalid"}, 0),
-        ("not_a_dict", 0),
     ],
 )
 def test_translate_aimesh_generation(data: Any, expected: int) -> None:

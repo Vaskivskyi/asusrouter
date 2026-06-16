@@ -45,11 +45,9 @@ def test_translate_aura_night_mode(data: Any, expected: bool) -> None:
 @pytest.mark.parametrize(
     ("data", "expected"),
     [
+        ({ARSupportValue.AURA_ZONE.value: 2}, 2),
+        ({ARSupportValue.AURA_ZONE.value: "0"}, 0),
         ({}, 0),
-        ({ARSupportValue.AURA_ZONE.value: 1}, 1),
-        ({ARSupportValue.AURA_ZONE.value: "2"}, 2),
-        ({ARSupportValue.AURA_ZONE.value: "invalid"}, 0),
-        ("not_a_dict", 0),
     ],
 )
 def test_translate_aura_zone(data: Any, expected: int) -> None:

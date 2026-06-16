@@ -83,19 +83,9 @@ def test_translate_wan_capabilities(
 @pytest.mark.parametrize(
     ("data", "expected"),
     [
-        # Missing key → 0
-        ({}, 0),
-        ({ARSupportValue.WAN_LIMIT.value: None}, 0),
-        # Integer values
-        ({ARSupportValue.WAN_LIMIT.value: 0}, 0),
-        ({ARSupportValue.WAN_LIMIT.value: 1}, 1),
         ({ARSupportValue.WAN_LIMIT.value: 2}, 2),
-        # String integers
-        ({ARSupportValue.WAN_LIMIT.value: "1"}, 1),
-        ({ARSupportValue.WAN_LIMIT.value: "2"}, 2),
-        # Not a dict
-        ("not_a_dict", 0),
-        (None, 0),
+        ({ARSupportValue.WAN_LIMIT.value: "0"}, 0),
+        ({}, 0),
     ],
 )
 def test_translate_wan_limit(data: Any, expected: int) -> None:

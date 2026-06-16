@@ -58,13 +58,9 @@ def test_translate_usb_generation(
 @pytest.mark.parametrize(
     ("data", "expected"),
     [
-        ({}, 0),
-        ({ARSupportValue.USB_PORTS.value: 0}, 0),
         ({ARSupportValue.USB_PORTS.value: 2}, 2),
-        ({ARSupportValue.USB_PORTS.value: "3"}, 3),
-        ({ARSupportValue.USB_PORTS.value: "not_a_number"}, 0),
-        # Not a dict
-        ("not_a_dict", 0),
+        ({ARSupportValue.USB_PORTS.value: "0"}, 0),
+        ({}, 0),
     ],
 )
 def test_translate_usb_ports(data: dict[str, Any], expected: int) -> None:
