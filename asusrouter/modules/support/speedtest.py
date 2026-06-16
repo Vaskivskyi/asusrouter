@@ -6,16 +6,10 @@ from typing import Any
 
 from asusrouter.modules.speedtest import ARSpeedTestCapability
 from asusrouter.modules.support.flag import ARSupportValue
+from asusrouter.modules.support.helpers import make_bool_translator
 from asusrouter.tools.readers import is_true_in_dict
 
-
-def translate_speedtest(data: dict[str, Any]) -> bool:
-    """Translate SpeedTest support data."""
-
-    if not isinstance(data, dict):
-        return False  # type: ignore[unreachable]
-
-    return is_true_in_dict(ARSupportValue.SPEEDTEST.value, data)
+translate_speedtest = make_bool_translator(ARSupportValue.SPEEDTEST.value)
 
 
 def translate_speedtest_capabilities(

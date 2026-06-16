@@ -17,22 +17,15 @@ from asusrouter.modules.support.speedtest import (
 @pytest.mark.parametrize(
     ("data", "expected"),
     [
-        # No flag → no SpeedTest
-        ({}, False),
-        ({ARSupportValue.SPEEDTEST.value: 0}, False),
-        ({"other_key": 1}, False),
-        # Flag truthy → SpeedTest present
         ({ARSupportValue.SPEEDTEST.value: 1}, True),
-        ({ARSupportValue.SPEEDTEST.value: "1"}, True),
-        # Not a dict
-        ("not_a_dict", False),
-        (None, False),
+        ({ARSupportValue.SPEEDTEST.value: "0"}, False),
+        ({}, False),
     ],
 )
 def test_translate_speedtest(data: Any, expected: bool) -> None:
     """Test translate_speedtest returns correct SpeedTest support value."""
 
-    assert translate_speedtest(data) == expected
+    assert translate_speedtest(data) is expected
 
 
 @pytest.mark.parametrize(

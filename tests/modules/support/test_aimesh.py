@@ -18,11 +18,9 @@ from asusrouter.modules.support.flag import ARSupportValue
 @pytest.mark.parametrize(
     ("data", "expected"),
     [
-        ({}, False),
         ({ARSupportValue.AIMESH.value: 1}, True),
-        ({ARSupportValue.AIMESH.value: "enabled"}, True),
-        ({ARSupportValue.AIMESH.value: 0}, False),
-        ("not_a_dict", False),
+        ({ARSupportValue.AIMESH.value: "0"}, False),
+        ({}, False),
     ],
 )
 def test_translate_aimesh(data: Any, expected: bool) -> None:

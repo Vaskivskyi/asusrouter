@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from asusrouter.modules.aimesh import ARAiMeshFeature
 from asusrouter.modules.support.flag import ARSupportValue
+from asusrouter.modules.support.helpers import make_bool_translator
 from asusrouter.tools.converters import safe_bool_nn, safe_int_nn
 
 TRANSLATION_TABLE_AIMESH: dict[ARSupportValue, ARAiMeshFeature] = {
@@ -13,13 +14,7 @@ TRANSLATION_TABLE_AIMESH: dict[ARSupportValue, ARAiMeshFeature] = {
 }
 
 
-def translate_aimesh(data: dict[str, bool]) -> bool:
-    """Translate AiMesh presence."""
-
-    if isinstance(data, dict):
-        return safe_bool_nn(data.get(ARSupportValue.AIMESH.value))
-
-    return False  # type: ignore[unreachable]
+translate_aimesh = make_bool_translator(ARSupportValue.AIMESH.value)
 
 
 def translate_aimesh_features(data: dict[str, bool]) -> list[ARAiMeshFeature]:

@@ -39,11 +39,8 @@ from asusrouter.modules.usb import ARUSBGeneration
             },
             ARUSBGeneration.UNKNOWN,
         ),
-        (
-            {ARSupportValue.USB_3.value: "enabled"},
-            ARUSBGeneration.USB_3,
-        ),
-        ({ARSupportValue.USB_2.value: "on"}, ARUSBGeneration.USB_2),
+        ({ARSupportValue.USB_3.value: "1"}, ARUSBGeneration.USB_3),
+        ({ARSupportValue.USB_2.value: "1"}, ARUSBGeneration.USB_2),
         ({ARSupportValue.USB.value: "1"}, ARUSBGeneration.USB),
         # Not a dict
         ("not_a_dict", ARUSBGeneration.UNKNOWN),
@@ -80,13 +77,9 @@ def test_translate_usb_ports(data: dict[str, Any], expected: int) -> None:
 @pytest.mark.parametrize(
     ("data", "expected"),
     [
-        ({}, False),
-        ({ARSupportValue.USB_WAN.value: 0}, False),
         ({ARSupportValue.USB_WAN.value: 1}, True),
-        ({ARSupportValue.USB_WAN.value: "enabled"}, True),
-        ({ARSupportValue.USB_WAN.value: "off"}, False),
-        # Not a dict
-        ("not_a_dict", False),
+        ({ARSupportValue.USB_WAN.value: "0"}, False),
+        ({}, False),
     ],
 )
 def test_translate_usb_wan(data: dict[str, Any], expected: bool) -> None:

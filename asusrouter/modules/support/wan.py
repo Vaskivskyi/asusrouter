@@ -5,18 +5,14 @@ from __future__ import annotations
 from typing import Any
 
 from asusrouter.modules.support.flag import ARSupportValue
+from asusrouter.modules.support.helpers import make_bool_translator
 from asusrouter.modules.wan import ARWANCapability
 from asusrouter.tools.converters import safe_int_nn
 from asusrouter.tools.readers import is_true_in_dict
 
-
-def translate_wan(data: dict[str, Any]) -> bool:
-    """Translate WAN support data."""
-
-    if not isinstance(data, dict):
-        return False  # type: ignore[unreachable]
-
-    return not is_true_in_dict(ARSupportValue.WAN_NOWAN.value, data)
+translate_wan = make_bool_translator(
+    ARSupportValue.WAN_NOWAN.value, negate=True
+)
 
 
 def translate_wan_capabilities(data: dict[str, Any]) -> list[ARWANCapability]:

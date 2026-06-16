@@ -3,25 +3,13 @@
 from __future__ import annotations
 
 from asusrouter.modules.support.flag import ARSupportValue
-from asusrouter.tools.converters import safe_bool_nn, safe_int_nn
+from asusrouter.modules.support.helpers import make_bool_translator
+from asusrouter.tools.converters import safe_int_nn
 
-
-def translate_aura(data: dict[str, bool]) -> bool:
-    """Translate Aura presence."""
-
-    if isinstance(data, dict):
-        return safe_bool_nn(data.get(ARSupportValue.AURA.value))
-
-    return False  # type: ignore[unreachable]
-
-
-def translate_aura_night_mode(data: dict[str, bool]) -> bool:
-    """Translate Aura night mode presence."""
-
-    if isinstance(data, dict):
-        return safe_bool_nn(data.get(ARSupportValue.AURA_NIGHT_MODE.value))
-
-    return False  # type: ignore[unreachable]
+translate_aura = make_bool_translator(ARSupportValue.AURA.value)
+translate_aura_night_mode = make_bool_translator(
+    ARSupportValue.AURA_NIGHT_MODE.value
+)
 
 
 def translate_aura_zone(data: dict[str, bool]) -> int:

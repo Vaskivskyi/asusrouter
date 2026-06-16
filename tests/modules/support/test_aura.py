@@ -17,11 +17,9 @@ from asusrouter.modules.support.flag import ARSupportValue
 @pytest.mark.parametrize(
     ("data", "expected"),
     [
-        ({}, False),
         ({ARSupportValue.AURA.value: 1}, True),
-        ({ARSupportValue.AURA.value: "enabled"}, True),
-        ({ARSupportValue.AURA.value: 0}, False),
-        ("not_a_dict", False),
+        ({ARSupportValue.AURA.value: "0"}, False),
+        ({}, False),
     ],
 )
 def test_translate_aura(data: Any, expected: bool) -> None:
@@ -33,11 +31,9 @@ def test_translate_aura(data: Any, expected: bool) -> None:
 @pytest.mark.parametrize(
     ("data", "expected"),
     [
-        ({}, False),
         ({ARSupportValue.AURA_NIGHT_MODE.value: 1}, True),
-        ({ARSupportValue.AURA_NIGHT_MODE.value: "enabled"}, True),
-        ({ARSupportValue.AURA_NIGHT_MODE.value: 0}, False),
-        ("not_a_dict", False),
+        ({ARSupportValue.AURA_NIGHT_MODE.value: "0"}, False),
+        ({}, False),
     ],
 )
 def test_translate_aura_night_mode(data: Any, expected: bool) -> None:

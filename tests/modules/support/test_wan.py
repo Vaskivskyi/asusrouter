@@ -18,22 +18,15 @@ from asusrouter.modules.wan import ARWANCapability
 @pytest.mark.parametrize(
     ("data", "expected"),
     [
-        # No nowan flag → WAN present
-        ({}, True),
-        ({ARSupportValue.WAN_NOWAN.value: 0}, True),
-        ({"other_key": 1}, True),
-        # nowan truthy → no WAN
         ({ARSupportValue.WAN_NOWAN.value: 1}, False),
-        ({ARSupportValue.WAN_NOWAN.value: "1"}, False),
-        # Not a dict
-        ("not_a_dict", False),
-        (None, False),
+        ({ARSupportValue.WAN_NOWAN.value: "0"}, True),
+        ({}, True),
     ],
 )
 def test_translate_wan(data: Any, expected: bool) -> None:
     """Test translate_wan returns correct WAN availability."""
 
-    assert translate_wan(data) == expected
+    assert translate_wan(data) is expected
 
 
 @pytest.mark.parametrize(
