@@ -25,6 +25,10 @@ from asusrouter.modules.support.dsl import translate_dsl
 from asusrouter.modules.support.flag import ARSupportType
 from asusrouter.modules.support.lan import translate_lan_capabilities
 from asusrouter.modules.support.platform import translate_platform
+from asusrouter.modules.support.speedtest import (
+    translate_speedtest,
+    translate_speedtest_capabilities,
+)
 from asusrouter.modules.support.usb import (
     translate_usb_generation,
     translate_usb_ports,
@@ -68,6 +72,8 @@ TRANSLATION_TABLE: dict[ARSupportType, ARCallableType] = {
     ARSupportType.DSL: translate_dsl,
     ARSupportType.LAN_CAPABILITIES: translate_lan_capabilities,
     ARSupportType.PLATFORM: translate_platform,
+    ARSupportType.SPEEDTEST: translate_speedtest,
+    ARSupportType.SPEEDTEST_CAPABILITIES: translate_speedtest_capabilities,
     ARSupportType.USB_GENERATION: translate_usb_generation,
     ARSupportType.USB_PORTS: translate_usb_ports,
     ARSupportType.USB_WAN: translate_usb_wan,

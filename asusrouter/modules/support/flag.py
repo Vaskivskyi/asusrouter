@@ -33,6 +33,10 @@ class ARSupportType(FromStrMixin, StrEnum):
 
     PLATFORM = "platform"
 
+    # SpeedTest
+    SPEEDTEST = "speedtest"
+    SPEEDTEST_CAPABILITIES = "speedtest_capabilities"
+
     # USB
     USB_GENERATION = "usb_generation"
     USB_PORTS = "usb_ports"
@@ -83,6 +87,10 @@ class ARSupportValue(FromStrMixin, StrEnum):
     PLATFORM_LANTIQ = "lantiq"
     PLATFORM_MEDIATEK = "rawifi"
     PLATFORM_QUALCOMM = "qcawifi"
+
+    # SpeedTest
+    SPEEDTEST = "ookla"
+    SPEEDTEST_10G = "10g_speedTest"
 
     # USB
     USB = "usbX"
