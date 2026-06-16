@@ -11,6 +11,20 @@ from asusrouter.tools.readers import is_true_in_dict
 _T = TypeVar("_T")
 
 
+def make_bool_translator(
+    key: str, *, negate: bool = False
+) -> Callable[[dict[str, Any]], bool]:
+    """Create a bool translator for the given support key."""
+
+    def translate(data: dict[str, Any]) -> bool:
+        if not isinstance(data, dict):
+            return False  # type: ignore[unreachable]
+        result = is_true_in_dict(key, data)
+        return not result if negate else result
+
+    return translate
+
+
 def make_enum_translator(
     table: dict[str, _T], default: _T
 ) -> Callable[[dict[str, Any]], _T]:
@@ -27,19 +41,6 @@ def make_enum_translator(
     return translate
 
 
-def make_list_translator(
-    table: dict[str, _T],
-) -> Callable[[dict[str, Any]], list[_T]]:
-    """Create a list translator for the given support value table."""
-
-    def translate(data: dict[str, Any]) -> list[_T]:
-        if not isinstance(data, dict):
-            return []  # type: ignore[unreachable]
-        return [cap for sv, cap in table.items() if is_true_in_dict(sv, data)]
-
-    return translate
-
-
 def make_int_translator(key: str) -> Callable[[dict[str, Any]], int]:
     """Create an int translator for the given support key."""
 
@@ -51,15 +52,16 @@ def make_int_translator(key: str) -> Callable[[dict[str, Any]], int]:
     return translate
 
 
-def make_bool_translator(
-    key: str, *, negate: bool = False
-) -> Callable[[dict[str, Any]], bool]:
-    """Create a bool translator for the given support key."""
+def make_list_translator(
+    table: dict[str, _T],
+) -> Callable[[dict[str, Any]], list[_T]]:
+    """Create a list translator for the given support value table."""
 
-    def translate(data: dict[str, Any]) -> bool:
+    def translate(data: dict[str, Any]) -> list[_T]:
         if not isinstance(data, dict):
-            return False  # type: ignore[unreachable]
-        result = is_true_in_dict(key, data)
-        return not result if negate else result
+            return []  # type: ignore[unreachable]
+        return [
+            value for key, value in table.items() if is_true_in_dict(key, data)
+        ]
 
     return translate

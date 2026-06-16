@@ -19,7 +19,5 @@ translate_usb_generation = make_enum_translator(
     },
     ARUSBGeneration.UNKNOWN,
 )
-
 translate_usb_ports = make_int_translator(ARSupportValue.USB_PORTS.value)
-
 translate_usb_wan = make_bool_translator(ARSupportValue.USB_WAN.value)

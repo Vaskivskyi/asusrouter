@@ -27,6 +27,7 @@ class ARSupportType(FromStrMixin, StrEnum):
     AURA_NIGHT_MODE = "aura_night_mode"
     AURA_ZONE = "aura_zone"
 
+    # Connections
     CONNECTIONS = "connections"
 
     # DSL
@@ -39,6 +40,7 @@ class ARSupportType(FromStrMixin, StrEnum):
     # LAN
     LAN_CAPABILITIES = "lan_capabilities"
 
+    # Platform
     PLATFORM = "platform"
 
     # SpeedTest
@@ -98,7 +100,7 @@ class ARSupportValue(FromStrMixin, StrEnum):
     LAN_AGGREGATION = "lacp"
 
     # Device mode
-    MODE_REPEATER = "repeater"
+    MODE_REPEATER = "repeater"  # TODO: use it
 
     # Platform support
     PLATFORM_BROADCOM = "bcmwifi"
@@ -134,7 +136,7 @@ class ARSupportValue(FromStrMixin, StrEnum):
     WIFI_BANDS_QUAD = "quadband"
 
     # WiFi power
-    WIFI_POWER_CONTROL = "pwrctrl"
+    WIFI_POWER_CONTROL = "pwrctrl"  # TODO: use it
 
     # WiFi support by units
     # These parameter defines units at the selected id, but the

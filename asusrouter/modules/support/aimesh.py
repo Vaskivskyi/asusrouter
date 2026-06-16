@@ -11,7 +11,6 @@ from asusrouter.modules.support.helpers import (
 )
 
 translate_aimesh = make_bool_translator(ARSupportValue.AIMESH.value)
-
 translate_aimesh_capabilities = make_list_translator(
     {
         ARSupportValue.AIMESH_NEW_ONBOARDING.value: (
@@ -21,5 +20,4 @@ translate_aimesh_capabilities = make_list_translator(
         ARSupportValue.AIMESH_ROUTER.value: ARAiMeshCapability.ROUTER,
     }
 )
-
 translate_aimesh_generation = make_int_translator(ARSupportValue.AIMESH.value)

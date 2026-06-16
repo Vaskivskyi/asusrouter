@@ -12,6 +12,4 @@ translate_aura = make_bool_translator(ARSupportValue.AURA.value)
 translate_aura_night_mode = make_bool_translator(
     ARSupportValue.AURA_NIGHT_MODE.value
 )
-
-
 translate_aura_zone = make_int_translator(ARSupportValue.AURA_ZONE.value)

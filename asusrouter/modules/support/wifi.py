@@ -18,7 +18,6 @@ translate_wifi_generation = make_enum_translator(
     },
     ARWiFiGeneration.UNKNOWN,
 )
-
 # First match wins
 translate_wifi_multiband = make_enum_translator(
     {
@@ -42,10 +41,10 @@ def translate_wifi_units(data: dict[str, Any]) -> list[int]:
 
     return [
         unit_index
-        for unit_value, unit_index in (
-            (ARSupportValue.WIFI_UNIT_0.value, 0),
-            (ARSupportValue.WIFI_UNIT_1.value, 1),
-            (ARSupportValue.WIFI_UNIT_2.value, 2),
-        )
+        for unit_value, unit_index in {
+            ARSupportValue.WIFI_UNIT_0.value: 0,
+            ARSupportValue.WIFI_UNIT_1.value: 1,
+            ARSupportValue.WIFI_UNIT_2.value: 2,
+        }.items()
         if is_true_in_dict(unit_value, data)
     ]

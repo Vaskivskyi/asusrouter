@@ -10,7 +10,6 @@ from asusrouter.modules.support.helpers import (
 )
 
 translate_ai = make_bool_translator(ARSupportValue.AI.value)
-
 translate_ai_capabilities = make_list_translator(
     {
         ARSupportValue.AI_SLM.value: ARAICapability.SLM,

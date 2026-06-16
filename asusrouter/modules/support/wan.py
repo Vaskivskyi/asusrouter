@@ -13,12 +13,10 @@ from asusrouter.modules.wan import ARWANCapability
 translate_wan = make_bool_translator(
     ARSupportValue.WAN_NOWAN.value, negate=True
 )
-
 translate_wan_capabilities = make_list_translator(
     {
         ARSupportValue.WAN_AGGREGATION.value: ARWANCapability.AGGREGATION,
         ARSupportValue.WAN_DUALWAN.value: ARWANCapability.DUALWAN,
     }
 )
-
 translate_wan_limit = make_int_translator(ARSupportValue.WAN_LIMIT.value)

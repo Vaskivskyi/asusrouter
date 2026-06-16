@@ -124,12 +124,10 @@ def translate_state(
 ) -> dict[str, Any]:
     """Translate the support data to a simple format."""
 
-    result: dict[str, Any] = {}
-
-    for support_type, interpreter in TRANSLATION_TABLE.items():
-        result[support_type] = interpreter(data)
-
-    return result
+    return {
+        support_type: interpreter(data)
+        for support_type, interpreter in TRANSLATION_TABLE.items()
+    }
 
 
 calls: dict[str, ARCallableType] = {
