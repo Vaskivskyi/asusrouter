@@ -53,6 +53,8 @@ from asusrouter.modules.data_transform import (
     transform_network,
     transform_wan,
 )
+from asusrouter.modules.device import ARDeviceSourceUniversal
+from asusrouter.modules.device.identity import ARDeviceIdentity
 from asusrouter.modules.endpoint import (
     ENDPOINT_FORCE_REQUEST,
     Endpoint,
@@ -203,8 +205,11 @@ class AsusRouter:
         except Exception as ex:  # pylint: disable=broad-except
             raise ex
 
-        # Get the device identity
-        return await self.async_get_identity() is not None
+        # Fetch the device description
+        result = await self.async_get_data_v2(
+            ARDeviceSourceUniversal, force=True
+        )
+        return result is not None
 
     async def async_disconnect(self) -> bool:
         """Disconnect from the device."""
@@ -1332,6 +1337,15 @@ class AsusRouter:
     # ---------------------------
     # Properties -->
     # ---------------------------
+
+    @property
+    def description(self) -> ARDeviceIdentity:
+        """Return the device description."""
+
+        state = self._data_states.get(ARDeviceSourceUniversal)
+        if state and isinstance(state.content, ARDeviceIdentity):
+            return state.content
+        return ARDeviceIdentity()
 
     @property
     def connected(self) -> bool:
