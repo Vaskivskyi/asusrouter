@@ -13,20 +13,51 @@ class ARSupportType(FromStrMixin, StrEnum):
 
     UNKNOWN = UNKNOWN_MEMBER_STR
 
+    # AI
+    AI = "ai"
+    AI_CAPABILITIES = "ai_capabilities"
+
     # AiMesh
     AIMESH = "aimesh"
-    AIMESH_FEATURES = "aimesh_features"
+    AIMESH_CAPABILITIES = "aimesh_capabilities"
     AIMESH_GENERATION = "aimesh_generation"
+
     # Aura
     AURA = "aura"
     AURA_NIGHT_MODE = "aura_night_mode"
     AURA_ZONE = "aura_zone"
 
+    # Connections
     CONNECTIONS = "connections"
+
+    # DSL
+    DSL = "dsl"
+
+    # FTP
+    FTP = "ftp"
+    FTP_CAPABILITIES = "ftp_capabilities"
+
+    # LAN
+    LAN_CAPABILITIES = "lan_capabilities"
+
+    # Platform
     PLATFORM = "platform"
+
+    # SpeedTest
+    SPEEDTEST = "speedtest"
+    SPEEDTEST_CAPABILITIES = "speedtest_capabilities"
+
+    # USB
     USB_GENERATION = "usb_generation"
     USB_PORTS = "usb_ports"
     USB_WAN = "usb_wan"
+
+    # WAN
+    WAN = "wan"
+    WAN_CAPABILITIES = "wan_capabilities"
+    WAN_LIMIT = "wan_limit"
+
+    # WiFi
     WIFI_GENERATION = "wifi_generation"
     WIFI_MULTIBAND = "wifi_multiband"
     WIFI_UNITS = "wifi_units"
@@ -36,6 +67,12 @@ class ARSupportValue(FromStrMixin, StrEnum):
     """Device support values as stored in the system."""
 
     UNKNOWN = UNKNOWN_MEMBER_STR
+
+    # AI
+    AI = "ai_support"
+    AI_SLM = "ai_board_slm"
+    AI_UPGRADE_BETA = "ai_betaupg"
+    AI_RESET_BETA = "ai_reset_beta"
 
     # AiMesh
     AIMESH = "amas"
@@ -48,15 +85,32 @@ class ARSupportValue(FromStrMixin, StrEnum):
     AURA_NIGHT_MODE = "ledg_night_mode"
     AURA_ZONE = "ledg_count"
 
-    # Connection methods
+    # Connections
     CONNECTION_HTTPS = "HTTPS"
     CONNECTION_SSH = "ssh"
 
-    # Platform support
+    # DSL
+    DSL = "dsl"
+
+    # FTP
+    FTP = "noftp"
+    FTP_SSL = "ftp_ssl"
+
+    # LAN capabilities
+    LAN_AGGREGATION = "lacp"
+
+    # Device mode
+    MODE_REPEATER = "repeater"  # TODO: use it
+
+    # Platform
     PLATFORM_BROADCOM = "bcmwifi"
     PLATFORM_LANTIQ = "lantiq"
     PLATFORM_MEDIATEK = "rawifi"
     PLATFORM_QUALCOMM = "qcawifi"
+
+    # SpeedTest
+    SPEEDTEST = "ookla"
+    SPEEDTEST_10G = "10g_speedTest"
 
     # USB
     USB = "usbX"
@@ -64,6 +118,12 @@ class ARSupportValue(FromStrMixin, StrEnum):
     USB_3 = "usb3"
     USB_PORTS = "usbPortMax"
     USB_WAN = "usb_bk"
+
+    # WAN capabilities
+    WAN_AGGREGATION = "wanbonding"
+    WAN_DUALWAN = "dualwan"
+    WAN_LIMIT = "wanMax"
+    WAN_NOWAN = "nowan"
 
     # WiFi generation
     WIFI_5 = "11AC"
@@ -74,6 +134,9 @@ class ARSupportValue(FromStrMixin, StrEnum):
     WIFI_BANDS_DUAL = "dualband"
     WIFI_BANDS_TRI = "triband"
     WIFI_BANDS_QUAD = "quadband"
+
+    # WiFi power
+    WIFI_POWER_CONTROL = "pwrctrl"  # TODO: use it
 
     # WiFi support by units
     # These parameter defines units at the selected id, but the

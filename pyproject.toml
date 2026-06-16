@@ -48,7 +48,7 @@ dev = [
     "prek==0.4.5",
 ]
 test = [
-    "pytest==9.0.3",
+    "pytest==9.1.0",
     "pytest-asyncio==1.4.0",
     "pytest-cov==7.1.0",
 ]
