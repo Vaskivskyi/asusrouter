@@ -24,9 +24,18 @@ class ARSupportType(FromStrMixin, StrEnum):
 
     CONNECTIONS = "connections"
     PLATFORM = "platform"
+
+    # USB
     USB_GENERATION = "usb_generation"
     USB_PORTS = "usb_ports"
     USB_WAN = "usb_wan"
+
+    # WAN
+    WAN = "wan"
+    WAN_CAPABILITIES = "wan_capabilities"
+    WAN_LIMIT = "wan_limit"
+
+    # WiFi
     WIFI_GENERATION = "wifi_generation"
     WIFI_MULTIBAND = "wifi_multiband"
     WIFI_UNITS = "wifi_units"
@@ -52,6 +61,12 @@ class ARSupportValue(FromStrMixin, StrEnum):
     CONNECTION_HTTPS = "HTTPS"
     CONNECTION_SSH = "ssh"
 
+    # DSL
+    DSL = "dsl"
+
+    # Device mode
+    MODE_REPEATER = "repeater"
+
     # Platform support
     PLATFORM_BROADCOM = "bcmwifi"
     PLATFORM_LANTIQ = "lantiq"
@@ -65,6 +80,12 @@ class ARSupportValue(FromStrMixin, StrEnum):
     USB_PORTS = "usbPortMax"
     USB_WAN = "usb_bk"
 
+    # WAN capabilities
+    WAN_AGGREGATION = "wanbonding"
+    WAN_DUALWAN = "dualwan"
+    WAN_LIMIT = "wanMax"
+    WAN_NOWAN = "nowan"
+
     # WiFi generation
     WIFI_5 = "11AC"
     WIFI_6 = "11AX"
@@ -74,6 +95,9 @@ class ARSupportValue(FromStrMixin, StrEnum):
     WIFI_BANDS_DUAL = "dualband"
     WIFI_BANDS_TRI = "triband"
     WIFI_BANDS_QUAD = "quadband"
+
+    # WiFi power
+    WIFI_POWER_CONTROL = "pwrctrl"
 
     # WiFi support by units
     # These parameter defines units at the selected id, but the

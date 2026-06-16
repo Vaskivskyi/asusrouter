@@ -28,6 +28,11 @@ from asusrouter.modules.support.usb import (
     translate_usb_ports,
     translate_usb_wan,
 )
+from asusrouter.modules.support.wan import (
+    translate_wan,
+    translate_wan_capabilities,
+    translate_wan_limit,
+)
 from asusrouter.modules.support.wifi import (
     translate_wifi_generation,
     translate_wifi_multiband,
@@ -62,6 +67,9 @@ TRANSLATION_TABLE: dict[ARSupportType, ARCallableType] = {
     ARSupportType.USB_GENERATION: translate_usb_generation,
     ARSupportType.USB_PORTS: translate_usb_ports,
     ARSupportType.USB_WAN: translate_usb_wan,
+    ARSupportType.WAN: translate_wan,
+    ARSupportType.WAN_CAPABILITIES: translate_wan_capabilities,
+    ARSupportType.WAN_LIMIT: translate_wan_limit,
     ARSupportType.WIFI_GENERATION: translate_wifi_generation,
     ARSupportType.WIFI_MULTIBAND: translate_wifi_multiband,
     ARSupportType.WIFI_UNITS: translate_wifi_units,
