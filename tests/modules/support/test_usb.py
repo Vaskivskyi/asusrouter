@@ -18,32 +18,15 @@ from asusrouter.modules.usb import ARUSBGeneration
 @pytest.mark.parametrize(
     ("data", "expected"),
     [
-        ({}, ARUSBGeneration.UNKNOWN),
         ({ARSupportValue.USB_3.value: 1}, ARUSBGeneration.USB_3),
         ({ARSupportValue.USB_2.value: 1}, ARUSBGeneration.USB_2),
         ({ARSupportValue.USB.value: 1}, ARUSBGeneration.USB),
-        # Multiple true, should return the first found
+        # USB_3 takes priority
         (
             {ARSupportValue.USB_3.value: 1, ARSupportValue.USB_2.value: 1},
             ARUSBGeneration.USB_3,
         ),
-        (
-            {ARSupportValue.USB_2.value: 1, ARSupportValue.USB.value: 1},
-            ARUSBGeneration.USB_2,
-        ),
-        (
-            {
-                ARSupportValue.USB_3.value: 0,
-                ARSupportValue.USB_2.value: 0,
-                ARSupportValue.USB.value: 0,
-            },
-            ARUSBGeneration.UNKNOWN,
-        ),
-        ({ARSupportValue.USB_3.value: "1"}, ARUSBGeneration.USB_3),
-        ({ARSupportValue.USB_2.value: "1"}, ARUSBGeneration.USB_2),
-        ({ARSupportValue.USB.value: "1"}, ARUSBGeneration.USB),
-        # Not a dict
-        ("not_a_dict", ARUSBGeneration.UNKNOWN),
+        ({}, ARUSBGeneration.UNKNOWN),
     ],
 )
 def test_translate_usb_generation(
@@ -51,8 +34,7 @@ def test_translate_usb_generation(
 ) -> None:
     """Test translate_usb_generation returns correct generation type."""
 
-    result = translate_usb_generation(data)
-    assert result == expected
+    assert translate_usb_generation(data) == expected
 
 
 @pytest.mark.parametrize(

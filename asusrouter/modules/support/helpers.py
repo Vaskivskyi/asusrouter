@@ -11,6 +11,22 @@ from asusrouter.tools.readers import is_true_in_dict
 _T = TypeVar("_T")
 
 
+def make_enum_translator(
+    table: dict[str, _T], default: _T
+) -> Callable[[dict[str, Any]], _T]:
+    """Create a translator returning the first matching value or default."""
+
+    def translate(data: dict[str, Any]) -> _T:
+        if not isinstance(data, dict):
+            return default  # type: ignore[unreachable]
+        for key, value in table.items():
+            if is_true_in_dict(key, data):
+                return value
+        return default
+
+    return translate
+
+
 def make_list_translator(
     table: dict[str, _T],
 ) -> Callable[[dict[str, Any]], list[_T]]:
