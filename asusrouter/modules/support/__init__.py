@@ -10,6 +10,10 @@ from typing import Any
 from asusrouter.const import AR_CALL_GET_STATE, AR_CALL_TRANSLATE_STATE
 from asusrouter.modules.endpoint import Endpoint
 from asusrouter.modules.source import ARDataSource
+from asusrouter.modules.support.ai import (
+    translate_ai,
+    translate_ai_capabilities,
+)
 from asusrouter.modules.support.aimesh import (
     translate_aimesh,
     translate_aimesh_features,
@@ -66,6 +70,8 @@ ARSupportSourceUniversal: ARSupportSource = ARSupportSource()
 
 
 TRANSLATION_TABLE: dict[ARSupportType, ARCallableType] = {
+    ARSupportType.AI: translate_ai,
+    ARSupportType.AI_CAPABILITIES: translate_ai_capabilities,
     ARSupportType.AIMESH: translate_aimesh,
     ARSupportType.AIMESH_FEATURES: translate_aimesh_features,
     ARSupportType.AIMESH_GENERATION: translate_aimesh_generation,

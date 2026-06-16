@@ -13,6 +13,10 @@ class ARSupportType(FromStrMixin, StrEnum):
 
     UNKNOWN = UNKNOWN_MEMBER_STR
 
+    # AI
+    AI = "ai"
+    AI_CAPABILITIES = "ai_capabilities"
+
     # AiMesh
     AIMESH = "aimesh"
     AIMESH_FEATURES = "aimesh_features"
@@ -61,6 +65,12 @@ class ARSupportValue(FromStrMixin, StrEnum):
     """Device support values as stored in the system."""
 
     UNKNOWN = UNKNOWN_MEMBER_STR
+
+    # AI
+    AI = "ai_support"
+    AI_SLM = "ai_board_slm"
+    AI_UPGRADE_BETA = "ai_betaupg"
+    AI_RESET_BETA = "ai_reset_beta"
 
     # AiMesh
     AIMESH = "amas"
