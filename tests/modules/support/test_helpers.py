@@ -6,11 +6,16 @@ from typing import Any
 
 import pytest
 
+from asusrouter.modules.connection_v2 import ARConnection
+from asusrouter.modules.support.flag import ARSupportType
 from asusrouter.modules.support.helpers import (
     make_bool_translator,
     make_enum_translator,
     make_int_translator,
     make_list_translator,
+    support_available,
+    support_available_in,
+    support_value,
 )
 
 
@@ -135,3 +140,109 @@ def test_make_list_translator(
 
     translator = make_list_translator(table)
     assert translator(data) == expected
+
+
+@pytest.mark.parametrize(
+    ("support", "key", "expected"),
+    [
+        # True flag → True
+        ({ARSupportType.AI: True}, ARSupportType.AI, True),
+        # False flag → False
+        ({ARSupportType.AI: False}, ARSupportType.AI, False),
+        # int 1 is not True → False
+        ({ARSupportType.AI: 1}, ARSupportType.AI, False),
+        # absent key → False
+        ({}, ARSupportType.AI, False),
+        # other key true, queried absent → False
+        ({ARSupportType.WAN: True}, ARSupportType.AI, False),
+    ],
+)
+def test_support_available(
+    support: dict[ARSupportType, Any], key: ARSupportType, expected: bool
+) -> None:
+    """Test support_available returns True only for bool True values."""
+
+    assert support_available(support, key) is expected
+
+
+@pytest.mark.parametrize(
+    ("support", "key", "item", "expected"),
+    [
+        # item in list → True
+        (
+            {ARSupportType.CONNECTIONS: [ARConnection.HTTPS]},
+            ARSupportType.CONNECTIONS,
+            ARConnection.HTTPS,
+            True,
+        ),
+        # item not in list → False
+        (
+            {ARSupportType.CONNECTIONS: [ARConnection.HTTPS]},
+            ARSupportType.CONNECTIONS,
+            ARConnection.SSH,
+            False,
+        ),
+        # empty list → False
+        (
+            {ARSupportType.CONNECTIONS: []},
+            ARSupportType.CONNECTIONS,
+            ARConnection.HTTPS,
+            False,
+        ),
+        # item found in multi-item list → True
+        (
+            {
+                ARSupportType.CONNECTIONS: [
+                    ARConnection.HTTPS,
+                    ARConnection.SSH,
+                ]
+            },
+            ARSupportType.CONNECTIONS,
+            ARConnection.SSH,
+            True,
+        ),
+        # key absent → False
+        ({}, ARSupportType.CONNECTIONS, ARConnection.HTTPS, False),
+        # non-list value → False
+        (
+            {ARSupportType.CONNECTIONS: True},
+            ARSupportType.CONNECTIONS,
+            ARConnection.HTTPS,
+            False,
+        ),
+    ],
+)
+def test_support_available_in(
+    support: dict[ARSupportType, Any],
+    key: ARSupportType,
+    item: Any,
+    expected: bool,
+) -> None:
+    """Test support_available_in returns True if item is in the list."""
+
+    assert support_available_in(support, key, item) is expected
+
+
+@pytest.mark.parametrize(
+    ("support", "key", "expected"),
+    [
+        # bool value
+        ({ARSupportType.AI: True}, ARSupportType.AI, True),
+        # int value
+        ({ARSupportType.USB_PORTS: 2}, ARSupportType.USB_PORTS, 2),
+        # list value
+        (
+            {ARSupportType.CONNECTIONS: [ARConnection.HTTPS]},
+            ARSupportType.CONNECTIONS,
+            [ARConnection.HTTPS],
+        ),
+        # absent key → None
+        ({}, ARSupportType.AI, None),
+    ],
+)
+def test_support_value(
+    support: dict[ARSupportType, Any], key: ARSupportType, expected: Any
+) -> None:
+    """Test support_value returns the stored value or None."""
+
+    assert support_value(support, key) == expected
