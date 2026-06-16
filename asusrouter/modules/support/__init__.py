@@ -31,6 +31,11 @@ from asusrouter.modules.support.ftp import (
     translate_ftp,
     translate_ftp_capabilities,
 )
+from asusrouter.modules.support.helpers import (
+    support_available as support_available,
+    support_available_in as support_available_in,
+    support_value as support_value,
+)
 from asusrouter.modules.support.lan import translate_lan_capabilities
 from asusrouter.modules.support.platform import translate_platform
 from asusrouter.modules.support.speedtest import (
