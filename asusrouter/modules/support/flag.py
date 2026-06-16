@@ -85,7 +85,7 @@ class ARSupportValue(FromStrMixin, StrEnum):
     AURA_NIGHT_MODE = "ledg_night_mode"
     AURA_ZONE = "ledg_count"
 
-    # Connection methods
+    # Connections
     CONNECTION_HTTPS = "HTTPS"
     CONNECTION_SSH = "ssh"
 
@@ -102,7 +102,7 @@ class ARSupportValue(FromStrMixin, StrEnum):
     # Device mode
     MODE_REPEATER = "repeater"  # TODO: use it
 
-    # Platform support
+    # Platform
     PLATFORM_BROADCOM = "bcmwifi"
     PLATFORM_LANTIQ = "lantiq"
     PLATFORM_MEDIATEK = "rawifi"

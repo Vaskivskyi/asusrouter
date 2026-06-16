@@ -49,6 +49,35 @@ def test_make_bool_translator(
 
 
 @pytest.mark.parametrize(
+    ("table", "default", "data", "expected"),
+    [
+        # no match → default
+        ({"k1": "v1"}, "d", {}, "d"),
+        ({"k1": "v1"}, "d", {"k1": 0}, "d"),
+        ({"k1": "v1"}, "d", {"k1": "0"}, "d"),
+        ({"k1": "v1"}, "d", {"k2": 1}, "d"),
+        # single key match
+        ({"k1": "v1"}, "d", {"k1": 1}, "v1"),
+        ({"k1": "v1"}, "d", {"k1": "1"}, "v1"),
+        # first key wins
+        ({"k1": "v1", "k2": "v2"}, "d", {"k1": 1, "k2": 1}, "v1"),
+        # second key when first absent
+        ({"k1": "v1", "k2": "v2"}, "d", {"k2": 1}, "v2"),
+        # non-dict → default
+        ({"k1": "v1"}, "d", "not_a_dict", "d"),
+        ({"k1": "v1"}, "d", None, "d"),
+    ],
+)
+def test_make_enum_translator(
+    table: dict[str, str], default: str, data: Any, expected: str
+) -> None:
+    """Test make_enum_translator returns first match or default."""
+
+    translator = make_enum_translator(table, default)
+    assert translator(data) == expected
+
+
+@pytest.mark.parametrize(
     ("key", "data", "expected"),
     [
         # absent → 0
@@ -105,33 +134,4 @@ def test_make_list_translator(
     """Test make_list_translator returns a correct list translator."""
 
     translator = make_list_translator(table)
-    assert translator(data) == expected
-
-
-@pytest.mark.parametrize(
-    ("table", "default", "data", "expected"),
-    [
-        # no match → default
-        ({"k1": "v1"}, "d", {}, "d"),
-        ({"k1": "v1"}, "d", {"k1": 0}, "d"),
-        ({"k1": "v1"}, "d", {"k1": "0"}, "d"),
-        ({"k1": "v1"}, "d", {"k2": 1}, "d"),
-        # single key match
-        ({"k1": "v1"}, "d", {"k1": 1}, "v1"),
-        ({"k1": "v1"}, "d", {"k1": "1"}, "v1"),
-        # first key wins
-        ({"k1": "v1", "k2": "v2"}, "d", {"k1": 1, "k2": 1}, "v1"),
-        # second key when first absent
-        ({"k1": "v1", "k2": "v2"}, "d", {"k2": 1}, "v2"),
-        # non-dict → default
-        ({"k1": "v1"}, "d", "not_a_dict", "d"),
-        ({"k1": "v1"}, "d", None, "d"),
-    ],
-)
-def test_make_enum_translator(
-    table: dict[str, str], default: str, data: Any, expected: str
-) -> None:
-    """Test make_enum_translator returns first match or default."""
-
-    translator = make_enum_translator(table, default)
     assert translator(data) == expected

@@ -10,7 +10,6 @@ from asusrouter.modules.support.helpers import (
 )
 
 translate_ftp = make_bool_translator(ARSupportValue.FTP.value, negate=True)
-
 translate_ftp_capabilities = make_list_translator(
     {
         ARSupportValue.FTP_SSL.value: ARFTPCapability.SSL,

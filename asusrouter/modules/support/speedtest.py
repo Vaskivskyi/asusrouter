@@ -10,7 +10,6 @@ from asusrouter.modules.support.helpers import (
 )
 
 translate_speedtest = make_bool_translator(ARSupportValue.SPEEDTEST.value)
-
 translate_speedtest_capabilities = make_list_translator(
     {
         ARSupportValue.SPEEDTEST_10G.value: ARSpeedTestCapability.SPEED_10G,
