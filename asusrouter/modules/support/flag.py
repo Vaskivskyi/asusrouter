@@ -28,6 +28,10 @@ class ARSupportType(FromStrMixin, StrEnum):
     # DSL
     DSL = "dsl"
 
+    # FTP
+    FTP = "ftp"
+    FTP_CAPABILITIES = "ftp_capabilities"
+
     # LAN
     LAN_CAPABILITIES = "lan_capabilities"
 
@@ -75,6 +79,10 @@ class ARSupportValue(FromStrMixin, StrEnum):
 
     # DSL
     DSL = "dsl"
+
+    # FTP
+    FTP = "noftp"
+    FTP_SSL = "ftp_ssl"
 
     # LAN capabilities
     LAN_AGGREGATION = "lacp"

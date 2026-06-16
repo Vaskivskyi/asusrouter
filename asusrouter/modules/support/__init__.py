@@ -23,6 +23,10 @@ from asusrouter.modules.support.aura import (
 from asusrouter.modules.support.connection import translate_connection
 from asusrouter.modules.support.dsl import translate_dsl
 from asusrouter.modules.support.flag import ARSupportType
+from asusrouter.modules.support.ftp import (
+    translate_ftp,
+    translate_ftp_capabilities,
+)
 from asusrouter.modules.support.lan import translate_lan_capabilities
 from asusrouter.modules.support.platform import translate_platform
 from asusrouter.modules.support.speedtest import (
@@ -70,6 +74,8 @@ TRANSLATION_TABLE: dict[ARSupportType, ARCallableType] = {
     ARSupportType.AURA_ZONE: translate_aura_zone,
     ARSupportType.CONNECTIONS: translate_connection,
     ARSupportType.DSL: translate_dsl,
+    ARSupportType.FTP: translate_ftp,
+    ARSupportType.FTP_CAPABILITIES: translate_ftp_capabilities,
     ARSupportType.LAN_CAPABILITIES: translate_lan_capabilities,
     ARSupportType.PLATFORM: translate_platform,
     ARSupportType.SPEEDTEST: translate_speedtest,
