@@ -18,7 +18,7 @@ MODEL_WITH_6GHZ = [
 
 def transform_network(
     data: dict[str, Any],
-    services: list[str] | None,
+    services: list[str] | None,  # TODO: Identity migration
     history: AsusDataState | None,
     **kwargs: Any,
 ) -> dict[str, Any]:
@@ -57,7 +57,7 @@ def transform_network(
             }
 
     # Get the model if available
-    model = kwargs.get("model")
+    model = kwargs.get("model")  # TODO: Identity migration
 
     # Check if we have 5GHz2 available in the network data
     if "5ghz2" in network:

@@ -64,7 +64,7 @@ from asusrouter.modules.endpoint import (
     read,
 )
 from asusrouter.modules.endpoint.error import AccessError
-from asusrouter.modules.firmware import Firmware
+from asusrouter.modules.firmware import ARFirmwareType, Firmware
 from asusrouter.modules.flags import Flag
 from asusrouter.modules.identity import AsusDevice, collect_identity
 from asusrouter.modules.port_forwarding import PortForwardingRule
@@ -529,11 +529,6 @@ class AsusRouter:
 
         _LOGGER.debug("Triggered method _where_to_get_data")
 
-        # Check that device identity is available
-        if not self._identity:
-            _LOGGER.debug("No device identity available")
-            return None
-
         # Get the map
         data_map = ASUSDATA_MAP.get(datatype)
         # Consider aliases
@@ -583,9 +578,8 @@ class AsusRouter:
             _LOGGER.debug("Transforming network data")
             return transform_network(
                 data,
-                self._identity.services if self._identity else [],
+                self.description,
                 self._state.get(AsusData.NETWORK),
-                model=self._identity.model if self._identity else None,
             )
 
         if datatype == AsusData.PORTS:
@@ -610,12 +604,13 @@ class AsusRouter:
         This is required for some data obtained from multiple endpoints.
         """
 
-        if not self._identity:
-            return False
-
         if (
             datatype == AsusData.OPENVPN_CLIENT
-            and self._identity.merlin is True
+            and self.description.firmware.firmware_type
+            in (
+                ARFirmwareType.MERLIN,
+                ARFirmwareType.GNUTON,
+            )
         ):
             return endpoint == Endpoint.HOOK
 
@@ -678,7 +673,8 @@ class AsusRouter:
         state = self._state[datatype].data
 
         if datatype == AsusData.PORTS:
-            own_mac = self._identity.mac if self._identity else None
+            mac = self.description.mac
+            own_mac = str(mac) if mac else None
 
             # Get the device selected
             device = kwargs.get("device")
@@ -1046,10 +1042,6 @@ class AsusRouter:
 
                 # Fetch the data
                 data = await self.async_api_load(endpoint, request)
-
-                # Make sure, identity is available
-                if not self._identity:
-                    self._identity = await self.async_get_identity()
 
                 processed = process(
                     endpoint,
