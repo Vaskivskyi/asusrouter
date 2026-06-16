@@ -9,6 +9,7 @@ import pytest
 from asusrouter.modules.support.helpers import (
     make_bool_translator,
     make_int_translator,
+    make_list_translator,
 )
 
 
@@ -71,4 +72,36 @@ def test_make_int_translator(key: str, data: Any, expected: int) -> None:
     """Test make_int_translator returns a correct int translator."""
 
     translator = make_int_translator(key)
+    assert translator(data) == expected
+
+
+@pytest.mark.parametrize(
+    ("table", "data", "expected"),
+    [
+        # empty dict → empty list
+        ({"k1": "v1"}, {}, []),
+        # key present → item in list
+        ({"k1": "v1"}, {"k1": 1}, ["v1"]),
+        ({"k1": "v1"}, {"k1": "1"}, ["v1"]),
+        # key false → empty
+        ({"k1": "v1"}, {"k1": 0}, []),
+        ({"k1": "v1"}, {"k1": "0"}, []),
+        # wrong key → empty
+        ({"k1": "v1"}, {"k2": 1}, []),
+        # multiple keys — all true
+        ({"k1": "v1", "k2": "v2"}, {"k1": 1, "k2": 1}, ["v1", "v2"]),
+        # multiple keys — partial
+        ({"k1": "v1", "k2": "v2"}, {"k1": 1}, ["v1"]),
+        ({"k1": "v1", "k2": "v2"}, {"k2": 1}, ["v2"]),
+        # non-dict → empty
+        ({"k1": "v1"}, "not_a_dict", []),
+        ({"k1": "v1"}, None, []),
+    ],
+)
+def test_make_list_translator(
+    table: dict[str, str], data: Any, expected: list[str]
+) -> None:
+    """Test make_list_translator returns a correct list translator."""
+
+    translator = make_list_translator(table)
     assert translator(data) == expected

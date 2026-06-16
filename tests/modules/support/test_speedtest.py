@@ -31,21 +31,11 @@ def test_translate_speedtest(data: Any, expected: bool) -> None:
 @pytest.mark.parametrize(
     ("data", "expected"),
     [
-        ({}, []),
-        # 10G
         (
             {ARSupportValue.SPEEDTEST_10G.value: 1},
             [ARSpeedTestCapability.SPEED_10G],
         ),
-        (
-            {ARSupportValue.SPEEDTEST_10G.value: "1"},
-            [ARSpeedTestCapability.SPEED_10G],
-        ),
-        # False
-        ({ARSupportValue.SPEEDTEST_10G.value: 0}, []),
-        # Not a dict
-        ("not_a_dict", []),
-        (None, []),
+        ({}, []),
     ],
 )
 def test_translate_speedtest_capabilities(

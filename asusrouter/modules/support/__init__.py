@@ -16,7 +16,7 @@ from asusrouter.modules.support.ai import (
 )
 from asusrouter.modules.support.aimesh import (
     translate_aimesh,
-    translate_aimesh_features,
+    translate_aimesh_capabilities,
     translate_aimesh_generation,
 )
 from asusrouter.modules.support.aura import (
@@ -73,7 +73,7 @@ TRANSLATION_TABLE: dict[ARSupportType, ARCallableType] = {
     ARSupportType.AI: translate_ai,
     ARSupportType.AI_CAPABILITIES: translate_ai_capabilities,
     ARSupportType.AIMESH: translate_aimesh,
-    ARSupportType.AIMESH_FEATURES: translate_aimesh_features,
+    ARSupportType.AIMESH_CAPABILITIES: translate_aimesh_capabilities,
     ARSupportType.AIMESH_GENERATION: translate_aimesh_generation,
     ARSupportType.AURA: translate_aura,
     ARSupportType.AURA_NIGHT_MODE: translate_aura_night_mode,

@@ -10,8 +10,8 @@ from asusrouter.const import UNKNOWN_MEMBER_STR
 from asusrouter.tools.enum import FromStrMixin
 
 
-class ARAiMeshFeature(FromStrMixin, StrEnum):
-    """AiMesh features."""
+class ARAiMeshCapability(FromStrMixin, StrEnum):
+    """AiMesh capabilities."""
 
     UNKNOWN = UNKNOWN_MEMBER_STR
 

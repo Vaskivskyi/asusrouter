@@ -32,44 +32,12 @@ def test_translate_wan(data: Any, expected: bool) -> None:
 @pytest.mark.parametrize(
     ("data", "expected"),
     [
-        ({}, []),
-        # Aggregation only
         (
             {ARSupportValue.WAN_AGGREGATION.value: 1},
             [ARWANCapability.AGGREGATION],
         ),
-        (
-            {ARSupportValue.WAN_AGGREGATION.value: "1"},
-            [ARWANCapability.AGGREGATION],
-        ),
-        # DualWAN only
-        (
-            {ARSupportValue.WAN_DUALWAN.value: 1},
-            [ARWANCapability.DUALWAN],
-        ),
-        (
-            {ARSupportValue.WAN_DUALWAN.value: "1"},
-            [ARWANCapability.DUALWAN],
-        ),
-        # Both
-        (
-            {
-                ARSupportValue.WAN_AGGREGATION.value: 1,
-                ARSupportValue.WAN_DUALWAN.value: 1,
-            },
-            [ARWANCapability.AGGREGATION, ARWANCapability.DUALWAN],
-        ),
-        # Both false
-        (
-            {
-                ARSupportValue.WAN_AGGREGATION.value: 0,
-                ARSupportValue.WAN_DUALWAN.value: 0,
-            },
-            [],
-        ),
-        # Not a dict
-        ("not_a_dict", []),
-        (None, []),
+        ({ARSupportValue.WAN_DUALWAN.value: 1}, [ARWANCapability.DUALWAN]),
+        ({}, []),
     ],
 )
 def test_translate_wan_capabilities(

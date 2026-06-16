@@ -14,21 +14,11 @@ from asusrouter.modules.support.lan import translate_lan_capabilities
 @pytest.mark.parametrize(
     ("data", "expected"),
     [
-        ({}, []),
-        # Aggregation
         (
             {ARSupportValue.LAN_AGGREGATION.value: 1},
             [ARLANCapability.AGGREGATION],
         ),
-        (
-            {ARSupportValue.LAN_AGGREGATION.value: "1"},
-            [ARLANCapability.AGGREGATION],
-        ),
-        # False
-        ({ARSupportValue.LAN_AGGREGATION.value: 0}, []),
-        # Not a dict
-        ("not_a_dict", []),
-        (None, []),
+        ({}, []),
     ],
 )
 def test_translate_lan_capabilities(

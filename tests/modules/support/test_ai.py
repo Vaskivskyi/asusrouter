@@ -31,34 +31,13 @@ def test_translate_ai(data: Any, expected: bool) -> None:
 @pytest.mark.parametrize(
     ("data", "expected"),
     [
-        ({}, []),
-        (
-            {ARSupportValue.AI_SLM.value: 1},
-            [ARAICapability.SLM],
-        ),
+        ({ARSupportValue.AI_SLM.value: 1}, [ARAICapability.SLM]),
         (
             {ARSupportValue.AI_UPGRADE_BETA.value: 1},
             [ARAICapability.UPGRADE_BETA],
         ),
-        (
-            {ARSupportValue.AI_RESET_BETA.value: 1},
-            [ARAICapability.RESET_BETA],
-        ),
-        (
-            {
-                ARSupportValue.AI_SLM.value: 1,
-                ARSupportValue.AI_UPGRADE_BETA.value: 1,
-                ARSupportValue.AI_RESET_BETA.value: 1,
-            },
-            [
-                ARAICapability.SLM,
-                ARAICapability.UPGRADE_BETA,
-                ARAICapability.RESET_BETA,
-            ],
-        ),
-        ({ARSupportValue.AI_SLM.value: "0"}, []),
-        ("not_a_dict", []),
-        (None, []),
+        ({ARSupportValue.AI_RESET_BETA.value: 1}, [ARAICapability.RESET_BETA]),
+        ({}, []),
     ],
 )
 def test_translate_ai_capabilities(

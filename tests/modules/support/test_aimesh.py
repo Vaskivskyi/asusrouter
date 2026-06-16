@@ -6,10 +6,10 @@ from typing import Any
 
 import pytest
 
-from asusrouter.modules.aimesh import ARAiMeshFeature
+from asusrouter.modules.aimesh import ARAiMeshCapability
 from asusrouter.modules.support.aimesh import (
     translate_aimesh,
-    translate_aimesh_features,
+    translate_aimesh_capabilities,
     translate_aimesh_generation,
 )
 from asusrouter.modules.support.flag import ARSupportValue
@@ -32,29 +32,24 @@ def test_translate_aimesh(data: Any, expected: bool) -> None:
 @pytest.mark.parametrize(
     ("data", "expected"),
     [
-        ({}, []),
         (
             {ARSupportValue.AIMESH_NEW_ONBOARDING.value: 1},
-            [ARAiMeshFeature.NEW_ONBOARDING],
+            [ARAiMeshCapability.NEW_ONBOARDING],
         ),
-        ({ARSupportValue.AIMESH_NODE.value: 1}, [ARAiMeshFeature.NODE]),
-        ({ARSupportValue.AIMESH_ROUTER.value: 1}, [ARAiMeshFeature.ROUTER]),
+        ({ARSupportValue.AIMESH_NODE.value: 1}, [ARAiMeshCapability.NODE]),
         (
-            {
-                ARSupportValue.AIMESH_NEW_ONBOARDING.value: 1,
-                ARSupportValue.AIMESH_NODE.value: 1,
-            },
-            [ARAiMeshFeature.NEW_ONBOARDING, ARAiMeshFeature.NODE],
+            {ARSupportValue.AIMESH_ROUTER.value: 1},
+            [ARAiMeshCapability.ROUTER],
         ),
-        ("not_a_dict", []),
+        ({}, []),
     ],
 )
-def test_translate_aimesh_features(
-    data: Any, expected: list[ARAiMeshFeature]
+def test_translate_aimesh_capabilities(
+    data: Any, expected: list[ARAiMeshCapability]
 ) -> None:
-    """Test translate_aimesh_features returns the enabled features."""
+    """Test translate_aimesh_capabilities returns correct capability list."""
 
-    assert translate_aimesh_features(data) == expected
+    assert translate_aimesh_capabilities(data) == expected
 
 
 @pytest.mark.parametrize(

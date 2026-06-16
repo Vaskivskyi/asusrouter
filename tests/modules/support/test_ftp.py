@@ -31,18 +31,8 @@ def test_translate_ftp(data: Any, expected: bool) -> None:
 @pytest.mark.parametrize(
     ("data", "expected"),
     [
+        ({ARSupportValue.FTP_SSL.value: 1}, [ARFTPCapability.SSL]),
         ({}, []),
-        (
-            {ARSupportValue.FTP_SSL.value: 1},
-            [ARFTPCapability.SSL],
-        ),
-        (
-            {ARSupportValue.FTP_SSL.value: "0"},
-            [],
-        ),
-        # Not a dict
-        ("not_a_dict", []),
-        (None, []),
     ],
 )
 def test_translate_ftp_capabilities(
