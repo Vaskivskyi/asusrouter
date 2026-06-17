@@ -16,7 +16,8 @@ from asusrouter.modules.color import (
 )
 from asusrouter.modules.data import AsusData, AsusDataState
 from asusrouter.modules.endpoint import EndpointTools
-from asusrouter.modules.identity import AsusDevice
+from asusrouter.modules.support.flag import ARSupportType
+from asusrouter.modules.support.helpers import support_value
 from asusrouter.tools.converters import (
     get_arguments,
     safe_bool,
@@ -184,12 +185,12 @@ async def set_state(
 ) -> bool:
     """Set the Aura state."""
 
-    # Get the identity
-    identity: AsusDevice = kwargs.get(
-        "identity", AsusDevice()
-    )  # TODO: Identity migration
-    # Get the number of zones
-    zones = identity.aura_zone
+    description = kwargs.get("identity")
+    zones = (
+        support_value(description.support, ARSupportType.AURA_ZONE) or 0
+        if description
+        else 0
+    )
     if zones < 1:
         _LOGGER.debug("No Aura zones found. Skipping the Aura service.")
         return False

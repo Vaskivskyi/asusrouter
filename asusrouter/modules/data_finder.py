@@ -217,7 +217,7 @@ ASUSDATA_MAP: dict[AsusData, AsusData | AsusDataFinder] = {
     AsusData.GWLAN: AsusDataFinder(
         Endpoint.HOOK,
         method=gwlan_nvram_request,
-        arguments=AsusRouterAttribute.WLAN_LIST,  # TODO: Identity migration
+        arguments=AsusRouterAttribute.WLAN_LIST,
     ),
     AsusData.LED: AsusDataFinder(Endpoint.HOOK, nvram=ASUSDATA_NVRAM["light"]),
     AsusData.NETWORK: AsusData.CPU,
@@ -273,7 +273,7 @@ ASUSDATA_MAP: dict[AsusData, AsusData | AsusDataFinder] = {
     AsusData.WLAN: AsusDataFinder(
         Endpoint.HOOK,
         method=wlan_nvram_request,
-        arguments=AsusRouterAttribute.WLAN_LIST,  # TODO: Identity migration
+        arguments=AsusRouterAttribute.WLAN_LIST,
     ),
     AsusData.DSL: AsusDataFinder(
         Endpoint.HOOK,

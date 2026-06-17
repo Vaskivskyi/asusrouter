@@ -6,8 +6,6 @@ from typing import Any
 
 from asusrouter.modules.firmware.flag import ARFirmwareType
 from asusrouter.modules.firmware.legacy import (
-    Firmware,
-    FirmwareType,
     WebsError,
     WebsFlag,
     WebsUpdate,
@@ -24,8 +22,6 @@ from asusrouter.tools.converters import safe_int
 __all__ = [
     "ARFirmware",
     "ARFirmwareType",
-    "Firmware",
-    "FirmwareType",
     "WebsError",
     "WebsFlag",
     "WebsUpdate",

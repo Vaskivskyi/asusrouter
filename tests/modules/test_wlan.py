@@ -6,11 +6,11 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from asusrouter.modules.wifi import ARWiFiBand
 from asusrouter.modules.wlan import (
     MAP_GWLAN,
     MAP_WLAN,
     AsusWLAN,
-    Wlan,
     _nvram_request,
     gwlan_nvram_request,
     set_state,
@@ -23,33 +23,35 @@ from asusrouter.modules.wlan import (
     [
         # No wlan specified
         (None, False, None),
-        ([], False, None),
+        ({}, False, None),
         (None, True, None),
-        ([], True, None),
+        ({}, True, None),
         # WLAN
-        ([Wlan.FREQ_2G], False, "wl0_auth_mode_x,wl0_bw"),
-        ([Wlan.FREQ_5G], False, "wl1_auth_mode_x,wl1_bw"),
-        ([Wlan.FREQ_6G], False, "wl3_auth_mode_x,wl3_bw"),
+        ({ARWiFiBand.BAND_2G1: 0}, False, "wl0_auth_mode_x,wl0_bw"),
+        ({ARWiFiBand.BAND_5G1: 1}, False, "wl1_auth_mode_x,wl1_bw"),
+        ({ARWiFiBand.BAND_6G1: 3}, False, "wl3_auth_mode_x,wl3_bw"),
         # GWLAN
         (
-            [Wlan.FREQ_2G],
+            {ARWiFiBand.BAND_2G1: 0},
             True,
             "wl0.1_auth_mode_x,wl0.1_bw",
         ),
         (
-            [Wlan.FREQ_5G],
+            {ARWiFiBand.BAND_5G1: 1},
             True,
             "wl1.1_auth_mode_x,wl1.1_bw",
         ),
         (
-            [Wlan.FREQ_6G],
+            {ARWiFiBand.BAND_6G1: 3},
             True,
             "wl3.1_auth_mode_x,wl3.1_bw",
         ),
     ],
 )
 def test_nvram_request(
-    wlan: list[Wlan] | None, guest: bool, expected_request: str | None
+    wlan: dict[ARWiFiBand, int] | None,
+    guest: bool,
+    expected_request: str | None,
 ) -> None:
     """Test _nvram_request."""
 
@@ -67,18 +69,20 @@ def test_wlan_nvram_request() -> None:
     """Test wlan_nvram_request."""
 
     mock = MagicMock()
+    wlan = {ARWiFiBand.BAND_2G1: 0}
     with patch("asusrouter.modules.wlan._nvram_request", new=mock):
-        wlan_nvram_request([Wlan.FREQ_2G])
-        mock.assert_called_with([Wlan.FREQ_2G], MAP_WLAN)
+        wlan_nvram_request(wlan)
+        mock.assert_called_with(wlan, MAP_WLAN)
 
 
 def test_gwlan_nvram_request() -> None:
     """Test gwlan_nvram_request."""
 
     mock = MagicMock()
+    wlan = {ARWiFiBand.BAND_2G1: 0}
     with patch("asusrouter.modules.wlan._nvram_request", new=mock):
-        gwlan_nvram_request([Wlan.FREQ_2G])
-        mock.assert_called_with([Wlan.FREQ_2G], MAP_GWLAN, guest=True)
+        gwlan_nvram_request(wlan)
+        mock.assert_called_with(wlan, MAP_GWLAN, guest=True)
 
 
 @pytest.mark.asyncio

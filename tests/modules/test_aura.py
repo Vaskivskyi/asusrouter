@@ -23,8 +23,9 @@ from asusrouter.modules.aura import (
 )
 from asusrouter.modules.color import ColorRGB, ColorRGBB
 from asusrouter.modules.data import AsusData, AsusDataState
+from asusrouter.modules.device.identity import ARDeviceIdentity
 from asusrouter.modules.endpoint import EndpointTools
-from asusrouter.modules.identity import AsusDevice
+from asusrouter.modules.support.flag import ARSupportType
 
 
 @pytest.mark.parametrize(
@@ -431,8 +432,8 @@ async def test_set_state(
 
     # --- CASE 2: Test with no color support
     mock_get_arguments.return_value = default_get_arguments
-    mock_identity = MagicMock(spec=AsusDevice)
-    mock_identity.aura_zone = 2
+    mock_identity = MagicMock(spec=ARDeviceIdentity)
+    mock_identity.support = {ARSupportType.AURA_ZONE: 2}
     mock_aura_state = {"scheme": AsusAura.RAINBOW}
     mock_kwargs = {
         "color": ColorRGB((255, 0, 0)),
@@ -525,8 +526,8 @@ async def test_set_state_with_color_support(
     mock_get_arguments.return_value = default_get_arguments
 
     # Mock the identity
-    mock_identity = MagicMock(spec=AsusDevice)
-    mock_identity.aura_zone = 2
+    mock_identity = MagicMock(spec=ARDeviceIdentity)
+    mock_identity.support = {ARSupportType.AURA_ZONE: 2}
 
     # Mock the aura state
     mock_aura_state = {
@@ -567,7 +568,7 @@ async def test_set_state_with_color_support(
         colors,
         mock_kwargs["color"],
         mock_kwargs["zone"],
-        mock_identity.aura_zone,
+        2,
     )
     mock_set_brightness.assert_called_once_with(
         colors, mock_kwargs["brightness"], mock_kwargs["zone"]
@@ -649,8 +650,8 @@ async def test_set_state_final(
     """Test set_state function for the final output."""
 
     mock_callback = AsyncMock(return_value=True)
-    mock_identity = MagicMock(spec=AsusDevice)
-    mock_identity.aura_zone = 3
+    mock_identity = MagicMock(spec=ARDeviceIdentity)
+    mock_identity.support = {ARSupportType.AURA_ZONE: 3}
     mock_aura_state: dict[str, Any] = {
         "effect": {
             state.value: [

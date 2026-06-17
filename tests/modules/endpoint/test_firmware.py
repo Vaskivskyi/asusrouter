@@ -9,7 +9,7 @@ import pytest
 from asusrouter.modules.data import AsusData
 from asusrouter.modules.endpoint.firmware import process, read
 from asusrouter.modules.firmware import (
-    Firmware,
+    ARFirmware,
     WebsError,
     WebsFlag,
     WebsUpdate,
@@ -66,21 +66,21 @@ test_case_1: dict[str, Any] = {
 # processed and reported as available update.
 test_case_2_input: dict[str, Any] = {
     "webs_state_info": "3.0.0.4.388.8_0",
-    "firmware": Firmware("3.0.0.4.388.7_0"),
+    "firmware": ARFirmware.from_string("3.0.0.4.388.7_0"),
 }
 
 test_case_2 = test_case_1.copy()
 test_case_2_webs = test_case_2["webs"].copy()
 test_case_2_webs.update(
     {
-        "available": Firmware("3.0.0.4.388.8_0"),
+        "available": ARFirmware.from_string("3.0.0.4.388.8_0"),
     }
 )
 test_case_2.update(
     {
-        "current": Firmware("3.0.0.4.388.7_0"),
+        "current": ARFirmware.from_string("3.0.0.4.388.7_0"),
         "state": True,
-        "available": Firmware("3.0.0.4.388.8_0"),
+        "available": ARFirmware.from_string("3.0.0.4.388.8_0"),
         "webs": test_case_2_webs,
     }
 )
@@ -91,22 +91,22 @@ test_case_2.update(
 test_case_3_input: dict[str, Any] = {
     "webs_state_info": "3.0.0.4.388.8_0",
     "webs_state_info_beta": "3.0.0.4.388.8_2beta1",
-    "firmware": Firmware("3.0.0.4.388.8_0"),
+    "firmware": ARFirmware.from_string("3.0.0.4.388.8_0"),
 }
 
 test_case_3 = test_case_1.copy()
 test_case_3_webs = test_case_3["webs"].copy()
 test_case_3_webs.update(
     {
-        "available": Firmware("3.0.0.4.388.8_0"),
-        "available_beta": Firmware("3.0.0.4.388.8_2beta1"),
+        "available": ARFirmware.from_string("3.0.0.4.388.8_0"),
+        "available_beta": ARFirmware.from_string("3.0.0.4.388.8_2beta1"),
     }
 )
 test_case_3.update(
     {
-        "current": Firmware("3.0.0.4.388.8_0"),
+        "current": ARFirmware.from_string("3.0.0.4.388.8_0"),
         "state_beta": True,
-        "available_beta": Firmware("3.0.0.4.388.8_2beta1"),
+        "available_beta": ARFirmware.from_string("3.0.0.4.388.8_2beta1"),
         "webs": test_case_3_webs,
     }
 )
@@ -117,24 +117,24 @@ test_case_3.update(
 test_case_4_input: dict[str, Any] = {
     "webs_state_info": "3.0.0.4.388.8_0",
     "webs_state_info_beta": "3.0.0.4.388.8_2beta1",
-    "firmware": Firmware("3.0.0.4.388.7_0"),
+    "firmware": ARFirmware.from_string("3.0.0.4.388.7_0"),
 }
 
 test_case_4 = test_case_1.copy()
 test_case_4_webs = test_case_4["webs"].copy()
 test_case_4_webs.update(
     {
-        "available": Firmware("3.0.0.4.388.8_0"),
-        "available_beta": Firmware("3.0.0.4.388.8_2beta1"),
+        "available": ARFirmware.from_string("3.0.0.4.388.8_0"),
+        "available_beta": ARFirmware.from_string("3.0.0.4.388.8_2beta1"),
     }
 )
 test_case_4.update(
     {
-        "current": Firmware("3.0.0.4.388.7_0"),
+        "current": ARFirmware.from_string("3.0.0.4.388.7_0"),
         "state": True,
-        "available": Firmware("3.0.0.4.388.8_0"),
+        "available": ARFirmware.from_string("3.0.0.4.388.8_0"),
         "state_beta": True,
-        "available_beta": Firmware("3.0.0.4.388.8_2beta1"),
+        "available_beta": ARFirmware.from_string("3.0.0.4.388.8_2beta1"),
         "webs": test_case_4_webs,
     }
 )
@@ -143,19 +143,19 @@ test_case_4.update(
 # Check that the ROG flag is properly ignored.
 test_case_5_input: dict[str, Any] = {
     "webs_state_info": "3.0.0.4.388.7_0",
-    "firmware": Firmware("3.0.0.4.388.7_0_rog"),
+    "firmware": ARFirmware.from_string("3.0.0.4.388.7_0_rog"),
 }
 
 test_case_5 = test_case_1.copy()
 test_case_5_webs = test_case_5["webs"].copy()
 test_case_5_webs.update(
     {
-        "available": Firmware("3.0.0.4.388.7_0"),
+        "available": ARFirmware.from_string("3.0.0.4.388.7_0"),
     }
 )
 test_case_5.update(
     {
-        "current": Firmware("3.0.0.4.388.7_0_rog"),
+        "current": ARFirmware.from_string("3.0.0.4.388.7_0_rog"),
         "webs": test_case_5_webs,
     }
 )
@@ -164,19 +164,19 @@ test_case_5.update(
 # Check that the ROG flag is properly ignored.
 test_case_6_input: dict[str, Any] = {
     "webs_state_info": "3.0.0.4.388.7_0_rog",
-    "firmware": Firmware("3.0.0.4.388.7_0"),
+    "firmware": ARFirmware.from_string("3.0.0.4.388.7_0"),
 }
 
 test_case_6 = test_case_1.copy()
 test_case_6_webs = test_case_6["webs"].copy()
 test_case_6_webs.update(
     {
-        "available": Firmware("3.0.0.4.388.7_0_rog"),
+        "available": ARFirmware.from_string("3.0.0.4.388.7_0_rog"),
     }
 )
 test_case_6.update(
     {
-        "current": Firmware("3.0.0.4.388.7_0"),
+        "current": ARFirmware.from_string("3.0.0.4.388.7_0"),
         "webs": test_case_6_webs,
     }
 )

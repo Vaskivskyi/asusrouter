@@ -6,7 +6,7 @@ from collections.abc import Awaitable, Callable
 from enum import IntEnum
 from typing import Any
 
-from asusrouter.modules.endpoint import Endpoint
+from asusrouter.modules.firmware import ARFirmwareType
 
 
 class AsusLED(IntEnum):
@@ -43,17 +43,18 @@ async def keep_state(
 ) -> bool:
     """Keep the LED state."""
 
-    identity = kwargs.get("identity")  # TODO: Identity migration
+    description = kwargs.get("identity")
 
-    # Check if identity is available and if endpoints are defined
-    if identity is None or not identity.endpoints:
+    if description is None:
         return False
 
-    # Get the sysinfo
-    sysinfo = identity.endpoints.get(Endpoint.SYSINFO)
+    if description.firmware.firmware_type not in (
+        ARFirmwareType.MERLIN,
+        ARFirmwareType.GNUTON,
+    ):
+        return False
 
-    # Only when LEDs are off and if sysinfo is available
-    if not sysinfo or state == AsusLED.ON:
+    if state == AsusLED.ON:
         return False
 
     # Toggle the LED

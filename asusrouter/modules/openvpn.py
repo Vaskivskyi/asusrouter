@@ -7,12 +7,12 @@ from enum import IntEnum
 import logging
 from typing import Any
 
-from asusrouter.modules.firmware import Firmware
+from asusrouter.modules.firmware import ARFirmware, ARFirmwareType
 from asusrouter.tools.converters import get_arguments
 
 _LOGGER = logging.getLogger(__name__)
 
-REQUIRE_IDENTITY = True
+_FW_388 = ARFirmware(major=(3, 0, 0, 4), minor=388, build=0)
 
 
 class AsusOVPNClient(IntEnum):
@@ -59,9 +59,7 @@ async def set_state(
         return False
 
     # Get the arguments
-    vpn_id, identity = get_arguments(
-        ("id", "identity"), **kwargs
-    )  # TODO: Identity migration
+    vpn_id, identity = get_arguments(("id", "identity"), **kwargs)
 
     if not vpn_id:
         _LOGGER.debug("No VPN id found in arguments")
@@ -71,13 +69,15 @@ async def set_state(
 
     service_map: dict[Any, str]
 
-    # Get the correct service call
-    # This will be firmware dependent
-    if (
-        not identity
-        or identity.merlin
-        or identity.firmware < Firmware(major="3.0.0.4", minor=388, build=0)
-    ):
+    # Derive firmware and Merlin flag from V2 identity (ARDeviceIdentity)
+    firmware = identity.firmware if identity else ARFirmware()
+    merlin = firmware.firmware_type in (
+        ARFirmwareType.MERLIN,
+        ARFirmwareType.GNUTON,
+    )
+
+    # Get the correct service call — firmware dependent
+    if not identity or merlin or firmware < _FW_388:
         service_map = {
             (AsusOVPNClient, AsusOVPNClient.ON): f"start_vpnclient{vpn_id}",
             (AsusOVPNClient, AsusOVPNClient.OFF): f"stop_vpnclient{vpn_id}",

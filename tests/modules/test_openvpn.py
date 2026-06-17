@@ -2,39 +2,32 @@
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from asusrouter.modules.firmware import Firmware
-from asusrouter.modules.identity import AsusDevice
+from asusrouter.modules.device.identity import ARDeviceIdentity
+from asusrouter.modules.firmware import ARFirmware
 from asusrouter.modules.openvpn import (
     AsusOVPNClient,
     AsusOVPNServer,
     set_state,
 )
 
-FW_MAJOR = "3.0.0.4"
-FW_MINOR_OLD = 386
-FW_MINOR_NEW = 388
+_FW_MAJOR = (3, 0, 0, 4)
+
+
+def _make_identity(minor: int, rog: bool) -> MagicMock:
+    mock = MagicMock(spec=ARDeviceIdentity)
+    mock.firmware = ARFirmware(major=_FW_MAJOR, minor=minor, build=0, rog=rog)
+    return mock
+
 
 identity_mock = {
-    "merlin_new": AsusDevice(
-        merlin=True,
-        firmware=Firmware(major=FW_MAJOR, minor=FW_MINOR_NEW, build=0),
-    ),
-    "merlin_old": AsusDevice(
-        merlin=True,
-        firmware=Firmware(major=FW_MAJOR, minor=FW_MINOR_OLD, build=0),
-    ),
-    "stock_new": AsusDevice(
-        merlin=False,
-        firmware=Firmware(major=FW_MAJOR, minor=FW_MINOR_NEW, build=0),
-    ),
-    "stock_old": AsusDevice(
-        merlin=False,
-        firmware=Firmware(major=FW_MAJOR, minor=FW_MINOR_OLD, build=0),
-    ),
+    "merlin_new": _make_identity(minor=388, rog=True),
+    "merlin_old": _make_identity(minor=386, rog=True),
+    "stock_new": _make_identity(minor=388, rog=False),
+    "stock_old": _make_identity(minor=386, rog=False),
 }
 
 

@@ -183,14 +183,12 @@ def process(
         # Check if the submodule requires identity
         require_firmware = getattr(submodule, "REQUIRE_FIRMWARE", False)
         if require_firmware:
-            firmware = (
-                description.firmware if description else None
-            )  # TODO: Identity migration
+            firmware = description.firmware if description else None
             data_set(data, firmware=firmware)
         # Check if the submodule requires wlan
         require_wlan = getattr(submodule, "REQUIRE_WLAN", False)
         if require_wlan:
-            wlan = None  # TODO: Identity migration
+            wlan = description.wifi if description else {}
             data_set(data, wlan=wlan)
 
         # Process the data

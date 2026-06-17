@@ -4,17 +4,15 @@ from __future__ import annotations
 
 from asusrouter import AsusData
 from asusrouter.modules.firmware import (
-    Firmware,
+    ARFirmware,
     WebsError,
     WebsFlag,
     WebsUpdate,
     WebsUpgrade,
 )
 
-_available: Firmware | None = Firmware(
-    major="3.0.0.4", minor=388, build=4, revision=0
-)
-_available_beta: Firmware | None = None
+_available: ARFirmware | None = ARFirmware.from_string("3.0.0.4.388.4_0")
+_available_beta: ARFirmware | None = None
 
 expected_result = {
     AsusData.FIRMWARE: {

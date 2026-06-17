@@ -96,7 +96,7 @@ _LOGGER = logging.getLogger(__name__)
 
 ARDataRequest = ARDataSource | ARDataType | Iterable[ARDataSource | ARDataType]
 
-_FW_388 = ARFirmware(major=(3, 0, 0, 4), minor=388)
+_FW_388 = ARFirmware(major=(3, 0, 0, 4), minor=388, build=0)
 
 
 class AsusRouter:
@@ -369,8 +369,8 @@ class AsusRouter:
             case AsusRouterAttribute.MAC:
                 mac = self.description.mac
                 return str(mac) if mac else None
-            case AsusRouterAttribute.WLAN_LIST:  # TODO: Identity migration
-                return self.description
+            case AsusRouterAttribute.WLAN_LIST:
+                return self.description.wifi if self.description else None
 
         return None
 
@@ -995,7 +995,8 @@ class AsusRouter:
                     request += f"{key}({value});"
                 if df_method:
                     argument = self._get_attribute(df_arguments)
-                    request += df_method(argument) if argument else df_method()
+                    if method_result := df_method(argument):
+                        request += method_result
 
                 # Add the request from kwargs
                 kw_request = kwargs.get("request", {})
