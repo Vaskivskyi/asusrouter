@@ -64,6 +64,7 @@ class AREndpointMeta:
     sensitive: bool = False
 
 
+_DEFAULT_META = AREndpointMeta()
 _GET_META = AREndpointMeta(request_type=RequestType.GET)
 
 _ENDPOINT_META: dict[AREndpoint, AREndpointMeta] = {
@@ -79,7 +80,7 @@ _ENDPOINT_META: dict[AREndpoint, AREndpointMeta] = {
 def get_endpoint_meta(endpoint: AREndpoint) -> AREndpointMeta:
     """Get metadata for the given endpoint."""
 
-    return _ENDPOINT_META.get(endpoint, AREndpointMeta())
+    return _ENDPOINT_META.get(endpoint, _DEFAULT_META)
 
 
 def get_endpoint_request_type(endpoint: AREndpoint) -> RequestType:

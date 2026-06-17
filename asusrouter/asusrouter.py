@@ -60,7 +60,7 @@ from asusrouter.modules.endpoint_v2 import (
     AREndpoint,
     get_endpoint_request_type,
 )
-from asusrouter.modules.firmware import ARFirmware, ARFirmwareType
+from asusrouter.modules.firmware import AR_FW_388, ARFirmwareType
 from asusrouter.modules.flags import Flag
 from asusrouter.modules.port_forwarding import PortForwardingRule
 from asusrouter.modules.service import async_call_service
@@ -91,8 +91,6 @@ from asusrouter.tools.types import ARCallableType, ARCallbackType
 _LOGGER = logging.getLogger(__name__)
 
 ARDataRequest = ARDataSource | ARDataType | Iterable[ARDataSource | ARDataType]
-
-_FW_388 = ARFirmware(major=(3, 0, 0, 4), minor=388, build=0)
 
 
 class AsusRouter:
@@ -199,8 +197,9 @@ class AsusRouter:
         result = await self.async_get_data_v2(
             ARDeviceSourceUniversal, force=True
         )
-        # Apply legacy conditional data rules
-        await self.async_get_identity()
+        # Apply legacy conditional data rules only if description was fetched
+        if result is not None:
+            await self.async_get_identity()
 
         return result is not None
 
@@ -296,8 +295,8 @@ class AsusRouter:
         support = description.support
         # Stock
         if not merlin:
-            _LOGGER.debug("Adding conditional rules for stock firmware")
-            if firmware > _FW_388:
+            if firmware > AR_FW_388:
+                _LOGGER.debug("Adding conditional rules for stock firmware")
                 add_conditional_state(AsusState.OPENVPN_CLIENT, AsusData.VPNC)
                 add_conditional_state(
                     AsusState.WIREGUARD_CLIENT, AsusData.VPNC
@@ -316,18 +315,17 @@ class AsusRouter:
                     ),
                 )
         # Merlin / Gnuton
-        else:
+        elif firmware > AR_FW_388:
             _LOGGER.debug("Adding conditional rules for Merlin firmware")
-            if firmware > _FW_388:
-                add_conditional_data_rule(
-                    AsusData.VPNC,
-                    AsusDataFinder(
-                        AREndpoint.FETCH_DATA,
-                        nvram=ASUSDATA_NVRAM["vpnc"],
-                    ),
-                )
+            add_conditional_data_rule(
+                AsusData.VPNC,
+                AsusDataFinder(
+                    AREndpoint.FETCH_DATA,
+                    nvram=ASUSDATA_NVRAM["vpnc"],
+                ),
+            )
         # Before 388
-        if firmware < _FW_388:
+        if firmware < AR_FW_388:
             # Remove VPNC rules
             remove_data_rule(AsusData.VPNC)
             remove_data_rule(AsusData.VPNC_CLIENTLIST)

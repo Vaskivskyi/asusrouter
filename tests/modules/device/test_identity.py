@@ -115,6 +115,13 @@ class TestTranslateWifi:
                 {ARSupportType.WIFI_UNITS: (0,)},
                 {ARWiFiBand.BAND_2G1: 0},
             ),
+            # ARWiFiBand.UNKNOWN is a valid member ("unknown")
+            # but must be skipped
+            (
+                {ARNvramType.WIRELESS_BANDS: "2g1&#60unknown&#605g1"},
+                {ARSupportType.WIFI_UNITS: (0, 1, 2)},
+                {ARWiFiBand.BAND_2G1: 0, ARWiFiBand.BAND_5G1: 2},
+            ),
         ],
     )
     def test_translate_wifi(

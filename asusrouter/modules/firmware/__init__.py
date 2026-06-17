@@ -20,6 +20,7 @@ from asusrouter.modules.firmware.translate import (
 from asusrouter.tools.converters import safe_int
 
 __all__ = [
+    "AR_FW_388",
     "ARFirmware",
     "ARFirmwareType",
     "WebsError",
@@ -197,3 +198,6 @@ class ARFirmware:
         if not isinstance(other, ARFirmware):
             return NotImplemented
         return other.__lt__(self)
+
+
+AR_FW_388: ARFirmware = ARFirmware(major=(3, 0, 0, 4), minor=388, build=0)

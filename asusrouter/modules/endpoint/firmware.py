@@ -94,7 +94,8 @@ def process(data: dict[str, Any]) -> dict[AsusData, Any]:
     )
     if firmware["state"]:
         firmware["available"] = _available
-    # Beta presence-only: cross-type comparison not applicable
+    # Beta presence-only: beta revision strings ("2beta1" etc.) are typed
+    # as MERLIN by translate_type, so cross-type __lt__ always returns False.
     firmware["state_beta"] = _available_beta is not None
     if firmware["state_beta"]:
         firmware["available_beta"] = _available_beta

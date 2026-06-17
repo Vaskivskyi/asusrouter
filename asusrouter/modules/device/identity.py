@@ -42,9 +42,11 @@ def _translate_wifi(
     for band, band_id in zip(bands, bands_ids):
         try:
             band_enum = ARWiFiBand(band)
-            result[band_enum] = band_id
         except ValueError:
             continue
+        if band_enum is ARWiFiBand.UNKNOWN:
+            continue
+        result[band_enum] = band_id
 
     return result
 

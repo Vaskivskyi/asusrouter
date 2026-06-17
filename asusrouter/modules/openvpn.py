@@ -8,12 +8,10 @@ import logging
 from typing import Any
 
 from asusrouter.modules.device.identity import ARDeviceIdentity
-from asusrouter.modules.firmware import ARFirmware, ARFirmwareType
+from asusrouter.modules.firmware import AR_FW_388, ARFirmwareType
 from asusrouter.tools.converters import get_arguments
 
 _LOGGER = logging.getLogger(__name__)
-
-_FW_388 = ARFirmware(major=(3, 0, 0, 4), minor=388, build=0)
 
 
 class AsusOVPNClient(IntEnum):
@@ -83,7 +81,7 @@ async def set_state(
     if (
         merlin
         or firmware.firmware_type != ARFirmwareType.STOCK
-        or firmware < _FW_388
+        or firmware < AR_FW_388
     ):
         service_map = {
             (AsusOVPNClient, AsusOVPNClient.ON): f"start_vpnclient{vpn_id}",
