@@ -60,7 +60,7 @@ from asusrouter.modules.endpoint_v2 import (
     AREndpoint,
     get_endpoint_request_type,
 )
-from asusrouter.modules.firmware import AR_FW_388, ARFirmwareType
+from asusrouter.modules.firmware import AR_FW_388, AR_FW_MERLIN_LIKE
 from asusrouter.modules.flags import Flag
 from asusrouter.modules.port_forwarding import PortForwardingRule
 from asusrouter.modules.service import async_call_service
@@ -288,10 +288,7 @@ class AsusRouter:
         # Add conditional data rules
         description = self.description
         firmware = description.firmware
-        merlin = firmware.firmware_type in (
-            ARFirmwareType.MERLIN,
-            ARFirmwareType.GNUTON,
-        )
+        merlin = firmware.firmware_type in AR_FW_MERLIN_LIKE
         support = description.support
         # Stock
         if not merlin:
@@ -578,11 +575,7 @@ class AsusRouter:
 
         if (
             datatype == AsusData.OPENVPN_CLIENT
-            and self.description.firmware.firmware_type
-            in (
-                ARFirmwareType.MERLIN,
-                ARFirmwareType.GNUTON,
-            )
+            and self.description.firmware.firmware_type in AR_FW_MERLIN_LIKE
         ):
             return endpoint == AREndpoint.FETCH_DATA
 

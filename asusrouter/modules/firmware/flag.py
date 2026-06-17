@@ -16,3 +16,8 @@ class ARFirmwareType(FromStrMixin, StrEnum):
     STOCK = "stock"
     MERLIN = "merlin"
     GNUTON = "gnuton"
+
+
+AR_FW_MERLIN_LIKE: frozenset[ARFirmwareType] = frozenset(
+    {ARFirmwareType.MERLIN, ARFirmwareType.GNUTON}
+)

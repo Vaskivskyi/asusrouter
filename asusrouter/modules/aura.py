@@ -28,6 +28,8 @@ from asusrouter.tools.converters import (
 
 _LOGGER = logging.getLogger(__name__)
 
+_DEFAULT_IDENTITY = ARDeviceIdentity()
+
 
 class AsusAura(IntEnum):
     """Asus Aura state."""
@@ -186,7 +188,7 @@ async def set_state(
 ) -> bool:
     """Set the Aura state."""
 
-    description = kwargs.get("identity") or ARDeviceIdentity()
+    description = kwargs.get("identity") or _DEFAULT_IDENTITY
     zones = support_value(description.support, ARSupportType.AURA_ZONE) or 0
     if zones < 1:
         _LOGGER.debug("No Aura zones found. Skipping the Aura service.")

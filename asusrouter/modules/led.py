@@ -7,7 +7,9 @@ from enum import IntEnum
 from typing import Any
 
 from asusrouter.modules.device.identity import ARDeviceIdentity
-from asusrouter.modules.firmware import ARFirmwareType
+from asusrouter.modules.firmware import AR_FW_MERLIN_LIKE
+
+_DEFAULT_IDENTITY = ARDeviceIdentity()
 
 
 class AsusLED(IntEnum):
@@ -44,12 +46,9 @@ async def keep_state(
 ) -> bool:
     """Keep the LED state."""
 
-    description = kwargs.get("identity") or ARDeviceIdentity()
+    description = kwargs.get("identity") or _DEFAULT_IDENTITY
 
-    if description.firmware.firmware_type not in (
-        ARFirmwareType.MERLIN,
-        ARFirmwareType.GNUTON,
-    ):
+    if description.firmware.firmware_type not in AR_FW_MERLIN_LIKE:
         return False
 
     if state == AsusLED.ON:

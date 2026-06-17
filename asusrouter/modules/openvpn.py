@@ -8,7 +8,11 @@ import logging
 from typing import Any
 
 from asusrouter.modules.device.identity import ARDeviceIdentity
-from asusrouter.modules.firmware import AR_FW_388, ARFirmwareType
+from asusrouter.modules.firmware import (
+    AR_FW_388,
+    AR_FW_MERLIN_LIKE,
+    ARFirmwareType,
+)
 from asusrouter.tools.converters import get_arguments
 
 _LOGGER = logging.getLogger(__name__)
@@ -71,10 +75,7 @@ async def set_state(
     # Derive firmware and Merlin flag from V2 identity (ARDeviceIdentity)
     identity = identity or ARDeviceIdentity()
     firmware = identity.firmware
-    merlin = firmware.firmware_type in (
-        ARFirmwareType.MERLIN,
-        ARFirmwareType.GNUTON,
-    )
+    merlin = firmware.firmware_type in AR_FW_MERLIN_LIKE
 
     # Get the correct service call — firmware dependent
     # Unknown firmware type (no identity) falls back to legacy services

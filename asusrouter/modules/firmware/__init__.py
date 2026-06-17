@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from asusrouter.modules.firmware.flag import ARFirmwareType
+from asusrouter.modules.firmware.flag import AR_FW_MERLIN_LIKE, ARFirmwareType
 from asusrouter.modules.firmware.legacy import (
     WebsError,
     WebsFlag,
@@ -21,6 +21,7 @@ from asusrouter.tools.converters import safe_int
 
 __all__ = [
     "AR_FW_388",
+    "AR_FW_MERLIN_LIKE",
     "ARFirmware",
     "ARFirmwareType",
     "WebsError",

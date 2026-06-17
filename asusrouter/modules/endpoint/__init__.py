@@ -48,7 +48,7 @@ def _get_module(
     """Attempt to get the module for the endpoint."""
 
     try:
-        submodule = _SUBMODULE_MAP.get(endpoint, endpoint.name.lower())
+        submodule = _SUBMODULE_MAP.get(endpoint) or endpoint.name.lower()
         module_name = f"asusrouter.modules.endpoint.{submodule}"
 
         # Import in a separate thread to avoid blocking the main thread

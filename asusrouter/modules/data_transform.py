@@ -131,12 +131,15 @@ def transform_wan(
     if not support:
         return wan
 
-    if not support_available_in(
-        support, ARSupportType.WAN_CAPABILITIES, ARWANCapability.DUALWAN
+    wan_caps = support.get(ARSupportType.WAN_CAPABILITIES)
+    if (
+        not isinstance(wan_caps, list)
+        or ARWANCapability.DUALWAN not in wan_caps
     ):
         wan.pop("dualwan", None)
-    if not support_available_in(
-        support, ARSupportType.WAN_CAPABILITIES, ARWANCapability.AGGREGATION
+    if (
+        not isinstance(wan_caps, list)
+        or ARWANCapability.AGGREGATION not in wan_caps
     ):
         wan.pop("aggregation", None)
 
