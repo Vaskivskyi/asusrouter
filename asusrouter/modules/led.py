@@ -6,7 +6,10 @@ from collections.abc import Awaitable, Callable
 from enum import IntEnum
 from typing import Any
 
-from asusrouter.modules.endpoint import Endpoint
+from asusrouter.modules.device.identity import ARDeviceIdentity
+from asusrouter.modules.firmware import AR_FW_MERLIN_LIKE
+
+_DEFAULT_IDENTITY = ARDeviceIdentity()
 
 
 class AsusLED(IntEnum):
@@ -43,17 +46,12 @@ async def keep_state(
 ) -> bool:
     """Keep the LED state."""
 
-    identity = kwargs.get("identity")
+    description = kwargs.get("identity") or _DEFAULT_IDENTITY
 
-    # Check if identity is available and if endpoints are defined
-    if identity is None or not identity.endpoints:
+    if description.firmware.firmware_type not in AR_FW_MERLIN_LIKE:
         return False
 
-    # Get the sysinfo
-    sysinfo = identity.endpoints.get(Endpoint.SYSINFO)
-
-    # Only when LEDs are off and if sysinfo is available
-    if not sysinfo or state == AsusLED.ON:
+    if state == AsusLED.ON:
         return False
 
     # Toggle the LED

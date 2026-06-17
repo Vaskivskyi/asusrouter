@@ -7,7 +7,7 @@ from typing import Any
 from asusrouter.const import UNKNOWN_MEMBER
 from asusrouter.modules.data import AsusData
 from asusrouter.modules.firmware import (
-    Firmware,
+    ARFirmware,
     WebsError,
     WebsFlag,
     WebsUpdate,
@@ -24,10 +24,12 @@ REQUIRE_FIRMWARE = True
 def process(data: dict[str, Any]) -> dict[AsusData, Any]:
     """Process firmware data."""
 
-    # Stay on the safe side with Enums
-    # since the endpoint can provide empty strings
-    _available = Firmware(data.get("webs_state_info", "")).safe()
-    _available_beta = Firmware(data.get("webs_state_info_beta", "")).safe()
+    _fw = ARFirmware.from_string(data.get("webs_state_info"))
+    _available = _fw if _fw.major is not None else None
+    _fw = ARFirmware.from_string(data.get("webs_state_info_beta"))
+    _available_beta = _fw if _fw.major is not None else None
+    _fw = ARFirmware.from_string(data.get("webs_state_REQinfo"))
+    _required = _fw if _fw.major is not None else None
 
     # Load all the static data
     firmware: dict[str, Any] = {
@@ -49,7 +51,7 @@ def process(data: dict[str, Any]) -> dict[AsusData, Any]:
             ),
             "available": _available,
             "available_beta": _available_beta,
-            "required": Firmware(data.get("webs_state_REQinfo", "")).safe(),
+            "required": _required,
             "error": safe_enum(
                 WebsError,
                 safe_int(data.get("webs_state_error")),
@@ -79,19 +81,22 @@ def process(data: dict[str, Any]) -> dict[AsusData, Any]:
     }
 
     # Check the current firmware
-    _current = data.get("firmware")
+    _current: ARFirmware | None = data.get("firmware")
     firmware["current"] = _current
 
     # Check if the stable firmware is available
     firmware["state"] = (
-        _current < _available if _current else _available is not None
+        _current < _available
+        if _current is not None
+        and _current.major is not None
+        and _available is not None
+        else _available is not None
     )
     if firmware["state"]:
         firmware["available"] = _available
-    # Check if the beta firmware is available
-    firmware["state_beta"] = (
-        _current < _available_beta if _current else _available_beta is not None
-    )
+    # Beta presence-only: beta revision strings ("2beta1" etc.) are typed
+    # as MERLIN by translate_type, so cross-type __lt__ always returns False.
+    firmware["state_beta"] = _available_beta is not None
     if firmware["state_beta"]:
         firmware["available_beta"] = _available_beta
 

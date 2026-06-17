@@ -14,15 +14,12 @@ from typing import Any
 import pytest
 
 from asusrouter import AsusData
-from asusrouter.modules.endpoint import (
-    Endpoint,
-    EndpointControl,
-    EndpointService,
-    EndpointTools,
-    EndpointType,
-    process,
-    read,
-)
+from asusrouter.modules.endpoint import _SUBMODULE_MAP, process, read
+from asusrouter.modules.endpoint_v2 import AREndpoint
+
+_NAME_TO_ENDPOINT: dict[str, AREndpoint] = {
+    v: k for k, v in _SUBMODULE_MAP.items()
+}
 
 # Create a logger
 _LOGGER = logging.getLogger(__name__)
@@ -42,7 +39,7 @@ class DataItem:
 
     content: str
     result: dict[AsusData, Any]
-    endpoint: EndpointType
+    endpoint: AREndpoint
     label: str
 
     def __repr__(self) -> str:
@@ -84,19 +81,7 @@ def load_test_item(device_path: Path, module_name: str) -> DataItem | None:
     try:
         endpoint_name = re.match(r"(.*)_\d+", module_name).group(1)
 
-        endpoint = None
-        for endpoint_enum in [
-            Endpoint,
-            EndpointControl,
-            EndpointService,
-            EndpointTools,
-        ]:
-            try:
-                endpoint = endpoint_enum[endpoint_name.upper()]
-                break
-            except KeyError:
-                continue
-
+        endpoint = _NAME_TO_ENDPOINT.get(endpoint_name)
         if endpoint is None:
             raise ValueError("Failed to load test item ", module_name)
 

@@ -7,6 +7,7 @@ from enum import IntEnum, StrEnum
 from typing import Any
 
 from asusrouter.modules.const import MapValueType
+from asusrouter.modules.wifi import ARWiFiBand
 from asusrouter.tools.converters import (
     get_arguments,
     safe_bool,
@@ -143,7 +144,9 @@ class AsusWLAN(IntEnum):
 
 
 def _nvram_request(
-    wlan: list[Wlan] | None, mapping: list[MapValueType], guest: bool = False
+    wlan: dict[ARWiFiBand, int] | None,
+    mapping: list[MapValueType],
+    guest: bool = False,
 ) -> str | None:
     """Create an NVRAM request."""
 
@@ -152,10 +155,9 @@ def _nvram_request(
 
     request = []
 
-    for interface in wlan:
+    for index in wlan.values():
         for pair in mapping:
             key, _ = safe_unpack_key(pair)
-            index = list(Wlan).index(interface)
             if guest:
                 request.extend(
                     [key.format(f"{index}.{gid}") for gid in range(1, 4)]
@@ -166,13 +168,13 @@ def _nvram_request(
     return nvram(request)
 
 
-def wlan_nvram_request(wlan: list[Wlan] | None) -> str | None:
+def wlan_nvram_request(wlan: dict[ARWiFiBand, int] | None) -> str | None:
     """Create an NVRAM request for WLAN."""
 
     return _nvram_request(wlan, MAP_WLAN)
 
 
-def gwlan_nvram_request(wlan: list[Wlan] | None) -> str | None:
+def gwlan_nvram_request(wlan: dict[ARWiFiBand, int] | None) -> str | None:
     """Create an NVRAM request for GWLAN."""
 
     return _nvram_request(wlan, MAP_GWLAN, guest=True)

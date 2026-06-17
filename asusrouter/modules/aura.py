@@ -15,8 +15,10 @@ from asusrouter.modules.color import (
     parse_colors,
 )
 from asusrouter.modules.data import AsusData, AsusDataState
-from asusrouter.modules.endpoint import EndpointTools
-from asusrouter.modules.identity import AsusDevice
+from asusrouter.modules.device.identity import ARDeviceIdentity
+from asusrouter.modules.endpoint_v2 import AREndpoint
+from asusrouter.modules.support.flag import ARSupportType
+from asusrouter.modules.support.helpers import support_value
 from asusrouter.tools.converters import (
     get_arguments,
     safe_bool,
@@ -25,6 +27,8 @@ from asusrouter.tools.converters import (
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+_DEFAULT_IDENTITY = ARDeviceIdentity()
 
 
 class AsusAura(IntEnum):
@@ -184,10 +188,8 @@ async def set_state(
 ) -> bool:
     """Set the Aura state."""
 
-    # Get the identity
-    identity: AsusDevice = kwargs.get("identity", AsusDevice())
-    # Get the number of zones
-    zones = identity.aura_zone
+    description = kwargs.get("identity") or _DEFAULT_IDENTITY
+    zones = support_value(description.support, ARSupportType.AURA_ZONE) or 0
     if zones < 1:
         _LOGGER.debug("No Aura zones found. Skipping the Aura service.")
         return False
@@ -216,7 +218,7 @@ async def set_state(
             state.name,
         )
         return await callback(
-            endpoint=EndpointTools.AURA,
+            endpoint=AREndpoint.SET_AURA,
             commands={"ledg_scheme": state.value},
         )
 
@@ -251,7 +253,7 @@ async def set_state(
 
     # Run the service
     return await callback(
-        endpoint=EndpointTools.AURA,
+        endpoint=AREndpoint.SET_AURA,
         commands=arguments,
     )
 

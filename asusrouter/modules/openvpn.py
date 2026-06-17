@@ -7,12 +7,15 @@ from enum import IntEnum
 import logging
 from typing import Any
 
-from asusrouter.modules.firmware import Firmware
+from asusrouter.modules.device.identity import ARDeviceIdentity
+from asusrouter.modules.firmware import (
+    AR_FW_388,
+    AR_FW_MERLIN_LIKE,
+    ARFirmwareType,
+)
 from asusrouter.tools.converters import get_arguments
 
 _LOGGER = logging.getLogger(__name__)
-
-REQUIRE_IDENTITY = True
 
 
 class AsusOVPNClient(IntEnum):
@@ -69,12 +72,17 @@ async def set_state(
 
     service_map: dict[Any, str]
 
-    # Get the correct service call
-    # This will be firmware dependent
+    # Derive firmware and Merlin flag from V2 identity (ARDeviceIdentity)
+    identity = identity or ARDeviceIdentity()
+    firmware = identity.firmware
+    merlin = firmware.firmware_type in AR_FW_MERLIN_LIKE
+
+    # Get the correct service call — firmware dependent
+    # Unknown firmware type (no identity) falls back to legacy services
     if (
-        not identity
-        or identity.merlin
-        or identity.firmware < Firmware(major="3.0.0.4", minor=388, build=0)
+        merlin
+        or firmware.firmware_type != ARFirmwareType.STOCK
+        or firmware < AR_FW_388
     ):
         service_map = {
             (AsusOVPNClient, AsusOVPNClient.ON): f"start_vpnclient{vpn_id}",

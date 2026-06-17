@@ -19,7 +19,7 @@ from asusrouter.error import (
     AsusRouterSSLCertificateError,
     AsusRouterTimeoutError,
 )
-from asusrouter.modules.endpoint import EndpointService
+from asusrouter.modules.endpoint_v2 import AREndpoint
 from tests.helpers import AsyncPatch, ConnectionFactory, SyncPatch
 
 SEND_REQUEST_CASES = [
@@ -128,7 +128,7 @@ MOCK_REQUEST_RESULT = (200, {"header": "value"}, '{"key": "value"}')
 class TestConnectionRequests:
     """Tests for the Connection class requests."""
 
-    DEFAULT_ENDPOINT = EndpointService.LOGIN
+    DEFAULT_ENDPOINT = AREndpoint.LOGIN
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
@@ -206,7 +206,7 @@ class TestConnectionRequests:
             # in content, else not
             if resp_content and "error_status" in resp_content:
                 mock_handle_access_error.assert_called_once_with(
-                    EndpointService.LOGIN,
+                    AREndpoint.LOGIN,
                     resp_status,
                     resp_headers,
                     resp_content,

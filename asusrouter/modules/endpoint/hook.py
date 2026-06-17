@@ -27,7 +27,8 @@ from asusrouter.modules.port_forwarding import (
     PortForwardingRule,
 )
 from asusrouter.modules.vpnc import AsusVPNC, AsusVPNType
-from asusrouter.modules.wlan import MAP_GWLAN, MAP_WLAN, Wlan
+from asusrouter.modules.wifi import ARWiFiBand
+from asusrouter.modules.wlan import MAP_GWLAN, MAP_WLAN
 from asusrouter.tools.converters import (
     run_method,
     safe_bool,
@@ -76,7 +77,7 @@ def process(data: dict[str, Any]) -> dict[AsusData, Any]:  # noqa: C901, PLR0912
 
     # Get the passed arguments
     history: dict[AsusData, AsusDataState] = data_get(data, "history") or {}
-    wlan = data_get(data, "wlan") or []
+    wlan = data_get(data, "wlan") or {}
 
     # Aura
     if "ledg_scheme" in data:
@@ -232,14 +233,14 @@ def process_cpu_usage(raw: dict[str, Any]) -> dict[str | int, Any]:
 
 
 def process_gwlan(
-    data: dict[str, Any], wlan_list: list[Wlan]
+    data: dict[str, Any],
+    wlan_list: dict[ARWiFiBand, int],
 ) -> dict[str, Any]:
     """Process GWLAN data."""
 
     gwlan = {}
 
-    for interface in wlan_list:
-        index = list(Wlan).index(interface)
+    for band, index in wlan_list.items():
         for gid in range(1, 4):
             info = {}
             for pair in MAP_GWLAN:
@@ -249,7 +250,7 @@ def process_gwlan(
                     if method
                     else data.get(key.format(f"{index}.{gid}"))
                 )
-            gwlan[f"{interface.value}_{gid}"] = info
+            gwlan[f"{band.value}_{gid}"] = info
 
     return gwlan
 
@@ -727,14 +728,14 @@ def process_wireguard_server(  # noqa: C901
 
 
 def process_wlan(
-    data: dict[str, Any], wlan_list: list[Wlan]
+    data: dict[str, Any],
+    wlan_list: dict[ARWiFiBand, int],
 ) -> dict[str, Any]:
     """Process WLAN data."""
 
     wlan = {}
 
-    for interface in wlan_list:
-        index = list(Wlan).index(interface)
+    for band, index in wlan_list.items():
         info = {}
         for pair in MAP_WLAN:
             key, method = safe_unpack_key(pair)
@@ -743,7 +744,7 @@ def process_wlan(
                 if method
                 else data.get(key.format(index))
             )
-        wlan[interface.value] = info
+        wlan[band.value] = info
 
     return wlan
 

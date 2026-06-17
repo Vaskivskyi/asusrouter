@@ -2,12 +2,19 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from asusrouter.modules.client import process_client
 from asusrouter.modules.data import AsusDataState
 from asusrouter.modules.ports import PortType
+from asusrouter.modules.support.flag import ARSupportType
+from asusrouter.modules.support.helpers import support_available_in
+from asusrouter.modules.wan import ARWANCapability
+from asusrouter.modules.wifi import ARWiFiBand
 from asusrouter.tools.readers import readable_mac
+
+if TYPE_CHECKING:
+    from asusrouter.modules.device.identity import ARDeviceIdentity
 
 # List of models with 6Ghz support
 # and no 5Ghz2 support
@@ -18,32 +25,28 @@ MODEL_WITH_6GHZ = [
 
 def transform_network(
     data: dict[str, Any],
-    services: list[str] | None,
+    description: ARDeviceIdentity,
     history: AsusDataState | None,
-    **kwargs: Any,
 ) -> dict[str, Any]:
     """Transform network data."""
 
-    # Check if the device has dualwan support
-    if not services:
-        return data
-    if "dualwan" not in services:
+    if not support_available_in(
+        description.support,
+        ARSupportType.WAN_CAPABILITIES,
+        ARWANCapability.DUALWAN,
+    ):
         return data
 
     network = data.copy()
-    # Add speed if not available - fix first empty value round
     for interface in network:
         for speed in ("rx_speed", "tx_speed"):
             if speed not in network[interface]:
                 network[interface][speed] = 0.0
 
-    # Add usb network if not available
     if "usb" not in network:
-        # Check history
         usb_history = (
             history.data.get("usb") if history and history.data else None
         )
-        # Revert to history if available
         if usb_history:
             network["usb"] = usb_history
             network["usb"]["rx_speed"] = 0.0
@@ -56,19 +59,13 @@ def transform_network(
                 "tx_speed": 0.0,
             }
 
-    # Get the model if available
-    model = kwargs.get("model")
-
-    # Check if we have 5GHz2 available in the network data
     if "5ghz2" in network:
-        # Check interfaces for 5Ghz2/6Ghz
-        support_5ghz2 = "5G-2" in services
-        support_6ghz = "wifi6e" in services
-
+        wifi = description.wifi
+        support_5g2 = ARWiFiBand.BAND_5G2 in wifi
+        support_6g = ARWiFiBand.BAND_6G1 in wifi
         if (
-            support_5ghz2 is False and support_6ghz is True
-        ) or model in MODEL_WITH_6GHZ:
-            # Rename 5Ghz2 to 6Ghz
+            not support_5g2 and support_6g
+        ) or description.model in MODEL_WITH_6GHZ:
             network["6ghz"] = network.pop("5ghz2")
 
     return network
@@ -125,19 +122,25 @@ def transform_ethernet_ports(
 
 def transform_wan(
     data: dict[str, Any],
-    services: list[str] | None,
+    support: dict[ARSupportType, Any] | None,
 ) -> dict[str, Any]:
     """Transform WAN data."""
 
     wan = data.copy()
 
-    if not services:
+    if not support:
         return wan
 
-    service_keys = {"dualwan": "dualwan", "wanbonding": "aggregation"}
-
-    for service, key in service_keys.items():
-        if service not in services:
-            wan.pop(key, None)
+    wan_caps = support.get(ARSupportType.WAN_CAPABILITIES)
+    if (
+        not isinstance(wan_caps, list)
+        or ARWANCapability.DUALWAN not in wan_caps
+    ):
+        wan.pop("dualwan", None)
+    if (
+        not isinstance(wan_caps, list)
+        or ARWANCapability.AGGREGATION not in wan_caps
+    ):
+        wan.pop("aggregation", None)
 
     return wan

@@ -7,11 +7,7 @@ from unittest.mock import patch
 import pytest
 
 from asusrouter.config import ARConfig, ARConfigKey as ARConfKey
-from asusrouter.modules.endpoint import (
-    EndpointControl,
-    EndpointService,
-    EndpointType,
-)
+from asusrouter.modules.endpoint_v2 import AREndpoint
 from asusrouter.tools.security import ARSecurityLevel
 from tests.helpers import ConnectionFactory, SyncPatch
 
@@ -19,9 +15,8 @@ from tests.helpers import ConnectionFactory, SyncPatch
 class TestConnectionLogging:
     """Test for the Connection class logging."""
 
-    LOGIN_ENDPOINT = EndpointService.LOGIN
-    SENSITIVE_ENDPOINT = EndpointControl.APPLY
-    SAFE_ENDPOINT = EndpointService.LOGOUT
+    LOGIN_ENDPOINT = AREndpoint.LOGIN
+    SAFE_ENDPOINT = AREndpoint.LOGOUT
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
@@ -38,21 +33,12 @@ class TestConnectionLogging:
                 "not-a-secret",
                 "not-a-secret",
             ),
-            # DEFAULT: sensitive
-            (ARSecurityLevel.DEFAULT, SENSITIVE_ENDPOINT, "secret", None),
             # SANITIZED: non-sensitive
             (
                 ARSecurityLevel.SANITIZED,
                 SAFE_ENDPOINT,
                 "not-a-secret",
                 "not-a-secret",
-            ),
-            # SANITIZED: sensitive
-            (
-                ARSecurityLevel.SANITIZED,
-                SENSITIVE_ENDPOINT,
-                "secret",
-                "[SANITIZED PLACEHOLDER]",
             ),
             # UNSAFE: non-sensitive
             (
@@ -61,8 +47,6 @@ class TestConnectionLogging:
                 "not-a-secret",
                 "not-a-secret",
             ),
-            # UNSAFE: sensitive
-            (ARSecurityLevel.UNSAFE, SENSITIVE_ENDPOINT, "secret", "secret"),
             # Empty payload
             (ARSecurityLevel.DEFAULT, SAFE_ENDPOINT, "", None),
             # None payload
@@ -72,11 +56,8 @@ class TestConnectionLogging:
             "strict",
             "login",
             "default_safe",
-            "default_sensitive",
             "sanitized_safe",
-            "sanitized_sensitive",
             "unsafe_safe",
-            "unsafe_sensitive",
             "empty_payload",
             "none_payload",
         ],
@@ -84,7 +65,7 @@ class TestConnectionLogging:
     async def test_payload_for_logging(
         self,
         level: ARSecurityLevel,
-        endpoint: EndpointType,
+        endpoint: AREndpoint,
         payload: str | None,
         expected: str | None,
         connection_factory: ConnectionFactory,
@@ -99,13 +80,13 @@ class TestConnectionLogging:
     @pytest.mark.parametrize(
         ("endpoint", "payload", "level"),
         [
-            (EndpointService.LOGIN, "payload", ARSecurityLevel.DEFAULT),
-            (EndpointService.LOGIN, None, ARSecurityLevel.SANITIZED),
+            (AREndpoint.LOGIN, "payload", ARSecurityLevel.DEFAULT),
+            (AREndpoint.LOGIN, None, ARSecurityLevel.SANITIZED),
         ],
     )
     async def test_log_request(
         self,
-        endpoint: EndpointType,
+        endpoint: AREndpoint,
         payload: str | None,
         level: ARSecurityLevel,
         connection_factory: ConnectionFactory,

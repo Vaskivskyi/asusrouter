@@ -14,13 +14,13 @@ from types import TracebackType
 from typing import Any, Self
 import zipfile
 
-from asusrouter.modules.endpoint import Endpoint
+from asusrouter.modules.endpoint_v2 import AREndpoint
 
 
 class AsusRouterDump:
     """AsusRouter Dumper."""
 
-    _endpoint: Endpoint
+    _endpoint: AREndpoint
     _datetime: str
 
     def __init__(
@@ -81,7 +81,7 @@ class AsusRouterDump:
 
     async def dump(
         self,
-        endpoint: Endpoint,
+        endpoint: AREndpoint,
         payload: dict[str, Any],
         resp_status: int,
         resp_headers: dict[str, Any],
@@ -92,7 +92,7 @@ class AsusRouterDump:
         self._endpoint = endpoint
         self._datetime = datetime.now(UTC).isoformat().replace(":", "-")
 
-        self.log[self._datetime] = f"Endpoint.{endpoint.name}"
+        self.log[self._datetime] = f"AREndpoint.{endpoint.name}"
 
         # Write the response content to a file
         loop = asyncio.get_running_loop()

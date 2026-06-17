@@ -11,10 +11,9 @@ from asusrouter.const import (
     AR_CALL_TRANSLATE_STATE,
     HTTPStatus,
 )
-from asusrouter.modules.endpoint import (
-    EndpointTools,
-    EndpointType,
-    get_request_type,
+from asusrouter.modules.endpoint_v2 import (
+    AREndpoint,
+    get_endpoint_request_type,
 )
 from asusrouter.modules.source import ARDataSource
 from asusrouter.registry import ARCallableRegistry as ARCallReg
@@ -57,10 +56,10 @@ class ARTrafficType(FromStrMixin, StrEnum):
     WIFI = "wifi"
 
 
-AR_TRAFFIC_SOURCE: Final[dict[ARTrafficType, EndpointType]] = {
-    ARTrafficType.BACKHAUL: EndpointTools.TRAFFIC_BACKHAUL,
-    ARTrafficType.ETHERNET: EndpointTools.TRAFFIC_ETHERNET,
-    ARTrafficType.WIFI: EndpointTools.TRAFFIC_WIFI,
+AR_TRAFFIC_SOURCE: Final[dict[ARTrafficType, AREndpoint]] = {
+    ARTrafficType.BACKHAUL: AREndpoint.FETCH_TRAFFIC_BACKHAUL,
+    ARTrafficType.ETHERNET: AREndpoint.FETCH_TRAFFIC_ETHERNET,
+    ARTrafficType.WIFI: AREndpoint.FETCH_TRAFFIC_WIFI,
 }
 
 
@@ -238,7 +237,7 @@ async def get_state(
     _check_state(source)
 
     # Get the correct traffic endpoint
-    endpoint: EndpointType | None = AR_TRAFFIC_SOURCE.get(source.type, None)
+    endpoint: AREndpoint | None = AR_TRAFFIC_SOURCE.get(source.type, None)
     if endpoint is None:
         raise ValueError(
             f"Cannot find endpoint for traffic type `{source.type}`"
@@ -262,7 +261,7 @@ async def get_state(
 
     # Call the callback to get the state
     request = dict_to_request(
-        arguments, request_type=get_request_type(endpoint)
+        arguments, request_type=get_endpoint_request_type(endpoint)
     )
     return await callback(endpoint=endpoint, request=request)
 
