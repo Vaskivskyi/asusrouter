@@ -25,13 +25,11 @@ MODEL_WITH_6GHZ = [
 
 def transform_network(
     data: dict[str, Any],
-    description: ARDeviceIdentity | None,
+    description: ARDeviceIdentity,
     history: AsusDataState | None,
 ) -> dict[str, Any]:
     """Transform network data."""
 
-    if not description:
-        return data
     if not support_available_in(
         description.support,
         ARSupportType.WAN_CAPABILITIES,
@@ -62,8 +60,9 @@ def transform_network(
             }
 
     if "5ghz2" in network:
-        support_5g2 = ARWiFiBand.BAND_5G2 in description.wifi
-        support_6g = ARWiFiBand.BAND_6G1 in description.wifi
+        wifi = description.wifi
+        support_5g2 = ARWiFiBand.BAND_5G2 in wifi
+        support_6g = ARWiFiBand.BAND_6G1 in wifi
         if (
             not support_5g2 and support_6g
         ) or description.model in MODEL_WITH_6GHZ:

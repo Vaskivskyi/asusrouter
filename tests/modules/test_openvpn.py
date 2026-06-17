@@ -28,6 +28,7 @@ identity_mock = {
     "merlin_old": _make_identity(minor=386, rog=True),
     "stock_new": _make_identity(minor=388, rog=False),
     "stock_old": _make_identity(minor=386, rog=False),
+    "empty": ARDeviceIdentity(),
 }
 
 
@@ -152,11 +153,11 @@ identity_mock = {
         (None, 1, "merlin_new", False, False, {}, None),
         # No ID
         (AsusOVPNClient.ON, None, "merlin_new", True, False, {}, None),
-        # No identity - should use legacy service
+        # Empty identity (unknown firmware) - should use legacy service
         (
             AsusOVPNClient.ON,
             1,
-            None,
+            "empty",
             True,
             True,
             {"id": 1},
@@ -181,7 +182,7 @@ async def test_set_state(
     # Compile the kwargs
     kwargs = {
         "id": vpn_id,
-        "identity": identity_mock[identity] if identity else None,
+        "identity": identity_mock[identity],
     }
 
     # Call the set_state function

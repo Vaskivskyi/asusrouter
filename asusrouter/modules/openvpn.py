@@ -7,6 +7,7 @@ from enum import IntEnum
 import logging
 from typing import Any
 
+from asusrouter.modules.device.identity import ARDeviceIdentity
 from asusrouter.modules.firmware import ARFirmware, ARFirmwareType
 from asusrouter.tools.converters import get_arguments
 
@@ -70,14 +71,20 @@ async def set_state(
     service_map: dict[Any, str]
 
     # Derive firmware and Merlin flag from V2 identity (ARDeviceIdentity)
-    firmware = identity.firmware if identity else ARFirmware()
+    identity = identity or ARDeviceIdentity()
+    firmware = identity.firmware
     merlin = firmware.firmware_type in (
         ARFirmwareType.MERLIN,
         ARFirmwareType.GNUTON,
     )
 
     # Get the correct service call — firmware dependent
-    if not identity or merlin or firmware < _FW_388:
+    # Unknown firmware type (no identity) falls back to legacy services
+    if (
+        merlin
+        or firmware.firmware_type != ARFirmwareType.STOCK
+        or firmware < _FW_388
+    ):
         service_map = {
             (AsusOVPNClient, AsusOVPNClient.ON): f"start_vpnclient{vpn_id}",
             (AsusOVPNClient, AsusOVPNClient.OFF): f"stop_vpnclient{vpn_id}",

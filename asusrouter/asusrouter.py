@@ -132,6 +132,7 @@ class AsusRouter:
 
         self._state: dict[AsusData, AsusDataState] = {}
         self._data_states: dict[ARDataSource | ARDataType, ARDataState] = {}
+        self._description: ARDeviceIdentity = ARDeviceIdentity()
 
         # Set the flags
         self._flags: Flag = Flag()
@@ -290,12 +291,13 @@ class AsusRouter:
         _LOGGER.debug("Triggered method async_get_identity")
 
         # Add conditional data rules
-        firmware = self.description.firmware
+        description = self.description
+        firmware = description.firmware
         merlin = firmware.firmware_type in (
             ARFirmwareType.MERLIN,
             ARFirmwareType.GNUTON,
         )
-        support = self.support
+        support = description.support
         # Stock
         if not merlin:
             _LOGGER.debug("Adding conditional rules for stock firmware")
@@ -370,7 +372,7 @@ class AsusRouter:
                 mac = self.description.mac
                 return str(mac) if mac else None
             case AsusRouterAttribute.WLAN_LIST:
-                return self.description.wifi if self.description else None
+                return self.description.wifi
 
         return None
 
@@ -534,12 +536,16 @@ class AsusRouter:
 
         _LOGGER.debug("Triggered method _transform_data for `%s`", datatype)
 
+        description = self.description
+
         if datatype == AsusData.CLIENTS:
             _LOGGER.debug("Transforming clients data")
             return transform_clients(
                 data,
                 self._state.get(AsusData.CLIENTS),
-                aimesh=support_available(self.support, ARSupportType.AIMESH),
+                aimesh=support_available(
+                    description.support, ARSupportType.AIMESH
+                ),
             )
 
         if datatype == AsusData.CPU:
@@ -550,7 +556,7 @@ class AsusRouter:
             _LOGGER.debug("Transforming network data")
             return transform_network(
                 data,
-                self.description,
+                description,
                 self._state.get(AsusData.NETWORK),
             )
 
@@ -558,14 +564,14 @@ class AsusRouter:
             _LOGGER.debug("Transforming port data")
             return transform_ethernet_ports(
                 data,
-                str(mac) if (mac := self.description.mac) else None,
+                str(mac) if (mac := description.mac) else None,
             )
 
         if datatype == AsusData.WAN:
             _LOGGER.debug("Transforming WAN data")
             return transform_wan(
                 data,
-                self.support,
+                description.support,
             )
 
         return data
@@ -1302,7 +1308,7 @@ class AsusRouter:
         state = self._data_states.get(ARDeviceSourceUniversal)
         if state and isinstance(content := state.content, ARDeviceIdentity):
             return content
-        return ARDeviceIdentity()
+        return self._description
 
     @property
     def support(self) -> dict[ARSupportType, Any]:

@@ -15,6 +15,7 @@ from asusrouter.modules.color import (
     parse_colors,
 )
 from asusrouter.modules.data import AsusData, AsusDataState
+from asusrouter.modules.device.identity import ARDeviceIdentity
 from asusrouter.modules.endpoint import EndpointTools
 from asusrouter.modules.support.flag import ARSupportType
 from asusrouter.modules.support.helpers import support_value
@@ -185,12 +186,8 @@ async def set_state(
 ) -> bool:
     """Set the Aura state."""
 
-    description = kwargs.get("identity")
-    zones = (
-        support_value(description.support, ARSupportType.AURA_ZONE) or 0
-        if description
-        else 0
-    )
+    description = kwargs.get("identity") or ARDeviceIdentity()
+    zones = support_value(description.support, ARSupportType.AURA_ZONE) or 0
     if zones < 1:
         _LOGGER.debug("No Aura zones found. Skipping the Aura service.")
         return False

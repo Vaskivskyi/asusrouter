@@ -183,13 +183,14 @@ def process(
         # Check if the submodule requires identity
         require_firmware = getattr(submodule, "REQUIRE_FIRMWARE", False)
         if require_firmware:
-            firmware = description.firmware if description else None
-            data_set(data, firmware=firmware)
+            data_set(
+                data,
+                firmware=description.firmware if description else None,
+            )
         # Check if the submodule requires wlan
         require_wlan = getattr(submodule, "REQUIRE_WLAN", False)
         if require_wlan:
-            wlan = description.wifi if description else {}
-            data_set(data, wlan=wlan)
+            data_set(data, wlan=description.wifi if description else {})
 
         # Process the data
         try:
@@ -214,7 +215,7 @@ def data_set(data: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
     """Append the data to the data dict."""
 
     # Update the data dict with kwargs using dictionary comprehension
-    data.update(dict(kwargs.items()))
+    data.update(kwargs)
 
     # Return the data
     return data

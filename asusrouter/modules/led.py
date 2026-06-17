@@ -6,6 +6,7 @@ from collections.abc import Awaitable, Callable
 from enum import IntEnum
 from typing import Any
 
+from asusrouter.modules.device.identity import ARDeviceIdentity
 from asusrouter.modules.firmware import ARFirmwareType
 
 
@@ -43,10 +44,7 @@ async def keep_state(
 ) -> bool:
     """Keep the LED state."""
 
-    description = kwargs.get("identity")
-
-    if description is None:
-        return False
+    description = kwargs.get("identity") or ARDeviceIdentity()
 
     if description.firmware.firmware_type not in (
         ARFirmwareType.MERLIN,
