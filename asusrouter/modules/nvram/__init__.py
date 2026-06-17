@@ -13,7 +13,7 @@ from asusrouter.const import (
     AR_CALL_TRANSLATE_STATE,
     UNKNOWN_MEMBER_STR,
 )
-from asusrouter.modules.endpoint import Endpoint
+from asusrouter.modules.endpoint_v2 import AREndpoint
 from asusrouter.modules.source import ARDataType
 from asusrouter.registry import (
     ARCallableEntry,
@@ -143,7 +143,7 @@ async def get_state(
 ) -> dict[ARNvramType, str]:
     """Fetch the NVRAM data state."""
 
-    endpoint = Endpoint.HOOK
+    endpoint = AREndpoint.FETCH_DATA
     request = "hook=" + nvram(
         [source] if isinstance(source, ARNvramType) else list(source),
     )

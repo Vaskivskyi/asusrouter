@@ -24,7 +24,7 @@ from asusrouter.modules.aura import (
 from asusrouter.modules.color import ColorRGB, ColorRGBB
 from asusrouter.modules.data import AsusData, AsusDataState
 from asusrouter.modules.device.identity import ARDeviceIdentity
-from asusrouter.modules.endpoint import EndpointTools
+from asusrouter.modules.endpoint_v2 import AREndpoint
 from asusrouter.modules.support.flag import ARSupportType
 
 
@@ -454,7 +454,7 @@ async def test_set_state(
     # Check the result
     assert result is True
     mock_callback.assert_called_once_with(
-        endpoint=EndpointTools.AURA,
+        endpoint=AREndpoint.SET_AURA,
         commands={"ledg_scheme": AsusAura.RAINBOW.value},
     )
     mock_set_color.assert_not_called()
@@ -480,7 +480,7 @@ async def test_set_state(
     # Check the result
     assert result is True
     mock_callback.assert_called_once_with(
-        endpoint=EndpointTools.AURA,
+        endpoint=AREndpoint.SET_AURA,
         commands={"ledg_scheme": AsusAura.RAINBOW.value},
     )
     mock_set_color.assert_not_called()
@@ -578,7 +578,7 @@ async def test_set_state_with_color_support(
         [color_zone.to_rgb().__str__() for color_zone in colors]
     )
     mock_callback.assert_called_once_with(
-        endpoint=EndpointTools.AURA,
+        endpoint=AREndpoint.SET_AURA,
         commands={
             "ledg_scheme": AsusAura.STATIC.value,
             "ledg_rgb": color_to_use,
@@ -681,7 +681,7 @@ async def test_set_state_final(
 
     assert result is True
     mock_callback.assert_called_once_with(
-        endpoint=EndpointTools.AURA,
+        endpoint=AREndpoint.SET_AURA,
         commands=commands,
     )
 

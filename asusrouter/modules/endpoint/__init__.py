@@ -4,15 +4,15 @@ from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
 from concurrent.futures import ThreadPoolExecutor
-from enum import StrEnum
 import importlib
 import logging
 from types import ModuleType
-from typing import TYPE_CHECKING, Any, Final
+from typing import TYPE_CHECKING, Any
 
-from asusrouter.const import HTTPStatus, RequestType
+from asusrouter.const import HTTPStatus
 from asusrouter.error import AsusRouter404Error, AsusRouterRequestFormatError
 from asusrouter.modules.data import AsusData, AsusDataState
+from asusrouter.modules.endpoint_v2 import AREndpoint
 
 if TYPE_CHECKING:
     from asusrouter.modules.device.identity import ARDeviceIdentity
@@ -20,118 +20,40 @@ if TYPE_CHECKING:
 _LOGGER = logging.getLogger(__name__)
 
 
-class Endpoint(StrEnum):
-    """Endpoint enum.
-
-    These endpoints are used to receive data from the device.
-    """
-
-    CERT_INFO = "ajax_certinfo.asp"
-    DDNS_CODE = "ajax_ddnscode.asp"
-    DEVICEMAP = "ajax_status.xml"
-    DSL = "ajax_AdslStatus.asp"
-    ETHERNET_PORTS = "ajax_ethernet_ports.asp"
-    FIRMWARE = "detect_firmware.asp"
-    FIRMWARE_NOTE = "release_note0.asp"
-    FIRMWARE_NOTE_AIMESH = "release_note_amas.asp"
-    HOOK = "appGet.cgi"
-    NETWORKMAPD = "update_networkmapd.asp"
-    ONBOARDING = "ajax_onboarding.asp"
-    PORT_STATUS = "get_port_status.cgi"
-    STATE = "state.js"
-    SYSINFO = "ajax_sysinfo.asp"
-    TEMPERATURE = "ajax_coretmp.asp"
-    UPDATE_CLIENTS = "update_clients.asp"
-    VPN = "ajax_vpn_status.asp"
-    # Endpoints known but not used / not available on test devices
-    # RGB = "light_effect.html"
-
-
-class EndpointControl(StrEnum):
-    """Control endpoint enum.
-
-    These endpoints are used to set parameters to the device.
-    """
-
-    APPLY = "apply.cgi"
-    COMMAND = "applyapp.cgi"
-
-
-class EndpointService(StrEnum):
-    """Service endpoints."""
-
-    LOGIN = "login.cgi"
-    LOGOUT = "Logout.asp"
-
-
-class EndpointTools(StrEnum):
-    """Tools endpoints."""
-
-    # AURA control / RGB
-    AURA = "set_ledg.cgi"
-    # Network tools: ping, jitter, loss
-    NETWORK = "netool.cgi"
-    # Traffic analysis group
-    TRAFFIC_BACKHAUL = "get_diag_sta_traffic.cgi"
-    TRAFFIC_ETHERNET = "get_diag_eth_traffic.cgi"
-    TRAFFIC_WIFI = "get_diag_wifi_traffic.cgi"
-
-
-class EndpointNoCheck(StrEnum):
-    """Endpoints that should not be checked for availability."""
-
-    # AURA control / RGB
-    AURA = "set_ledg.cgi"
-
-
-# Typehint for the endpoint
-EndpointType = Endpoint | EndpointControl | EndpointService | EndpointTools
-
-
-# Force request type for the endpoint
-ENDPOINT_FORCE_REQUEST = {
-    Endpoint.PORT_STATUS: RequestType.GET,
-    EndpointTools.NETWORK: RequestType.GET,
-    EndpointTools.TRAFFIC_BACKHAUL: RequestType.GET,
-    EndpointTools.TRAFFIC_ETHERNET: RequestType.GET,
-    EndpointTools.TRAFFIC_WIFI: RequestType.GET,
+_SUBMODULE_MAP: dict[str, str] = {
+    AREndpoint.FETCH_CLIENTS_UPDATE: "update_clients",
+    AREndpoint.FETCH_DATA: "hook",
+    AREndpoint.FETCH_DEVICEMAP: "devicemap",
+    AREndpoint.FETCH_FIRMWARE_UPDATE: "firmware",
+    AREndpoint.FETCH_FIRMWARE_UPDATE_NOTE: "firmware_note",
+    AREndpoint.FETCH_FIRMWARE_UPDATE_NOTE_AIMESH: "firmware_note_aimesh",
+    AREndpoint.FETCH_NETWORK: "network",
+    AREndpoint.FETCH_ONBOARDING: "onboarding",
+    AREndpoint.FETCH_PORT_STATUS: "port_status",
+    AREndpoint.FETCH_PORTS_ETHERNET: "ethernet_ports",
+    AREndpoint.FETCH_SYSINFO: "sysinfo",
+    AREndpoint.FETCH_TEMPERATURE: "temperature",
+    AREndpoint.FETCH_TRAFFIC_BACKHAUL: "traffic_backhaul",
+    AREndpoint.FETCH_TRAFFIC_ETHERNET: "traffic_ethernet",
+    AREndpoint.FETCH_TRAFFIC_WIFI: "traffic_wifi",
+    AREndpoint.FETCH_VPN_STATUS: "vpn",
+    AREndpoint.PUSH_DATA: "command",
+    AREndpoint.SET_AURA: "aura",
 }
 
 
-SENSITIVE_ENDPOINTS: Final[frozenset[EndpointType]] = frozenset(
-    {
-        EndpointService.LOGIN,
-        EndpointControl.APPLY,
-    }
-)
-
-
-def get_request_type(endpoint: EndpointType) -> RequestType | None:
-    """Get the request type for the endpoint."""
-
-    return ENDPOINT_FORCE_REQUEST.get(endpoint, RequestType.POST)
-
-
-def is_sensitive_endpoint(endpoint: EndpointType) -> bool:
-    """Check if the endpoint is sensitive."""
-
-    return endpoint in SENSITIVE_ENDPOINTS
-
-
 def _get_module(
-    endpoint: EndpointType,
+    endpoint: AREndpoint,
 ) -> ModuleType | None:
     """Attempt to get the module for the endpoint."""
 
     try:
-        # Get the module name from the endpoint
-        module_name = f"asusrouter.modules.endpoint.{endpoint.name.lower()}"
+        submodule = _SUBMODULE_MAP.get(endpoint, endpoint.name.lower())
+        module_name = f"asusrouter.modules.endpoint.{submodule}"
 
-        # Import the module in a separate thread
-        # to avoid blocking the main thread
+        # Import in a separate thread to avoid blocking the main thread
         with ThreadPoolExecutor(max_workers=1) as executor:
             future = executor.submit(importlib.import_module, module_name)
-            # Return the module
             return future.result()
 
     except ModuleNotFoundError:
@@ -140,7 +62,7 @@ def _get_module(
 
 
 def read(
-    endpoint: EndpointType,
+    endpoint: AREndpoint,
     content: str,
     **kwargs: Any,
 ) -> dict[str, Any]:
@@ -148,10 +70,8 @@ def read(
 
     _LOGGER.debug("Reading data from endpoint %s", endpoint)
 
-    # Get the module
     submodule = _get_module(endpoint)
 
-    # Read the data if module found
     if submodule:
         result = submodule.read(content, **kwargs)
         if isinstance(result, dict):
@@ -162,7 +82,7 @@ def read(
 
 
 def process(
-    endpoint: Endpoint,
+    endpoint: AREndpoint,
     data: dict[str, Any],
     history: dict[AsusData, AsusDataState] | None = None,
     description: ARDeviceIdentity | None = None,
@@ -171,35 +91,27 @@ def process(
 
     _LOGGER.debug("Processing data from endpoint %s", endpoint)
 
-    # Get the module
     submodule = _get_module(endpoint)
 
-    # Process the data if module found
     if submodule:
-        # Check if the submodule requires history
         require_history = getattr(submodule, "REQUIRE_HISTORY", False)
         if require_history:
             data_set(data, history=history)
-        # Check if the submodule requires identity
         require_firmware = getattr(submodule, "REQUIRE_FIRMWARE", False)
         if require_firmware:
             data_set(
                 data,
                 firmware=description.firmware if description else None,
             )
-        # Check if the submodule requires wlan
         require_wlan = getattr(submodule, "REQUIRE_WLAN", False)
         if require_wlan:
             data_set(data, wlan=description.wifi if description else {})
 
-        # Process the data
         try:
             result = submodule.process(data)
             if isinstance(result, dict):
                 return result
             return {}
-        # Consider attribute and value errors to be possible
-        # in case of unexpected data structure
         except (AttributeError, ValueError) as ex:
             _LOGGER.error(
                 "Error processing data from endpoint %s: %s",
@@ -214,28 +126,20 @@ def process(
 def data_set(data: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
     """Append the data to the data dict."""
 
-    # Update the data dict with kwargs using dictionary comprehension
     data.update(kwargs)
-
-    # Return the data
     return data
 
 
 def data_get(data: dict[str, Any], key: str) -> Any | None:
     """Extract value from the data dict and update the data dict."""
 
-    # Get the value
     value = data.get(key)
-
-    # Remove the value from the data dict
     data.pop(key, None)
-
-    # Return the value
     return value
 
 
 async def check_available(
-    endpoint: Endpoint | EndpointTools,
+    endpoint: AREndpoint,
     api_query: Callable[..., Awaitable[Any]],
 ) -> tuple[bool, Any | None]:
     """Check whether the endpoint is available or returns 404."""

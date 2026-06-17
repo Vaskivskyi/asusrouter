@@ -16,7 +16,7 @@ from asusrouter.modules.color import (
 )
 from asusrouter.modules.data import AsusData, AsusDataState
 from asusrouter.modules.device.identity import ARDeviceIdentity
-from asusrouter.modules.endpoint import EndpointTools
+from asusrouter.modules.endpoint_v2 import AREndpoint
 from asusrouter.modules.support.flag import ARSupportType
 from asusrouter.modules.support.helpers import support_value
 from asusrouter.tools.converters import (
@@ -216,7 +216,7 @@ async def set_state(
             state.name,
         )
         return await callback(
-            endpoint=EndpointTools.AURA,
+            endpoint=AREndpoint.SET_AURA,
             commands={"ledg_scheme": state.value},
         )
 
@@ -251,7 +251,7 @@ async def set_state(
 
     # Run the service
     return await callback(
-        endpoint=EndpointTools.AURA,
+        endpoint=AREndpoint.SET_AURA,
         commands=arguments,
     )
 

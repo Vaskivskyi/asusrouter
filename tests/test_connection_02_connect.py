@@ -18,7 +18,7 @@ from asusrouter.error import (
     AsusRouterLogoutError,
     AsusRouterSSLCertificateError,
 )
-from asusrouter.modules.endpoint import EndpointService
+from asusrouter.modules.endpoint_v2 import AREndpoint
 from tests.helpers import AsyncPatch, ConnectionFactory, SyncPatch
 
 
@@ -279,7 +279,7 @@ class TestConnectionConnect:
             # if not already connected
             if not connected:
                 mock_send_request.assert_called_once_with(
-                    EndpointService.LOGIN,
+                    AREndpoint.LOGIN,
                     "login_authorization=dXNlcjpwYXNz",
                     {"user-agent": USER_AGENT},
                 )
@@ -352,7 +352,7 @@ class TestConnectionConnect:
 
         # Verify `_send_request` was called only if connected
         if connected:
-            mock_send_request.assert_called_once_with(EndpointService.LOGOUT)
+            mock_send_request.assert_called_once_with(AREndpoint.LOGOUT)
         else:
             mock_send_request.assert_not_called()
 

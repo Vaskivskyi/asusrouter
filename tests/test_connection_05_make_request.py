@@ -9,7 +9,7 @@ import pytest
 
 from asusrouter.connection_config import ARConnectionConfigKey as ARCCKey
 from asusrouter.const import DEFAULT_PORT_HTTP, RequestType
-from asusrouter.modules.endpoint import EndpointService
+from asusrouter.modules.endpoint_v2 import AREndpoint
 from tests.helpers import AsyncPatch, ConnectionFactory
 
 
@@ -59,7 +59,7 @@ class TestConnectionMakeRequest:
             (
                 RequestType.POST,
                 "data",
-                f"/{EndpointService.LOGIN.value}",
+                f"/{AREndpoint.LOGIN.value}",
                 quote("data"),
                 "ok",
                 {"h": "v"},
@@ -70,7 +70,7 @@ class TestConnectionMakeRequest:
             (
                 RequestType.POST,
                 "data",
-                f"/{EndpointService.LOGIN.value}",
+                f"/{AREndpoint.LOGIN.value}",
                 quote("data"),
                 "ok",
                 {"h": "v"},
@@ -82,7 +82,7 @@ class TestConnectionMakeRequest:
             (
                 RequestType.GET,
                 "param1=val1;param2=val2",
-                f"/{EndpointService.LOGIN.value}?param1=val1&param2=val2",
+                f"/{AREndpoint.LOGIN.value}?param1=val1&param2=val2",
                 None,
                 "ok",
                 {"h": "v"},
@@ -93,7 +93,7 @@ class TestConnectionMakeRequest:
             (
                 RequestType.GET,
                 None,
-                f"/{EndpointService.LOGIN.value}",
+                f"/{AREndpoint.LOGIN.value}",
                 None,
                 "ok",
                 {"h": "v"},
@@ -166,7 +166,7 @@ class TestConnectionMakeRequest:
         connection._dumpback = AsyncMock()
 
         result = await connection._make_request(
-            EndpointService.LOGIN,
+            AREndpoint.LOGIN,
             payload=payload,
             headers=None,
             request_type=request_type,
@@ -200,7 +200,7 @@ class TestConnectionMakeRequest:
 
         # Check dumpback called
         connection._dumpback.assert_awaited_once_with(
-            EndpointService.LOGIN,
+            AREndpoint.LOGIN,
             payload,
             response_status,
             response_headers,
@@ -232,7 +232,7 @@ class TestConnectionMakeRequest:
         mock_async_connect = async_connect(connection)
         connection._dumpback = AsyncMock()
 
-        result = await connection._make_request(EndpointService.LOGIN)
+        result = await connection._make_request(AREndpoint.LOGIN)
 
         mock_new_session.assert_called_once()
         mock_async_connect.assert_awaited_once()
@@ -266,7 +266,7 @@ class TestConnectionMakeRequest:
         connection._dumpback = AsyncMock()
 
         result = await connection._make_request(
-            EndpointService.LOGIN,
+            AREndpoint.LOGIN,
             payload="data",
             headers=None,
             request_type=RequestType.POST,
@@ -274,7 +274,7 @@ class TestConnectionMakeRequest:
 
         assert result == (200, {"h": "v"}, "fixed")
         connection._dumpback.assert_awaited_once_with(
-            EndpointService.LOGIN, "data", 200, {"h": "v"}, "fixed"
+            AREndpoint.LOGIN, "data", 200, {"h": "v"}, "fixed"
         )
 
     @pytest.mark.asyncio
@@ -298,7 +298,7 @@ class TestConnectionMakeRequest:
         connection._dumpback = AsyncMock()
 
         await connection._make_request(
-            EndpointService.LOGIN,
+            AREndpoint.LOGIN,
             payload=None,
             headers=custom_headers,
             request_type=RequestType.POST,
@@ -327,7 +327,7 @@ class TestConnectionMakeRequest:
         mock_session.request = MagicMock(return_value=mock_cm)
 
         result = await connection._make_request(
-            EndpointService.LOGIN,
+            AREndpoint.LOGIN,
             payload=None,
             headers=None,
             request_type=RequestType.POST,

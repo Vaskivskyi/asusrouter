@@ -26,7 +26,6 @@ from asusrouter.const import (
     DEFAULT_PORT_HTTPS,
     DEFAULT_RESULT_SUCCESS,
     DEFAULT_TIMEOUT,
-    RequestType,
 )
 from asusrouter.error import (
     AsusRouter404Error,
@@ -55,15 +54,12 @@ from asusrouter.modules.data_transform import (
 )
 from asusrouter.modules.device import ARDeviceSourceUniversal
 from asusrouter.modules.device.identity import ARDeviceIdentity
-from asusrouter.modules.endpoint import (
-    ENDPOINT_FORCE_REQUEST,
-    Endpoint,
-    EndpointControl,
-    EndpointType,
-    process,
-    read,
-)
+from asusrouter.modules.endpoint import process, read
 from asusrouter.modules.endpoint.error import AccessError
+from asusrouter.modules.endpoint_v2 import (
+    AREndpoint,
+    get_endpoint_request_type,
+)
 from asusrouter.modules.firmware import ARFirmware, ARFirmwareType
 from asusrouter.modules.flags import Flag
 from asusrouter.modules.port_forwarding import PortForwardingRule
@@ -315,7 +311,7 @@ class AsusRouter:
                 add_conditional_data_rule(
                     AsusData.OPENVPN_SERVER,
                     AsusDataFinder(
-                        Endpoint.HOOK,
+                        AREndpoint.FETCH_DATA,
                         nvram=ASUSDATA_NVRAM["openvpn_server_388"],
                     ),
                 )
@@ -326,7 +322,7 @@ class AsusRouter:
                 add_conditional_data_rule(
                     AsusData.VPNC,
                     AsusDataFinder(
-                        Endpoint.HOOK,
+                        AREndpoint.FETCH_DATA,
                         nvram=ASUSDATA_NVRAM["vpnc"],
                     ),
                 )
@@ -394,7 +390,7 @@ class AsusRouter:
             await self._async_handle_reboot()
 
     async def async_api_query(
-        self, endpoint: EndpointType, payload: str | None = None
+        self, endpoint: AREndpoint, payload: str | None = None
     ) -> tuple[int, dict[str, str], str]:
         """Query the API endpoint."""
 
@@ -417,7 +413,7 @@ class AsusRouter:
             "Triggered method async_api_query: %s | %s", endpoint, payload
         )
 
-        request_type = ENDPOINT_FORCE_REQUEST.get(endpoint, RequestType.POST)
+        request_type = get_endpoint_request_type(endpoint)
 
         return await self._connection.async_query(
             endpoint, payload, request_type=request_type
@@ -425,7 +421,7 @@ class AsusRouter:
 
     async def async_api_load(
         self,
-        endpoint: EndpointType,
+        endpoint: AREndpoint,
         request: str = "",
         retry: int = 0,
     ) -> dict[str, Any]:
@@ -486,14 +482,14 @@ class AsusRouter:
         _LOGGER.debug("Triggered method async_api_hook: %s", request)
 
         return await self.async_api_load(
-            endpoint=Endpoint.HOOK,
+            endpoint=AREndpoint.FETCH_DATA,
             request=f"hook={request}",
         )
 
     async def async_api_command(
         self,
         commands: dict[str, str] | None,
-        endpoint: EndpointType = EndpointControl.COMMAND,
+        endpoint: AREndpoint = AREndpoint.PUSH_DATA,
     ) -> dict[str, Any]:
         """Send a command to the device."""
 
@@ -576,7 +572,7 @@ class AsusRouter:
 
         return data
 
-    def _drop_data(self, datatype: AsusData, endpoint: EndpointType) -> bool:
+    def _drop_data(self, datatype: AsusData, endpoint: AREndpoint) -> bool:
         """Check whether data should be dropped.
 
         This is required for some data obtained from multiple endpoints.
@@ -590,7 +586,7 @@ class AsusRouter:
                 ARFirmwareType.GNUTON,
             )
         ):
-            return endpoint == Endpoint.HOOK
+            return endpoint == AREndpoint.FETCH_DATA
 
         return False
 
@@ -996,7 +992,7 @@ class AsusRouter:
         try:
             for endpoint in data_finder.endpoint:
                 # Get the data from the endpoint
-                request = "hook=" if endpoint == Endpoint.HOOK else ""
+                request = "hook=" if endpoint == AREndpoint.FETCH_DATA else ""
                 for key, value in df_request:
                     request += f"{key}({value});"
                 if df_method:

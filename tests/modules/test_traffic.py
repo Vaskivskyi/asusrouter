@@ -13,7 +13,7 @@ from asusrouter.const import (
     AR_CALL_TRANSLATE_STATE,
     HTTPStatus,
 )
-from asusrouter.modules.endpoint import EndpointTools
+from asusrouter.modules.endpoint_v2 import AREndpoint
 from asusrouter.modules.source import ARDataSource
 import asusrouter.modules.traffic as traffic_module
 from asusrouter.modules.traffic import (
@@ -320,7 +320,7 @@ class TestGetState:
                 return_value=False,
             ) as mock_isinstance,
             patch(
-                "asusrouter.modules.traffic.get_request_type",
+                "asusrouter.modules.traffic.get_endpoint_request_type",
                 return_value=request_type,
             ) as mock_get_request_type,
             patch(
@@ -343,7 +343,7 @@ class TestGetState:
                 any_order=False,
             )
             mock_get_request_type.assert_called_once_with(
-                EndpointTools.TRAFFIC_WIFI
+                AREndpoint.FETCH_TRAFFIC_WIFI
             )
             mock_dict_to_request.assert_called_once_with(
                 {
@@ -376,7 +376,7 @@ class TestGetState:
         [
             (
                 ARTrafficSourceEthernet(target=vtarget, bh_flag="true"),
-                EndpointTools.TRAFFIC_ETHERNET,
+                AREndpoint.FETCH_TRAFFIC_ETHERNET,
                 {
                     "node_mac": str(vtarget),
                     "is_bh": 1,
@@ -384,7 +384,7 @@ class TestGetState:
             ),
             (
                 ARTrafficSourceEthernet(target=vtarget, bh_flag=False),
-                EndpointTools.TRAFFIC_ETHERNET,
+                AREndpoint.FETCH_TRAFFIC_ETHERNET,
                 {
                     "node_mac": str(vtarget),
                     "is_bh": 0,
@@ -392,7 +392,7 @@ class TestGetState:
             ),
             (
                 ARTrafficSourceBackhaul(target=vtarget, towards=vtowards),
-                EndpointTools.TRAFFIC_BACKHAUL,
+                AREndpoint.FETCH_TRAFFIC_BACKHAUL,
                 {
                     "node_mac": str(vtarget),
                     "sta_mac": str(vtowards),
@@ -400,7 +400,7 @@ class TestGetState:
             ),
             (
                 ARTrafficSourceWiFi(target=vtarget, towards=vtowards),
-                EndpointTools.TRAFFIC_WIFI,
+                AREndpoint.FETCH_TRAFFIC_WIFI,
                 {
                     "node_mac": str(vtarget),
                     "band_mac": str(vtowards),
@@ -411,7 +411,7 @@ class TestGetState:
     async def test_arguments(
         self,
         source: ARTrafficSource,
-        endpoint: EndpointTools,
+        endpoint: AREndpoint,
         expected_args: dict[str, Any],
     ) -> None:
         """Test the arguments passed to the request."""
@@ -432,7 +432,7 @@ class TestGetState:
                 "asusrouter.modules.traffic._check_state"
             ) as mock_check_state,
             patch(
-                "asusrouter.modules.traffic.get_request_type",
+                "asusrouter.modules.traffic.get_endpoint_request_type",
                 return_value=request_type,
             ) as mock_get_request_type,
             patch(

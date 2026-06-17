@@ -8,7 +8,7 @@ from __future__ import annotations
 from typing import Any
 
 from asusrouter.const import AR_CALL_GET_STATE, AR_CALL_TRANSLATE_STATE
-from asusrouter.modules.endpoint import Endpoint
+from asusrouter.modules.endpoint_v2 import AREndpoint
 from asusrouter.modules.source import ARDataSource
 from asusrouter.modules.support.ai import (
     translate_ai,
@@ -110,7 +110,7 @@ async def get_state(
 ) -> dict[str, Any]:
     """Fetch the support data state."""
 
-    endpoint = Endpoint.HOOK
+    endpoint = AREndpoint.FETCH_DATA
     request = "hook=get_ui_support()"
 
     response = await callback(endpoint=endpoint, request=request)

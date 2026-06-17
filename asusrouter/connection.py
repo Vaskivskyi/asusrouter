@@ -50,12 +50,8 @@ from asusrouter.error import (
     AsusRouterSSLCertificateError,
     AsusRouterTimeoutError,
 )
-from asusrouter.modules.endpoint import (
-    EndpointService,
-    EndpointType,
-    is_sensitive_endpoint,
-)
 from asusrouter.modules.endpoint.error import handle_access_error
+from asusrouter.modules.endpoint_v2 import AREndpoint, get_endpoint_sensitive
 from asusrouter.tools.connection import get_cookie_jar
 from asusrouter.tools.converters import clean_string, safe_float
 from asusrouter.tools.security import ARSecurityLevel
@@ -312,18 +308,17 @@ class Connection:  # pylint: disable=too-many-instance-attributes
         try:
             # Do the network login outside the lock to avoid deadlocks
             _, _, resp_content = await self._send_request(
-                EndpointService.LOGIN, payload, headers
+                AREndpoint.LOGIN, payload, headers
             )
             _LOGGER.debug("Received authorization response")
         except AsusRouterSSLCertificateError as ex:
             raise AsusRouterAccessError(
-                f"Cannot access {EndpointService.LOGIN}. "
+                f"Cannot access {AREndpoint.LOGIN}. "
                 "due to the SSL certificate error"
             ) from ex
         except AsusRouterAccessError as ex:
             raise AsusRouterAccessError(
-                f"Cannot access {EndpointService.LOGIN}. "
-                "Failed in `async_connect`"
+                f"Cannot access {AREndpoint.LOGIN}. Failed in `async_connect`"
             ) from ex
         except AsusRouterError as ex:
             _LOGGER.debug("Connection failed with error: %s", ex)
@@ -378,7 +373,7 @@ class Connection:  # pylint: disable=too-many-instance-attributes
 
         # Request logout
         try:
-            await self._send_request(EndpointService.LOGOUT)
+            await self._send_request(AREndpoint.LOGOUT)
         except AsusRouterLogoutError:
             # Loged out successfully
             self.reset_connection()
@@ -394,7 +389,7 @@ class Connection:  # pylint: disable=too-many-instance-attributes
         return False
 
     def _payload_for_logging(
-        self, security_level: Any, endpoint: EndpointType, payload: str | None
+        self, security_level: Any, endpoint: AREndpoint, payload: str | None
     ) -> str | None:
         """Return the payload to log if any.
 
@@ -410,10 +405,7 @@ class Connection:  # pylint: disable=too-many-instance-attributes
 
         # STRICT: never include payload | Never include
         # login payload at any level
-        if (
-            level == ARSecurityLevel.STRICT
-            or endpoint == EndpointService.LOGIN
-        ):
+        if level == ARSecurityLevel.STRICT or endpoint == AREndpoint.LOGIN:
             return None
 
         # Clean from empty strings
@@ -423,7 +415,7 @@ class Connection:  # pylint: disable=too-many-instance-attributes
 
         # Sensitive endpoints: only allowed if explicitly set to
         # UNSAFE by user or are SANITIZED
-        if is_sensitive_endpoint(endpoint):
+        if get_endpoint_sensitive(endpoint):
             if ARSecurityLevel.at_least_sanitized(level):
                 if level == ARSecurityLevel.SANITIZED:
                     # Automatically sanitized to remove sensitive data
@@ -437,9 +429,7 @@ class Connection:  # pylint: disable=too-many-instance-attributes
         # Non-sensitive endpoints: log (unless was blocked by STRICT config)
         return payload
 
-    def _log_request(
-        self, endpoint: EndpointType, payload: str | None
-    ) -> None:
+    def _log_request(self, endpoint: AREndpoint, payload: str | None) -> None:
         """Log the request details."""
 
         security_level = ARConfig.get(ARConfKey.DEBUG_PAYLOAD)
@@ -460,7 +450,7 @@ class Connection:  # pylint: disable=too-many-instance-attributes
 
     async def _send_request(  # noqa: C901, PLR0912
         self,
-        endpoint: EndpointType,
+        endpoint: AREndpoint,
         payload: str | None = None,
         headers: dict[str, str] | None = None,
         request_type: RequestType = RequestType.POST,
@@ -731,7 +721,7 @@ class Connection:  # pylint: disable=too-many-instance-attributes
 
     async def async_query(
         self,
-        endpoint: EndpointType,
+        endpoint: AREndpoint,
         payload: str | None = None,
         headers: dict[str, str] | None = None,
         request_type: RequestType = RequestType.POST,
@@ -759,7 +749,7 @@ class Connection:  # pylint: disable=too-many-instance-attributes
 
     async def _make_request(
         self,
-        endpoint: EndpointType,
+        endpoint: AREndpoint,
         payload: str | None = None,
         headers: dict[str, str] | None = None,
         request_type: RequestType = RequestType.POST,

@@ -17,7 +17,7 @@ from asusrouter.error import (
     AsusRouterFallbackLoopError,
     AsusRouterNotImplementedError,
 )
-from asusrouter.modules.endpoint import EndpointService
+from asusrouter.modules.endpoint_v2 import AREndpoint
 from tests.helpers import AsyncPatch, ConnectionFactory, SyncPatch
 
 CUSTOM_HTTP = DEFAULT_PORT_HTTP + 5
@@ -218,7 +218,7 @@ class TestConnectionFallback:
         if case["expect_exception"] is not None:
             with pytest.raises(case["expect_exception"]):
                 await connection._async_handle_fallback(
-                    connection._send_request, endpoint=EndpointService.LOGIN
+                    connection._send_request, endpoint=AREndpoint.LOGIN
                 )
         # Fallback successful
         else:
@@ -227,13 +227,13 @@ class TestConnectionFallback:
 
             await connection._async_handle_fallback(
                 mock_send_request,
-                endpoint=EndpointService.LOGIN,
+                endpoint=AREndpoint.LOGIN,
             )
             mock_fallback.assert_awaited_once_with(
                 fallback_type=case["expected_fallback"]
             )
             mock_send_request.assert_awaited_once_with(
-                endpoint=EndpointService.LOGIN
+                endpoint=AREndpoint.LOGIN
             )
 
     @pytest.mark.asyncio
