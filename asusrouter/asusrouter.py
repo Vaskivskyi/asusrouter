@@ -366,7 +366,7 @@ class AsusRouter:
         match attribute:
             case AsusRouterAttribute.MAC:
                 mac = self.description.mac
-                return str(mac) if mac else None
+                return mac.as_asus() if mac else None
             case AsusRouterAttribute.WLAN_LIST:
                 return self.description.wifi
 
@@ -560,7 +560,7 @@ class AsusRouter:
             _LOGGER.debug("Transforming port data")
             return transform_ethernet_ports(
                 data,
-                str(mac) if (mac := description.mac) else None,
+                mac.as_asus() if (mac := description.mac) else None,
             )
 
         if datatype == AsusData.WAN:
@@ -646,7 +646,7 @@ class AsusRouter:
 
         if datatype == AsusData.PORTS:
             mac = self.description.mac
-            own_mac = str(mac) if mac else None
+            own_mac = mac.as_asus() if mac else None
 
             # Get the device selected
             device = kwargs.get("device")
