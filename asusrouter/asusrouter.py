@@ -60,7 +60,6 @@ from asusrouter.modules.endpoint_v2 import (
     get_endpoint_request_type,
 )
 from asusrouter.modules.firmware import AR_FW_388, AR_FW_MERLIN_LIKE
-from asusrouter.modules.flags import Flag
 from asusrouter.modules.port_forwarding import PortForwardingRule
 from asusrouter.modules.service import async_call_service
 from asusrouter.modules.source import (
@@ -127,8 +126,6 @@ class AsusRouter:
         self._data_states: dict[ARDataSource | ARDataType, ARDataState] = {}
         self._description: ARDeviceIdentity = ARDeviceIdentity()
 
-        # Set the flags
-        self._flags: Flag = Flag()
         # Time for change to take effect before available to fetch
         self._needed_time: int | None = None
         # ID from the last called service
