@@ -6,6 +6,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from asusrouter.modules.device.identity import ARDeviceIdentity
 from asusrouter.modules.wifi import ARWiFiBand
 from asusrouter.modules.wlan import (
     MAP_GWLAN,
@@ -70,9 +71,17 @@ def test_wlan_nvram_request() -> None:
 
     mock = MagicMock()
     wlan = {ARWiFiBand.BAND_2G1: 0}
+    description = MagicMock(spec=ARDeviceIdentity)
+    description.wifi = wlan
     with patch("asusrouter.modules.wlan._nvram_request", new=mock):
-        wlan_nvram_request(wlan)
+        wlan_nvram_request(description)
         mock.assert_called_with(wlan, MAP_WLAN)
+
+
+def test_wlan_nvram_request_none() -> None:
+    """Test wlan_nvram_request with None description returns None."""
+
+    assert wlan_nvram_request(None) is None
 
 
 def test_gwlan_nvram_request() -> None:
@@ -80,9 +89,17 @@ def test_gwlan_nvram_request() -> None:
 
     mock = MagicMock()
     wlan = {ARWiFiBand.BAND_2G1: 0}
+    description = MagicMock(spec=ARDeviceIdentity)
+    description.wifi = wlan
     with patch("asusrouter.modules.wlan._nvram_request", new=mock):
-        gwlan_nvram_request(wlan)
+        gwlan_nvram_request(description)
         mock.assert_called_with(wlan, MAP_GWLAN, guest=True)
+
+
+def test_gwlan_nvram_request_none() -> None:
+    """Test gwlan_nvram_request with None description returns None."""
+
+    assert gwlan_nvram_request(None) is None
 
 
 @pytest.mark.asyncio

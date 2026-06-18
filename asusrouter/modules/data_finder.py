@@ -6,7 +6,6 @@ from collections.abc import Callable
 from enum import StrEnum
 import logging
 
-from asusrouter.modules.attributes import AsusRouterAttribute
 from asusrouter.modules.data import AsusData
 from asusrouter.modules.endpoint.hook_const import (
     MAP_OVPN_SERVER_388,
@@ -42,7 +41,6 @@ class AsusDataFinder:
         request: list[tuple[str, ...]] | None = None,
         nvram: list[str] | str | None = None,
         method: Callable | None = None,
-        arguments: AsusRouterAttribute | None = None,
     ) -> None:
         """Initialize the data finder."""
 
@@ -61,9 +59,7 @@ class AsusDataFinder:
             if nvram_request:
                 self.request.extend(nvram_request)
 
-        # Set the method and arguments
         self.method = method
-        self.arguments = arguments
 
 
 # A constant list of requests for fetching data
@@ -221,7 +217,6 @@ ASUSDATA_MAP: dict[AsusData, AsusData | AsusDataFinder] = {
     AsusData.GWLAN: AsusDataFinder(
         AREndpoint.FETCH_DATA,
         method=gwlan_nvram_request,
-        arguments=AsusRouterAttribute.WLAN_LIST,
     ),
     AsusData.LED: AsusDataFinder(
         AREndpoint.FETCH_DATA, nvram=ASUSDATA_NVRAM["light"]
@@ -280,7 +275,6 @@ ASUSDATA_MAP: dict[AsusData, AsusData | AsusDataFinder] = {
     AsusData.WLAN: AsusDataFinder(
         AREndpoint.FETCH_DATA,
         method=wlan_nvram_request,
-        arguments=AsusRouterAttribute.WLAN_LIST,
     ),
     AsusData.DSL: AsusDataFinder(
         AREndpoint.FETCH_DATA,

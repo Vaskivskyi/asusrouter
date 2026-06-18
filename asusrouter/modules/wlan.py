@@ -7,6 +7,7 @@ from enum import IntEnum, StrEnum
 from typing import Any
 
 from asusrouter.modules.const import MapValueType
+from asusrouter.modules.device.identity import ARDeviceIdentity
 from asusrouter.modules.wifi import ARWiFiBand
 from asusrouter.tools.converters import (
     get_arguments,
@@ -168,16 +169,18 @@ def _nvram_request(
     return nvram(request)
 
 
-def wlan_nvram_request(wlan: dict[ARWiFiBand, int] | None) -> str | None:
+def wlan_nvram_request(description: ARDeviceIdentity | None) -> str | None:
     """Create an NVRAM request for WLAN."""
 
-    return _nvram_request(wlan, MAP_WLAN)
+    return _nvram_request(description.wifi if description else None, MAP_WLAN)
 
 
-def gwlan_nvram_request(wlan: dict[ARWiFiBand, int] | None) -> str | None:
+def gwlan_nvram_request(description: ARDeviceIdentity | None) -> str | None:
     """Create an NVRAM request for GWLAN."""
 
-    return _nvram_request(wlan, MAP_GWLAN, guest=True)
+    return _nvram_request(
+        description.wifi if description else None, MAP_GWLAN, guest=True
+    )
 
 
 async def set_state(
