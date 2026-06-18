@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+from enum import StrEnum
+
 from asusrouter.modules.connection import ConnectionState, ConnectionStatus
-from asusrouter.modules.endpoint.wan import AsusDualWAN
 from asusrouter.modules.ip_address import (
     read_dns_ip_address,
     read_ip_address_type,
@@ -16,6 +17,15 @@ from asusrouter.tools.converters import (
     safe_list_csv,
     safe_list_from_string,
 )
+
+
+class AsusDualWAN(StrEnum):
+    """Dual WAN class."""
+
+    FAILOVER = "fo"
+    FALLBACK = "fb"
+    LOAD_BALANCE = "lb"
+
 
 MAP_NETWORK: dict[str, str] = {
     "INTERNET": "wan",

@@ -7,9 +7,9 @@ from typing import Any
 from asusrouter.modules.aimesh import AiMeshDevice
 from asusrouter.modules.data import AsusData
 from asusrouter.tools.converters import safe_bool, safe_int, safe_return
-from asusrouter.tools.readers import read_js_variables as read
+from asusrouter.tools.readers import read_js_variables
 
-__all__ = ["read"]
+read = read_js_variables
 
 CONNECTION_TYPE = {
     "2G": 1,

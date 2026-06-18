@@ -6,20 +6,12 @@ from unittest.mock import patch
 
 import pytest
 
-from asusrouter.modules.endpoint.hook import process_gwlan, process_wlan, read
+from asusrouter.modules.endpoint.hook import process_gwlan, process_wlan
 from asusrouter.modules.wifi import ARWiFiBand
-
-from ._test_default import _test_read
 
 # Minimal MAP entries used in patched tests: one plain key, one with a method.
 _MAP_PLAIN = [("wl{}_ssid",)]
 _MAP_WITH_METHOD = [("wl{}_enabled", lambda v: v is not None)]
-
-
-def test_read():
-    """Test read function."""
-
-    _test_read(read)
 
 
 class TestProcessGwlan:

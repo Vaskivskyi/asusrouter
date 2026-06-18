@@ -33,7 +33,6 @@ from asusrouter.error import (
     AsusRouterConnectionError,
     AsusRouterDataError,
 )
-from asusrouter.modules.attributes import AsusRouterAttribute
 from asusrouter.modules.data import AsusData, AsusDataState
 from asusrouter.modules.data_finder import (
     ASUSDATA_ENDPOINT_APPEND,
@@ -61,7 +60,6 @@ from asusrouter.modules.endpoint_v2 import (
     get_endpoint_request_type,
 )
 from asusrouter.modules.firmware import AR_FW_388, AR_FW_MERLIN_LIKE
-from asusrouter.modules.flags import Flag
 from asusrouter.modules.port_forwarding import PortForwardingRule
 from asusrouter.modules.service import async_call_service
 from asusrouter.modules.source import (
@@ -128,8 +126,6 @@ class AsusRouter:
         self._data_states: dict[ARDataSource | ARDataType, ARDataState] = {}
         self._description: ARDeviceIdentity = ARDeviceIdentity()
 
-        # Set the flags
-        self._flags: Flag = Flag()
         # Time for change to take effect before available to fetch
         self._needed_time: int | None = None
         # ID from the last called service
@@ -350,23 +346,6 @@ class AsusRouter:
     # Request-related methods -->
     # ---------------------------
 
-    def _get_attribute(
-        self, attribute: AsusRouterAttribute | None
-    ) -> Any | None:
-        """Get an attribute value."""
-
-        if attribute is None:
-            return None
-
-        match attribute:
-            case AsusRouterAttribute.MAC:
-                mac = self.description.mac
-                return mac.as_asus() if mac else None
-            case AsusRouterAttribute.WLAN_LIST:
-                return self.description.wifi
-
-        return None
-
     async def _check_flags(self) -> None:
         """Check flags."""
 
@@ -392,11 +371,7 @@ class AsusRouter:
         if endpoint in ASUSDATA_ENDPOINT_APPEND:
             payload = payload or ""
             appended = False
-            for key, attribute in ASUSDATA_ENDPOINT_APPEND[endpoint].items():
-                if isinstance(attribute, AsusRouterAttribute):
-                    value = self._get_attribute(attribute)
-                else:
-                    value = attribute
+            for key, value in ASUSDATA_ENDPOINT_APPEND[endpoint].items():
                 if value:
                     payload += f"{key}={value};"
                     appended = True
@@ -975,7 +950,6 @@ class AsusRouter:
 
         df_request = data_finder.request
         df_method = data_finder.method
-        df_arguments = data_finder.arguments
         df_merge = data_finder.merge
         description = self.description
 
@@ -985,10 +959,8 @@ class AsusRouter:
                 request = "hook=" if endpoint == AREndpoint.FETCH_DATA else ""
                 for key, value in df_request:
                     request += f"{key}({value});"
-                if df_method:
-                    argument = self._get_attribute(df_arguments)
-                    if method_result := df_method(argument):
-                        request += method_result
+                if df_method and (method_result := df_method(description)):
+                    request += method_result
 
                 # Add the request from kwargs
                 kw_request = kwargs.get("request", {})

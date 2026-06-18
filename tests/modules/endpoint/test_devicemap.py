@@ -219,15 +219,6 @@ def test_read_key(
         assert result == const_devicemap_result
 
 
-def test_read_special(
-    input_data: dict[str, list[str]],  # pylint: disable=redefined-outer-name
-) -> None:
-    """Test read_special function."""
-
-    result = devicemap.read_special(input_data)
-    assert result == {}  # pylint: disable=C1803
-
-
 @pytest.mark.parametrize(
     ("content", "result"),
     [

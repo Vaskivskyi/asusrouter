@@ -13,6 +13,7 @@ from asusrouter.const import HTTPStatus
 from asusrouter.error import AsusRouter404Error, AsusRouterRequestFormatError
 from asusrouter.modules.data import AsusData, AsusDataState
 from asusrouter.modules.endpoint_v2 import AREndpoint
+from asusrouter.tools.readers import read_json_content
 
 if TYPE_CHECKING:
     from asusrouter.modules.device.identity import ARDeviceIdentity
@@ -26,19 +27,14 @@ _SUBMODULE_MAP: dict[str, str] = {
     AREndpoint.FETCH_DEVICEMAP: "devicemap",
     AREndpoint.FETCH_FIRMWARE_UPDATE: "firmware",
     AREndpoint.FETCH_FIRMWARE_UPDATE_NOTE: "firmware_note",
-    AREndpoint.FETCH_FIRMWARE_UPDATE_NOTE_AIMESH: "firmware_note_aimesh",
+    AREndpoint.FETCH_FIRMWARE_UPDATE_NOTE_AIMESH: "firmware_note",
     AREndpoint.FETCH_NETWORK: "network",
     AREndpoint.FETCH_ONBOARDING: "onboarding",
     AREndpoint.FETCH_PORT_STATUS: "port_status",
     AREndpoint.FETCH_PORTS_ETHERNET: "ethernet_ports",
     AREndpoint.FETCH_SYSINFO: "sysinfo",
     AREndpoint.FETCH_TEMPERATURE: "temperature",
-    AREndpoint.FETCH_TRAFFIC_BACKHAUL: "traffic_backhaul",
-    AREndpoint.FETCH_TRAFFIC_ETHERNET: "traffic_ethernet",
-    AREndpoint.FETCH_TRAFFIC_WIFI: "traffic_wifi",
     AREndpoint.FETCH_VPN_STATUS: "vpn",
-    AREndpoint.PUSH_DATA: "command",
-    AREndpoint.SET_AURA: "aura",
 }
 
 
@@ -72,13 +68,14 @@ def read(
 
     submodule = _get_module(endpoint)
 
-    if submodule:
+    if submodule and hasattr(submodule, "read"):
         result = submodule.read(content, **kwargs)
         if isinstance(result, dict):
             return result
         return {}
 
-    return {}
+    result = read_json_content(content)
+    return result if isinstance(result, dict) else {}
 
 
 def process(
