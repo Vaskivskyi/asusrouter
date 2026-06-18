@@ -20,18 +20,6 @@ UNKNOWN_MEMBER_STR: Final[str] = "unknown"
 
 
 # Enums
-class ContentType(StrEnum):
-    """Content type enum."""
-
-    UNKNOWN = "unknown"
-
-    BINARY = "application/octet-stream"
-    HTML = "text/html"
-    JSON = "application/json"
-    TEXT = "text/plain"
-    XML = "application/xml"
-
-
 class RequestType(StrEnum):
     """Request type enum."""
 

@@ -8,7 +8,6 @@ import logging
 import re
 from typing import Any
 
-from asusrouter.const import ContentType
 from asusrouter.tools.converters import clean_input
 from asusrouter.tools.converters_v2.raw import raw_to_bool, raw_to_float
 from asusrouter.tools.types import ARCallableType
@@ -106,21 +105,6 @@ def read_as_snake_case(data: str) -> str:
         result = result.replace("__", "_")
 
     return result
-
-
-def read_content_type(headers: dict[str, str]) -> ContentType:
-    """Get the content type from the headers."""
-
-    # Get the content type from the headers
-    content_type = headers.get("content-type", "").split(";")[0].strip()
-    # Find the content type in ContentType enum and return correct
-    # ContentType enum
-    for content_type_enum in ContentType:
-        if content_type_enum.value == content_type:
-            return content_type_enum
-
-    # If the content type is not found, return the content type as text
-    return ContentType.UNKNOWN
 
 
 @clean_input
