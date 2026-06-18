@@ -5,7 +5,7 @@ from __future__ import annotations
 from enum import StrEnum
 import re
 
-from asusrouter.tools.converters import clean_string
+from asusrouter.tools.converters_v2.raw import raw_to_str
 
 
 class IPAddressType(StrEnum):
@@ -21,7 +21,7 @@ class IPAddressType(StrEnum):
 def read_ip_address_type(data: str | None) -> IPAddressType:
     """Read IP address type from data string."""
 
-    data = clean_string(data)
+    data = raw_to_str(data)
 
     if data:
         data = data.lower()

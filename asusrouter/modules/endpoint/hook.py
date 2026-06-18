@@ -31,15 +31,17 @@ from asusrouter.modules.wifi import ARWiFiBand
 from asusrouter.modules.wlan import MAP_GWLAN, MAP_WLAN
 from asusrouter.tools.converters import (
     run_method,
-    safe_bool,
     safe_datetime,
-    safe_int,
-    safe_return,
     safe_speed,
     safe_unpack_key,
     safe_unpack_keys,
     safe_usage,
     safe_usage_historic,
+)
+from asusrouter.tools.converters_v2.raw import (
+    raw_to_bool,
+    raw_to_int,
+    raw_to_str,
 )
 from asusrouter.tools.readers import merge_dicts
 
@@ -112,8 +114,9 @@ def process(data: dict[str, Any]) -> dict[AsusData, Any]:  # noqa: C901, PLR0912
 
     # LED
     if "led_val" in data:
+        _led = raw_to_int(data.get("led_val"))
         state[AsusData.LED] = {
-            "state": AsusLED(safe_int(data.get("led_val"), default=-999))
+            "state": AsusLED(_led if _led is not None else -999)
         }
 
     # Network
@@ -313,7 +316,7 @@ def process_network_usage(raw: dict[str, Any]) -> dict[str, Any]:
         data = {}
         for traffic_type in ("rx", "tx"):
             # Convert string with HEX value to int
-            value = safe_int(raw.get(f"{key}_{traffic_type}"), base=16)
+            value = raw_to_int(raw.get(f"{key}_{traffic_type}"), base=16)
             # Check that value is integer
             if isinstance(value, int):
                 data[traffic_type] = value
@@ -351,12 +354,13 @@ def process_parental_control(data: dict[str, Any]) -> dict[str, Any]:
 
     # State
     parental_control["state"] = AsusParentalControl(
-        safe_int(data.get(KEY_PC_STATE), default=-999)
+        _v if (_v := raw_to_int(data.get(KEY_PC_STATE))) is not None else -999
     )
 
     # Block all
+    _block_all = raw_to_int(data.get(KEY_PC_BLOCK_ALL))
     parental_control["block_all"] = AsusBlockAll(
-        safe_int(data.get(KEY_PC_BLOCK_ALL), default=-999)
+        _block_all if _block_all is not None else -999
     )
 
     # Rules
@@ -372,7 +376,9 @@ def process_port_forwarding(data: dict[str, Any]) -> dict[str, Any]:
 
     # State
     port_forwarding["state"] = AsusPortForwarding(
-        safe_int(data.get(KEY_PORT_FORWARDING_STATE), default=-999)
+        _v
+        if (_v := raw_to_int(data.get(KEY_PORT_FORWARDING_STATE))) is not None
+        else -999
     )
 
     # Rules
@@ -386,11 +392,11 @@ def process_port_forwarding(data: dict[str, Any]) -> dict[str, Any]:
             part = rule.split("&#62")
             rules.append(
                 PortForwardingRule(
-                    name=safe_return(part[0]),
+                    name=raw_to_str(part[0]),
                     ip_address=part[2],
-                    port=safe_return(part[3]),
+                    port=raw_to_str(part[3]),
                     protocol=part[4],
-                    ip_external=safe_return(part[5]),
+                    ip_external=raw_to_str(part[5]),
                     port_external=part[1],
                 )
             )
@@ -408,9 +414,9 @@ def process_ram(memory_usage: dict[str, Any]) -> dict[str, Any]:
 
     # Populate RAM with known values
     ram = {
-        "free": safe_int(memory_usage.get("mem_free")),
-        "total": safe_int(memory_usage.get("mem_total")),
-        "used": safe_int(memory_usage.get("mem_used")),
+        "free": raw_to_int(memory_usage.get("mem_free")),
+        "total": raw_to_int(memory_usage.get("mem_total")),
+        "used": raw_to_int(memory_usage.get("mem_used")),
     }
     # Calculate usage in percents
     if "used" in ram and "total" in ram:
@@ -511,18 +517,18 @@ def process_vpnc(  # noqa: C901
             #         vpnc_id, ?, ?, ?, ?, `Web`
             if len(part) < _VPNC_PART_MIN_FIELDS:
                 continue
-            vpnc_id = safe_int(part[6])
+            vpnc_id = raw_to_int(part[6])
             vpnc[vpnc_id] = {
                 "type": (
                     AsusVPNType(part[1])
                     if part[1] in [e.value for e in AsusVPNType]
                     else AsusVPNType.UNKNOWN
                 ),
-                "id": safe_int(part[2]),
-                "name": safe_return(part[0]),
-                "login": safe_return(part[3]),
-                "password": safe_return(part[4]),
-                "active": safe_bool(part[5]),
+                "id": raw_to_int(part[2]),
+                "name": raw_to_str(part[0]),
+                "login": raw_to_str(part[3]),
+                "password": raw_to_str(part[4]),
+                "active": raw_to_bool(part[5]),
                 "vpnc_unit": vpnc_unit,
             }
             vpnc_unit += 1
@@ -535,9 +541,9 @@ def process_vpnc(  # noqa: C901
             if client == "":
                 continue
             part = client.split(">")
-            vpnc_id = safe_int(part[2])
-            state_code = safe_int(part[0])
-            error_code = safe_int(part[1])
+            vpnc_id = raw_to_int(part[2])
+            state_code = raw_to_int(part[0])
+            error_code = raw_to_int(part[1])
             vpnc[vpnc_id].update(
                 {
                     "state": (
@@ -764,8 +770,8 @@ def process_dsl(dsl_info: dict[str, Any]) -> dict[str, Any]:
     _datarateup = remove_units(dsl_info.get("dsllog_datarateup"))
 
     dsl["datarate"] = {
-        "down": safe_int(_dataratedown, 0),
-        "up": safe_int(_datarateup, 0),
+        "down": raw_to_int(_dataratedown) or 0,
+        "up": raw_to_int(_datarateup) or 0,
     }
 
     return dsl

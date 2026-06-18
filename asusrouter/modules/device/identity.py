@@ -11,7 +11,8 @@ from asusrouter.modules.nvram import ARNvramType
 from asusrouter.modules.support import ARSupportSourceUniversal
 from asusrouter.modules.support.flag import ARSupportType
 from asusrouter.modules.wifi import ARWiFiBand
-from asusrouter.tools.converters import clean_string, safe_list_from_string
+from asusrouter.tools.converters import safe_list_from_string
+from asusrouter.tools.converters_v2.raw import raw_to_str
 from asusrouter.tools.identifiers import MacAddress
 
 IdentityData = Mapping[Any, Any]
@@ -58,9 +59,9 @@ def _translate_identity_base(
 
     return (
         MacAddress.from_value_safe(data.get(ARNvramType.MAC)),
-        clean_string(data.get(ARNvramType.MODEL)),
-        clean_string(data.get(ARNvramType.MODEL_ORIGINAL)),
-        clean_string(data.get(ARNvramType.SERIAL)),
+        raw_to_str(data.get(ARNvramType.MODEL)),
+        raw_to_str(data.get(ARNvramType.MODEL_ORIGINAL)),
+        raw_to_str(data.get(ARNvramType.SERIAL)),
     )
 
 

@@ -6,7 +6,7 @@ import logging
 import re
 
 from asusrouter.modules.firmware.flag import ARFirmwareType
-from asusrouter.tools.converters import clean_string
+from asusrouter.tools.converters_v2.raw import raw_to_str
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -39,7 +39,7 @@ def _translate_revision(raw: str | None) -> int | str | None:
 def translate_major(raw: str | None) -> tuple[int, int, int, int] | None:
     """Translate major version string to an int tuple if possible."""
 
-    raw = clean_string(raw)
+    raw = raw_to_str(raw)
     if not raw:
         return None
     match = FW_MAJOR_PATTERN.match(raw)
@@ -54,7 +54,7 @@ def translate_build(
 ) -> tuple[int | None, int | str | None, bool]:
     """Translate build string to (build, revision, rog)."""
 
-    raw = clean_string(raw)
+    raw = raw_to_str(raw)
     if not raw:
         return None, None, False
 
@@ -103,7 +103,7 @@ def translate_string(
 ]:
     """Translate firmware version string to components."""
 
-    raw = clean_string(raw)
+    raw = raw_to_str(raw)
     if not raw or raw in ("__", "___"):
         return None, None, None, None, False
 

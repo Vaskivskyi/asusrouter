@@ -8,7 +8,7 @@ from enum import IntEnum
 from typing import Any
 
 from asusrouter.modules.data import AsusData, AsusDataState
-from asusrouter.tools.converters import safe_int, safe_return
+from asusrouter.tools.converters_v2.raw import raw_to_int, raw_to_str
 
 KEY_PC_BLOCK_ALL = "MULTIFILTER_BLOCK_ALL"
 KEY_PC_MAC = "MULTIFILTER_MAC"
@@ -260,10 +260,12 @@ def read_pc_rules(data: dict[str, str]) -> dict[str, ParentalControlRule]:
     ):
         # Map the values
         rule = ParentalControlRule(
-            mac=safe_return(rule_mac),
-            name=safe_return(rule_name),
-            timemap=safe_return(rule_timemap),
-            type=PCRuleType(safe_int(rule_type, default=-999)),
+            mac=raw_to_str(rule_mac),
+            name=raw_to_str(rule_name),
+            timemap=raw_to_str(rule_timemap),
+            type=PCRuleType(
+                _v if (_v := raw_to_int(rule_type)) is not None else -999
+            ),
         )
 
         # Append the rule to the list

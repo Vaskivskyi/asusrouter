@@ -19,12 +19,8 @@ from asusrouter.modules.device.identity import ARDeviceIdentity
 from asusrouter.modules.endpoint_v2 import AREndpoint
 from asusrouter.modules.support.flag import ARSupportType
 from asusrouter.modules.support.helpers import support_value
-from asusrouter.tools.converters import (
-    get_arguments,
-    safe_bool,
-    safe_enum,
-    safe_int,
-)
+from asusrouter.tools.converters import get_arguments, safe_enum
+from asusrouter.tools.converters_v2.raw import raw_to_bool, raw_to_int
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -100,11 +96,11 @@ def get_scheme_from_state(aura_state: dict) -> AsusAura:
         ]
         return scheme in valid_schemes
 
-    current_scheme = safe_int(aura_state.get("scheme"))
+    current_scheme = raw_to_int(aura_state.get("scheme"))
     if current_scheme is not None and is_valid_scheme(current_scheme):
         return AsusAura(current_scheme)
 
-    prev_scheme = safe_int(aura_state.get("scheme_prev"))
+    prev_scheme = raw_to_int(aura_state.get("scheme_prev"))
     if prev_scheme is not None and is_valid_scheme(prev_scheme):
         return AsusAura(prev_scheme)
 
@@ -163,7 +159,7 @@ def set_brightness(
     """Set the brightness for the zones."""
 
     # Prepare the brightness
-    brightness = safe_int(brightness)
+    brightness = raw_to_int(brightness)
 
     # No brightness defined
     if brightness is None:
@@ -265,7 +261,7 @@ def process_aura(data: dict[str, Any]) -> dict[str, Any]:
         """Get the scheme from the data."""
 
         scheme_value = data.get(key)
-        _scheme_value = safe_int(scheme_value)
+        _scheme_value = raw_to_int(scheme_value)
         _scheme_enum = safe_enum(AsusAura, _scheme_value, default_value=-999)
         scheme: AsusAura = (
             _scheme_enum if _scheme_enum is not None else AsusAura.UNKNOWN
@@ -278,14 +274,14 @@ def process_aura(data: dict[str, Any]) -> dict[str, Any]:
     # Get the effects data
     rgb_key_pattern = re.compile(r"ledg_rgb(\d+)")
     effect = {
-        safe_int(match.group(1)): parse_colors(data[key])
+        int(match.group(1)): parse_colors(data[key])
         for key in data
         if (match := rgb_key_pattern.match(key))
     }
 
-    aura = {
-        "state": safe_bool(data.get("AllLED")),
-        "night_mode": safe_bool(data.get("ledg_night_mode")),
+    aura: dict[str, Any] = {
+        "state": raw_to_bool(data.get("AllLED")),
+        "night_mode": raw_to_bool(data.get("ledg_night_mode")),
         "scheme": get_scheme("ledg_scheme"),
         "scheme_prev": get_scheme("ledg_scheme_old"),
         "effect": effect,

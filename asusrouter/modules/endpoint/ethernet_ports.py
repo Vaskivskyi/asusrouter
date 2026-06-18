@@ -11,7 +11,7 @@ from asusrouter.modules.ports import (
     ARPortType,
     read_ethernet_port_speed,
 )
-from asusrouter.tools.converters import safe_int
+from asusrouter.tools.converters_v2.raw import raw_to_int
 from asusrouter.tools.readers import read_json_content
 
 _LOGGER = logging.getLogger(__name__)
@@ -65,7 +65,7 @@ def process(data: dict[str, Any]) -> dict[AsusData, Any]:
                 ports[port_type] = {}
 
         # Get the port id and link rate
-        port_id = safe_int(port[3:])
+        port_id = raw_to_int(port[3:])
         link_rate = read_ethernet_port_speed(value)
         # Save the port info
         ports[port_type][port_id] = {

@@ -5,7 +5,8 @@ from __future__ import annotations
 from enum import IntEnum, StrEnum
 
 from asusrouter.modules.wlan import Wlan
-from asusrouter.tools.converters import get_enum_key_by_value, safe_int
+from asusrouter.tools.converters import get_enum_key_by_value
+from asusrouter.tools.converters_v2.raw import raw_to_int
 
 
 class ConnectionState(IntEnum):
@@ -68,7 +69,7 @@ def get_connection_type(value: int | None) -> ConnectionType:
 
     # Check that it's actually an int
     # This would actually work with float as well doing direct conversion
-    value = safe_int(value)
+    value = raw_to_int(value)
 
     # ------------------------------------------------------ #
     # I am officially considering this a feature, not a bug. #

@@ -5,7 +5,8 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from asusrouter.tools.converters import clean_input, safe_int, scale_value_int
+from asusrouter.tools.converters import scale_value_int
+from asusrouter.tools.converters_v2.raw import raw_to_int, raw_to_str
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -40,20 +41,19 @@ def average_color(
     return ColorRGB(red, green, blue, scale=scale)
 
 
-@clean_input
 def color_zone(
     color_str: str | None,
     delimiter: str = ",",
 ) -> int:
     """Return the number of color zones."""
 
+    color_str = raw_to_str(color_str)
     if not color_str:
         return 0
 
     return (len(color_str.split(delimiter))) // 3
 
 
-@clean_input
 def parse_colors(
     color_str: str | None,
     delimiter: str = ",",
@@ -61,6 +61,7 @@ def parse_colors(
 ) -> list[ColorRGBB] | None:
     """Parse the colors from the string."""
 
+    color_str = raw_to_str(color_str)
     if not color_str:
         return None
 
@@ -79,9 +80,9 @@ def parse_colors(
             break
         color.from_rgbwb(
             rgb=(
-                safe_int(channels[i]),
-                safe_int(channels[i + 1]),
-                safe_int(channels[i + 2]),
+                raw_to_int(channels[i]) or 0,
+                raw_to_int(channels[i + 1]) or 0,
+                raw_to_int(channels[i + 2]) or 0,
             ),
             scale=scale,
         )
@@ -132,11 +133,13 @@ class ColorRGB:
             return DEFAULT_COLOR
 
         if isinstance(rgb, str):
-            rgb = tuple(safe_int(value) for value in rgb.split(delimiter))
+            rgb = tuple(
+                raw_to_int(value) or 0 for value in rgb.split(delimiter)
+            )
         elif isinstance(rgb, ColorRGB):
             rgb = rgb.as_tuple()
         else:
-            rgb = tuple(safe_int(value) for value in rgb)
+            rgb = tuple(raw_to_int(value) or 0 for value in rgb)
 
         # Add extra values if needed or remove them
         rgb = (rgb + (0,) * 3)[:3]

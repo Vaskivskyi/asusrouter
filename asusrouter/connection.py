@@ -53,7 +53,7 @@ from asusrouter.error import (
 from asusrouter.modules.endpoint.error import handle_access_error
 from asusrouter.modules.endpoint_v2 import AREndpoint, get_endpoint_sensitive
 from asusrouter.tools.connection import get_cookie_jar
-from asusrouter.tools.converters import clean_string, safe_float
+from asusrouter.tools.converters_v2.raw import raw_to_float, raw_to_str
 from asusrouter.tools.security import ARSecurityLevel
 
 _LOGGER = logging.getLogger(__name__)
@@ -242,7 +242,7 @@ class Connection:  # pylint: disable=too-many-instance-attributes
     ) -> bool:
         """Connect to the device and get a new auth token."""
 
-        timeout = safe_float(t_overwrite) or self._timeout
+        timeout = raw_to_float(t_overwrite) or self._timeout
 
         # If already connected, return fast
         if self._connected:
@@ -409,7 +409,7 @@ class Connection:  # pylint: disable=too-many-instance-attributes
             return None
 
         # Clean from empty strings
-        payload = clean_string(payload)
+        payload = raw_to_str(payload)
         if payload is None:
             return None
 

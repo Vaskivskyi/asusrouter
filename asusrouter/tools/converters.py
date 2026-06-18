@@ -15,59 +15,9 @@ from datetime import UTC, datetime, timedelta
 from enum import Enum
 from typing import Any, TypeVar, cast
 
-from asusrouter.tools.cleaners import clean_content
+from asusrouter.tools.converters_v2.raw import raw_to_str
 
-true_values = {"true", "allow", "1", "on", "enabled"}
-false_values = {"false", "block", "0", "off", "disabled"}
-
-
-_T = TypeVar("_T")
 _E = TypeVar("_E", bound=Enum)
-
-
-def clean_input(func: Callable[..., Any]) -> Callable[..., Any]:
-    """Clean input data."""
-
-    def wrapper(content: Any, *args: Any, **kwargs: Any) -> Any:
-        """Return a clean input data before passing it to the function."""
-
-        if isinstance(content, str):
-            return func(clean_string(content), *args, **kwargs)
-        return func(content, *args, **kwargs)
-
-    return wrapper
-
-
-def clean_jitter(value: _T, jitter: int = 1) -> int | _T:
-    """Clean jitter from an integer value.
-
-    If input is int-compatible, remove unwanted jitter
-    `jitter` by lowering value resolution. If any other
-    non-compatible value is given, return it unchanged.
-    """
-
-    vint = safe_int(value)
-    jint = safe_int(jitter, default=1)
-    if isinstance(vint, int) and jint > 0:
-        block_size = 2 * jint + 1
-        return int(vint - (vint % block_size) + jint)
-
-    return value
-
-
-def clean_string(content: str | None) -> str | None:
-    """Get a clean string or return None if it is empty."""
-
-    # Not a string
-    if not content or not isinstance(content, str):
-        return None
-
-    content = clean_content(content.strip())
-    # Empty string
-    if not content:
-        return None
-
-    return content
 
 
 def flatten_dict(
@@ -149,66 +99,6 @@ def get_enum_key_by_value(
     raise ValueError(f"Invalid value: {value}")
 
 
-def handle_none_content(content: _T | None, default: _T | None) -> _T | None:
-    """Return the default value if content is None, else return the content."""
-
-    if content is None:
-        return default
-    return content
-
-
-def int_as_bits(value: int) -> list[bool]:
-    """Convert an integer to a list of bits."""
-
-    if not isinstance(value, int):
-        return []
-
-    # Negative values are not supported
-    if value < 0:
-        return []
-
-    # Zero is a special case
-    if value == 0:
-        return [False]
-
-    return [bool(value & (1 << i)) for i in range(value.bit_length())]
-
-
-def int_as_capabilities(
-    value: int, capabilities: type[Enum]
-) -> dict[Enum, bool]:
-    """Convert an integer to a dict of capabilities."""
-
-    # Check if the capabilities is an enum
-    if not is_enum(capabilities) or not isinstance(value, int):
-        return {}
-
-    # Convert the value to a list of bits
-    bits = int_as_bits(value)
-
-    result = {}
-
-    # For each capability in the capabilities
-    # Considering key as a capability name and value as a capability bit
-    for capability in capabilities:
-        # Check that the capability is a non-negative integer (bit index)
-        if not isinstance(capability.value, int) or capability.value < 0:
-            continue
-
-        # Check if the bit is set
-        result[capability] = (
-            bits[capability.value] if capability.value < len(bits) else False
-        )
-
-    return result
-
-
-def is_enum(v: Any) -> bool:
-    """Check if the value is an enum."""
-
-    return isinstance(v, type) and issubclass(v, Enum)
-
-
 def list_from_dict(raw: dict[Any, Any] | list[Any] | None) -> list[str]:
     """Return dictionary keys as list."""
 
@@ -250,7 +140,7 @@ def run_method(
         method = [method]
 
     for func in method:
-        if is_enum(func):
+        if isinstance(func, type) and issubclass(func, Enum):
             try:
                 value = func(value)
             except ValueError:
@@ -261,62 +151,10 @@ def run_method(
     return value
 
 
-@clean_input
-def safe_bool(content: str | float | bool | None) -> bool | None:
-    """Read the content as boolean or return None."""
-
-    if content is None:
-        return None
-
-    if isinstance(content, bool):
-        return content
-    if isinstance(content, int | float):
-        return content != 0
-    if isinstance(content, str):
-        content = content.lower()
-        if content in true_values:
-            return True
-        if content in false_values:
-            return False
-
-    return None
-
-
-def safe_bool_nn(content: Any) -> bool:
-    """Read the content as boolean or return False."""
-
-    result = safe_bool(content)
-    return result if isinstance(result, bool) else False
-
-
-def safe_convert(
-    convert_func: Callable[[str | int | float], _T],
-    content: str | float | None,
-    default: _T | None = None,
-    fallback_func: Callable[[Any], _T] | None = None,
-) -> _T | None:
-    """Try to convert the content using the conversion function.
-
-    Return the default value if it fails.
-    """
-
-    if content is None:
-        return default
-    try:
-        return convert_func(content)
-    except (ValueError, TypeError):
-        if fallback_func is not None and isinstance(content, str):
-            try:
-                return fallback_func(content)
-            except (ValueError, TypeError):
-                pass
-        return default
-
-
-@clean_input
 def safe_datetime(content: str | None) -> datetime | None:
     """Read the content as datetime or return None."""
 
+    content = raw_to_str(content)
     if not content:
         return None
 
@@ -360,65 +198,6 @@ def safe_enum(
     return None
 
 
-@clean_input
-def safe_exists(content: str | None) -> bool:
-    """Read the content as boolean or return None."""
-
-    return content is not None
-
-
-@clean_input
-def safe_float(
-    content: str | float | None, default: float | None = None
-) -> float | None:
-    """Read the content as float or return None."""
-
-    content = cast(
-        str | int | float | None, handle_none_content(content, default)
-    )
-    return safe_convert(float, content, default)
-
-
-def safe_float_nn(content: Any) -> float:
-    """Read the content as a float or return 0.0."""
-
-    result = safe_float(content)
-    return result if isinstance(result, float) else 0.0
-
-
-@clean_input
-def safe_int(
-    content: str | float | None,
-    default: int | None = None,
-    base: int = 10,
-) -> int | None:
-    """Read the content as int or return the default value.
-
-    (None if not specified).
-    """
-
-    content = cast(
-        str | int | float | None, handle_none_content(content, default)
-    )
-    if isinstance(content, str):
-        return safe_convert(
-            lambda x: int(x, base=base),
-            content,
-            default,
-            lambda x: int(float(x)),
-        )
-    return safe_convert(
-        int, content, default if isinstance(default, int) else None
-    )
-
-
-def safe_int_nn(content: Any) -> int:
-    """Read the content as an integer or return 0."""
-
-    result = safe_int(content)
-    return result if isinstance(result, int) else 0
-
-
 def safe_list(content: Any) -> list[Any]:
     """Read any content as a list."""
 
@@ -437,23 +216,16 @@ def safe_list_csv(content: str | None) -> list[str]:
     return safe_list_from_string(content, ",")
 
 
-@clean_input
 def safe_list_from_string(
     content: str | None, delimiter: str = " "
 ) -> list[str]:
     """Read the content as list or return empty list."""
 
+    content = raw_to_str(content)
     if not isinstance(content, str):
         return []
 
     return content.split(delimiter)
-
-
-@clean_input
-def safe_return(content: Any) -> Any:
-    """Return the content."""
-
-    return content
 
 
 def safe_speed(
@@ -482,7 +254,6 @@ def safe_time_from_delta(content: str) -> datetime:
     ) - safe_timedelta_long(content)
 
 
-@clean_input
 def safe_timedelta_long(content: str | None) -> timedelta:
     """Transform connection timedelta.
 
@@ -490,6 +261,7 @@ def safe_timedelta_long(content: str | None) -> timedelta:
     when the device was connected.
     """
 
+    content = raw_to_str(content)
     if not content:
         return timedelta()
 
@@ -533,11 +305,7 @@ def safe_unpack_key(
 
 
 def safe_unpack_keys(
-    content: tuple[
-        str, str, Callable[..., Any] | None | list[Callable[..., Any]]
-    ]
-    | tuple[str, str]
-    | str,
+    content: tuple[str, str, Any] | tuple[str, str] | str,
 ) -> tuple[Any, ...]:
     """Unpack key/key_to_use/method tuple even if some values are missing."""
 
@@ -597,21 +365,6 @@ def safe_usage_historic(
     return safe_usage(used_diff, total_diff)
 
 
-def safe_timestamp_to_utc(value: int | None) -> datetime | None:
-    """Convert timestamp to UTC datetime."""
-
-    if value is None:
-        return None
-
-    try:
-        return datetime.fromtimestamp(value, UTC)
-    except (OverflowError, ValueError, TypeError, OSError):
-        try:
-            return datetime.fromtimestamp(value / 1000, UTC)
-        except (OverflowError, ValueError, TypeError, OSError):
-            return None
-
-
 def safe_utc_to_timestamp(value: datetime | None) -> float | None:
     """Convert UTC datetime to timestamp."""
 
@@ -619,17 +372,6 @@ def safe_utc_to_timestamp(value: datetime | None) -> float | None:
         return None
 
     return value.timestamp()
-
-
-def safe_utc_to_timestamp_milli(value: datetime | None) -> int | None:
-    """Convert UTC datetime to timestamp in milliseconds."""
-
-    _timestamp = safe_utc_to_timestamp(value)
-
-    if _timestamp is None:
-        return None
-
-    return int(_timestamp * 1000)
 
 
 def scale_value_int(

@@ -7,7 +7,7 @@ from enum import StrEnum
 import threading
 from typing import Any
 
-from asusrouter.tools.converters import safe_bool, safe_int
+from asusrouter.tools.converters_v2.raw import raw_to_bool, raw_to_int
 from asusrouter.tools.security import ARSecurityLevel
 
 
@@ -37,7 +37,7 @@ CONFIG_DEFAULT_ALREADY_NOTIFIED: bool = False
 def safe_bool_config(value: Any) -> bool:
     """Convert a value to a boolean, defaulting to CONFIG_DEFAULT_BOOL."""
 
-    config_value: bool | None = safe_bool(value)
+    config_value: bool | None = raw_to_bool(value)
 
     if config_value is None:
         return CONFIG_DEFAULT_BOOL
@@ -48,7 +48,7 @@ def safe_bool_config(value: Any) -> bool:
 def safe_int_config(value: Any) -> int:
     """Convert a value to an integer, defaulting to CONFIG_DEFAULT_INT."""
 
-    config_value: int | None = safe_int(value)
+    config_value: int | None = raw_to_int(value)
 
     if config_value is None:
         return CONFIG_DEFAULT_INT

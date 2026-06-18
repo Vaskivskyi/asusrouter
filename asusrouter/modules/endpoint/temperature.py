@@ -9,8 +9,7 @@ from typing import Any
 from asusrouter.config import ARConfig, ARConfigKey as ARConfKey
 from asusrouter.modules.data import AsusData
 from asusrouter.modules.wlan import Wlan
-from asusrouter.tools.cleaners import clean_content
-from asusrouter.tools.converters import safe_float
+from asusrouter.tools.converters_v2.raw import raw_to_float
 from asusrouter.tools.readers import read_js_variables
 from asusrouter.tools.writers import ensure_notification_flag
 
@@ -41,7 +40,7 @@ def read(content: str, **kwargs: Any) -> dict[str, Any]:
     config = kwargs.get("config", ARConfig)
 
     # Prepare the content. This page is a set of JS variables
-    variables = read_js_variables(clean_content(content))
+    variables = read_js_variables(content.lstrip("﻿"))
 
     # Read WLAN temperatures
     # If there is curr_coreTmp_5_raw, we have type 1
@@ -78,7 +77,7 @@ def read(content: str, **kwargs: Any) -> dict[str, Any]:
     # Convert the temperature values to float or remove them
     # if they have "disabled"
     temperature = {
-        key: safe_float(value)
+        key: raw_to_float(value)
         for key, value in temperature.items()
         if value and "disabled" not in value
     }

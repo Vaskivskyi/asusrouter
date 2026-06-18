@@ -7,7 +7,7 @@ import logging
 from typing import Any
 
 from asusrouter.error import AsusRouterServiceError
-from asusrouter.tools.converters import safe_bool, safe_int
+from asusrouter.tools.converters_v2.raw import raw_to_bool, raw_to_int
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -61,9 +61,9 @@ async def async_call_service(
     )
 
     last_id = result.get("id") or arguments.get("id")
-    last_id = safe_int(last_id)
+    last_id = raw_to_int(last_id)
 
-    needed_time = safe_int(result.get("restart_needed_time"))
+    needed_time = raw_to_int(result.get("restart_needed_time"))
     # For all the services with setting ID we better wait
     # before we will get actual state change
     if needed_time is None and last_id is not None:
@@ -74,6 +74,7 @@ async def async_call_service(
         return (True, needed_time, last_id)
 
     if expect_modify:
-        return (safe_bool(result.get("modify")) or False, needed_time, last_id)
+        modify = raw_to_bool(result.get("modify")) or False
+        return (modify, needed_time, last_id)
 
     return (True, needed_time, last_id)

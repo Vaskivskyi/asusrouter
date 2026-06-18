@@ -207,8 +207,8 @@ def test_process_ddns_fields(
     """Test that process_ddns copies or defaults all fields as expected."""
 
     with (
-        patch("asusrouter.modules.ddns.safe_bool", side_effect=lambda x: x),
-        patch("asusrouter.modules.ddns.clean_string", side_effect=lambda x: x),
+        patch("asusrouter.modules.ddns.raw_to_bool", side_effect=lambda x: x),
+        patch("asusrouter.modules.ddns.raw_to_str", side_effect=lambda x: x),
     ):
         result = process_ddns(input_data)
         for key, value in expected.items():

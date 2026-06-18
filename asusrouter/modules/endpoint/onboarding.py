@@ -6,7 +6,11 @@ from typing import Any
 
 from asusrouter.modules.aimesh import AiMeshDevice
 from asusrouter.modules.data import AsusData
-from asusrouter.tools.converters import safe_bool, safe_int, safe_return
+from asusrouter.tools.converters_v2.raw import (
+    raw_to_bool,
+    raw_to_int,
+    raw_to_str,
+)
 from asusrouter.tools.readers import read_js_variables
 
 read = read_js_variables
@@ -57,7 +61,7 @@ def process(data: dict[str, Any]) -> dict[AsusData, Any]:
                 description = {
                     "connection_type": convert.get("connection_type"),
                     "guest": convert.get("guest"),
-                    "ip": safe_return(
+                    "ip": raw_to_str(
                         client_list[node][connection][mac].get("ip", None)
                     ),
                     "mac": mac,
@@ -89,23 +93,23 @@ def process_aimesh_node(data: dict[str, Any]) -> AiMeshDevice:
         if f"pap{el}" in data and data[f"pap{el}"] != "":
             parent["connection"] = CONST_AP[el]
             parent["mac"] = data[f"pap{el}"]
-            parent["rssi"] = safe_return(data.get(f"rssi{el}"))
-            parent["ssid"] = safe_return(data.get(f"pap{el}_ssid"))
+            parent["rssi"] = raw_to_str(data.get(f"rssi{el}"))
+            parent["ssid"] = raw_to_str(data.get(f"pap{el}_ssid"))
 
             # Stop the loop since we found the parent
             break
 
-    level = safe_int(data.get("level", "0"))
+    level = raw_to_int(data.get("level", "0"))
     node_type = "router" if level == 0 else "node"
 
     return AiMeshDevice(
-        status=safe_bool(data.get("online", 0)) or False,
+        status=raw_to_bool(data.get("online", 0)) or False,
         alias=data.get("alias"),
         model=data.get("ui_model_name", data.get("model_name")),
         product_id=data.get("product_id"),
         ip=data.get("ip"),
         fw=data.get("fwver"),
-        fw_new=safe_return(data.get("newfwver")),
+        fw_new=raw_to_str(data.get("newfwver")),
         mac=data.get("mac"),
         ap=ap,
         parent=parent,
@@ -128,5 +132,5 @@ def process_connection(data: str) -> dict[str, int]:
     temp = data.split("_")
     return {
         "connection_type": CONNECTION_TYPE.get(temp[0]) or 0,
-        "guest": safe_int(temp[1], 0) if len(temp) > 1 else 0,
+        "guest": (raw_to_int(temp[1]) or 0) if len(temp) > 1 else 0,
     }

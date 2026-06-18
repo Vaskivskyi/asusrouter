@@ -8,12 +8,10 @@ import logging
 import re
 from typing import Any
 
-from asusrouter.const import ContentType
-from asusrouter.tools.converters import (
-    clean_input,
-    safe_bool,
-    safe_float,
-    safe_float_nn,
+from asusrouter.tools.converters_v2.raw import (
+    raw_to_bool,
+    raw_to_float,
+    raw_to_str,
 )
 from asusrouter.tools.types import ARCallableType
 from asusrouter.tools.units import (
@@ -43,13 +41,13 @@ RANDOM_SYMBOLS: list[str] = [
 def is_non_negative(value: Any) -> bool:
     """Check if the value is non-negative."""
 
-    return safe_float_nn(value) >= 0
+    return (raw_to_float(value) or 0.0) >= 0
 
 
 def is_true_in_dict(value: str, data: dict[str, Any]) -> bool:
     """Check if the value exists in the dict and is equal to 1."""
 
-    return safe_bool(data.get(value)) is True
+    return raw_to_bool(data.get(value)) is True
 
 
 def merge_dicts(
@@ -112,25 +110,10 @@ def read_as_snake_case(data: str) -> str:
     return result
 
 
-def read_content_type(headers: dict[str, str]) -> ContentType:
-    """Get the content type from the headers."""
-
-    # Get the content type from the headers
-    content_type = headers.get("content-type", "").split(";")[0].strip()
-    # Find the content type in ContentType enum and return correct
-    # ContentType enum
-    for content_type_enum in ContentType:
-        if content_type_enum.value == content_type:
-            return content_type_enum
-
-    # If the content type is not found, return the content type as text
-    return ContentType.UNKNOWN
-
-
-@clean_input
 def read_js_variables(content: str, **kwargs: Any) -> dict[str, Any]:
     """Get all the JS variables from the content."""
 
+    content = raw_to_str(content) or ""
     # Create a dict to store the data
     js_variables: dict[str, Any] = {}
 
@@ -180,10 +163,10 @@ def read_js_variables(content: str, **kwargs: Any) -> dict[str, Any]:
     return js_variables
 
 
-@clean_input
 def read_json_content(content: str | None, **kwargs: Any) -> dict[str, Any]:
     """Get the json content."""
 
+    content = raw_to_str(content)
     if not content:
         return {}
 
@@ -215,10 +198,10 @@ def read_json_content(content: str | None, **kwargs: Any) -> dict[str, Any]:
         return {}
 
 
-@clean_input
 def readable_mac(raw: str | None) -> bool:
     """Check if string is MAC address."""
 
+    raw = raw_to_str(raw)
     return bool(
         isinstance(raw, str)
         and re.search(
@@ -248,7 +231,7 @@ def read_units_as_base(
         """Read the value as a base unit."""
 
         # Use the converter with explicit None on unsupported types
-        fval = safe_float(value)
+        fval = raw_to_float(value)
 
         # Convert to base if all the checks passed
         if isinstance(fval, float) and (

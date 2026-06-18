@@ -6,7 +6,7 @@ from collections.abc import Callable
 from typing import Any, TypeVar
 
 from asusrouter.modules.support.flag import ARSupportType
-from asusrouter.tools.converters import safe_int_nn
+from asusrouter.tools.converters_v2.raw import raw_to_int
 from asusrouter.tools.readers import is_true_in_dict
 
 _T = TypeVar("_T")
@@ -48,7 +48,7 @@ def make_int_translator(key: str) -> Callable[[dict[str, Any]], int]:
     def translate(data: dict[str, Any]) -> int:
         if not isinstance(data, dict):
             return 0  # type: ignore[unreachable]
-        return safe_int_nn(data.get(key))
+        return raw_to_int(data.get(key)) or 0
 
     return translate
 

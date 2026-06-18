@@ -7,7 +7,6 @@ from unittest.mock import patch
 
 import pytest
 
-from asusrouter.const import ContentType
 from asusrouter.tools import readers
 from asusrouter.tools.units import (
     DataRateUnitConverter,
@@ -107,26 +106,6 @@ def test_read_as_snake_case(content: str, expected: str) -> None:
     """Test read_as_snake_case method."""
 
     assert readers.read_as_snake_case(content) == expected
-
-
-@pytest.mark.parametrize(
-    ("headers", "expected"),
-    [
-        ({"content-type": "application/json;charset=UTF-8"}, ContentType.JSON),
-        ({"content-type": "application/xml"}, ContentType.XML),
-        ({"content-type": "text/html"}, ContentType.HTML),
-        ({"content-type": "text/plain"}, ContentType.TEXT),
-        ({"content-type": "application/octet-stream"}, ContentType.BINARY),
-        ({"content-type": "application/unknown"}, ContentType.UNKNOWN),
-        ({}, ContentType.UNKNOWN),
-    ],
-)
-def test_read_content_type(
-    headers: dict[str, str], expected: ContentType
-) -> None:
-    """Test read_content_type method."""
-
-    assert readers.read_content_type(headers) == expected
 
 
 @pytest.mark.parametrize(

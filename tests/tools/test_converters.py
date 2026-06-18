@@ -12,65 +12,6 @@ import pytest
 from asusrouter.tools import converters
 
 
-@pytest.mark.parametrize(
-    ("input_value", "jitter", "expected_output"),
-    [
-        # Real values, jitter 1
-        (0, 1, 1),
-        (1, 1, 1),
-        (2, 1, 1),
-        (3, 1, 4),
-        (4, 1, 4),
-        (5, 1, 4),
-        (6, 1, 7),
-        (7, 1, 7),
-        (8, 1, 7),
-        # Real values, jitter vary
-        (0, 2, 2),
-        (11, 2, 12),
-        (0, 3, 3),
-        (1, 4, 4),
-        (5, 11, 11),
-        # Int-convertible values
-        ("2", 1, 1),
-        (0.9, 2, 2),
-        ("4.4", 1, 4),
-        # Wrong jitter returns the value unchanged
-        (15, -1, 15),
-        (77, 0, 77),
-        ("any", -1, "any"),
-        # Any non-int values are returned unchanged
-        (None, None, None),
-        ("None", None, "None"),
-        ("string", None, "string"),
-        (" ", None, " "),
-    ],
-)
-def test_clean_jitter(
-    input_value: Any, jitter: Any | None, expected_output: Any
-) -> None:
-    """Test clean_jitter method."""
-
-    assert converters.clean_jitter(input_value, jitter) == expected_output  # type: ignore[arg-type]
-
-
-@pytest.mark.parametrize(
-    ("content", "result"),
-    [
-        (None, None),  # Not a string
-        (12, None),  # Not a string
-        ("", None),  # Empty string
-        ("  ", None),  # Empty string
-        ("test", "test"),  # Normal string
-        ("  test  ", "test"),  # Normal string
-    ],
-)
-def test_clean_string(content: str | None, result: str | None) -> None:
-    """Test clean_string method."""
-
-    assert converters.clean_string(content) == result
-
-
 def test_flatten_dict() -> None:
     """Test flatten_dict method."""
 
@@ -154,105 +95,6 @@ def test_get_enum_key_by_value() -> None:
         converters.get_enum_key_by_value(EnumForTest, 3)
 
 
-@pytest.mark.parametrize(
-    ("content", "result"),
-    [
-        (0, [False]),
-        (1, [True]),
-        (2, [False, True]),
-        (3, [True, True]),
-        (10, [False, True, False, True]),
-        # Test with negative integers and non-integer input
-        (-1, []),
-        ("string", []),
-        (None, []),
-    ],
-)
-def test_int_as_bits(content: int, result: list[bool]) -> None:
-    """Test int_as_bits method."""
-
-    assert converters.int_as_bits(content) == result
-
-
-# Define a test Enum
-class Capabilities(Enum):
-    """Capabilities enum."""
-
-    CAPABILITY1 = 0
-    CAPABILITY2 = 1
-    CAPABILITY3 = 2
-    CAPABILITY4 = 3
-    CAPABILITY5 = "not an int"
-
-
-@pytest.mark.parametrize(
-    ("value", "capabilities", "result"),
-    [
-        (
-            0,
-            Capabilities,
-            {
-                Capabilities.CAPABILITY1: False,
-                Capabilities.CAPABILITY2: False,
-                Capabilities.CAPABILITY3: False,
-                Capabilities.CAPABILITY4: False,
-            },
-        ),
-        (
-            1,
-            Capabilities,
-            {
-                Capabilities.CAPABILITY1: True,
-                Capabilities.CAPABILITY2: False,
-                Capabilities.CAPABILITY3: False,
-                Capabilities.CAPABILITY4: False,
-            },
-        ),
-        (
-            10,
-            Capabilities,
-            {
-                Capabilities.CAPABILITY1: False,
-                Capabilities.CAPABILITY2: True,
-                Capabilities.CAPABILITY3: False,
-                Capabilities.CAPABILITY4: True,
-            },
-        ),
-        # Wrong input
-        (None, Capabilities, {}),
-        ("string", Capabilities, {}),
-        (15, "not an enum", {}),
-        (15, None, {}),
-    ],
-)
-def test_int_as_capabilities(
-    value: int, capabilities: type[Enum], result: dict[Enum, bool]
-) -> None:
-    """Test int_as_capabilities method."""
-
-    assert converters.int_as_capabilities(value, capabilities) == result
-
-
-def test_is_enum() -> None:
-    """Test is_enum method."""
-
-    class TestEnum(Enum):
-        """Enum class."""
-
-        A = 1
-        B = 2
-
-    class NotEnum:  # pylint: disable=too-few-public-methods
-        """Not enum class."""
-
-    assert converters.is_enum(TestEnum) is True
-    assert converters.is_enum(NotEnum) is False
-
-    # Test with non-class input
-    assert converters.is_enum("not a class") is False
-    assert converters.is_enum(None) is False
-
-
 def test_list_from_dict() -> None:
     """Test list_from_dict method."""
 
@@ -329,54 +171,6 @@ def test_run_method() -> None:
 @pytest.mark.parametrize(
     ("content", "result"),
     [
-        (None, None),  # Non-booleans
-        ("", None),
-        ("  ", None),
-        ("unknown", None),
-        ("test", None),
-        ("  test  ", None),
-        (False, False),  # False booleans
-        (0, False),
-        ("0", False),
-        ("false", False),
-        ("off", False),
-        ("disabled", False),
-        (True, True),  # True booleans
-        (1, True),
-        ("1", True),
-        ("true", True),
-        ("on", True),
-        ("enabled", True),
-    ],
-)
-def test_safe_bool(
-    content: str | float | bool | None, result: bool | None
-) -> None:
-    """Test safe_bool method."""
-
-    assert converters.safe_bool(content) == result
-
-
-@pytest.mark.parametrize(
-    ("content", "result"),
-    [
-        # Boolean-compatible values
-        (True, True),
-        ("False", False),
-        # Non-boolean values
-        (None, False),
-        (object(), False),
-    ],
-)
-def test_safe_bool_nn(content: Any, result: bool) -> None:
-    """Test safe_bool_nn method."""
-
-    assert converters.safe_bool_nn(content) is result
-
-
-@pytest.mark.parametrize(
-    ("content", "result"),
-    [
         ("2021-01-01   ", datetime(2021, 1, 1)),  # Date content
         ("2021-01-01 00:00:00", datetime(2021, 1, 1)),
         (None, None),  # None content
@@ -419,110 +213,6 @@ def test_safe_enum(
     assert (
         converters.safe_enum(enum, value, default_value, default) == expected
     )
-
-
-def test_safe_exists() -> None:
-    """Test safe_exists method."""
-
-    assert converters.safe_exists("") is False
-    assert converters.safe_exists("test") is True
-
-
-@pytest.mark.parametrize(
-    ("content", "result"),
-    [
-        (1, 1.0),  # Number content
-        (1.0, 1.0),
-        ("1", 1.0),
-        ("1.0", 1.0),
-        (None, None),  # None content
-        ("", None),
-        ("  ", None),
-        ("unknown", None),  # Non-number content
-        ("test", None),
-        ("  test  ", None),
-    ],
-)
-def test_safe_float(content: str | float | None, result: float | None) -> None:
-    """Test safe_float method."""
-
-    assert converters.safe_float(content) == result
-
-
-@pytest.mark.parametrize(
-    ("content", "result"),
-    [
-        (1, 1.0),
-        (1.0, 1.0),
-        ("1", 1.0),
-        ("1.0", 1.0),
-        (None, 0.0),
-        ("", 0.0),
-        ("  ", 0.0),
-        ("unknown", 0.0),
-        ("test", 0.0),
-        ("  test  ", 0.0),
-    ],
-)
-def test_safe_float_nn(content: Any, result: float) -> None:
-    """Test safe_float method."""
-
-    assert converters.safe_float_nn(content) == result
-
-
-@pytest.mark.parametrize(
-    ("content", "base", "result"),
-    [
-        (1, 10, 1),  # Integer content
-        ("1", 10, 1),
-        (1.0, 10, 1),  # Float content
-        ("1.0", 10, 1),
-        ("1.1", 10, 1),  # Float content with decimal
-        ("1.9", 10, 1),
-        (None, 10, None),  # None content
-        ("", 10, None),
-        ("  ", 10, None),
-        ("unknown", 10, None),  # Non-number content
-        ("test", 10, None),
-        ("  test  ", 10, None),
-        ("0x1", 16, 1),  # Hex content
-        ("0xA", 16, 10),
-        ("0xFF", 16, 255),
-        ("0x100", 16, 256),
-        ("0xabc", 16, 2748),
-        ("0xABC", 16, 2748),
-        ("0x2692247c7", 16, 10353788871),
-        ("0x123456789ABCDEF", 16, 81985529216486895),
-    ],
-)
-def test_safe_int(
-    content: str | float | None, base: int, result: int | None
-) -> None:
-    """Test safe_int method."""
-
-    assert converters.safe_int(content, base=base) == result
-
-
-@pytest.mark.parametrize(
-    ("content", "result"),
-    [
-        (1, 1),  # Integer content
-        ("1", 1),
-        (1.0, 1),  # Float content
-        ("1.0", 1),
-        ("1.9", 1),  # Float content with decimal
-        (None, 0),  # None content
-        ("", 0),
-        ("  ", 0),
-        ("unknown", 0),  # Non-number content
-        ("test", 0),
-        ("  test  ", 0),
-    ],
-)
-def test_safe_int_nn(content: Any, result: int) -> None:
-    """Test safe_int_nn method."""
-
-    assert converters.safe_int_nn(content) == result
 
 
 @pytest.mark.parametrize(
@@ -568,26 +258,6 @@ def test_safe_list_from_string(
     """Test safe_list_from_string method."""
 
     assert converters.safe_list_from_string(content, delimiter) == result
-
-
-@pytest.mark.parametrize(
-    ("content", "result"),
-    [
-        (None, None),  # None content
-        (1, 1),  # Integer content
-        (5.0, 5.0),  # Float content
-        ([1, 2, 3], [1, 2, 3]),  # List content
-        ({"a": 1}, {"a": 1}),  # Dictionary content
-        ("test", "test"),  # String content
-        ("   test   ", "test"),
-        ("   ", None),  # Empty string content
-        ("", None),
-    ],
-)
-def test_safe_return(content: Any, result: Any) -> None:
-    """Test safe_return method."""
-
-    assert converters.safe_return(content) == result
 
 
 @pytest.mark.parametrize(
@@ -789,30 +459,6 @@ def test_safe_usage_historic(
 @pytest.mark.parametrize(
     ("value", "result"),
     [
-        # Actual timestamp in milliseconds
-        (
-            1700515143689,
-            datetime(2023, 11, 20, 21, 19, 3, 689000, tzinfo=UTC),
-        ),
-        # None
-        (None, None),
-        # The beginning of the epoch
-        (0, datetime(1970, 1, 1, 0, 0, 0, tzinfo=UTC)),
-        # Random string
-        ("test", None),
-    ],
-)
-def test_safe_timestamp_to_utc(
-    value: int | None, result: datetime | None
-) -> None:
-    """Test safe_timestamp_to_utc method."""
-
-    assert converters.safe_timestamp_to_utc(value) == result
-
-
-@pytest.mark.parametrize(
-    ("value", "result"),
-    [
         # Actual datetime
         (
             datetime(2023, 11, 20, 21, 19, 3, 689000, tzinfo=UTC),
@@ -832,27 +478,3 @@ def test_safe_utc_to_timestamp(
     """Test safe_utc_to_timestamp method."""
 
     assert converters.safe_utc_to_timestamp(value) == result
-
-
-@pytest.mark.parametrize(
-    ("value", "result"),
-    [
-        # Actual datetime
-        (
-            datetime(2023, 11, 20, 21, 19, 3, 689000, tzinfo=UTC),
-            1700515143689,
-        ),
-        # None
-        (None, None),
-        # The beginning of the epoch
-        (datetime(1970, 1, 1, 0, 0, 0, tzinfo=UTC), 0),
-        # Random string
-        ("test", None),
-    ],
-)
-def test_safe_utc_to_timestamp_milli(
-    value: datetime | None, result: int | None
-) -> None:
-    """Test safe_utc_to_timestamp_milli method."""
-
-    assert converters.safe_utc_to_timestamp_milli(value) == result
