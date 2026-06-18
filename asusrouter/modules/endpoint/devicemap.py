@@ -160,16 +160,6 @@ def read_key(xml_content: dict[str, Any]) -> dict[str, Any]:
     return devicemap
 
 
-# This method performs reading of the devicemap special values
-# pylint: disable-next=unused-argument
-def read_special(xml_content: dict[str, Any]) -> dict[str, Any]:
-    """Read devicemap special values."""
-
-    # This method is not implemented yet
-
-    return {}
-
-
 def read_uptime_string(
     content: str,
 ) -> tuple[datetime | None, int | None]:

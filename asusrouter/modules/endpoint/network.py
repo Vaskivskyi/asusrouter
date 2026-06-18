@@ -5,9 +5,6 @@ from __future__ import annotations
 from typing import Any
 
 from asusrouter.modules.data import AsusData
-from asusrouter.tools.readers import read_json_content as read
-
-__all__ = ["read", "process"]
 
 
 def process(data: dict[str, Any]) -> dict[AsusData, Any]:

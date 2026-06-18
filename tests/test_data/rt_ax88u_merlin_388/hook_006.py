@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from asusrouter import AsusData
 from asusrouter.modules.connection import ConnectionState, ConnectionStatus
-from asusrouter.modules.endpoint.wan import AsusDualWAN
+from asusrouter.modules.endpoint.hook_const import AsusDualWAN
 from asusrouter.modules.ip_address import IPAddressType
 
 expected_result = {

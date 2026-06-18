@@ -14,9 +14,9 @@ from asusrouter.modules.firmware import (
     WebsUpgrade,
 )
 from asusrouter.tools.converters import clean_string, safe_enum, safe_int
-from asusrouter.tools.readers import read_js_variables as read
+from asusrouter.tools.readers import read_js_variables
 
-__all__ = ["read"]
+read = read_js_variables
 
 REQUIRE_FIRMWARE = True
 
