@@ -15,7 +15,7 @@ from datetime import UTC, datetime, timedelta
 from enum import Enum
 from typing import Any, TypeVar, cast
 
-from asusrouter.tools.cleaners import clean_content
+from asusrouter.tools.converters_v2.raw import raw_to_str
 
 _E = TypeVar("_E", bound=Enum)
 
@@ -27,25 +27,10 @@ def clean_input(func: Callable[..., Any]) -> Callable[..., Any]:
         """Return a clean input data before passing it to the function."""
 
         if isinstance(content, str):
-            return func(clean_string(content), *args, **kwargs)
+            return func(raw_to_str(content), *args, **kwargs)
         return func(content, *args, **kwargs)
 
     return wrapper
-
-
-def clean_string(content: str | None) -> str | None:
-    """Get a clean string or return None if it is empty."""
-
-    # Not a string
-    if not content or not isinstance(content, str):
-        return None
-
-    content = clean_content(content.strip())
-    # Empty string
-    if not content:
-        return None
-
-    return content
 
 
 def flatten_dict(

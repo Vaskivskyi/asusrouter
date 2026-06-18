@@ -5,18 +5,6 @@ from __future__ import annotations
 from asusrouter.tools import cleaners
 
 
-def test_clean_content() -> None:
-    """Test clean_content method."""
-
-    # Test with BOM
-    content = "\ufefftest"
-    assert cleaners.clean_content(content) == "test"
-
-    # Test without BOM
-    content = "test"
-    assert cleaners.clean_content(content) == "test"
-
-
 def test_clean_dict() -> None:
     """Test clean_dict method."""
 

@@ -5,8 +5,7 @@ from __future__ import annotations
 from enum import IntEnum, StrEnum
 from typing import Any
 
-from asusrouter.tools.converters import clean_string
-from asusrouter.tools.converters_v2.raw import raw_to_bool
+from asusrouter.tools.converters_v2.raw import raw_to_bool, raw_to_str
 
 
 class AsusDDNS(IntEnum):
@@ -135,7 +134,7 @@ hint_codes = set(DDNS_HINT_MAP.values())
 def read_ddns_status_code(raw: str | None) -> DDNSStatusCode:
     """Read DDNS status code."""
 
-    raw = clean_string(raw)
+    raw = raw_to_str(raw)
 
     if not raw:
         return DDNSStatusCode.NONE
@@ -162,12 +161,12 @@ def process_ddns(data: dict[str, str]) -> dict[str, Any]:
 
     ddns: dict[str, Any] = {
         "enabled": raw_to_bool(data.get("ddns_enable_x")),
-        "hostname": clean_string(data.get("ddns_hostname_x")),
-        "ip_address": clean_string(data.get("ddns_ipaddr")),
-        "old_name": clean_string(data.get("ddns_old_name")),
-        "replace_status": clean_string(data.get("ddns_replace_status")),
-        "return_code": clean_string(data.get("ddns_return_code")),
-        "server": clean_string(data.get("ddns_server_x")),
+        "hostname": raw_to_str(data.get("ddns_hostname_x")),
+        "ip_address": raw_to_str(data.get("ddns_ipaddr")),
+        "old_name": raw_to_str(data.get("ddns_old_name")),
+        "replace_status": raw_to_str(data.get("ddns_replace_status")),
+        "return_code": raw_to_str(data.get("ddns_return_code")),
+        "server": raw_to_str(data.get("ddns_server_x")),
         "state": AsusDDNS.UNKNOWN,
         "status": DDNSStatusCode.NONE,
         "status_hint": "",

@@ -12,23 +12,6 @@ import pytest
 from asusrouter.tools import converters
 
 
-@pytest.mark.parametrize(
-    ("content", "result"),
-    [
-        (None, None),  # Not a string
-        (12, None),  # Not a string
-        ("", None),  # Empty string
-        ("  ", None),  # Empty string
-        ("test", "test"),  # Normal string
-        ("  test  ", "test"),  # Normal string
-    ],
-)
-def test_clean_string(content: str | None, result: str | None) -> None:
-    """Test clean_string method."""
-
-    assert converters.clean_string(content) == result
-
-
 def test_flatten_dict() -> None:
     """Test flatten_dict method."""
 

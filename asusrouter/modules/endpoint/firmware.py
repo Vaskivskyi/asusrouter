@@ -13,8 +13,8 @@ from asusrouter.modules.firmware import (
     WebsUpdate,
     WebsUpgrade,
 )
-from asusrouter.tools.converters import clean_string, safe_enum
-from asusrouter.tools.converters_v2.raw import raw_to_int
+from asusrouter.tools.converters import safe_enum
+from asusrouter.tools.converters_v2.raw import raw_to_int, raw_to_str
 from asusrouter.tools.readers import read_js_variables
 
 read = read_js_variables
@@ -72,7 +72,7 @@ def process(data: dict[str, Any]) -> dict[AsusData, Any]:
         "sig": {
             "update": raw_to_int(data.get("sig_state_update")),
             "upgrade": raw_to_int(data.get("sig_state_upgrade")),
-            "version": clean_string(data.get("sig_ver")),
+            "version": raw_to_str(data.get("sig_ver")),
             "error": raw_to_int(data.get("sig_state_error")),
             "flag": raw_to_int(data.get("sig_state_flag")),
         },

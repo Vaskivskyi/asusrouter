@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from asusrouter.modules.data import AsusData
-from asusrouter.tools.converters import clean_string
+from asusrouter.tools.converters_v2.raw import raw_to_str
 
 
 def read(content: str, **kwargs: Any) -> dict[str, Any]:
@@ -26,7 +26,7 @@ def read(content: str, **kwargs: Any) -> dict[str, Any]:
     for line in lines:
         if "Firmware version" in line or "Release Note" in line:
             continue
-        clean_line = clean_string(line)
+        clean_line = raw_to_str(line)
         if clean_line:
             clean_lines.append(clean_line)
     # 3. Combine the lines into a single string again

@@ -99,9 +99,6 @@ def test_read_mocked(
 
     with (
         patch.object(
-            temp_mod, "clean_content", side_effect=lambda x: x
-        ) as mock_clean,
-        patch.object(
             temp_mod, "read_js_variables", side_effect=lambda x: mock_vars
         ) as mock_js,
         patch.object(
@@ -123,8 +120,6 @@ def test_read_mocked(
         result = temp_mod.read("dummy_content")
         assert result == expected
 
-        # Check that clean_content and read_js_variables are called once
-        mock_clean.assert_called_once_with("dummy_content")
         mock_js.assert_called_once_with("dummy_content")
 
         # safe_float should be called for each value except "disabled"

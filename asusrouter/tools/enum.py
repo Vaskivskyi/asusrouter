@@ -4,8 +4,7 @@ from __future__ import annotations
 
 from typing import Any, Self, cast
 
-from asusrouter.tools.converters import clean_string
-from asusrouter.tools.converters_v2.raw import raw_to_int
+from asusrouter.tools.converters_v2.raw import raw_to_int, raw_to_str
 
 
 class FromIntMixin:
@@ -31,7 +30,7 @@ class FromIntMixin:
                 pass
 
         # Try key names
-        vstr = clean_string(value)
+        vstr = raw_to_str(value)
         if isinstance(vstr, str):
             member = getattr(cls, vstr.upper(), None)
             if member is not None:
@@ -62,7 +61,7 @@ class FromStrMixin:
         if isinstance(value, cls):
             return value
 
-        vstr = clean_string(value)
+        vstr = raw_to_str(value)
         if isinstance(vstr, str):
             # Check whether this is a value
             value_map = getattr(cls, "_value2member_map_", {})

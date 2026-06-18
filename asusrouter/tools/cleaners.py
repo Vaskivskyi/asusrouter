@@ -5,17 +5,6 @@ from __future__ import annotations
 from typing import Any
 
 
-def clean_content(content: str) -> str:
-    """Clean the content from useless data."""
-
-    # Remove the first character if it is a BOM
-    if content.startswith("\ufeff"):
-        content = content[1:]
-
-    # Return the cleaned content
-    return content
-
-
 def clean_dict(data: dict[str, Any]) -> dict[str, Any]:
     """Clean a dict from useless data.
 

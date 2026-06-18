@@ -6,7 +6,6 @@ from typing import Any
 
 from asusrouter.modules.data import AsusData
 from asusrouter.modules.wlan import WLAN_TYPE, Wlan
-from asusrouter.tools.cleaners import clean_content
 from asusrouter.tools.converters_v2.raw import raw_to_float, raw_to_int
 from asusrouter.tools.readers import read_json_content
 
@@ -15,7 +14,7 @@ def read(content: str, **kwargs: Any) -> dict[str, Any]:
     """Read sysinfo data."""
 
     # Prepare the content
-    content = clean_content(content).replace(" = ", '":').replace(";\n", ',"')
+    content = content.lstrip("﻿").replace(" = ", '":').replace(";\n", ',"')
     content = '{"' + content[:-3] + "}"
 
     # Read the json content
