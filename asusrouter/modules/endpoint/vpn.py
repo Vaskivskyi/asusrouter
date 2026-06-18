@@ -8,7 +8,7 @@ from typing import Any
 from asusrouter.modules.data import AsusData
 from asusrouter.modules.openvpn import AsusOVPNClient, AsusOVPNServer
 from asusrouter.tools.cleaners import clean_content
-from asusrouter.tools.converters import safe_int
+from asusrouter.tools.converters_v2.raw import raw_to_int
 from asusrouter.tools.readers import read_as_snake_case, read_js_variables
 
 from .vpn_const import MAP_OVPN_CLIENT, MAP_OVPN_SERVER
@@ -96,7 +96,7 @@ def read_ovpn_remote(content: str) -> dict[str, Any]:
         auth = parts[1]
         parts = parts[0].split(":")
         ip_address = parts[0]
-        port = safe_int(parts[1])
+        port = raw_to_int(parts[1])
     except IndexError:
         return {}
 

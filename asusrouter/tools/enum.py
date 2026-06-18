@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from typing import Any, Self, cast
 
-from asusrouter.tools.converters import clean_string, safe_int
+from asusrouter.tools.converters import clean_string
+from asusrouter.tools.converters_v2.raw import raw_to_int
 
 
 class FromIntMixin:
@@ -22,7 +23,7 @@ class FromIntMixin:
             return value
 
         # Try integer conversion first
-        vint = safe_int(value)
+        vint = raw_to_int(value)
         if vint is not None:
             try:
                 return cls(vint)  # type: ignore[call-arg]

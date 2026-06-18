@@ -106,7 +106,7 @@ def test_read_mocked(
         ) as mock_js,
         patch.object(
             temp_mod,
-            "safe_float",
+            "raw_to_float",
             side_effect=lambda x: float(x) if x != "disabled" else None,
         ) as mock_float,
         patch.object(

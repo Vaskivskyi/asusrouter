@@ -9,12 +9,8 @@ from typing import Any
 from asusrouter.modules.const import MapValueType
 from asusrouter.modules.device.identity import ARDeviceIdentity
 from asusrouter.modules.wifi import ARWiFiBand
-from asusrouter.tools.converters import (
-    get_arguments,
-    safe_bool,
-    safe_int,
-    safe_unpack_key,
-)
+from asusrouter.tools.converters import get_arguments, safe_unpack_key
+from asusrouter.tools.converters_v2.raw import raw_to_bool, raw_to_int
 from asusrouter.tools.writers import nvram
 
 
@@ -58,15 +54,15 @@ MAP_GWLAN: list[MapValueType] = [
     ("wl{}_auth_mode"),
     ("wl{}_auth_mode_x"),
     ("wl{}_bridge"),
-    ("wl{}_bss_enabled", safe_bool),
-    ("wl{}_bss_maxassoc", safe_int),
-    ("wl{}_bw_dl", safe_int),  # Bandwidth limit download
-    ("wl{}_bw_enabled", safe_bool),  # Bandwidth limit switch
-    ("wl{}_bw_ul", safe_int),  # Bandwidth limit upload
-    ("wl{}_closed", safe_bool),
+    ("wl{}_bss_enabled", raw_to_bool),
+    ("wl{}_bss_maxassoc", raw_to_int),
+    ("wl{}_bw_dl", raw_to_int),  # Bandwidth limit download
+    ("wl{}_bw_enabled", raw_to_bool),  # Bandwidth limit switch
+    ("wl{}_bw_ul", raw_to_int),  # Bandwidth limit upload
+    ("wl{}_closed", raw_to_bool),
     ("wl{}_crypto"),
-    ("wl{}_expire", safe_int),  # Expire time in s
-    ("wl{}_expire_tmp", safe_int),  # Expire time left in s
+    ("wl{}_expire", raw_to_int),  # Expire time in s
+    ("wl{}_expire_tmp", raw_to_int),  # Expire time left in s
     ("wl{}_gn_wbl_enable"),
     ("wl{}_gn_wbl_rule"),
     ("wl{}_gn_wbl_type"),
@@ -78,32 +74,32 @@ MAP_GWLAN: list[MapValueType] = [
     ("wl{}_key2"),
     ("wl{}_key3"),
     ("wl{}_key4"),
-    ("wl{}_lanaccess", safe_bool),  # LAN access
+    ("wl{}_lanaccess", raw_to_bool),  # LAN access
     ("wl{}_maclist"),
     ("wl{}_macmode"),
-    ("wl{}_maxassoc", safe_int),
+    ("wl{}_maxassoc", raw_to_int),
     ("wl{}_mbss"),
     ("wl{}_mfp"),
     ("wl{}_mode"),
-    ("wl{}_net_reauth", safe_int),
+    ("wl{}_net_reauth", raw_to_int),
     ("wl{}_preauth"),
-    ("wl{}_radio", safe_bool),
+    ("wl{}_radio", raw_to_bool),
     ("wl{}_radius_ipaddr"),
     ("wl{}_radius_key"),
-    ("wl{}_radius_port", safe_int),
+    ("wl{}_radius_port", raw_to_int),
     ("wl{}_sae_anti_clog_threshold"),
     ("wl{}_sae_groups"),
     ("wl{}_sae_sync"),
     ("wl{}_ssid"),  # SSID
     ("wl{}_sta_retry_time"),
-    ("wl{}_sync_node", safe_bool),  # Sync AiMesh nodes
+    ("wl{}_sync_node", raw_to_bool),  # Sync AiMesh nodes
     ("wl{}_unit"),  # GWLAN unit id
-    ("wl{}_wep", safe_bool),
-    ("wl{}_wep_x", safe_bool),
-    ("wl{}_wfi_enable", safe_bool),
+    ("wl{}_wep", raw_to_bool),
+    ("wl{}_wep_x", raw_to_bool),
+    ("wl{}_wfi_enable", raw_to_bool),
     ("wl{}_wfi_pinmode"),
     ("wl{}_wme"),
-    ("wl{}_wme_bss_disable", safe_bool),
+    ("wl{}_wme_bss_disable", raw_to_bool),
     ("wl{}_wpa_gtk_rekey"),
     ("wl{}_wpa_psk"),  # Password
     ("wl{}_wps_mode"),
@@ -116,7 +112,7 @@ MAP_WLAN: list[MapValueType] = [
     ("wl{}_bw"),
     ("wl{}_channel"),
     ("wl{}_chanspec"),
-    ("wl{}_closed", safe_bool),
+    ("wl{}_closed", raw_to_bool),
     ("wl{}_country_code"),
     ("wl{}_crypto"),
     ("wl{}_gmode_check"),
@@ -126,10 +122,10 @@ MAP_WLAN: list[MapValueType] = [
     ("wl{}_mfp"),
     ("wl{}_nmode_x"),
     ("wl{}_optimizexbox_ckb"),
-    ("wl{}_radio", safe_bool),
+    ("wl{}_radio", raw_to_bool),
     ("wl{}_radius_ipaddr"),
     ("wl{}_radius_key"),
-    ("wl{}_radius_port", safe_int),
+    ("wl{}_radius_port", raw_to_int),
     ("wl{}_ssid"),
     ("wl{}_wpa_gtk_rekey"),
     ("wl{}_wpa_psk"),

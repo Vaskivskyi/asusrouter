@@ -17,7 +17,7 @@ from asusrouter.modules.firmware.translate import (
     translate_string,
     translate_type,
 )
-from asusrouter.tools.converters import safe_int
+from asusrouter.tools.converters_v2.raw import raw_to_int
 
 __all__ = [
     "AR_FW_388",
@@ -114,7 +114,7 @@ class ARFirmware:
         """Build from nvram values (FW_MAJOR, FW_MINOR, FW_BUILD)."""
 
         major = translate_major(fw_major)
-        minor = safe_int(fw_minor)
+        minor = raw_to_int(fw_minor)
         build, revision, rog = translate_build(
             str(fw_build) if fw_build is not None else None
         )

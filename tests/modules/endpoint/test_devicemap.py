@@ -379,9 +379,9 @@ def test_process_boottime(
 
 @patch("asusrouter.modules.endpoint.devicemap.AsusOVPNClient")
 @patch("asusrouter.modules.endpoint.devicemap.AsusOVPNServer")
-@patch("asusrouter.modules.endpoint.devicemap.safe_int")
+@patch("asusrouter.modules.endpoint.devicemap.raw_to_int")
 def test_process_ovpn(
-    mock_safe_int: MagicMock,
+    mock_raw_to_int: MagicMock,
     mock_asusovpnserver: MagicMock,
     mock_asusovnclient: MagicMock,
 ) -> None:
@@ -390,7 +390,7 @@ def test_process_ovpn(
     # Prepare the mock functions
     mock_asusovnclient.return_value = MagicMock()
     mock_asusovpnserver.return_value = MagicMock()
-    mock_safe_int.return_value = 0
+    mock_raw_to_int.return_value = 0
 
     # Prepare the test data
     devicemap_data = {
@@ -423,5 +423,5 @@ def test_process_ovpn(
     # Check that the mock functions were called with the correct arguments
     mock_asusovnclient.assert_called_once_with(0)
     mock_asusovpnserver.assert_called_once_with(0)
-    mock_safe_int.assert_any_call("state", default=0)
-    mock_safe_int.assert_any_call("errno")
+    mock_raw_to_int.assert_any_call("state")
+    mock_raw_to_int.assert_any_call("errno")

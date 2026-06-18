@@ -20,7 +20,8 @@ from asusrouter.registry import (
     ARCallableEntry,
     ARCallableRegistry as ARCallReg,
 )
-from asusrouter.tools.converters import flatten_dict, safe_bool_nn
+from asusrouter.tools.converters import flatten_dict
+from asusrouter.tools.converters_v2.raw import raw_to_bool
 from asusrouter.tools.enum import FromStrMixin
 from asusrouter.tools.identifiers import MacAddress
 from asusrouter.tools.readers import read_units_data_rate
@@ -144,7 +145,7 @@ class ARTrafficSourceEthernet(ARTrafficSource):
     def bh_flag(self, value: Any) -> None:
         """Set the backhaul flag."""
 
-        self._bh_flag = safe_bool_nn(value)
+        self._bh_flag = raw_to_bool(value) or False
 
 
 class ARTrafficSourceBetween(ARTrafficSource):

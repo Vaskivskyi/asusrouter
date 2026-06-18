@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 from typing import Any, Final
 
-from asusrouter.tools.converters import safe_int
+from asusrouter.tools.converters_v2.raw import raw_to_int
 
 MAC_CLEAN_RE: Final[re.Pattern[str]] = re.compile(r"[^0-9a-fA-F]")
 MAC_LENGTH_BYTES: Final[int] = 6
@@ -61,7 +61,7 @@ class MacAddress:
             return bytes(value)
 
         # Integer-compatible
-        vint = safe_int(value)
+        vint = raw_to_int(value)
         if isinstance(vint, int):
             if vint < 0 or vint >= (1 << 48):
                 raise ValueError(ERROR_MAC_INT)

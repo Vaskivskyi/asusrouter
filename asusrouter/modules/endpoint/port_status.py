@@ -14,7 +14,7 @@ from asusrouter.modules.ports import (
     read_port_speed,
     read_port_type,
 )
-from asusrouter.tools.converters import safe_bool, safe_int
+from asusrouter.tools.converters_v2.raw import raw_to_bool, raw_to_int
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -72,13 +72,13 @@ def process_node_info(data: dict[str, Any]) -> dict[str, Any]:
 
 def process_port_info(
     port: str, values: dict[str, Any]
-) -> tuple[dict[str, Any], ARPortType, int]:
+) -> tuple[dict[str, Any], ARPortType, int | None]:
     """Process port info data."""
 
     # The port is a string with the format `port_label:port_id`
     # e.g. `L1` for LAN port 1 or `W0` for WAN port 0 (the main)
     # port_label = port[0]
-    port_id = safe_int(port[1])
+    port_id = raw_to_int(port[1])
 
     # Get the capabilities of the port
     port_capabilities = read_port_capabilities(values.get("cap"))
@@ -88,10 +88,10 @@ def process_port_info(
 
     # Get the rates
     link_rate = read_port_speed(
-        port_type, safe_int(values.get("link_rate"), default=0)
+        port_type, raw_to_int(values.get("link_rate")) or 0
     )
     max_rate = read_port_speed(
-        port_type, safe_int(values.get("max_rate"), default=0)
+        port_type, raw_to_int(values.get("max_rate")) or 0
     )
 
     # Special ports
@@ -102,7 +102,7 @@ def process_port_info(
         port_type = ARPortType.SFPP
 
     # Port state
-    port_state = safe_bool(values.get("is_on"))
+    port_state = raw_to_bool(values.get("is_on"))
     # For USB ports, the state is 1 only when a modem is connected
     modem = False
     port_devices = None

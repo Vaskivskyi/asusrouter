@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any
+from typing import Any, TypeVar
 
 from asusrouter.modules.connection import (
     ConnectionState,
@@ -16,12 +16,11 @@ from asusrouter.modules.connection import (
 from asusrouter.modules.const import MapValueType
 from asusrouter.modules.ip_address import IPAddressType, read_ip_address_type
 from asusrouter.modules.vendor import replace_vendor
-from asusrouter.tools.converters import (
-    safe_bool,
-    safe_float,
-    safe_int,
-    safe_time_from_delta,
-    safe_unpack_key,
+from asusrouter.tools.converters import safe_time_from_delta, safe_unpack_key
+from asusrouter.tools.converters_v2.raw import (
+    raw_to_bool,
+    raw_to_float,
+    raw_to_int,
 )
 
 _OSCILLATION_THRESHOLD_SECONDS = 10
@@ -82,17 +81,17 @@ CLIENT_MAP: dict[str, list[MapValueType]] = {
     ],
     "connection_type": [
         ("connection_type"),
-        ("isWL", safe_int),
+        ("isWL", raw_to_int),
     ],
     "guest": [
         ("guest"),
-        ("isGN", safe_int),
+        ("isGN", raw_to_int),
     ],
     "internet_mode": [
         ("internetMode", get_internet_mode),
     ],
     "internet_state": [
-        ("internetState", safe_bool),
+        ("internetState", raw_to_bool),
     ],
     "ip": [
         ("ip"),
@@ -113,16 +112,16 @@ CLIENT_MAP: dict[str, list[MapValueType]] = {
     ],
     "online": [
         ("online"),
-        ("isOnline", safe_bool),
+        ("isOnline", raw_to_bool),
     ],
     "rssi": [
-        ("rssi", safe_int),
+        ("rssi", raw_to_int),
     ],
     "rx_speed": [
-        ("curRx", safe_float),
+        ("curRx", raw_to_float),
     ],
     "tx_speed": [
-        ("curTx", safe_float),
+        ("curTx", raw_to_float),
     ],
 }
 
@@ -152,7 +151,7 @@ CLIENT_MAP_CONNECTION: dict[str, list[MapValueType]] = {
         ("ipMethod", read_ip_address_type),
     ],
     "internet_state": [
-        ("internetState", safe_bool),
+        ("internetState", raw_to_bool),
     ],
     "internet_mode": [
         ("internetMode", get_internet_mode),
@@ -161,30 +160,30 @@ CLIENT_MAP_CONNECTION: dict[str, list[MapValueType]] = {
         ("node"),
     ],
     "online": [
-        ("online", safe_bool),
-        ("isOnline", safe_bool),
+        ("online", raw_to_bool),
+        ("isOnline", raw_to_bool),
     ],
     "aimesh": [
-        ("amesh_isRe", safe_bool),
+        ("amesh_isRe", raw_to_bool),
     ],
 }
 
 CLIENT_MAP_CONNECTION_WLAN: dict[str, list[MapValueType]] = {
     "guest_id": [
         ("guest"),
-        ("isGN", safe_int),
+        ("isGN", raw_to_int),
     ],
     "rssi": [
-        ("rssi", safe_int),
+        ("rssi", raw_to_int),
     ],
     "since": [
         ("wlConnectTime", safe_time_from_delta),
     ],
     "rx_speed": [
-        ("curRx", safe_float),
+        ("curRx", raw_to_float),
     ],
     "tx_speed": [
-        ("curTx", safe_float),
+        ("curTx", raw_to_float),
     ],
 }
 
@@ -223,9 +222,10 @@ def process_client(
     )
 
 
-def process_data(
-    data: dict[str, Any], mapping: dict[str, Any], obj: Any
-) -> Any:
+_T = TypeVar("_T")
+
+
+def process_data(data: dict[str, Any], mapping: dict[str, Any], obj: _T) -> _T:
     """Process data based on a mapping and set attributes on an object."""
 
     # Go through all keys in mapping

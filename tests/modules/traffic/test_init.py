@@ -167,22 +167,23 @@ class TestARTrafficSourceEthernet:
 
         assert instance.bh_flag is bh_flag
 
-    def test_setter_bh_flag(self) -> None:
+    @pytest.mark.parametrize(
+        ("value", "expected"),
+        [
+            (True, True),
+            (False, False),
+            ("on", True),
+            ("off", False),
+            (None, False),
+            ("unknown", False),
+        ],
+    )
+    def test_setter_bh_flag(self, value: Any, expected: bool) -> None:
         """Test the bh_flag setter."""
 
-        set_value = "string"
-        return_value = True
-
         instance = ARTrafficSourceEthernet(vtarget)
-
-        with patch(
-            "asusrouter.modules.traffic.safe_bool_nn",
-            return_value=return_value,
-        ) as mock_safe_bool:
-            instance.bh_flag = set_value  # type: ignore[assignment]
-
-            assert instance.bh_flag is return_value
-            mock_safe_bool.assert_called_once_with(set_value)
+        instance.bh_flag = value  # type: ignore[assignment]
+        assert instance.bh_flag is expected
 
 
 class TestARTrafficSourceBetween:

@@ -14,8 +14,8 @@ from asusrouter.modules.ports.ethernet import (
     read_ethernet_port_speed,
 )
 from asusrouter.modules.ports.usb import ARPortUSBSpeed
-from asusrouter.tools.converters import safe_int
 from asusrouter.tools.converters_v2.int import int_to_bits
+from asusrouter.tools.converters_v2.raw import raw_to_int
 from asusrouter.tools.enum import FromIntMixin, FromStrMixin
 
 
@@ -96,7 +96,7 @@ def read_port_speed(
 def read_port_capabilities(raw: Any) -> dict[ARPortCapability, bool]:
     """Read port capabilities from raw integer."""
 
-    value = safe_int(raw)
+    value = raw_to_int(raw)
     if not isinstance(value, int) or value < 0:
         return {}
     bits = int_to_bits(value)

@@ -6,7 +6,8 @@ from typing import Any
 
 from asusrouter.modules.aimesh import AiMeshDevice
 from asusrouter.modules.data import AsusData
-from asusrouter.tools.converters import safe_bool, safe_int, safe_return
+from asusrouter.tools.converters import safe_return
+from asusrouter.tools.converters_v2.raw import raw_to_bool, raw_to_int
 from asusrouter.tools.readers import read_js_variables
 
 read = read_js_variables
@@ -95,11 +96,11 @@ def process_aimesh_node(data: dict[str, Any]) -> AiMeshDevice:
             # Stop the loop since we found the parent
             break
 
-    level = safe_int(data.get("level", "0"))
+    level = raw_to_int(data.get("level", "0"))
     node_type = "router" if level == 0 else "node"
 
     return AiMeshDevice(
-        status=safe_bool(data.get("online", 0)) or False,
+        status=raw_to_bool(data.get("online", 0)) or False,
         alias=data.get("alias"),
         model=data.get("ui_model_name", data.get("model_name")),
         product_id=data.get("product_id"),
@@ -128,5 +129,5 @@ def process_connection(data: str) -> dict[str, int]:
     temp = data.split("_")
     return {
         "connection_type": CONNECTION_TYPE.get(temp[0]) or 0,
-        "guest": safe_int(temp[1], 0) if len(temp) > 1 else 0,
+        "guest": (raw_to_int(temp[1]) or 0) if len(temp) > 1 else 0,
     }

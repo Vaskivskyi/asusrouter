@@ -9,12 +9,8 @@ import re
 from typing import Any
 
 from asusrouter.const import ContentType
-from asusrouter.tools.converters import (
-    clean_input,
-    safe_bool,
-    safe_float,
-    safe_float_nn,
-)
+from asusrouter.tools.converters import clean_input
+from asusrouter.tools.converters_v2.raw import raw_to_bool, raw_to_float
 from asusrouter.tools.types import ARCallableType
 from asusrouter.tools.units import (
     DataRateUnitConverter,
@@ -43,13 +39,13 @@ RANDOM_SYMBOLS: list[str] = [
 def is_non_negative(value: Any) -> bool:
     """Check if the value is non-negative."""
 
-    return safe_float_nn(value) >= 0
+    return (raw_to_float(value) or 0.0) >= 0
 
 
 def is_true_in_dict(value: str, data: dict[str, Any]) -> bool:
     """Check if the value exists in the dict and is equal to 1."""
 
-    return safe_bool(data.get(value)) is True
+    return raw_to_bool(data.get(value)) is True
 
 
 def merge_dicts(
@@ -248,7 +244,7 @@ def read_units_as_base(
         """Read the value as a base unit."""
 
         # Use the converter with explicit None on unsupported types
-        fval = safe_float(value)
+        fval = raw_to_float(value)
 
         # Convert to base if all the checks passed
         if isinstance(fval, float) and (

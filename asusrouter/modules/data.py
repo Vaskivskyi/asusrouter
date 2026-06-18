@@ -8,7 +8,7 @@ from datetime import UTC, datetime, timedelta
 from enum import StrEnum
 from typing import Any
 
-from asusrouter.tools.converters import safe_bool
+from asusrouter.tools.converters_v2.raw import raw_to_bool
 
 
 class AsusData(StrEnum):
@@ -116,6 +116,6 @@ def convert_state(state: Any) -> bool:
 
     # If the state is not boolean, convert it to boolean
     if not isinstance(state, bool):
-        state = safe_bool(state)
+        state = raw_to_bool(state)
 
     return bool(state)

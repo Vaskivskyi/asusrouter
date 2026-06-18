@@ -16,15 +16,13 @@ from enum import Enum
 from typing import Any, TypeVar, cast
 
 from asusrouter.tools.cleaners import clean_content
-
-true_values = {"true", "allow", "1", "on", "enabled"}
-false_values = {"false", "block", "0", "off", "disabled"}
-
+from asusrouter.tools.converters_v2.raw import raw_to_int
 
 _T = TypeVar("_T")
 _E = TypeVar("_E", bound=Enum)
 
 
+# TODO: remove for v2 (inline string cleaning in each v2 function)
 def clean_input(func: Callable[..., Any]) -> Callable[..., Any]:
     """Clean input data."""
 
@@ -38,6 +36,7 @@ def clean_input(func: Callable[..., Any]) -> Callable[..., Any]:
     return wrapper
 
 
+# TODO: migrate to v2: converters_v2/raw.py (raw_to_int)
 def clean_jitter(value: _T, jitter: int = 1) -> int | _T:
     """Clean jitter from an integer value.
 
@@ -46,8 +45,9 @@ def clean_jitter(value: _T, jitter: int = 1) -> int | _T:
     non-compatible value is given, return it unchanged.
     """
 
-    vint = safe_int(value)
-    jint = safe_int(jitter, default=1)
+    vint = raw_to_int(value)
+    _jitter = raw_to_int(jitter)
+    jint = _jitter if _jitter is not None else 1
     if isinstance(vint, int) and jint > 0:
         block_size = 2 * jint + 1
         return int(vint - (vint % block_size) + jint)
@@ -55,6 +55,7 @@ def clean_jitter(value: _T, jitter: int = 1) -> int | _T:
     return value
 
 
+# TODO: replace for v2: raw_to_str in converters_v2/raw.py
 def clean_string(content: str | None) -> str | None:
     """Get a clean string or return None if it is empty."""
 
@@ -70,6 +71,7 @@ def clean_string(content: str | None) -> str | None:
     return content
 
 
+# TODO: migrate to v2: converters_v2/dict.py
 def flatten_dict(
     d: dict[Any, Any] | None,
     parent_key: str = "",
@@ -106,6 +108,7 @@ def flatten_dict(
     return dict(items)
 
 
+# TODO: remove for v2 (v1 pipeline specific)
 def get_arguments(
     args: str | tuple[str, ...], **kwargs: Any
 ) -> Any | tuple[Any | None, ...]:
@@ -133,6 +136,7 @@ def get_arguments(
     return tuple(found_args) if found_args else None
 
 
+# TODO: remove for v2 (superseded by from_value() mixin on v2 enums)
 def get_enum_key_by_value(
     enum: type[_E], value: Any, default: _E | None = None
 ) -> _E:
@@ -149,14 +153,7 @@ def get_enum_key_by_value(
     raise ValueError(f"Invalid value: {value}")
 
 
-def handle_none_content(content: _T | None, default: _T | None) -> _T | None:
-    """Return the default value if content is None, else return the content."""
-
-    if content is None:
-        return default
-    return content
-
-
+# TODO: migrate to v2: converters_v2/dict.py
 def list_from_dict(raw: dict[Any, Any] | list[Any] | None) -> list[str]:
     """Return dictionary keys as list."""
 
@@ -169,6 +166,7 @@ def list_from_dict(raw: dict[Any, Any] | list[Any] | None) -> list[str]:
     return list(raw.keys())
 
 
+# TODO: remove for v2 (v1 protocol specific)
 def nvram_get(
     content: list[str] | str | None,
 ) -> list[tuple[str, ...]] | None:
@@ -186,6 +184,7 @@ def nvram_get(
     return [("nvram_get", value) for value in content]
 
 
+# TODO: remove for v2 (v1 pipeline specific)
 def run_method(
     value: Any, method: Callable[..., Any] | list[Callable[..., Any]] | None
 ) -> Any:
@@ -209,58 +208,7 @@ def run_method(
     return value
 
 
-@clean_input
-def safe_bool(content: str | float | bool | None) -> bool | None:
-    """Read the content as boolean or return None."""
-
-    if content is None:
-        return None
-
-    if isinstance(content, bool):
-        return content
-    if isinstance(content, int | float):
-        return content != 0
-    if isinstance(content, str):
-        content = content.lower()
-        if content in true_values:
-            return True
-        if content in false_values:
-            return False
-
-    return None
-
-
-def safe_bool_nn(content: Any) -> bool:
-    """Read the content as boolean or return False."""
-
-    result = safe_bool(content)
-    return result if isinstance(result, bool) else False
-
-
-def safe_convert(
-    convert_func: Callable[[str | int | float], _T],
-    content: str | float | None,
-    default: _T | None = None,
-    fallback_func: Callable[[Any], _T] | None = None,
-) -> _T | None:
-    """Try to convert the content using the conversion function.
-
-    Return the default value if it fails.
-    """
-
-    if content is None:
-        return default
-    try:
-        return convert_func(content)
-    except (ValueError, TypeError):
-        if fallback_func is not None and isinstance(content, str):
-            try:
-                return fallback_func(content)
-            except (ValueError, TypeError):
-                pass
-        return default
-
-
+# TODO: migrate to v2: converters_v2/datetime.py
 @clean_input
 def safe_datetime(content: str | None) -> datetime | None:
     """Read the content as datetime or return None."""
@@ -277,6 +225,7 @@ def safe_datetime(content: str | None) -> datetime | None:
             return None
 
 
+# TODO: remove for v2 (superseded by from_value() mixin on v2 enums)
 def safe_enum(
     enum: type[_E],
     value: Any,
@@ -308,6 +257,7 @@ def safe_enum(
     return None
 
 
+# TODO: migrate to v2: converters_v2/raw.py
 @clean_input
 def safe_exists(content: str | None) -> bool:
     """Read the content as boolean or return None."""
@@ -315,58 +265,7 @@ def safe_exists(content: str | None) -> bool:
     return content is not None
 
 
-@clean_input
-def safe_float(
-    content: str | float | None, default: float | None = None
-) -> float | None:
-    """Read the content as float or return None."""
-
-    content = cast(
-        str | int | float | None, handle_none_content(content, default)
-    )
-    return safe_convert(float, content, default)
-
-
-def safe_float_nn(content: Any) -> float:
-    """Read the content as a float or return 0.0."""
-
-    result = safe_float(content)
-    return result if isinstance(result, float) else 0.0
-
-
-@clean_input
-def safe_int(
-    content: str | float | None,
-    default: int | None = None,
-    base: int = 10,
-) -> int | None:
-    """Read the content as int or return the default value.
-
-    (None if not specified).
-    """
-
-    content = cast(
-        str | int | float | None, handle_none_content(content, default)
-    )
-    if isinstance(content, str):
-        return safe_convert(
-            lambda x: int(x, base=base),
-            content,
-            default,
-            lambda x: int(float(x)),
-        )
-    return safe_convert(
-        int, content, default if isinstance(default, int) else None
-    )
-
-
-def safe_int_nn(content: Any) -> int:
-    """Read the content as an integer or return 0."""
-
-    result = safe_int(content)
-    return result if isinstance(result, int) else 0
-
-
+# TODO: migrate to v2: converters_v2/str.py
 def safe_list(content: Any) -> list[Any]:
     """Read any content as a list."""
 
@@ -379,12 +278,14 @@ def safe_list(content: Any) -> list[Any]:
     return [content]
 
 
+# TODO: migrate to v2: converters_v2/str.py
 def safe_list_csv(content: str | None) -> list[str]:
     """Read the list as comma separated values."""
 
     return safe_list_from_string(content, ",")
 
 
+# TODO: migrate to v2: converters_v2/str.py
 @clean_input
 def safe_list_from_string(
     content: str | None, delimiter: str = " "
@@ -397,6 +298,7 @@ def safe_list_from_string(
     return content.split(delimiter)
 
 
+# TODO: remove for v2 (v1 pipeline specific)
 @clean_input
 def safe_return(content: Any) -> Any:
     """Return the content."""
@@ -404,6 +306,7 @@ def safe_return(content: Any) -> Any:
     return content
 
 
+# TODO: migrate to v2: converters_v2/raw.py (raw_to_float)
 def safe_speed(
     current: (float),
     previous: (float),
@@ -422,6 +325,7 @@ def safe_speed(
     return diff / time_delta
 
 
+# TODO: migrate to v2: converters_v2/datetime.py
 def safe_time_from_delta(content: str) -> datetime:
     """Transform time delta to the date in the past."""
 
@@ -430,6 +334,7 @@ def safe_time_from_delta(content: str) -> datetime:
     ) - safe_timedelta_long(content)
 
 
+# TODO: migrate to v2: converters_v2/datetime.py
 @clean_input
 def safe_timedelta_long(content: str | None) -> timedelta:
     """Transform connection timedelta.
@@ -450,6 +355,7 @@ def safe_timedelta_long(content: str | None) -> timedelta:
         return timedelta()
 
 
+# TODO: remove for v2 (v1 pipeline specific)
 def safe_unpack_key(
     content: tuple[str, Callable[..., Any] | None | list[Callable[..., Any]]]
     | str
@@ -480,12 +386,9 @@ def safe_unpack_key(
     return content, None
 
 
+# TODO: remove for v2 (v1 pipeline specific)
 def safe_unpack_keys(
-    content: tuple[
-        str, str, Callable[..., Any] | None | list[Callable[..., Any]]
-    ]
-    | tuple[str, str]
-    | str,
+    content: tuple[str, str, Any] | tuple[str, str] | str,
 ) -> tuple[Any, ...]:
     """Unpack key/key_to_use/method tuple even if some values are missing."""
 
@@ -506,6 +409,7 @@ def safe_unpack_keys(
     return new_content + (None,)
 
 
+# TODO: migrate to v2: converters_v2/raw.py (raw_to_float)
 def safe_usage(used: float, total: float) -> float:
     """Calculate usage in percents.
 
@@ -524,6 +428,7 @@ def safe_usage(used: float, total: float) -> float:
     return usage
 
 
+# TODO: migrate to v2: converters_v2/raw.py (raw_to_float)
 def safe_usage_historic(
     used: float,
     total: float,
@@ -545,6 +450,7 @@ def safe_usage_historic(
     return safe_usage(used_diff, total_diff)
 
 
+# TODO: migrate to v2: converters_v2/datetime.py
 def safe_timestamp_to_utc(value: int | None) -> datetime | None:
     """Convert timestamp to UTC datetime."""
 
@@ -560,6 +466,7 @@ def safe_timestamp_to_utc(value: int | None) -> datetime | None:
             return None
 
 
+# TODO: migrate to v2: converters_v2/datetime.py
 def safe_utc_to_timestamp(value: datetime | None) -> float | None:
     """Convert UTC datetime to timestamp."""
 
@@ -569,6 +476,7 @@ def safe_utc_to_timestamp(value: datetime | None) -> float | None:
     return value.timestamp()
 
 
+# TODO: migrate to v2: converters_v2/datetime.py
 def safe_utc_to_timestamp_milli(value: datetime | None) -> int | None:
     """Convert UTC datetime to timestamp in milliseconds."""
 
@@ -580,6 +488,7 @@ def safe_utc_to_timestamp_milli(value: datetime | None) -> int | None:
     return int(_timestamp * 1000)
 
 
+# TODO: migrate to v2: converters_v2/raw.py (raw_to_int)
 def scale_value_int(
     value: int,
     scale: int,

@@ -5,7 +5,8 @@ from __future__ import annotations
 from enum import IntEnum, StrEnum
 from typing import Any
 
-from asusrouter.tools.converters import clean_string, safe_bool
+from asusrouter.tools.converters import clean_string
+from asusrouter.tools.converters_v2.raw import raw_to_bool
 
 
 class AsusDDNS(IntEnum):
@@ -160,7 +161,7 @@ def process_ddns(data: dict[str, str]) -> dict[str, Any]:
     """Process DDNS data."""
 
     ddns: dict[str, Any] = {
-        "enabled": safe_bool(data.get("ddns_enable_x")),
+        "enabled": raw_to_bool(data.get("ddns_enable_x")),
         "hostname": clean_string(data.get("ddns_hostname_x")),
         "ip_address": clean_string(data.get("ddns_ipaddr")),
         "old_name": clean_string(data.get("ddns_old_name")),
@@ -170,7 +171,7 @@ def process_ddns(data: dict[str, str]) -> dict[str, Any]:
         "state": AsusDDNS.UNKNOWN,
         "status": DDNSStatusCode.NONE,
         "status_hint": "",
-        "updated": safe_bool(data.get("ddns_updated")),
+        "updated": raw_to_bool(data.get("ddns_updated")),
     }
 
     # Update the state based on the enabled status

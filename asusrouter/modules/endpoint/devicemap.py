@@ -14,7 +14,8 @@ from asusrouter.modules.data import AsusData, AsusDataState
 from asusrouter.modules.endpoint import data_get
 from asusrouter.modules.openvpn import AsusOVPNClient, AsusOVPNServer
 from asusrouter.tools.cleaners import clean_dict, clean_dict_key_prefix
-from asusrouter.tools.converters import safe_datetime, safe_int
+from asusrouter.tools.converters import safe_datetime
+from asusrouter.tools.converters_v2.raw import raw_to_int
 from asusrouter.tools.readers import merge_dicts
 
 from .devicemap_const import (
@@ -174,7 +175,7 @@ def read_uptime_string(
     seconds_match = re.search("([0-9]+)", uptime_parts[1])
     if not seconds_match:
         return (None, None)
-    seconds: int | None = safe_int(seconds_match.group())
+    seconds: int | None = raw_to_int(seconds_match.group())
 
     when = safe_datetime(uptime_parts[0])
     if when is None or seconds is None:
@@ -281,9 +282,9 @@ def process_ovpn(devicemap: dict[str, Any]) -> dict[str, Any]:
             # Get client data
             # We define default state as 0, since it's not always present
             client_state = AsusOVPNClient(
-                safe_int(vpnmap.get(f"client{num}_state"), default=0)
+                raw_to_int(vpnmap.get(f"client{num}_state")) or 0
             )
-            client_errno = safe_int(vpnmap.get(f"client{num}_errno"))
+            client_errno = raw_to_int(vpnmap.get(f"client{num}_errno"))
 
             # Assign client data
             vpn["client"][num] = {
@@ -301,7 +302,7 @@ def process_ovpn(devicemap: dict[str, Any]) -> dict[str, Any]:
             # Get server data
             # We define default state as 0, since it's not always present
             server_state = AsusOVPNServer(
-                safe_int(vpnmap.get(f"server{num}_state"), default=0)
+                raw_to_int(vpnmap.get(f"server{num}_state")) or 0
             )
 
             # Assign server data

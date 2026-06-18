@@ -13,7 +13,8 @@ from asusrouter.modules.firmware import (
     WebsUpdate,
     WebsUpgrade,
 )
-from asusrouter.tools.converters import clean_string, safe_enum, safe_int
+from asusrouter.tools.converters import clean_string, safe_enum
+from asusrouter.tools.converters_v2.raw import raw_to_int
 from asusrouter.tools.readers import read_js_variables
 
 read = read_js_variables
@@ -41,12 +42,12 @@ def process(data: dict[str, Any]) -> dict[AsusData, Any]:
         "webs": {
             "update": safe_enum(
                 WebsUpdate,
-                safe_int(data.get("webs_state_update")),
+                raw_to_int(data.get("webs_state_update")),
                 default=WebsUpdate.UNKNOWN,
             ),
             "upgrade": safe_enum(
                 WebsUpgrade,
-                safe_int(data.get("webs_state_upgrade")),
+                raw_to_int(data.get("webs_state_upgrade")),
                 default=WebsUpgrade.INACTIVE,
             ),
             "available": _available,
@@ -54,29 +55,29 @@ def process(data: dict[str, Any]) -> dict[AsusData, Any]:
             "required": _required,
             "error": safe_enum(
                 WebsError,
-                safe_int(data.get("webs_state_error")),
+                raw_to_int(data.get("webs_state_error")),
                 default_value=UNKNOWN_MEMBER,
             ),
             "flag": safe_enum(
                 WebsFlag,
-                safe_int(data.get("webs_state_flag")),
+                raw_to_int(data.get("webs_state_flag")),
                 default_value=UNKNOWN_MEMBER,
             ),
-            "level": safe_int(data.get("webs_state_level")),
+            "level": raw_to_int(data.get("webs_state_level")),
         },
         "cfg": {
-            "check": safe_int(data.get("cfg_check")),
-            "upgrade": safe_int(data.get("cfg_upgrade")),
+            "check": raw_to_int(data.get("cfg_check")),
+            "upgrade": raw_to_int(data.get("cfg_upgrade")),
         },
         "sig": {
-            "update": safe_int(data.get("sig_state_update")),
-            "upgrade": safe_int(data.get("sig_state_upgrade")),
+            "update": raw_to_int(data.get("sig_state_update")),
+            "upgrade": raw_to_int(data.get("sig_state_upgrade")),
             "version": clean_string(data.get("sig_ver")),
-            "error": safe_int(data.get("sig_state_error")),
-            "flag": safe_int(data.get("sig_state_flag")),
+            "error": raw_to_int(data.get("sig_state_error")),
+            "flag": raw_to_int(data.get("sig_state_flag")),
         },
         "hndwr": {
-            "status": safe_int(data.get("hndwr_status")),
+            "status": raw_to_int(data.get("hndwr_status")),
         },
     }
 
