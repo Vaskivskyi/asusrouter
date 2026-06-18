@@ -157,58 +157,6 @@ def handle_none_content(content: _T | None, default: _T | None) -> _T | None:
     return content
 
 
-def int_as_bits(value: int) -> list[bool]:
-    """Convert an integer to a list of bits."""
-
-    if not isinstance(value, int):
-        return []
-
-    # Negative values are not supported
-    if value < 0:
-        return []
-
-    # Zero is a special case
-    if value == 0:
-        return [False]
-
-    return [bool(value & (1 << i)) for i in range(value.bit_length())]
-
-
-def int_as_capabilities(
-    value: int, capabilities: type[Enum]
-) -> dict[Enum, bool]:
-    """Convert an integer to a dict of capabilities."""
-
-    # Check if the capabilities is an enum
-    if not is_enum(capabilities) or not isinstance(value, int):
-        return {}
-
-    # Convert the value to a list of bits
-    bits = int_as_bits(value)
-
-    result = {}
-
-    # For each capability in the capabilities
-    # Considering key as a capability name and value as a capability bit
-    for capability in capabilities:
-        # Check that the capability is a non-negative integer (bit index)
-        if not isinstance(capability.value, int) or capability.value < 0:
-            continue
-
-        # Check if the bit is set
-        result[capability] = (
-            bits[capability.value] if capability.value < len(bits) else False
-        )
-
-    return result
-
-
-def is_enum(v: Any) -> bool:
-    """Check if the value is an enum."""
-
-    return isinstance(v, type) and issubclass(v, Enum)
-
-
 def list_from_dict(raw: dict[Any, Any] | list[Any] | None) -> list[str]:
     """Return dictionary keys as list."""
 
@@ -250,7 +198,7 @@ def run_method(
         method = [method]
 
     for func in method:
-        if is_enum(func):
+        if isinstance(func, type) and issubclass(func, Enum):
             try:
                 value = func(value)
             except ValueError:
