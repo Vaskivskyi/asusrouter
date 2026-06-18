@@ -7,18 +7,14 @@ from typing import Any
 
 from asusrouter.modules.data import AsusData
 from asusrouter.modules.ports import (
-    PORT_CAP2TYPE,
-    PORT_TYPE2LINK,
-    PortCapability,
-    PortSpeed,
-    PortType,
+    ARPortCapability,
+    ARPortEthernetSpeed,
+    ARPortType,
+    read_port_capabilities,
+    read_port_speed,
+    read_port_type,
 )
-from asusrouter.tools.converters import (
-    get_enum_key_by_value,
-    int_as_capabilities,
-    safe_bool,
-    safe_int,
-)
+from asusrouter.tools.converters import safe_bool, safe_int
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -26,7 +22,7 @@ _LOGGER = logging.getLogger(__name__)
 def process(data: dict[str, Any]) -> dict[AsusData, Any]:
     """Process port status data."""
 
-    ports: dict[PortType, Any] = {}
+    ports: dict[ARPortType, Any] = {}
 
     if not data:
         return {
@@ -76,7 +72,7 @@ def process_node_info(data: dict[str, Any]) -> dict[str, Any]:
 
 def process_port_info(
     port: str, values: dict[str, Any]
-) -> tuple[dict[str, Any], PortType, int]:
+) -> tuple[dict[str, Any], ARPortType, int]:
     """Process port info data."""
 
     # The port is a string with the format `port_label:port_id`
@@ -85,49 +81,32 @@ def process_port_info(
     port_id = safe_int(port[1])
 
     # Get the capabilities of the port
-    port_capabilities = int_as_capabilities(
-        safe_int(values.get("cap")), PortCapability
-    )
+    port_capabilities = read_port_capabilities(values.get("cap"))
 
     # Get the port type
-    port_type = PortType.UNKNOWN
-    for pcap, ptype in PORT_CAP2TYPE.items():
-        if port_capabilities.get(pcap) is True:
-            port_type = ptype
-            break
+    port_type = read_port_type(port_capabilities)
 
-    # Get the correct link enum
-    link_enum: Any = PORT_TYPE2LINK.get(port_type)
-
-    # Get the rates. Set to 0 if not available
-    link_rate = safe_int(values.get("link_rate"), default=0)
-    max_rate = safe_int(values.get("max_rate"), default=0)
-
-    if link_enum is not None:
-        link_rate = get_enum_key_by_value(
-            link_enum,
-            link_rate,
-            link_enum.UNKNOWN,
-        )
-        max_rate = get_enum_key_by_value(
-            link_enum,
-            max_rate,
-            link_enum.UNKNOWN,
-        )
+    # Get the rates
+    link_rate = read_port_speed(
+        port_type, safe_int(values.get("link_rate"), default=0)
+    )
+    max_rate = read_port_speed(
+        port_type, safe_int(values.get("max_rate"), default=0)
+    )
 
     # Special ports
     if (
-        max_rate == PortSpeed.LINK_10000
-        and port_capabilities.get(PortCapability.SFPP) is True
+        max_rate == ARPortEthernetSpeed.MBPS_10000
+        and port_capabilities.get(ARPortCapability.SFPP) is True
     ):
-        port_type = PortType.SFPP
+        port_type = ARPortType.SFPP
 
     # Port state
     port_state = safe_bool(values.get("is_on"))
     # For USB ports, the state is 1 only when a modem is connected
     modem = False
     port_devices = None
-    if port_type == PortType.USB:
+    if port_type == ARPortType.USB:
         # Mark a modem as connected
         if port_state is True:
             modem = True
@@ -153,7 +132,7 @@ def process_port_info(
     }
 
     # Add the modem flag if needed and the connected devices
-    if port_type == PortType.USB:
+    if port_type == ARPortType.USB:
         port_description["modem"] = modem
         port_description["devices"] = port_devices
 

@@ -191,8 +191,8 @@ def int_as_capabilities(
     # For each capability in the capabilities
     # Considering key as a capability name and value as a capability bit
     for capability in capabilities:
-        # Check that the capability is an integer
-        if not isinstance(capability.value, int):
+        # Check that the capability is a non-negative integer (bit index)
+        if not isinstance(capability.value, int) or capability.value < 0:
             continue
 
         # Check if the bit is set
