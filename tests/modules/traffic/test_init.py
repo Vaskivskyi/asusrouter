@@ -379,7 +379,7 @@ class TestGetState:
                 AREndpoint.FETCH_TRAFFIC_ETHERNET,
                 {
                     "node_mac": str(vtarget),
-                    "is_bh": 1,
+                    "is_bh": True,
                 },
             ),
             (
@@ -387,7 +387,7 @@ class TestGetState:
                 AREndpoint.FETCH_TRAFFIC_ETHERNET,
                 {
                     "node_mac": str(vtarget),
-                    "is_bh": 0,
+                    "is_bh": False,
                 },
             ),
             (
@@ -478,7 +478,7 @@ class TestGetState:
                 "status": HTTPStatus.OK,
             },
         ),
-        # Unknown value
+        # Unknown value passthrough
         ({"unknown_key": "unknown_value"}, {"unknown_key": "unknown_value"}),
     ],
 )
@@ -497,16 +497,13 @@ def test_traffic_module_registers_callables(
 ) -> None:
     """Ensure traffic module registers callables on import."""
 
-    # Replace the registry method that is called at import time
     mock_register = Mock()
     monkeypatch.setattr(
         "asusrouter.registry.ARCallableRegistry.register", mock_register
     )
 
-    # Reload the module so top-level registration runs again under the mock
     importlib.reload(traffic_module)
 
-    # Expect three registrations (Ethernet, WiFi, Backhaul)
     assert mock_register.call_count == 3
 
     expected_kwargs = {
@@ -514,7 +511,6 @@ def test_traffic_module_registers_callables(
         AR_CALL_TRANSLATE_STATE: traffic_module.translate_state,
     }
 
-    # Check each call used the expected target class and kwargs (order matters)
     expected_targets = [
         traffic_module.ARTrafficSourceEthernet,
         traffic_module.ARTrafficSourceWiFi,

@@ -79,7 +79,6 @@ def translate_state(
     return ARDeviceIdentity.build(data)
 
 
-# Register callables
 calls: dict[str, ARCallableEntry] = {
     AR_CALL_GET_STATE: get_state,
     AR_CALL_TRANSLATE_STATE: translate_state,

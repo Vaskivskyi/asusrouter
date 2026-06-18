@@ -128,7 +128,7 @@ class ARNvramType(ARDataType):
     WPS_STATE = "wps_enable"
 
 
-TRANSLATION_TABLE: dict[ARNvramType, ARCallableType] = {
+_TRANSLATION_TABLE: dict[ARNvramType, ARCallableType] = {
     ARNvramType.MAC: read_mac,
     # MAC addresses
     ARNvramType.MAC_LAN: read_mac,
@@ -150,16 +150,15 @@ async def get_state(
 
     response = await callback(endpoint=endpoint, request=request)
 
-    result: dict[ARNvramType, str] = {}
+    if not isinstance(response, dict):
+        return {}
 
-    if isinstance(response, dict):
-        for key, value in response.items():
-            key_to_use = safe_enum(ARNvramType, key)
-            if key_to_use is None or key_to_use is ARNvramType.UNKNOWN:
-                continue
-            result[key_to_use] = value
-
-    return result
+    return {
+        k: v
+        for key, v in response.items()
+        if (k := safe_enum(ARNvramType, key)) is not None
+        and k is not ARNvramType.UNKNOWN
+    }
 
 
 def translate_state(
@@ -168,13 +167,10 @@ def translate_state(
 ) -> dict[ARNvramType, Any]:
     """Translate the NVRAM data state."""
 
-    result: dict[ARNvramType, Any] = {}
-
-    for nvram_key, value in data.items():
-        translator = TRANSLATION_TABLE.get(nvram_key)
-        result[nvram_key] = translator(value) if translator else value
-
-    return result
+    return {
+        k: (_TRANSLATION_TABLE[k](v) if k in _TRANSLATION_TABLE else v)
+        for k, v in data.items()
+    }
 
 
 calls: dict[str, ARCallableEntry] = {
