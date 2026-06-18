@@ -16,7 +16,10 @@ from asusrouter.modules.endpoint_v2 import (
     get_endpoint_request_type,
 )
 from asusrouter.modules.source import ARDataSource
-from asusrouter.registry import ARCallableRegistry as ARCallReg
+from asusrouter.registry import (
+    ARCallableEntry,
+    ARCallableRegistry as ARCallReg,
+)
 from asusrouter.tools.converters import flatten_dict, safe_bool_nn
 from asusrouter.tools.enum import FromStrMixin
 from asusrouter.tools.identifiers import MacAddress
@@ -288,8 +291,7 @@ def translate_state(
     return result
 
 
-# Register callables for traffic sources
-calls: dict[str, ARCallableType] = {
+calls: dict[str, ARCallableEntry] = {
     AR_CALL_GET_STATE: get_state,
     AR_CALL_TRANSLATE_STATE: translate_state,
 }

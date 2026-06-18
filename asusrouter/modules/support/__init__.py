@@ -57,24 +57,22 @@ from asusrouter.modules.support.wifi import (
     translate_wifi_multiband,
     translate_wifi_units,
 )
-from asusrouter.registry import ARCallableRegistry as ARCallReg
+from asusrouter.registry import (
+    ARCallableEntry,
+    ARCallableRegistry as ARCallReg,
+)
 from asusrouter.tools.types import ARCallableType, ARCallbackType
 
 
 class ARSupportSource(ARDataSource):
     """AsusRouter support data source."""
 
-    def __init__(self) -> None:
-        """Initialize the support data source."""
-
-        super().__init__()
-
 
 # Universal instance - preferred
 ARSupportSourceUniversal: ARSupportSource = ARSupportSource()
 
 
-TRANSLATION_TABLE: dict[ARSupportType, ARCallableType] = {
+_TRANSLATION_TABLE: dict[ARSupportType, ARCallableType] = {
     ARSupportType.AI: translate_ai,
     ARSupportType.AI_CAPABILITIES: translate_ai_capabilities,
     ARSupportType.AIMESH: translate_aimesh,
@@ -131,11 +129,11 @@ def translate_state(
 
     return {
         support_type: interpreter(data)
-        for support_type, interpreter in TRANSLATION_TABLE.items()
+        for support_type, interpreter in _TRANSLATION_TABLE.items()
     }
 
 
-calls: dict[str, ARCallableType] = {
+calls: dict[str, ARCallableEntry] = {
     AR_CALL_GET_STATE: get_state,
     AR_CALL_TRANSLATE_STATE: translate_state,
 }

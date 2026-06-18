@@ -841,9 +841,8 @@ class AsusRouter:
         for (caller, callback), states in matrix.items():
             sources = [state.source for state in states]
 
-            multicaller = ARCallReg.get_callable_flag(caller)
-
-            if multicaller is True:
+            is_batch = ARCallReg.get_callable_flag(caller)
+            if is_batch is True:
                 data = await caller(callback, sources, force=force, **kwargs)
                 self._translate_multidata(data, states)
 
