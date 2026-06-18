@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any
 
 from asusrouter.modules.client import process_client
 from asusrouter.modules.data import AsusDataState
-from asusrouter.modules.ports import PortType
+from asusrouter.modules.ports import ARPortType
 from asusrouter.modules.support.flag import ARSupportType
 from asusrouter.modules.support.helpers import support_available_in
 from asusrouter.modules.wan import ARWANCapability
@@ -106,10 +106,10 @@ def transform_ethernet_ports(
 ) -> dict[str, dict[str, Any]]:
     """Transform the legacy ethernet ports data to the new format."""
 
-    # Check if the first level of the dict is PortType enum
+    # Check if the first level of the dict is ARPortType enum
     # If any other key is found, return the data as is
     for data_key in data:
-        if not isinstance(data_key, PortType):
+        if not isinstance(data_key, ARPortType):
             return data
 
     # If mac is not available, return the data as is

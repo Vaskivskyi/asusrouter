@@ -4,10 +4,10 @@ from __future__ import annotations
 
 from asusrouter import AsusData
 from asusrouter.modules.ports import (
-    PortCapability,
-    PortSpeed,
-    PortType,
-    USBSpeed,
+    ARPortCapability,
+    ARPortEthernetSpeed,
+    ARPortType,
+    ARPortUSBSpeed,
 )
 
 expected_result = {
@@ -16,93 +16,93 @@ expected_result = {
     },
     AsusData.PORTS: {
         "00:00:00:00:00:00": {
-            PortType.LAN: {
+            ARPortType.LAN: {
                 1: {
-                    "capabilities": [PortCapability.LAN],
+                    "capabilities": [ARPortCapability.LAN],
                     "id": 1,
-                    "max_rate": PortSpeed.LINK_1000,
-                    "link_rate": PortSpeed.LINK_1000,
+                    "max_rate": ARPortEthernetSpeed.MBPS_1000,
+                    "link_rate": ARPortEthernetSpeed.MBPS_1000,
                     "state": True,
                 },
                 2: {
-                    "capabilities": [PortCapability.LAN],
+                    "capabilities": [ARPortCapability.LAN],
                     "id": 2,
-                    "max_rate": PortSpeed.LINK_1000,
-                    "link_rate": PortSpeed.LINK_1000,
+                    "max_rate": ARPortEthernetSpeed.MBPS_1000,
+                    "link_rate": ARPortEthernetSpeed.MBPS_1000,
                     "state": True,
                 },
                 3: {
-                    "capabilities": [PortCapability.LAN],
+                    "capabilities": [ARPortCapability.LAN],
                     "id": 3,
-                    "max_rate": PortSpeed.LINK_1000,
-                    "link_rate": PortSpeed.LINK_1000,
+                    "max_rate": ARPortEthernetSpeed.MBPS_1000,
+                    "link_rate": ARPortEthernetSpeed.MBPS_1000,
                     "state": True,
                 },
                 4: {
-                    "capabilities": [PortCapability.LAN],
+                    "capabilities": [ARPortCapability.LAN],
                     "id": 4,
-                    "max_rate": PortSpeed.LINK_1000,
-                    "link_rate": PortSpeed.LINK_DOWN,
+                    "max_rate": ARPortEthernetSpeed.MBPS_1000,
+                    "link_rate": ARPortEthernetSpeed.DOWN,
                     "state": False,
                 },
                 5: {
-                    "capabilities": [PortCapability.LAN],
+                    "capabilities": [ARPortCapability.LAN],
                     "id": 5,
-                    "max_rate": PortSpeed.LINK_1000,
-                    "link_rate": PortSpeed.LINK_DOWN,
+                    "max_rate": ARPortEthernetSpeed.MBPS_1000,
+                    "link_rate": ARPortEthernetSpeed.DOWN,
                     "state": False,
                 },
                 6: {
-                    "capabilities": [PortCapability.LAN],
+                    "capabilities": [ARPortCapability.LAN],
                     "id": 6,
-                    "max_rate": PortSpeed.LINK_1000,
-                    "link_rate": PortSpeed.LINK_DOWN,
+                    "max_rate": ARPortEthernetSpeed.MBPS_1000,
+                    "link_rate": ARPortEthernetSpeed.DOWN,
                     "state": False,
                 },
                 7: {
-                    "capabilities": [PortCapability.LAN],
+                    "capabilities": [ARPortCapability.LAN],
                     "id": 7,
-                    "max_rate": PortSpeed.LINK_1000,
-                    "link_rate": PortSpeed.LINK_DOWN,
+                    "max_rate": ARPortEthernetSpeed.MBPS_1000,
+                    "link_rate": ARPortEthernetSpeed.DOWN,
                     "state": False,
                 },
                 8: {
-                    "capabilities": [PortCapability.LAN],
+                    "capabilities": [ARPortCapability.LAN],
                     "id": 8,
-                    "max_rate": PortSpeed.LINK_1000,
-                    "link_rate": PortSpeed.LINK_1000,
+                    "max_rate": ARPortEthernetSpeed.MBPS_1000,
+                    "link_rate": ARPortEthernetSpeed.MBPS_1000,
                     "state": True,
                 },
             },
-            PortType.USB: {
+            ARPortType.USB: {
                 1: {
-                    "capabilities": [PortCapability.USB],
+                    "capabilities": [ARPortCapability.USB],
                     "devices": None,
                     "id": 1,
-                    "max_rate": USBSpeed.USB_30,
-                    "link_rate": USBSpeed.USB_DOWN,
+                    "max_rate": ARPortUSBSpeed.USB3,
+                    "link_rate": ARPortUSBSpeed.DOWN,
                     "modem": False,
                     "state": False,
                 },
                 2: {
-                    "capabilities": [PortCapability.USB],
+                    "capabilities": [ARPortCapability.USB],
                     "devices": None,
                     "id": 2,
-                    "max_rate": USBSpeed.USB_30,
-                    "link_rate": USBSpeed.USB_DOWN,
+                    "max_rate": ARPortUSBSpeed.USB3,
+                    "link_rate": ARPortUSBSpeed.DOWN,
                     "modem": False,
                     "state": False,
                 },
             },
-            PortType.WAN: {
+            ARPortType.WAN: {
                 0: {
                     "capabilities": [
-                        PortCapability.WAN,
-                        PortCapability.DUALWAN_PRIMARY,
+                        ARPortCapability.WAN,
+                        ARPortCapability.DUALWAN_PRIMARY,
                     ],
                     "id": 0,
-                    "max_rate": PortSpeed.LINK_1000,
-                    "link_rate": PortSpeed.LINK_1000,
+                    "max_rate": ARPortEthernetSpeed.MBPS_1000,
+                    "link_rate": ARPortEthernetSpeed.MBPS_1000,
                     "state": True,
                 }
             },
