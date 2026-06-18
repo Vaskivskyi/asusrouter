@@ -8,8 +8,11 @@ import logging
 import re
 from typing import Any
 
-from asusrouter.tools.converters import clean_input
-from asusrouter.tools.converters_v2.raw import raw_to_bool, raw_to_float
+from asusrouter.tools.converters_v2.raw import (
+    raw_to_bool,
+    raw_to_float,
+    raw_to_str,
+)
 from asusrouter.tools.types import ARCallableType
 from asusrouter.tools.units import (
     DataRateUnitConverter,
@@ -107,10 +110,10 @@ def read_as_snake_case(data: str) -> str:
     return result
 
 
-@clean_input
 def read_js_variables(content: str, **kwargs: Any) -> dict[str, Any]:
     """Get all the JS variables from the content."""
 
+    content = raw_to_str(content) or ""
     # Create a dict to store the data
     js_variables: dict[str, Any] = {}
 
@@ -160,10 +163,10 @@ def read_js_variables(content: str, **kwargs: Any) -> dict[str, Any]:
     return js_variables
 
 
-@clean_input
 def read_json_content(content: str | None, **kwargs: Any) -> dict[str, Any]:
     """Get the json content."""
 
+    content = raw_to_str(content)
     if not content:
         return {}
 
@@ -195,10 +198,10 @@ def read_json_content(content: str | None, **kwargs: Any) -> dict[str, Any]:
         return {}
 
 
-@clean_input
 def readable_mac(raw: str | None) -> bool:
     """Check if string is MAC address."""
 
+    raw = raw_to_str(raw)
     return bool(
         isinstance(raw, str)
         and re.search(

@@ -20,19 +20,6 @@ from asusrouter.tools.converters_v2.raw import raw_to_str
 _E = TypeVar("_E", bound=Enum)
 
 
-def clean_input(func: Callable[..., Any]) -> Callable[..., Any]:
-    """Clean input data."""
-
-    def wrapper(content: Any, *args: Any, **kwargs: Any) -> Any:
-        """Return a clean input data before passing it to the function."""
-
-        if isinstance(content, str):
-            return func(raw_to_str(content), *args, **kwargs)
-        return func(content, *args, **kwargs)
-
-    return wrapper
-
-
 def flatten_dict(
     d: dict[Any, Any] | None,
     parent_key: str = "",
@@ -164,10 +151,10 @@ def run_method(
     return value
 
 
-@clean_input
 def safe_datetime(content: str | None) -> datetime | None:
     """Read the content as datetime or return None."""
 
+    content = raw_to_str(content)
     if not content:
         return None
 
@@ -229,23 +216,16 @@ def safe_list_csv(content: str | None) -> list[str]:
     return safe_list_from_string(content, ",")
 
 
-@clean_input
 def safe_list_from_string(
     content: str | None, delimiter: str = " "
 ) -> list[str]:
     """Read the content as list or return empty list."""
 
+    content = raw_to_str(content)
     if not isinstance(content, str):
         return []
 
     return content.split(delimiter)
-
-
-@clean_input
-def safe_return(content: Any) -> Any:
-    """Return the content."""
-
-    return content
 
 
 def safe_speed(
@@ -274,7 +254,6 @@ def safe_time_from_delta(content: str) -> datetime:
     ) - safe_timedelta_long(content)
 
 
-@clean_input
 def safe_timedelta_long(content: str | None) -> timedelta:
     """Transform connection timedelta.
 
@@ -282,6 +261,7 @@ def safe_timedelta_long(content: str | None) -> timedelta:
     when the device was connected.
     """
 
+    content = raw_to_str(content)
     if not content:
         return timedelta()
 

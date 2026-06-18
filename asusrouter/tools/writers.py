@@ -16,7 +16,6 @@ from asusrouter.config import (
     ARConfigKeyBase,
 )
 from asusrouter.const import RequestType
-from asusrouter.tools.converters import clean_input
 from asusrouter.tools.identifiers import MacAddress
 
 REQUEST_DELIMITER: Final[dict[RequestType, str]] = {
@@ -25,7 +24,6 @@ REQUEST_DELIMITER: Final[dict[RequestType, str]] = {
 }
 
 
-@clean_input
 def nvram(content: str | list[str] | None = None) -> str | None:
     """NVRAM writer.
 
@@ -42,7 +40,6 @@ def nvram(content: str | list[str] | None = None) -> str | None:
     return None
 
 
-@clean_input
 def dict_to_request(
     data: Mapping[str, Any], request_type: RequestType = RequestType.POST
 ) -> str:

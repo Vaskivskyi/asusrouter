@@ -32,14 +32,17 @@ from asusrouter.modules.wlan import MAP_GWLAN, MAP_WLAN
 from asusrouter.tools.converters import (
     run_method,
     safe_datetime,
-    safe_return,
     safe_speed,
     safe_unpack_key,
     safe_unpack_keys,
     safe_usage,
     safe_usage_historic,
 )
-from asusrouter.tools.converters_v2.raw import raw_to_bool, raw_to_int
+from asusrouter.tools.converters_v2.raw import (
+    raw_to_bool,
+    raw_to_int,
+    raw_to_str,
+)
 from asusrouter.tools.readers import merge_dicts
 
 from .hook_const import (
@@ -389,11 +392,11 @@ def process_port_forwarding(data: dict[str, Any]) -> dict[str, Any]:
             part = rule.split("&#62")
             rules.append(
                 PortForwardingRule(
-                    name=safe_return(part[0]),
+                    name=raw_to_str(part[0]),
                     ip_address=part[2],
-                    port=safe_return(part[3]),
+                    port=raw_to_str(part[3]),
                     protocol=part[4],
-                    ip_external=safe_return(part[5]),
+                    ip_external=raw_to_str(part[5]),
                     port_external=part[1],
                 )
             )
@@ -522,9 +525,9 @@ def process_vpnc(  # noqa: C901
                     else AsusVPNType.UNKNOWN
                 ),
                 "id": raw_to_int(part[2]),
-                "name": safe_return(part[0]),
-                "login": safe_return(part[3]),
-                "password": safe_return(part[4]),
+                "name": raw_to_str(part[0]),
+                "login": raw_to_str(part[3]),
+                "password": raw_to_str(part[4]),
                 "active": raw_to_bool(part[5]),
                 "vpnc_unit": vpnc_unit,
             }

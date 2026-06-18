@@ -5,8 +5,8 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from asusrouter.tools.converters import clean_input, scale_value_int
-from asusrouter.tools.converters_v2.raw import raw_to_int
+from asusrouter.tools.converters import scale_value_int
+from asusrouter.tools.converters_v2.raw import raw_to_int, raw_to_str
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -41,20 +41,19 @@ def average_color(
     return ColorRGB(red, green, blue, scale=scale)
 
 
-@clean_input
 def color_zone(
     color_str: str | None,
     delimiter: str = ",",
 ) -> int:
     """Return the number of color zones."""
 
+    color_str = raw_to_str(color_str)
     if not color_str:
         return 0
 
     return (len(color_str.split(delimiter))) // 3
 
 
-@clean_input
 def parse_colors(
     color_str: str | None,
     delimiter: str = ",",
@@ -62,6 +61,7 @@ def parse_colors(
 ) -> list[ColorRGBB] | None:
     """Parse the colors from the string."""
 
+    color_str = raw_to_str(color_str)
     if not color_str:
         return None
 

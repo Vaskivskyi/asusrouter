@@ -261,26 +261,6 @@ def test_safe_list_from_string(
 
 
 @pytest.mark.parametrize(
-    ("content", "result"),
-    [
-        (None, None),  # None content
-        (1, 1),  # Integer content
-        (5.0, 5.0),  # Float content
-        ([1, 2, 3], [1, 2, 3]),  # List content
-        ({"a": 1}, {"a": 1}),  # Dictionary content
-        ("test", "test"),  # String content
-        ("   test   ", "test"),
-        ("   ", None),  # Empty string content
-        ("", None),
-    ],
-)
-def test_safe_return(content: Any, result: Any) -> None:
-    """Test safe_return method."""
-
-    assert converters.safe_return(content) == result
-
-
-@pytest.mark.parametrize(
     ("current", "previous", "time_delta", "result"),
     [
         (None, None, None, 0.0),
