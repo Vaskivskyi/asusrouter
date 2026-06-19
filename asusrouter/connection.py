@@ -154,12 +154,11 @@ class Connection:  # pylint: disable=too-many-instance-attributes
 
         # Client session
         self._manage_session: bool = False
+        self._session: aiohttp.ClientSession | None = session
         if session is not None:
             _LOGGER.debug("Using provided session")
-            self._session = session
         else:
-            _LOGGER.debug("No session provided. Will create a new one")
-            self._session = self._new_session()
+            _LOGGER.debug("No session provided. Will create on connect")
 
     async def __aenter__(self) -> Self:
         """Enter the connection."""

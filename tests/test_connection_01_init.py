@@ -54,7 +54,6 @@ class TestConnectionInit:
         timeout: int,
         dumpback: Mock | None,
         config: dict[ARCCKey, Any] | None,
-        mock_new_session: Mock,
     ) -> None:
         """Test the Connection object."""
 
@@ -69,7 +68,7 @@ class TestConnectionInit:
         for key, value in config.items():
             assert conn.config.get(key) == value
         assert conn.config.get(ARCCKey.USE_SSL) == use_ssl
-        assert conn._session == (session or mock_new_session.return_value)
+        assert conn._session == session
         assert conn._timeout == timeout
         assert conn._dumpback == dumpback
         assert conn._token is None
@@ -178,10 +177,8 @@ class TestConnectionInit:
             "negative_port",
         ],
     )
-    @patch.object(Connection, "_new_session", return_value=Mock())
     def test_init(
         self,
-        mock_new_session: Mock,
         hostname: str,
         username: str,
         password: str,
@@ -228,11 +225,9 @@ class TestConnectionInit:
             timeout=timeout or DEFAULT_TIMEOUT,
             dumpback=dumpback,
             config=config,
-            mock_new_session=mock_new_session,
         )
 
-    @patch.object(Connection, "_new_session", return_value=Mock())
-    def test_init_multiple_instances(self, mock_new_session: Mock) -> None:
+    def test_init_multiple_instances(self) -> None:
         """Test the initialization of multiple connection objects."""
 
         # Explicitly set different initial configs
@@ -275,7 +270,6 @@ class TestConnectionInit:
             timeout=DEFAULT_TIMEOUT,
             dumpback=None,
             config=config1,
-            mock_new_session=mock_new_session,
         )
         self._assert_connection(
             conn2,
@@ -288,7 +282,6 @@ class TestConnectionInit:
             timeout=1,
             dumpback=None,
             config=config2,
-            mock_new_session=mock_new_session,
         )
 
         # Ensure that instances do not interfere with each other

@@ -10,7 +10,6 @@ from unittest.mock import AsyncMock, Mock, patch
 import aiohttp
 import pytest
 
-from asusrouter.connection import Connection
 from asusrouter.const import USER_AGENT
 from asusrouter.error import (
     AsusRouterAccessError,
@@ -401,12 +400,8 @@ class TestConnectionConnect:
         expected_token: str | None,
         expected_header: dict[str, str] | None,
         connection_factory: ConnectionFactory,
-        new_session: SyncPatch,
     ) -> None:
         """Test the `reset_connection` method."""
-
-        # Mock the `_new_session` method
-        mock_new_session = new_session(Connection)
 
         # Create a Connection
         connection = connection_factory()
@@ -424,9 +419,6 @@ class TestConnectionConnect:
         assert connection._token == expected_token
         assert connection._header == expected_header
 
-        # Verify `_new_session` was called during initialization
-        mock_new_session.assert_called_once()
-
     @pytest.mark.parametrize(
         ("initial_connected", "expected_connected"),
         [
@@ -441,12 +433,8 @@ class TestConnectionConnect:
         initial_connected: bool,
         expected_connected: bool,
         connection_factory: ConnectionFactory,
-        new_session: SyncPatch,
     ) -> None:
         """Test the `connected` property."""
-
-        # Mock the `_new_session` method
-        mock_new_session = new_session(Connection)
 
         # Create a Connection
         connection = connection_factory()
@@ -456,9 +444,6 @@ class TestConnectionConnect:
 
         # Verify the `connected` property
         assert connection.connected == expected_connected
-
-        # Verify `_new_session` was called during initialization
-        mock_new_session.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_async_connect_returns_immediately_if_already_connected(

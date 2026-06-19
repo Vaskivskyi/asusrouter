@@ -11,7 +11,7 @@ from collections.abc import Awaitable, Callable, Iterable
 from datetime import UTC, datetime, timedelta
 import json
 import logging
-from typing import Any
+from typing import Any, Self
 
 import aiohttp
 
@@ -22,8 +22,6 @@ from asusrouter.const import (
     AR_CALL_GET_STATE,
     AR_CALL_TRANSLATE_STATE,
     DEFAULT_CACHE_TIME,
-    DEFAULT_PORT_HTTP,
-    DEFAULT_PORT_HTTPS,
     DEFAULT_RESULT_SUCCESS,
     DEFAULT_TIMEOUT,
 )
@@ -57,6 +55,7 @@ from asusrouter.modules.endpoint import process, read
 from asusrouter.modules.endpoint.error import AccessError
 from asusrouter.modules.endpoint_v2 import (
     AREndpoint,
+    get_endpoint_reader,
     get_endpoint_request_type,
 )
 from asusrouter.modules.firmware import AR_FW_388, AR_FW_MERLIN_LIKE
@@ -83,10 +82,13 @@ from asusrouter.modules.support.helpers import support_available
 from asusrouter.registry import ARCallableRegistry as ARCallReg
 from asusrouter.tools import legacy
 from asusrouter.tools.converters import get_enum_key_by_value, safe_list
+from asusrouter.tools.converters_v2.raw import raw_to_str
 from asusrouter.tools.readers import merge_dicts
 from asusrouter.tools.types import ARCallableType, ARCallbackType
 
 _LOGGER = logging.getLogger(__name__)
+
+_AUTH_RETRY_DELAY: int = 1
 
 ARDataRequest = ARDataSource | ARDataType | Iterable[ARDataSource | ARDataType]
 
@@ -119,9 +121,6 @@ class AsusRouter:
         self._cache_time = cache_time or DEFAULT_CACHE_TIME
         self._cache_threshold = timedelta(seconds=self._cache_time)
 
-        # Set the host
-        self._hostname: str = hostname
-
         self._state: dict[AsusData, AsusDataState] = {}
         self._data_states: dict[ARDataSource | ARDataType, ARDataState] = {}
         self._description: ARDeviceIdentity = ARDeviceIdentity()
@@ -131,60 +130,51 @@ class AsusRouter:
         # ID from the last called service
         self._last_id: int | None = None
 
-        # Create an empty connection and save the credentials
-        self._connection: Connection | None = None
-        self._username = username
-        self._password = password
-        self._port = port
-        self._use_ssl = use_ssl
-        self._session = session
-        self._dumpback = dumpback
-        self._connection_config = connection_config
+        self._connection: Connection = Connection(
+            hostname=hostname,
+            username=username,
+            password=password,
+            port=port,
+            use_ssl=use_ssl,
+            session=session,
+            timeout=DEFAULT_TIMEOUT,
+            dumpback=dumpback,
+            config=connection_config,
+        )
 
     # ---------------------------
     # Connection-related methods -->
     # ---------------------------
 
-    async def async_init_connection(self) -> None:
-        """Initialize the connection."""
+    async def __aenter__(self) -> Self:
+        """Enter context manager and connect."""
 
-        _LOGGER.debug("Triggered method async_init_connection")
+        await self.async_connect()
+        return self
 
-        self._connection = await Connection.create(
-            hostname=self._hostname,
-            username=self._username,
-            password=self._password,
-            port=self._port,
-            use_ssl=self._use_ssl,
-            session=self._session,
-            timeout=DEFAULT_TIMEOUT,
-            dumpback=self._dumpback,
-            config=self._connection_config,
-        )
+    async def __aexit__(
+        self,
+        exc_type: object,
+        exc_value: object,
+        traceback: object,
+    ) -> None:
+        """Exit context manager and close."""
 
-    async def async_del_connection(self) -> None:
-        """Delete the connection."""
+        await self.async_close()
 
-        _LOGGER.debug("Triggered method async_del_connection")
+    async def async_close(self) -> None:
+        """Disconnect from the device and close the connection."""
 
-        # Disconnect from the device if connected
+        _LOGGER.debug("Triggered method async_close")
+
         await self.async_disconnect()
-
-        # Close the connection
-        if self._connection:
-            await self._connection.async_close()
-            self._connection = None
+        await self._connection.async_close()
 
     async def async_connect(self) -> bool:
         """Connect to the device and get its identity."""
 
         _LOGGER.debug("Triggered method async_connect")
 
-        # Make sure the connection is initialized
-        if self._connection is None:
-            await self.async_init_connection()
-
-        # Connect to the device
         result = await self._connection.async_connect()
         if result is False:
             return False
@@ -195,7 +185,7 @@ class AsusRouter:
         )
         # Apply legacy conditional data rules only if description was fetched
         if result is not None:
-            await self.async_get_identity()
+            self._apply_v1_conditional_rules()
 
         return result is not None
 
@@ -204,10 +194,8 @@ class AsusRouter:
 
         _LOGGER.debug("Triggered method async_disconnect")
 
-        # Disconnect from the device
         try:
-            if self._connection:
-                await self._connection.async_disconnect()
+            await self._connection.async_disconnect()
         except Exception as ex:  # noqa: BLE001
             self._async_handle_exception(ex)
 
@@ -221,8 +209,7 @@ class AsusRouter:
 
         _LOGGER.debug("Triggered method _async_drop_connection")
 
-        if self._connection:
-            self._connection.reset_connection()
+        self._connection.reset_connection()
 
     def _async_handle_exception(self, ex: Exception) -> None:
         """Handle exceptions."""
@@ -230,6 +217,78 @@ class AsusRouter:
         _LOGGER.debug("Triggered method _async_handle_exception")
 
         raise ex
+
+    # ---------------------------
+    # <-- Connection-related methods
+    # ---------------------------
+
+    # ---------------------------
+    # V1 conditional rules -->
+    # ---------------------------
+
+    def _apply_v1_conditional_rules(self) -> None:
+        """Apply V1 conditional data rules based on device description."""
+
+        _LOGGER.debug("Triggered method _apply_v1_conditional_rules")
+
+        description = self.description
+        firmware = description.firmware
+        merlin = firmware.firmware_type in AR_FW_MERLIN_LIKE
+        support = description.support
+
+        if firmware > AR_FW_388:
+            # Stock
+            if not merlin:
+                _LOGGER.debug("Adding conditional rules for stock firmware")
+                add_conditional_state(AsusState.OPENVPN_CLIENT, AsusData.VPNC)
+                add_conditional_state(
+                    AsusState.WIREGUARD_CLIENT, AsusData.VPNC
+                )
+                add_conditional_data_alias(
+                    AsusData.OPENVPN_CLIENT, AsusData.VPNC
+                )
+                add_conditional_data_alias(
+                    AsusData.WIREGUARD_CLIENT, AsusData.VPNC
+                )
+                add_conditional_data_rule(
+                    AsusData.OPENVPN_SERVER,
+                    AsusDataFinder(
+                        AREndpoint.FETCH_DATA,
+                        nvram=ASUSDATA_NVRAM["openvpn_server_388"],
+                    ),
+                )
+            # Merlin / Gnuton
+            else:
+                _LOGGER.debug("Adding conditional rules for Merlin firmware")
+                add_conditional_data_rule(
+                    AsusData.VPNC,
+                    AsusDataFinder(
+                        AREndpoint.FETCH_DATA,
+                        nvram=ASUSDATA_NVRAM["vpnc"],
+                    ),
+                )
+        # Before 388
+        elif firmware < AR_FW_388:
+            remove_data_rule(AsusData.VPNC)
+            remove_data_rule(AsusData.VPNC_CLIENTLIST)
+            remove_data_rule(AsusData.WIREGUARD)
+            remove_data_rule(AsusData.WIREGUARD_CLIENT)
+            remove_data_rule(AsusData.WIREGUARD_SERVER)
+
+        if not support_available(support, ARSupportType.DSL):
+            remove_data_rule(AsusData.DSL)
+
+        if not support_available(support, ARSupportType.SPEEDTEST):
+            remove_data_rule(AsusData.SPEEDTEST)
+            remove_data_rule(AsusData.SPEEDTEST_RESULT)
+
+    # ---------------------------
+    # <-- V1 conditional rules
+    # ---------------------------
+
+    # ---------------------------
+    # State management -->
+    # ---------------------------
 
     async def _async_handle_reboot(self) -> None:
         """Handle reboot."""
@@ -269,77 +328,7 @@ class AsusRouter:
         _LOGGER.debug("Flag `%s` reset", flag)
 
     # ---------------------------
-    # <-- Connection-related methods
-    # ---------------------------
-
-    # ---------------------------
-    # Identity-related methods -->
-    # ---------------------------
-
-    async def async_get_identity(self) -> None:
-        """Apply conditional data rules based on device description."""
-
-        _LOGGER.debug("Triggered method async_get_identity")
-
-        # Add conditional data rules
-        description = self.description
-        firmware = description.firmware
-        merlin = firmware.firmware_type in AR_FW_MERLIN_LIKE
-        support = description.support
-        # Stock
-        if not merlin:
-            if firmware > AR_FW_388:
-                _LOGGER.debug("Adding conditional rules for stock firmware")
-                add_conditional_state(AsusState.OPENVPN_CLIENT, AsusData.VPNC)
-                add_conditional_state(
-                    AsusState.WIREGUARD_CLIENT, AsusData.VPNC
-                )
-                add_conditional_data_alias(
-                    AsusData.OPENVPN_CLIENT, AsusData.VPNC
-                )
-                add_conditional_data_alias(
-                    AsusData.WIREGUARD_CLIENT, AsusData.VPNC
-                )
-                add_conditional_data_rule(
-                    AsusData.OPENVPN_SERVER,
-                    AsusDataFinder(
-                        AREndpoint.FETCH_DATA,
-                        nvram=ASUSDATA_NVRAM["openvpn_server_388"],
-                    ),
-                )
-        # Merlin / Gnuton
-        elif firmware > AR_FW_388:
-            _LOGGER.debug("Adding conditional rules for Merlin firmware")
-            add_conditional_data_rule(
-                AsusData.VPNC,
-                AsusDataFinder(
-                    AREndpoint.FETCH_DATA,
-                    nvram=ASUSDATA_NVRAM["vpnc"],
-                ),
-            )
-        # Before 388
-        if firmware < AR_FW_388:
-            # Remove VPNC rules
-            remove_data_rule(AsusData.VPNC)
-            remove_data_rule(AsusData.VPNC_CLIENTLIST)
-            # Remove WireGuard rules
-            remove_data_rule(AsusData.WIREGUARD)
-            remove_data_rule(AsusData.WIREGUARD_CLIENT)
-            remove_data_rule(AsusData.WIREGUARD_SERVER)
-
-        # DSL connection
-        if not support_available(support, ARSupportType.DSL):
-            remove_data_rule(AsusData.DSL)
-
-        # Ookla Speedtest
-        if not support_available(support, ARSupportType.SPEEDTEST):
-            remove_data_rule(AsusData.SPEEDTEST)
-            # remove_data_rule(AsusData.SPEEDTEST_HISTORY)
-            remove_data_rule(AsusData.SPEEDTEST_RESULT)
-            # remove_data_rule(AsusData.SPEEDTEST_SERVERS)
-
-    # ---------------------------
-    # <-- Identity-related methods
+    # <-- State management
     # ---------------------------
 
     # ---------------------------
@@ -388,6 +377,50 @@ class AsusRouter:
         return await self._connection.async_query(
             endpoint, payload, request_type=request_type
         )
+
+    async def async_fetch(
+        self,
+        endpoint: AREndpoint,
+        request: str | None = None,
+    ) -> str | None:
+        """Fetch raw string content from a V2 API endpoint."""
+
+        _LOGGER.debug("Triggered method async_fetch: %s", endpoint)
+
+        request_type = get_endpoint_request_type(endpoint)
+
+        for attempt in range(2):
+            try:
+                status, _, content = await self._connection.async_query(
+                    endpoint, payload=request, request_type=request_type
+                )
+                _LOGGER.debug("Response %s from %s", status, endpoint)
+                return content
+            except AsusRouter404Error:
+                _LOGGER.debug("Endpoint %s not found", endpoint)
+                return None
+            except AsusRouterAccessError as ex:
+                if ex.args[1] != AccessError.AUTHORIZATION or attempt > 0:
+                    raise
+                self._async_drop_connection()
+                await asyncio.sleep(_AUTH_RETRY_DELAY)
+
+        return None
+
+    async def async_read(
+        self,
+        endpoint: AREndpoint,
+        request: str | None = None,
+    ) -> dict[str, Any]:
+        """Fetch and parse content from a V2 API endpoint."""
+
+        _LOGGER.debug("Triggered method async_read: %s", endpoint)
+
+        content = await self.async_fetch(endpoint, request)
+        normalized = raw_to_str(content)
+        if not normalized:
+            return {}
+        return get_endpoint_reader(endpoint)(normalized)
 
     async def async_api_load(
         self,
@@ -637,7 +670,7 @@ class AsusRouter:
     ) -> ARCallbackType | None:
         """Get a callback function for the specified state."""
 
-        return self.async_api_load
+        return self.async_read
 
     def _create_data_state(self, cllctn: ARDataCollection) -> bool:
         """Create a new data state if does not exist."""
@@ -1278,7 +1311,7 @@ class AsusRouter:
     def connected(self) -> bool:
         """Return connection status."""
 
-        return self._connection.connected if self._connection else False
+        return self._connection.connected
 
     @property
     def config(self) -> ARInstanceConfig:
@@ -1290,14 +1323,7 @@ class AsusRouter:
     def webpanel(self) -> str:
         """Return the web panel URL."""
 
-        if self._connection:
-            return self._connection.webpanel
-
-        return (
-            f"https://{self._hostname}:{self._port or DEFAULT_PORT_HTTPS}"
-            if self._use_ssl
-            else f"http://{self._hostname}:{self._port or DEFAULT_PORT_HTTP}"
-        )
+        return self._connection.webpanel
 
     # ---------------------------
     # <-- Properties
@@ -1309,19 +1335,4 @@ class AsusRouter:
 
     # ---------------------------
     # <-- Additional settings
-    # ---------------------------
-
-    # ---------------------------
-    # General management -->
-    # ---------------------------
-
-    async def async_cleanup(self) -> None:
-        """Cleanup the connection."""
-
-        if self._connection:
-            self._connection.reset_connection()
-            # await self._connection._async_close_session()
-
-    # ---------------------------
-    # <-- General management
     # ---------------------------

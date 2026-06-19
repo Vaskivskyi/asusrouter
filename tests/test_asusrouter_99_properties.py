@@ -9,6 +9,10 @@ import pytest
 from asusrouter.asusrouter import AsusRouter
 from asusrouter.const import DEFAULT_PORT_HTTP, DEFAULT_PORT_HTTPS
 
+TCONST_HOST = "router.local"
+TCONST_USER = "admin"
+TCONST_PASS = "password"
+
 
 @pytest.mark.parametrize("connected", [True, False])
 def test_connected(router: AsusRouter, connected: bool) -> None:
@@ -19,8 +23,8 @@ def test_connected(router: AsusRouter, connected: bool) -> None:
     assert router.connected is connected
 
 
-def test_connected_no_connection(router: AsusRouter) -> None:
-    """Test the connected property when no connection is established."""
+def test_connected_not_connected_yet(router: AsusRouter) -> None:
+    """Test the connected property before login."""
 
     assert router.connected is False
 
@@ -32,33 +36,29 @@ def test_config(router: AsusRouter) -> None:
 
 
 @pytest.mark.parametrize(
-    ("port", "use_ssl"),
+    ("port", "use_ssl", "expected_scheme", "expected_port"),
     [
-        (None, True),
-        (None, False),
-        (8553, True),
-        (8080, False),
+        (None, False, "http", DEFAULT_PORT_HTTP),
+        (None, True, "https", DEFAULT_PORT_HTTPS),
+        (8080, False, "http", 8080),
+        (8553, True, "https", 8553),
     ],
 )
-def test_webpanel(router: AsusRouter, port: int | None, use_ssl: bool) -> None:
-    """Test the webpanel property."""
+def test_webpanel(
+    port: int | None,
+    use_ssl: bool,
+    expected_scheme: str,
+    expected_port: int,
+) -> None:
+    """Test the webpanel property returns the correct URL."""
 
-    router._port = port
-    router._use_ssl = use_ssl
-
-    assert router.webpanel == (
-        f"https://{router._hostname}:{port or DEFAULT_PORT_HTTPS}"
-        if use_ssl
-        else f"http://{router._hostname}:{port or DEFAULT_PORT_HTTP}"
+    router = AsusRouter(
+        hostname=TCONST_HOST,
+        username=TCONST_USER,
+        password=TCONST_PASS,
+        port=port,
+        use_ssl=use_ssl,
     )
-
-
-def test_webpanel_with_connection(router: AsusRouter) -> None:
-    """Test the webpanel property when connected."""
-
-    webpanel = "webpanel"
-
-    router._connection = Mock()
-    router._connection.webpanel = webpanel
-
-    assert router.webpanel == webpanel
+    assert (
+        router.webpanel == f"{expected_scheme}://{TCONST_HOST}:{expected_port}"
+    )
