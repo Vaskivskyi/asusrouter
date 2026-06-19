@@ -9,9 +9,11 @@ from asusrouter.modules.endpoint_v2 import (
     AREndpoint,
     AREndpointMeta,
     get_endpoint_meta,
+    get_endpoint_reader,
     get_endpoint_request_type,
     get_endpoint_sensitive,
 )
+from asusrouter.tools.readers import read_js_variables, read_json_content
 
 GET_ENDPOINTS = (
     AREndpoint.FETCH_NETWORK,
@@ -119,3 +121,20 @@ def test_get_endpoint_sensitive_others(endpoint: AREndpoint) -> None:
     """Non-login endpoints are not sensitive."""
 
     assert get_endpoint_sensitive(endpoint) is False
+
+
+def test_get_endpoint_reader_temperature() -> None:
+    """FETCH_TEMPERATURE maps to read_js_variables."""
+
+    reader = get_endpoint_reader(AREndpoint.FETCH_TEMPERATURE)
+    assert reader is read_js_variables
+
+
+@pytest.mark.parametrize(
+    "endpoint",
+    [e for e in AREndpoint if e is not AREndpoint.FETCH_TEMPERATURE],
+)
+def test_get_endpoint_reader_default(endpoint: AREndpoint) -> None:
+    """All other endpoints map to the JSON reader by default."""
+
+    assert get_endpoint_reader(endpoint) is read_json_content

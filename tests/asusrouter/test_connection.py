@@ -88,7 +88,7 @@ async def test_async_connect_fetches_data_and_identity_on_success(
     monkeypatch.setattr(router, "_connection", conn)
     monkeypatch.setattr(
         router,
-        "async_get_data_v2",
+        "async_fetch_data",
         AsyncMock(return_value={"source": "data"}),
     )
     mock_identity = Mock()
@@ -111,7 +111,7 @@ async def test_async_connect_returns_false_when_no_device_data(
     conn.async_connect = AsyncMock(return_value=True)
     monkeypatch.setattr(router, "_connection", conn)
     monkeypatch.setattr(
-        router, "async_get_data_v2", AsyncMock(return_value=None)
+        router, "async_fetch_data", AsyncMock(return_value=None)
     )
     mock_identity = Mock()
     monkeypatch.setattr(router, "_apply_v1_conditional_rules", mock_identity)
