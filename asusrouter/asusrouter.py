@@ -17,7 +17,10 @@ import aiohttp
 
 from asusrouter.config import ARConfigKey as ARConfKey, ARInstanceConfig
 from asusrouter.connection import Connection
-from asusrouter.connection_config import ARConnectionConfigKey as ARCCKey
+from asusrouter.connection_config import (
+    ARConnectionConfig,
+    ARConnectionConfigKey as ARCCKey,
+)
 from asusrouter.const import (
     AR_CALL_GET_STATE,
     AR_CALL_TRANSLATE_STATE,
@@ -123,7 +126,6 @@ class AsusRouter:
 
         self._state: dict[AsusData, AsusDataState] = {}
         self._data_states: dict[ARDataSource | ARDataType, ARDataState] = {}
-        self._description: ARDeviceIdentity = ARDeviceIdentity()
 
         # Time for change to take effect before available to fetch
         self._needed_time: int | None = None
@@ -151,9 +153,10 @@ class AsusRouter:
         """Return the device description."""
 
         state = self._data_states.get(ARDeviceSourceUniversal)
-        if state and isinstance(content := state.content, ARDeviceIdentity):
+        content = state.content if state else None
+        if isinstance(content, ARDeviceIdentity):
             return content
-        return self._description
+        return ARDeviceIdentity()
 
     @property
     def support(self) -> dict[ARSupportType, Any]:
@@ -169,9 +172,15 @@ class AsusRouter:
 
     @property
     def config(self) -> ARInstanceConfig:
-        """Return connection config."""
+        """Return instance configuration."""
 
         return self._config
+
+    @property
+    def connection_config(self) -> ARConnectionConfig:
+        """Return connection configuration."""
+
+        return self._connection.config
 
     @property
     def webpanel(self) -> str:

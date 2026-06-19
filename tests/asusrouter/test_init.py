@@ -115,9 +115,9 @@ def test_init_state_empty(router: AsusRouter) -> None:
 
 
 def test_init_description(router: AsusRouter) -> None:
-    """Description starts as empty ARDeviceIdentity."""
+    """Description returns empty ARDeviceIdentity before any data is loaded."""
 
-    assert isinstance(router._description, ARDeviceIdentity)
+    assert isinstance(router.description, ARDeviceIdentity)
 
 
 def test_init_flags_none(router: AsusRouter) -> None:
