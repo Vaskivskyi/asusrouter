@@ -90,6 +90,72 @@ def sanitize_data(
     return "[SANITIZED PLACEHOLDER]"
 
 
+def _payload_for_logging(
+    security_level: Any, endpoint: AREndpoint, payload: str | None
+) -> str | None:
+    """Return the payload to log if any.
+
+    Rules:
+    - STRICT: never log payload
+    - DEFAULT: log only non-sensitive endpoints
+    - SANITIZED: log sensitive endpoints with automatic sanitization
+    - UNSAFE: log sensitive endpoints verbatim
+    """
+
+    level = ARSecurityLevel.from_value(security_level)
+
+    # Login payload is never logged regardless of security level.
+    if level == ARSecurityLevel.STRICT or endpoint == AREndpoint.LOGIN:
+        return None
+
+    payload = raw_to_str(payload)
+    if payload is None:
+        return None
+
+    if get_endpoint_sensitive(endpoint):
+        if ARSecurityLevel.at_least_sanitized(level):
+            if level == ARSecurityLevel.SANITIZED:
+                return sanitize_data(payload)
+            return payload
+        return None
+
+    return payload
+
+
+def _log_request(endpoint: AREndpoint, payload: str | None) -> None:
+    """Log the request details."""
+
+    security_level = ARConfig.get(ARConfKey.DEBUG_PAYLOAD)
+    payload_to_log = _payload_for_logging(security_level, endpoint, payload)
+
+    if payload_to_log is None:
+        _LOGGER.debug("Sending request to `%s`", endpoint)
+    else:
+        _LOGGER.debug(
+            "Sending request to `%s` with payload: %s",
+            endpoint,
+            payload_to_log,
+        )
+
+
+def _check_response(
+    endpoint: AREndpoint,
+    resp_status: int,
+    resp_headers: Any,
+    resp_content: str,
+) -> None:
+    """Raise on error HTTP responses."""
+
+    if resp_status == HTTPStatus.NOT_FOUND:
+        raise AsusRouter404Error(f"Endpoint {endpoint} not found")
+    if resp_status != HTTPStatus.OK:
+        raise AsusRouterAccessError(
+            f"Cannot access {endpoint}, status {resp_status}"
+        )
+    if "error_status" in resp_content:
+        handle_access_error(endpoint, resp_status, resp_headers, resp_content)
+
+
 class Connection:  # pylint: disable=too-many-instance-attributes
     """A connection between the library and the device."""
 
@@ -333,8 +399,6 @@ class Connection:  # pylint: disable=too-many-instance-attributes
             return False
 
         async with self._connection_lock:
-            # Another task may have connected while we performed network IO.
-            # Avoid overwriting valid state; let that task's token win.
             if not self._connected:
                 self._token = token
                 self._header = {
@@ -343,11 +407,6 @@ class Connection:  # pylint: disable=too-many-instance-attributes
                 }
                 self._connected = True
                 _LOGGER.debug("Connected to %s", self._hostname)
-            else:
-                _LOGGER.debug(
-                    "Connection already established to %s by another task",
-                    self._hostname,
-                )
 
         return True
 
@@ -409,6 +468,25 @@ class Connection:  # pylint: disable=too-many-instance-attributes
     # Request handling -->
     # ---------------------------
 
+    async def _ensure_session(self) -> None:
+        """Ensure a live HTTP session exists, creating one if needed."""
+
+        if self._session is None:
+            _LOGGER.debug("No session available. Creating a new one")
+            self._session = self._create_session()
+        elif self._session.closed:
+            _LOGGER.debug(
+                "Session closed. Creating new session and reconnecting"
+            )
+            self.reset_auth()
+            self._session = self._create_session()
+            await self.async_connect()
+            if not self._connected:
+                raise AsusRouterTimeoutError(
+                    "Connection timed out — could not reconnect after "
+                    "session was closed"
+                )
+
     async def async_query(
         self,
         endpoint: AREndpoint,
@@ -418,18 +496,15 @@ class Connection:  # pylint: disable=too-many-instance-attributes
     ) -> tuple[int, dict[str, str], str]:
         """Send a request to the device."""
 
-        # If not connected, try to connect
         if not self._connected:
             _LOGGER.debug("Not connected to %s. Connecting...", self._hostname)
             await self.async_connect()
 
-        # If still not connected, raise an error
         if not self._connected:
             raise AsusRouterTimeoutError(
-                "Data cannot be retrieved. Connection failed"
+                "Connection timed out — could not establish initial connection"
             )
 
-        # Send the request
         _LOGGER.debug(
             "Sending `%s` request to `%s`", request_type, self._hostname
         )
@@ -437,50 +512,31 @@ class Connection:  # pylint: disable=too-many-instance-attributes
             endpoint, payload, headers, request_type
         )
 
-    async def _send_request(  # noqa: C901, PLR0912
+    async def _send_request(
         self,
         endpoint: AREndpoint,
         payload: str | None = None,
         headers: dict[str, str] | None = None,
         request_type: RequestType = RequestType.POST,
     ) -> tuple[int, dict[str, str], str]:
-        """Send a request to the device."""
+        """Dispatch request with session recovery, status checks, fallbacks."""
 
-        # Send request
+        await self._ensure_session()
+
         try:
-            # Log request
-            self._log_request(endpoint, payload)
+            _log_request(endpoint, payload)
 
-            # Make the request
             resp_status, resp_headers, resp_content = await self._make_request(
-                endpoint,
-                payload,
-                headers,
-                request_type,
+                endpoint, payload, headers, request_type
             )
 
-            # Raise exception on 404
-            if resp_status == HTTPStatus.NOT_FOUND:
-                raise AsusRouter404Error(f"Endpoint {endpoint} not found")
+            _check_response(endpoint, resp_status, resp_headers, resp_content)
 
-            # Raise exception on non-200 status
-            if resp_status != HTTPStatus.OK:
-                raise AsusRouterAccessError(
-                    f"Cannot access {endpoint}, status {resp_status}"
-                )
-
-            # Check for access errors
-            if "error_status" in resp_content:
-                handle_access_error(
-                    endpoint, resp_status, resp_headers, resp_content
-                )
-
-            # Reset fallback tracker if multiple fallbacks are allowed
             if self.config.get(ARCCKey.ALLOW_MULTIPLE_FALLBACKS):
                 self._used_fallbacks.clear()
 
-            # Return the response
             return (resp_status, resp_headers, resp_content)
+
         except ssl.SSLCertVerificationError as ex:
             if self.config.get(
                 ARCCKey.STRICT_SSL
@@ -491,7 +547,6 @@ class Connection:  # pylint: disable=too-many-instance-attributes
                     "with a default port"
                 )
                 await self._fallback()
-                # Repeat the attempt
                 return await self._send_request(
                     endpoint, payload, headers, request_type
                 )
@@ -499,8 +554,8 @@ class Connection:  # pylint: disable=too-many-instance-attributes
                 "SSL certificate verification failed. Your configuration "
                 "requires a strict SSL certificate verification."
             ) from ex
+
         except aiohttp.ClientConnectorError as ex:
-            # Are automatic fallbacks allowed?
             if self.config.get(ARCCKey.ALLOW_FALLBACK):
                 return await self._async_handle_fallback(
                     callback=self._send_request,
@@ -509,29 +564,34 @@ class Connection:  # pylint: disable=too-many-instance-attributes
                     headers=headers,
                     request_type=request_type,
                 )
-
             self.reset_auth()
             raise AsusRouterConnectionError(
                 f"Cannot connect to `{self._hostname}` on port "
                 f"`{self.port}`. Failed in `_send_request` with error: `{ex}`"
             ) from ex
+
         except (aiohttp.ClientConnectionError, aiohttp.ClientOSError) as ex:
             raise AsusRouterConnectionError(
                 f"Cannot connect to `{self._hostname}` on port "
                 f"`{self.port}`. Failed in `_send_request` with error: `{ex}`"
             ) from ex
-        except (TimeoutError, asyncio.CancelledError) as ex:
+
+        except TimeoutError as ex:
             raise AsusRouterTimeoutError(
                 f"Data cannot be retrieved due to an asyncio error. "
                 f"Connection failed: {ex}"
             ) from ex
+
+        except AsusRouterError:
+            raise
+
         except Exception as ex:  # pylint: disable=broad-except
             _LOGGER.debug(
                 "Unexpected error sending request to %s: %s",
-                endpoint,
+                self._hostname,
                 ex,
             )
-            raise ex
+            raise
 
     async def _make_request(
         self,
@@ -539,127 +599,40 @@ class Connection:  # pylint: disable=too-many-instance-attributes
         payload: str | None = None,
         headers: dict[str, str] | None = None,
         request_type: RequestType = RequestType.POST,
-    ) -> Any:
-        """Make a post request to the device."""
+    ) -> tuple[int, Any, str]:
+        """Make an HTTP request and return raw (status, headers, content)."""
 
-        # Check if a session is available
-        if self._session is None or self._session.closed:
-            # If no session is available, we cannot be connected to the device
-            _LOGGER.debug("No session available. Creating a new one")
-            # We will create a new session and retry the request
-            self.reset_auth()
-            self._session = self._create_session()
-            # Reconnect
-            await self.async_connect()
-            # Retry the request
-            return await self._make_request(
-                endpoint, payload, headers, request_type
-            )
-
-        # Check headers
         if not headers:
             headers = self._header
 
-        # Generate the url
         url = f"{self.webpanel}/{endpoint.value}"
 
-        # Add get parameters if needed
         if request_type == RequestType.GET and payload:
-            url_payload = payload.replace(";", "&")
-            url = f"{url}?{url_payload}"
+            url = f"{url}?{payload.replace(';', '&')}"
 
-        # Process the payload to be sent
         payload_to_send = quote(payload) if payload else None
 
-        # Send the request
-        async with self._session.request(
+        async with self._session.request(  # type: ignore[union-attr]
             request_type.value,
             url,
             data=payload_to_send if request_type == RequestType.POST else None,
             headers=headers,
             ssl=self.config.get(ARCCKey.VERIFY_SSL),
         ) as response:
-            # Read the status code
             resp_status = response.status
-
-            # Read the response headers
             resp_headers = response.headers
-
-            # Read the response
             try:
                 resp_content = await response.text()
             except UnicodeDecodeError:
                 _LOGGER.debug("Cannot decode response. Will ignore errors")
                 resp_content = await response.text(errors="ignore")
 
-            # Call the dumpback if available
             if self._dumpback is not None:
                 await self._dumpback(
                     endpoint, payload, resp_status, resp_headers, resp_content
                 )
 
-            # Return the response
             return (resp_status, resp_headers, resp_content)
-
-    def _log_request(self, endpoint: AREndpoint, payload: str | None) -> None:
-        """Log the request details."""
-
-        security_level = ARConfig.get(ARConfKey.DEBUG_PAYLOAD)
-
-        # Prepare payload to log
-        payload_to_log = self._payload_for_logging(
-            security_level, endpoint, payload
-        )
-
-        if payload_to_log is None:
-            _LOGGER.debug("Sending request to `%s`", endpoint)
-        else:
-            _LOGGER.debug(
-                "Sending request to `%s` with payload: %s",
-                endpoint,
-                payload_to_log,
-            )
-
-    def _payload_for_logging(
-        self, security_level: Any, endpoint: AREndpoint, payload: str | None
-    ) -> str | None:
-        """Return the payload to log if any.
-
-        Rules:
-        - STRICT: never log payload
-        - DEFAULT: log only non-sensitive endpoints
-        - SANITIZED: log sensitive endpoints with automatic sanitization
-        - UNSAFE: log sensitive endpoints verbatim
-        """
-
-        # Resolve security level safely
-        level = ARSecurityLevel.from_value(security_level)
-
-        # STRICT: never include payload | Never include
-        # login payload at any level
-        if level == ARSecurityLevel.STRICT or endpoint == AREndpoint.LOGIN:
-            return None
-
-        # Clean from empty strings
-        payload = raw_to_str(payload)
-        if payload is None:
-            return None
-
-        # Sensitive endpoints: only allowed if explicitly set to
-        # UNSAFE by user or are SANITIZED
-        if get_endpoint_sensitive(endpoint):
-            if ARSecurityLevel.at_least_sanitized(level):
-                if level == ARSecurityLevel.SANITIZED:
-                    # Automatically sanitized to remove sensitive data
-                    return sanitize_data(payload)
-                # Only UNSAFE level is above SANITIZED, meaning
-                # Explicitly allowed as raw data by user
-                return payload
-            # Any other level should not log a possible sensitive payload
-            return None
-
-        # Non-sensitive endpoints: log (unless was blocked by STRICT config)
-        return payload
 
     # ---------------------------
     # <-- Request handling

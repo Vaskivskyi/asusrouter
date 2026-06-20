@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Generator
 from typing import Any, cast
-from unittest.mock import AsyncMock, Mock
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
@@ -102,14 +102,19 @@ def mock_fallback(
 def mock_log_request(
     universal_mock: UniversalMockPatcher,
 ) -> SyncPatch:
-    """Fixture to patch the `_log_request` method."""
+    """Fixture to patch the module-level `_log_request` function."""
 
     def _patch(
         connection: Any, side_effect: Any = None, return_value: Any = None
     ) -> Mock:
-        return universal_mock.patch(
-            connection, "_log_request", side_effect, return_value, Mock
-        )
+        patcher = patch("asusrouter.connection._log_request")
+        mock = patcher.start()
+        universal_mock.patches.append(patcher)
+        if side_effect is not None:
+            mock.side_effect = side_effect
+        elif return_value is not None:
+            mock.return_value = return_value
+        return mock
 
     return _patch
 
@@ -150,14 +155,19 @@ def mock_new_session(
 def mock_payload_for_logging(
     universal_mock: UniversalMockPatcher,
 ) -> SyncPatch:
-    """Fixture to patch the `_payload_for_logging` method."""
+    """Fixture to patch the module-level `_payload_for_logging` function."""
 
     def _patch(
         connection: Any, side_effect: Any = None, return_value: Any = None
     ) -> Mock:
-        return universal_mock.patch(
-            connection, "_payload_for_logging", side_effect, return_value, Mock
-        )
+        patcher = patch("asusrouter.connection._payload_for_logging")
+        mock = patcher.start()
+        universal_mock.patches.append(patcher)
+        if side_effect is not None:
+            mock.side_effect = side_effect
+        elif return_value is not None:
+            mock.return_value = return_value
+        return mock
 
     return _patch
 
