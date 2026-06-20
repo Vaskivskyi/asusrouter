@@ -48,7 +48,7 @@ async def test_async_close_disconnects_then_closes_connection(
         return True
 
     conn = Mock()
-    conn.async_close = AsyncMock(
+    conn.async_close_session = AsyncMock(
         side_effect=lambda: call_order.append("close")
     )
 
@@ -158,11 +158,11 @@ def test_async_drop_connection_resets_connection(
     router: AsusRouter,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """_async_drop_connection calls reset_connection on the connection."""
+    """_async_drop_connection calls reset_auth on the connection."""
 
     conn = Mock()
     monkeypatch.setattr(router, "_connection", conn)
 
     router._async_drop_connection()
 
-    conn.reset_connection.assert_called_once()
+    conn.reset_auth.assert_called_once()

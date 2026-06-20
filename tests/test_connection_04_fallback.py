@@ -252,7 +252,7 @@ class TestConnectionFallback:
         self,
         case: dict[str, Any],
         connection_factory: ConnectionFactory,
-        reset_connection: SyncPatch,
+        reset_auth: SyncPatch,
         async_connect: AsyncPatch,
     ) -> None:
         """Test _fallback method."""
@@ -265,7 +265,7 @@ class TestConnectionFallback:
         connection.config.set(ARCCKey.PORT, 9999)
         connection.config.set(ARCCKey.VERIFY_SSL, True)
 
-        mock_reset = reset_connection(connection)
+        mock_reset = reset_auth(connection)
         mock_connect = async_connect(connection)
 
         if case["expect_exception"]:
@@ -288,7 +288,7 @@ class TestConnectionFallback:
                     connection.config.get(ARCCKey.VERIFY_SSL)
                     == case["expected_verify_ssl"]
                 )
-            # Should call reset_connection and async_connect
+            # Should call reset_auth and async_connect
             mock_reset.assert_called_once()
             mock_connect.assert_awaited_once()
 
@@ -296,7 +296,7 @@ class TestConnectionFallback:
     async def test_fallback_cancels_inflight_connect(
         self,
         connection_factory: ConnectionFactory,
-        reset_connection: SyncPatch,
+        reset_auth: SyncPatch,
         async_connect: AsyncPatch,
     ) -> None:
         """When a connect task is in-flight.
@@ -322,7 +322,7 @@ class TestConnectionFallback:
         connection._connect_task = asyncio.create_task(long_running())
         await started.wait()
 
-        mock_reset = reset_connection(connection)
+        mock_reset = reset_auth(connection)
         async_connect(connection)
 
         # run fallback which should cancel & await the in-flight task,
@@ -331,7 +331,7 @@ class TestConnectionFallback:
 
         # confirm the old task was cancelled and its cancellation was observed
         assert cancelled.is_set()
-        # ensure reset_connection and async_connect were invoked
+        # ensure reset_auth and async_connect were invoked
         # as part of fallback
         mock_reset.assert_called_once()
 
@@ -340,7 +340,7 @@ class TestConnectionFallback:
         self,
         connection_factory: ConnectionFactory,
         async_connect: AsyncPatch,
-        reset_connection: SyncPatch,
+        reset_auth: SyncPatch,
         caplog: pytest.LogCaptureFixture,
     ) -> None:
         """If an in-flight connect is cancelled and raises.
@@ -363,7 +363,7 @@ class TestConnectionFallback:
         # ensure the task has started
         await asyncio.sleep(0)
 
-        mock_reset = reset_connection(connection)
+        mock_reset = reset_auth(connection)
         mock_connect = async_connect(connection)
 
         caplog.set_level(logging.DEBUG, logger="asusrouter.connection")
@@ -372,7 +372,7 @@ class TestConnectionFallback:
         # consume the RuntimeError and log it
         await connection._fallback(ConnectionFallback.HTTP)
 
-        # reset_connection and async_connect must have been called
+        # reset_auth and async_connect must have been called
         mock_reset.assert_called_once()
         mock_connect.assert_awaited_once()
 

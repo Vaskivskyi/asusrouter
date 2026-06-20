@@ -93,6 +93,10 @@ def sanitize_data(
 class Connection:  # pylint: disable=too-many-instance-attributes
     """A connection between the library and the device."""
 
+    # ---------------------------
+    # Init / Context manager -->
+    # ---------------------------
+
     def __init__(  # noqa: PLR0913
         self,
         hostname: str,
@@ -109,17 +113,14 @@ class Connection:  # pylint: disable=too-many-instance-attributes
 
         _LOGGER.debug("Initializing a new connection to `%s`", hostname)
 
-        # Initialize configs
         self._config = ARConnectionConfig()
         self._used_fallbacks: dict[ConnectionFallback, bool] = {}
 
-        # Initialize startup configs if any provided
-        if isinstance(config, dict):
+        if config is not None:
             _LOGGER.debug("Using provided connection config: %s", config)
             for key, value in config.items():
                 self._config.set(key, value)
 
-        # Initialize parameters for connection
         self._token: str | None = None
         self._header: dict[str, str] | None = None
         self._connected: bool = False
@@ -131,12 +132,13 @@ class Connection:  # pylint: disable=too-many-instance-attributes
         # Lock to guard creation of the connect task
         self._connect_task_lock: asyncio.Lock = asyncio.Lock()
 
-        # Hostname and credentials
         self._hostname = hostname
         self._username = username
         self._password = password
+        self._auth_payload, self._auth_headers = generate_credentials(
+            username, password
+        )
 
-        # Set the port and protocol based on the input
         self.config.set(
             ARCCKey.PORT,
             port or (DEFAULT_PORT_HTTPS if use_ssl else DEFAULT_PORT_HTTP),
@@ -149,10 +151,8 @@ class Connection:  # pylint: disable=too-many-instance-attributes
             use_ssl,
         )
 
-        # Callback for dumping data
         self._dumpback = dumpback
 
-        # Client session
         self._manage_session: bool = False
         self._session: aiohttp.ClientSession | None = session
         if session is not None:
@@ -174,95 +174,69 @@ class Connection:  # pylint: disable=too-many-instance-attributes
     ) -> None:
         """Exit the connection."""
 
-        await self.async_close()
+        await self.async_close_session()
 
-    @classmethod
-    async def create(  # noqa: PLR0913
-        cls,
-        hostname: str,
-        username: str,
-        password: str,
-        port: int | None = None,
-        use_ssl: bool = False,
-        session: aiohttp.ClientSession | None = None,
-        timeout: int | None = DEFAULT_TIMEOUT,  # noqa: ASYNC109
-        dumpback: Callable[..., Awaitable[None]] | None = None,
-        config: dict[ARCCKey, Any] | None = None,
-    ) -> Connection:
-        """Create and initialize a connection."""
+    # ---------------------------
+    # <-- Init / Context manager
+    # ---------------------------
 
-        connection = cls(
-            hostname=hostname,
-            username=username,
-            password=password,
-            port=port,
-            use_ssl=use_ssl,
-            session=session,
-            timeout=timeout or DEFAULT_TIMEOUT,
-            dumpback=dumpback,
-            config=config,
-        )
-        await connection.async_connect()
-        return connection
+    # ---------------------------
+    # Session management -->
+    # ---------------------------
 
-    def _new_session(self) -> aiohttp.ClientSession:
+    def _create_session(self) -> aiohttp.ClientSession:
         """Create a new session."""
 
-        # If we create a new session, we will manage it
         self._manage_session = True
-
-        # Timeout for the session
-        timeout = aiohttp.ClientTimeout(total=self._timeout)
-
-        # Create the session
         return aiohttp.ClientSession(
             connector=aiohttp.TCPConnector(),
             cookie_jar=get_cookie_jar(),
-            timeout=timeout,
+            timeout=aiohttp.ClientTimeout(total=self._timeout),
         )
 
-    async def async_close(self) -> None:
+    async def async_close_session(self) -> None:
         """Close the session."""
 
-        if self._manage_session and self._session:
-            if not self._session.closed:
-                _LOGGER.debug("Closing the session")
-                await self._session.close()
-            else:
-                _LOGGER.debug("Session already closed")
-        else:
+        if not self._manage_session or not self._session:
             _LOGGER.debug("No session to close or not managing the session")
+            return
+        if not self._session.closed:
+            _LOGGER.debug("Closing the session")
+            await self._session.close()
+        else:
+            _LOGGER.debug("Session already closed")
+
+    # ---------------------------
+    # <-- Session management
+    # ---------------------------
+
+    # ---------------------------
+    # Connection management -->
+    # ---------------------------
 
     async def async_connect(
         self,
-        lock: asyncio.Lock | None = None,
         t_overwrite: float | None = None,
         block_error: bool = False,
     ) -> bool:
         """Connect to the device and get a new auth token."""
 
-        timeout = raw_to_float(t_overwrite) or self._timeout
-
-        # If already connected, return fast
         if self._connected:
             return True
 
-        # Ensure only one connect Task is created;
-        # reuse it for concurrent callers
-        async with self._connect_task_lock:
-            if self._connect_task is None or self._connect_task.done():
-                # start the connect attempt as a background task
-                self._connect_task = asyncio.create_task(
-                    self._async_connect_with_lock(lock)
-                )
+        timeout = (
+            raw_to_float(t_overwrite) if t_overwrite is not None else None
+        ) or self._timeout
+
+        task = await self._ensure_connect_task()
+        if task is None:
+            return True
 
         try:
             # Await the in-flight connect but don't cancel it on
             # outer timeout: use shield so that callers timing out
             # won't cancel the actual attempt.
-            await asyncio.wait_for(
-                asyncio.shield(self._connect_task), timeout=timeout
-            )
+            await asyncio.wait_for(asyncio.shield(task), timeout=timeout)
             return True
         except TimeoutError:
             if not block_error:
@@ -271,48 +245,67 @@ class Connection:  # pylint: disable=too-many-instance-attributes
             # and satisfy future callers
             return False
         except asyncio.CancelledError:
-            # Underlying connect was cancelled (e.g. by fallback).
-            # Treat as failed.
+            # Propagate outer cancellations (e.g. app shutdown).
+            # Only swallow if the inner task itself was cancelled.
+            current = asyncio.current_task()
+            if current is not None and current.cancelling() > 0:
+                raise
             if not block_error:
                 _LOGGER.debug("Connection attempt was cancelled")
             return False
         finally:
-            # If the task finished, clear it to allow future retries.
-            if self._connect_task is not None and self._connect_task.done():
-                self._connect_task = None
+            self._clear_connect_task(task)
 
-    async def _async_connect_with_lock(
-        self,
-        lock: asyncio.Lock | None = None,
-    ) -> bool:
-        """Connect to the device and get a new auth token.
+    async def _ensure_connect_task(self) -> asyncio.Task[bool] | None:
+        """Return the in-flight connect Task, creating one if needed.
 
-        Acquire the lock only for state checks/updates. Perform the actual
-        network login outside the lock to avoid deadlocks when fallback
-        triggers a nested connect attempt.
+        Returns None if the connection is already established.
         """
-        _lock = lock or self._connection_lock
+        async with self._connect_task_lock:
+            if self._connected:
+                return None
+            if self._connect_task is None or self._connect_task.done():
+                self._connect_task = asyncio.create_task(self._login())
+            # Capture before releasing the lock: another coroutine's
+            # _clear_connect_task could set self._connect_task = None
+            # between the lock exit and asyncio.shield() in async_connect.
+            return self._connect_task
 
-        # Quick check / early exit while holding the lock
-        async with _lock:
+    def _clear_connect_task(self, task: asyncio.Task[bool]) -> None:
+        """Clear a finished connect Task and consume its exception if any."""
+
+        if task.done() and self._connect_task is task:
+            # Consume unhandled exception to prevent "never retrieved" noise.
+            # Skip cancelled tasks — CancelledError is not an Exception.
+            if not task.cancelled():
+                with contextlib.suppress(Exception):
+                    task.result()
+            self._connect_task = None
+
+    async def _login(self) -> bool:
+        """Send the login request and update auth state on success.
+
+        Acquires the lock only for state checks and updates. Network IO
+        runs outside the lock to avoid deadlocks when fallback triggers
+        a nested connect attempt.
+        """
+        async with self._connection_lock:
             if self._connected:
                 _LOGGER.debug("Already connected to %s", self._hostname)
                 return True
             _LOGGER.debug("Initializing connection to %s", self._hostname)
 
-        # Prepare auth payload and headers (no lock held)
-        payload, headers = generate_credentials(self._username, self._password)
+        payload, headers = self._auth_payload, self._auth_headers
 
-        _LOGGER.debug("Requesting authorization")
         try:
-            # Do the network login outside the lock to avoid deadlocks
+            _LOGGER.debug("Requesting authorization")
             _, _, resp_content = await self._send_request(
                 AREndpoint.LOGIN, payload, headers
             )
             _LOGGER.debug("Received authorization response")
         except AsusRouterSSLCertificateError as ex:
             raise AsusRouterAccessError(
-                f"Cannot access {AREndpoint.LOGIN}. "
+                f"Cannot access {AREndpoint.LOGIN} "
                 "due to the SSL certificate error"
             ) from ex
         except AsusRouterAccessError as ex:
@@ -330,52 +323,62 @@ class Connection:  # pylint: disable=too-many-instance-attributes
             )
             raise
 
-        # Process response and update state while holding the lock
-        content = json.loads(resp_content)
-        token = content.get("asus_token")
+        try:
+            token = json.loads(resp_content).get("asus_token")
+        except (json.JSONDecodeError, AttributeError):
+            _LOGGER.error("Invalid login response from %s", self._hostname)
+            return False
         if not token:
             _LOGGER.error("No token received")
             return False
 
-        async with _lock:
-            # Another task may have connected while we performed
-            # the network IO. If so, avoid overwriting state and return early.
-            if self._connected:
+        async with self._connection_lock:
+            # Another task may have connected while we performed network IO.
+            # Avoid overwriting valid state; let that task's token win.
+            if not self._connected:
+                self._token = token
+                self._header = {
+                    "user-agent": USER_AGENT,
+                    "cookie": f"asus_token={token}",
+                }
+                self._connected = True
+                _LOGGER.debug("Connected to %s", self._hostname)
+            else:
                 _LOGGER.debug(
                     "Connection already established to %s by another task",
                     self._hostname,
                 )
-                return True
-
-            # Store token and header
-            self._token = token
-            self._header = {
-                "user-agent": USER_AGENT,
-                "cookie": f"asus_token={self._token}",
-            }
-
-            # Mark as connected
-            self._connected = True
-            _LOGGER.debug("Connected to %s", self._hostname)
 
         return True
 
     async def async_disconnect(self) -> bool:
         """Disconnect from the device."""
 
-        _LOGGER.debug("Initializing disconnection from %s", self._hostname)
-
-        # Check that we are connected
         if not self._connected:
             _LOGGER.debug("Not connected to %s", self._hostname)
             return True
 
-        # Request logout
+        _LOGGER.debug("Initializing disconnection from %s", self._hostname)
+
+        # Cancel any in-flight connect task so it can't re-establish
+        # connection state after we tear it down.
+        old_task: asyncio.Task[Any] | None = None
+        async with self._connect_task_lock:
+            pending = self._connect_task
+            if pending is not None and not pending.done():
+                old_task = pending
+                old_task.cancel()
+                self._connect_task = None
+
+        if old_task is not None:
+            with contextlib.suppress(asyncio.CancelledError, Exception):
+                await old_task
+
         try:
             await self._send_request(AREndpoint.LOGOUT)
         except AsusRouterLogoutError:
-            # Loged out successfully
-            self.reset_connection()
+            # Router signals successful logout with an error response
+            self.reset_auth()
             _LOGGER.debug("Disconnected from %s", self._hostname)
             return True
         except AsusRouterError as ex:
@@ -384,68 +387,55 @@ class Connection:  # pylint: disable=too-many-instance-attributes
             )
             return False
 
-        # Anything else would mean error when disconnecting
         return False
 
-    def _payload_for_logging(
-        self, security_level: Any, endpoint: AREndpoint, payload: str | None
-    ) -> str | None:
-        """Return the payload to log if any.
+    def reset_auth(self) -> None:
+        """Clear auth state when the connection is no longer valid."""
 
-        Rules:
-        - STRICT: never log payload
-        - DEFAULT: log only non-sensitive endpoints
-        - SANITIZED: log sensitive endpoints with automatic sanitization
-        - UNSAFE: log sensitive endpoints verbatim
-        """
+        if not self._connected:
+            return
 
-        # Resolve security level safely
-        level = ARSecurityLevel.from_value(security_level)
+        _LOGGER.debug("Resetting connection to %s", self._hostname)
 
-        # STRICT: never include payload | Never include
-        # login payload at any level
-        if level == ARSecurityLevel.STRICT or endpoint == AREndpoint.LOGIN:
-            return None
+        self._connected = False
+        self._token = None
+        self._header = None
 
-        # Clean from empty strings
-        payload = raw_to_str(payload)
-        if payload is None:
-            return None
+    # ---------------------------
+    # <-- Connection management
+    # ---------------------------
 
-        # Sensitive endpoints: only allowed if explicitly set to
-        # UNSAFE by user or are SANITIZED
-        if get_endpoint_sensitive(endpoint):
-            if ARSecurityLevel.at_least_sanitized(level):
-                if level == ARSecurityLevel.SANITIZED:
-                    # Automatically sanitized to remove sensitive data
-                    return sanitize_data(payload)
-                # Only UNSAFE level is above SANITIZED, meaning
-                # Explicitly allowed as raw data by user
-                return payload
-            # Any other level should not log a possible sensitive payload
-            return None
+    # ---------------------------
+    # Request handling -->
+    # ---------------------------
 
-        # Non-sensitive endpoints: log (unless was blocked by STRICT config)
-        return payload
+    async def async_query(
+        self,
+        endpoint: AREndpoint,
+        payload: str | None = None,
+        headers: dict[str, str] | None = None,
+        request_type: RequestType = RequestType.POST,
+    ) -> tuple[int, dict[str, str], str]:
+        """Send a request to the device."""
 
-    def _log_request(self, endpoint: AREndpoint, payload: str | None) -> None:
-        """Log the request details."""
+        # If not connected, try to connect
+        if not self._connected:
+            _LOGGER.debug("Not connected to %s. Connecting...", self._hostname)
+            await self.async_connect()
 
-        security_level = ARConfig.get(ARConfKey.DEBUG_PAYLOAD)
-
-        # Prepare payload to log
-        payload_to_log = self._payload_for_logging(
-            security_level, endpoint, payload
-        )
-
-        if payload_to_log is None:
-            _LOGGER.debug("Sending request to `%s`", endpoint)
-        else:
-            _LOGGER.debug(
-                "Sending request to `%s` with payload: %s",
-                endpoint,
-                payload_to_log,
+        # If still not connected, raise an error
+        if not self._connected:
+            raise AsusRouterTimeoutError(
+                "Data cannot be retrieved. Connection failed"
             )
+
+        # Send the request
+        _LOGGER.debug(
+            "Sending `%s` request to `%s`", request_type, self._hostname
+        )
+        return await self._send_request(
+            endpoint, payload, headers, request_type
+        )
 
     async def _send_request(  # noqa: C901, PLR0912
         self,
@@ -520,7 +510,7 @@ class Connection:  # pylint: disable=too-many-instance-attributes
                     request_type=request_type,
                 )
 
-            self.reset_connection()
+            self.reset_auth()
             raise AsusRouterConnectionError(
                 f"Cannot connect to `{self._hostname}` on port "
                 f"`{self.port}`. Failed in `_send_request` with error: `{ex}`"
@@ -542,6 +532,142 @@ class Connection:  # pylint: disable=too-many-instance-attributes
                 ex,
             )
             raise ex
+
+    async def _make_request(
+        self,
+        endpoint: AREndpoint,
+        payload: str | None = None,
+        headers: dict[str, str] | None = None,
+        request_type: RequestType = RequestType.POST,
+    ) -> Any:
+        """Make a post request to the device."""
+
+        # Check if a session is available
+        if self._session is None or self._session.closed:
+            # If no session is available, we cannot be connected to the device
+            _LOGGER.debug("No session available. Creating a new one")
+            # We will create a new session and retry the request
+            self.reset_auth()
+            self._session = self._create_session()
+            # Reconnect
+            await self.async_connect()
+            # Retry the request
+            return await self._make_request(
+                endpoint, payload, headers, request_type
+            )
+
+        # Check headers
+        if not headers:
+            headers = self._header
+
+        # Generate the url
+        url = f"{self.webpanel}/{endpoint.value}"
+
+        # Add get parameters if needed
+        if request_type == RequestType.GET and payload:
+            url_payload = payload.replace(";", "&")
+            url = f"{url}?{url_payload}"
+
+        # Process the payload to be sent
+        payload_to_send = quote(payload) if payload else None
+
+        # Send the request
+        async with self._session.request(
+            request_type.value,
+            url,
+            data=payload_to_send if request_type == RequestType.POST else None,
+            headers=headers,
+            ssl=self.config.get(ARCCKey.VERIFY_SSL),
+        ) as response:
+            # Read the status code
+            resp_status = response.status
+
+            # Read the response headers
+            resp_headers = response.headers
+
+            # Read the response
+            try:
+                resp_content = await response.text()
+            except UnicodeDecodeError:
+                _LOGGER.debug("Cannot decode response. Will ignore errors")
+                resp_content = await response.text(errors="ignore")
+
+            # Call the dumpback if available
+            if self._dumpback is not None:
+                await self._dumpback(
+                    endpoint, payload, resp_status, resp_headers, resp_content
+                )
+
+            # Return the response
+            return (resp_status, resp_headers, resp_content)
+
+    def _log_request(self, endpoint: AREndpoint, payload: str | None) -> None:
+        """Log the request details."""
+
+        security_level = ARConfig.get(ARConfKey.DEBUG_PAYLOAD)
+
+        # Prepare payload to log
+        payload_to_log = self._payload_for_logging(
+            security_level, endpoint, payload
+        )
+
+        if payload_to_log is None:
+            _LOGGER.debug("Sending request to `%s`", endpoint)
+        else:
+            _LOGGER.debug(
+                "Sending request to `%s` with payload: %s",
+                endpoint,
+                payload_to_log,
+            )
+
+    def _payload_for_logging(
+        self, security_level: Any, endpoint: AREndpoint, payload: str | None
+    ) -> str | None:
+        """Return the payload to log if any.
+
+        Rules:
+        - STRICT: never log payload
+        - DEFAULT: log only non-sensitive endpoints
+        - SANITIZED: log sensitive endpoints with automatic sanitization
+        - UNSAFE: log sensitive endpoints verbatim
+        """
+
+        # Resolve security level safely
+        level = ARSecurityLevel.from_value(security_level)
+
+        # STRICT: never include payload | Never include
+        # login payload at any level
+        if level == ARSecurityLevel.STRICT or endpoint == AREndpoint.LOGIN:
+            return None
+
+        # Clean from empty strings
+        payload = raw_to_str(payload)
+        if payload is None:
+            return None
+
+        # Sensitive endpoints: only allowed if explicitly set to
+        # UNSAFE by user or are SANITIZED
+        if get_endpoint_sensitive(endpoint):
+            if ARSecurityLevel.at_least_sanitized(level):
+                if level == ARSecurityLevel.SANITIZED:
+                    # Automatically sanitized to remove sensitive data
+                    return sanitize_data(payload)
+                # Only UNSAFE level is above SANITIZED, meaning
+                # Explicitly allowed as raw data by user
+                return payload
+            # Any other level should not log a possible sensitive payload
+            return None
+
+        # Non-sensitive endpoints: log (unless was blocked by STRICT config)
+        return payload
+
+    # ---------------------------
+    # <-- Request handling
+    # ---------------------------
+
+    # ---------------------------
+    # Fallback handling -->
+    # ---------------------------
 
     async def _async_handle_fallback(
         self, callback: Callable[..., Awaitable[_T]], **kwargs: Any
@@ -713,118 +839,18 @@ class Connection:  # pylint: disable=too-many-instance-attributes
 
         # Reset connection state and perform a bounded reconnect
         # for the fallback.
-        self.reset_connection()
+        self.reset_auth()
         await self.async_connect(
             t_overwrite=DEFAULT_TIMEOUT_FALLBACK, block_error=True
         )
 
-    async def async_query(
-        self,
-        endpoint: AREndpoint,
-        payload: str | None = None,
-        headers: dict[str, str] | None = None,
-        request_type: RequestType = RequestType.POST,
-    ) -> tuple[int, dict[str, str], str]:
-        """Send a request to the device."""
+    # ---------------------------
+    # <-- Fallback handling
+    # ---------------------------
 
-        # If not connected, try to connect
-        if not self._connected:
-            _LOGGER.debug("Not connected to %s. Connecting...", self._hostname)
-            await self.async_connect()
-
-        # If still not connected, raise an error
-        if not self._connected:
-            raise AsusRouterTimeoutError(
-                "Data cannot be retrieved. Connection failed"
-            )
-
-        # Send the request
-        _LOGGER.debug(
-            "Sending `%s` request to `%s`", request_type, self._hostname
-        )
-        return await self._send_request(
-            endpoint, payload, headers, request_type
-        )
-
-    async def _make_request(
-        self,
-        endpoint: AREndpoint,
-        payload: str | None = None,
-        headers: dict[str, str] | None = None,
-        request_type: RequestType = RequestType.POST,
-    ) -> Any:
-        """Make a post request to the device."""
-
-        # Check if a session is available
-        if self._session is None or self._session.closed:
-            # If no session is available, we cannot be connected to the device
-            _LOGGER.debug("No session available. Creating a new one")
-            # We will create a new session and retry the request
-            self.reset_connection()
-            self._session = self._new_session()
-            # Reconnect
-            await self.async_connect()
-            # Retry the request
-            return await self._make_request(
-                endpoint, payload, headers, request_type
-            )
-
-        # Check headers
-        if not headers:
-            headers = self._header
-
-        # Generate the url
-        url = f"{self.webpanel}/{endpoint.value}"
-
-        # Add get parameters if needed
-        if request_type == RequestType.GET and payload:
-            url_payload = payload.replace(";", "&")
-            url = f"{url}?{url_payload}"
-
-        # Process the payload to be sent
-        payload_to_send = quote(payload) if payload else None
-
-        # Send the request
-        async with self._session.request(
-            request_type.value,
-            url,
-            data=payload_to_send if request_type == RequestType.POST else None,
-            headers=headers,
-            ssl=self.config.get(ARCCKey.VERIFY_SSL),
-        ) as response:
-            # Read the status code
-            resp_status = response.status
-
-            # Read the response headers
-            resp_headers = response.headers
-
-            # Read the response
-            try:
-                resp_content = await response.text()
-            except UnicodeDecodeError:
-                _LOGGER.debug("Cannot decode response. Will ignore errors")
-                resp_content = await response.text(errors="ignore")
-
-            # Call the dumpback if available
-            if self._dumpback is not None:
-                await self._dumpback(
-                    endpoint, payload, resp_status, resp_headers, resp_content
-                )
-
-            # Return the response
-            return (resp_status, resp_headers, resp_content)
-
-    def reset_connection(self) -> None:
-        """Reset connection variables."""
-
-        if not self._connected:
-            return
-
-        _LOGGER.debug("Resetting connection to %s", self._hostname)
-
-        self._connected = False
-        self._token = None
-        self._header = None
+    # ---------------------------
+    # Properties -->
+    # ---------------------------
 
     @property
     def config(self) -> ARConnectionConfig:
@@ -855,3 +881,7 @@ class Connection:  # pylint: disable=too-many-instance-attributes
         """Return web panel URL."""
 
         return f"{self.http}://{self._hostname}:{self.port}"
+
+    # ---------------------------
+    # <-- Properties
+    # ---------------------------

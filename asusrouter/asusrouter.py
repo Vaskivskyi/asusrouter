@@ -250,7 +250,7 @@ class AsusRouter:
         _LOGGER.debug("Triggered method async_close")
 
         await self.async_disconnect()
-        await self._connection.async_close()
+        await self._connection.async_close_session()
 
     async def async_connect(self) -> bool:
         """Connect to the device and get its identity."""
@@ -291,7 +291,7 @@ class AsusRouter:
 
         _LOGGER.debug("Triggered method _async_drop_connection")
 
-        self._connection.reset_connection()
+        self._connection.reset_auth()
 
     def _handle_exception(self, ex: Exception) -> None:
         """Handle exceptions."""

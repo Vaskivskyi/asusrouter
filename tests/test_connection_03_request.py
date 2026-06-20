@@ -154,7 +154,7 @@ class TestConnectionRequests:
         connection_factory: ConnectionFactory,
         log_request: SyncPatch,
         make_request: AsyncPatch,
-        reset_connection: SyncPatch,
+        reset_auth: SyncPatch,
     ) -> None:
         """Test the `_send_request` method with parameterized scenarios."""
 
@@ -162,7 +162,7 @@ class TestConnectionRequests:
         connection = connection_factory()
 
         mock_log_request = log_request(connection)
-        mock_reset_connection = reset_connection(connection)
+        mock_reset_auth = reset_auth(connection)
         with patch(
             "asusrouter.connection.handle_access_error"
         ) as mock_handle_access_error:
@@ -214,15 +214,15 @@ class TestConnectionRequests:
             else:
                 mock_handle_access_error.assert_not_called()
 
-            # For ClientConnectorError, reset_connection is expected,
+            # For ClientConnectorError, reset_auth is expected,
             # but for asyncio.TimeoutError or CancelledError we do not
-            # call reset_connection.
+            # call reset_auth.
             if make_request_side_effect and isinstance(
                 make_request_side_effect, aiohttp.ClientConnectorError
             ):
-                mock_reset_connection.assert_called_once()
+                mock_reset_auth.assert_called_once()
             else:
-                mock_reset_connection.assert_not_called()
+                mock_reset_auth.assert_not_called()
 
             # Check that logging was called with the expected payload
             mock_log_request.assert_called_once_with(
@@ -345,7 +345,7 @@ class TestConnectionRequests:
         connection_factory: ConnectionFactory,
         log_request: SyncPatch,
         make_request: AsyncPatch,
-        reset_connection: SyncPatch,
+        reset_auth: SyncPatch,
     ) -> None:
         """Test the `_send_request` method when fallback is not allowed."""
 
@@ -356,11 +356,11 @@ class TestConnectionRequests:
             side_effect=aiohttp.ClientConnectorError(Mock(), Mock()),
         )
 
-        mock_reset_connection = reset_connection(connection)
+        mock_reset_auth = reset_auth(connection)
 
         with pytest.raises(AsusRouterConnectionError):
             await connection._send_request(self.DEFAULT_ENDPOINT)
-        mock_reset_connection.assert_called_once()
+        mock_reset_auth.assert_called_once()
 
         # Check that logging was called with the expected payload
         mock_log_request.assert_called_once_with(self.DEFAULT_ENDPOINT, None)

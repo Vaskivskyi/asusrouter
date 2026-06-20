@@ -66,17 +66,17 @@ def mock_async_connect(
     return _patch
 
 
-@pytest.fixture(name="async_connect_with_lock")
-def mock_async_connect_with_lock(
+@pytest.fixture(name="login")
+def mock_login(
     universal_mock: UniversalMockPatcher,
 ) -> AsyncPatch:
-    """Fixture to patch the `_async_connect_with_lock` method with a lock."""
+    """Fixture to patch the `_login` method."""
 
     def _patch(
         connection: Any, side_effect: Any = None, return_value: Any = None
     ) -> AsyncMock:
         return universal_mock.patch(
-            connection, "_async_connect_with_lock", side_effect, return_value
+            connection, "_login", side_effect, return_value
         )
 
     return _patch
@@ -140,7 +140,7 @@ def mock_new_session(
         connection: Any, side_effect: Any = None, return_value: Any = None
     ) -> Mock:
         return universal_mock.patch(
-            connection, "_new_session", side_effect, return_value, Mock
+            connection, "_create_session", side_effect, return_value, Mock
         )
 
     return _patch
@@ -162,17 +162,17 @@ def mock_payload_for_logging(
     return _patch
 
 
-@pytest.fixture(name="reset_connection")
-def mock_reset_connection(
+@pytest.fixture(name="reset_auth")
+def mock_reset_auth(
     universal_mock: UniversalMockPatcher,
 ) -> SyncPatch:
-    """Fixture to patch the `reset_connection` method."""
+    """Fixture to patch the `reset_auth` method."""
 
     def _patch(
         connection: Any, side_effect: Any = None, return_value: Any = None
     ) -> Mock:
         return universal_mock.patch(
-            connection, "reset_connection", side_effect, return_value, Mock
+            connection, "reset_auth", side_effect, return_value, Mock
         )
 
     return _patch
