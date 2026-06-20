@@ -130,7 +130,6 @@ def test_init_flags_none(router: AsusRouter) -> None:
 def test_init_cache_default(router: AsusRouter) -> None:
     """Default cache time equals DEFAULT_CACHE_TIME."""
 
-    assert router._cache_time == DEFAULT_CACHE_TIME
     assert router._cache_threshold == timedelta(seconds=DEFAULT_CACHE_TIME)
 
 
@@ -143,7 +142,6 @@ def test_init_cache_custom() -> None:
         password=TCONST_PASS,
         cache_time=60.0,
     )
-    assert router._cache_time == 60.0
     assert router._cache_threshold == timedelta(seconds=60.0)
 
 

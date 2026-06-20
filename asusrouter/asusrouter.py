@@ -25,7 +25,6 @@ from asusrouter.const import (
     AR_CALL_GET_STATE,
     AR_CALL_TRANSLATE_STATE,
     DEFAULT_CACHE_TIME,
-    DEFAULT_RESULT_SUCCESS,
     DEFAULT_TIMEOUT,
 )
 from asusrouter.error import (
@@ -96,6 +95,23 @@ _AUTH_RETRY_DELAY: int = 1
 ARDataRequest = ARDataSource | ARDataType | Iterable[ARDataSource | ARDataType]
 
 
+def _where_to_get_data(datatype: AsusData) -> AsusDataFinder | None:
+    """Get the list of endpoints to get data from."""
+
+    _LOGGER.debug("Triggered method _where_to_get_data")
+
+    data_map = ASUSDATA_MAP.get(datatype)
+    while isinstance(data_map, AsusData):
+        data_map = ASUSDATA_MAP.get(data_map)
+    if not isinstance(data_map, AsusDataFinder):
+        _LOGGER.debug("No map found for %s", datatype)
+        return None
+
+    _LOGGER.debug("Endpoints to check: %s", data_map.endpoint)
+
+    return data_map
+
+
 def _get_call_matrix(
     states: list[ARDataState],
 ) -> dict[ARCallableType, list[ARDataState]]:
@@ -136,9 +152,9 @@ class AsusRouter:
         _LOGGER.debug("Setting up AR instance config: %s", config)
         self._config = ARInstanceConfig(defaults=config)
 
-        # Set the cache time
-        self._cache_time = cache_time or DEFAULT_CACHE_TIME
-        self._cache_threshold = timedelta(seconds=self._cache_time)
+        self._cache_threshold = timedelta(
+            seconds=cache_time or DEFAULT_CACHE_TIME
+        )
 
         self._state: dict[AsusData, AsusDataState] = {}
         self._data_states: dict[ARDataSource | ARDataType, ARDataState] = {}
@@ -599,84 +615,56 @@ class AsusRouter:
             remove_data_rule(AsusData.SPEEDTEST)
             remove_data_rule(AsusData.SPEEDTEST_RESULT)
 
-    async def _async_handle_reboot(self) -> None:
+    async def _async_handle_reboot(self, flags: dict[str, Any]) -> None:
         """Handle reboot."""
 
         _LOGGER.debug("Triggered method _async_handle_reboot")
 
         led_state = self._state.get(AsusData.LED)
-        if led_state and led_state.data:
-            led_data = led_state.data
+        if led_state and (data := led_state.data):
             _LOGGER.debug("Restoring LED state")
             await keep_state(
                 callback=self.async_run_service,
-                states=led_data["state"],
+                states=data["state"],
                 identity=self.description,
             )
 
-        # Reset the reboot flag
-        self._reset_flag("reboot")
-
-    def _reset_flag(self, flag: str) -> None:
-        """Reset a flag."""
-
-        _LOGGER.debug("Triggered method _reset_flag")
-
-        # Check that AsusData.FLAGS is available with dict data
-        flags_state = self._state.get(AsusData.FLAGS)
-        if flags_state is None:
-            return
-
-        data = flags_state.data
-        if not isinstance(data, dict):
-            return
-
-        # Reset the flag
-        data.pop(flag, None)
-
-        _LOGGER.debug("Flag `%s` reset", flag)
+        flags.pop("reboot", None)
+        _LOGGER.debug("Flag `reboot` reset")
 
     async def _check_flags(self) -> None:
         """Check flags."""
 
         _LOGGER.debug("Triggered method _check_flags")
 
-        state_flags = self._state.get(AsusData.FLAGS)
-        _data = (
-            state_flags.data
-            if isinstance(state_flags, AsusDataState)
-            else None
-        )
-        flags = _data if isinstance(_data, dict) else {}
+        state = self._state.get(AsusData.FLAGS)
+        if state is None:
+            return
 
-        if flags.get("reboot") is True:
+        data = state.data
+        if not isinstance(data, dict):
+            return
+
+        if data.get("reboot") is True:
             _LOGGER.debug("Reboot flag is set")
-            await self._async_handle_reboot()
+            await self._async_handle_reboot(data)
 
     async def async_api_query(
         self, endpoint: AREndpoint, payload: str | None = None
     ) -> tuple[int, dict[str, str], str]:
         """Query the API endpoint."""
 
-        if endpoint in ASUSDATA_ENDPOINT_APPEND:
-            payload = payload or ""
-            appended = False
-            for key, value in ASUSDATA_ENDPOINT_APPEND[endpoint].items():
-                if value:
-                    payload += f"{key}={value};"
-                    appended = True
-            if appended:
-                # Remove trailing semicolon
-                payload = payload[:-1]
+        if append_map := ASUSDATA_ENDPOINT_APPEND.get(endpoint):
+            extra = ";".join(f"{k}={v}" for k, v in append_map.items() if v)
+            if extra:
+                payload = f"{payload or ''}{extra}"
 
         _LOGGER.debug(
             "Triggered method async_api_query: %s | %s", endpoint, payload
         )
 
-        request_type = get_endpoint_request_type(endpoint)
-
         return await self._connection.async_query(
-            endpoint, payload, request_type=request_type
+            endpoint, payload, request_type=get_endpoint_request_type(endpoint)
         )
 
     async def async_api_load(
@@ -689,55 +677,39 @@ class AsusRouter:
 
         _LOGGER.debug("Triggered method async_api_load: %s", endpoint)
 
-        # Load the endpoint
         try:
             status, _, content = await self.async_api_query(endpoint, request)
         except AsusRouter404Error:
             _LOGGER.debug("Endpoint %s not found", endpoint)
             return {}
         except AsusRouterAccessError as ex:
-            # Check whether we are not connected
             if ex.args[1] == AccessError.AUTHORIZATION:
-                # Mark the connection as dropped
                 self._async_drop_connection()
-                # Wait before repeating the request
                 await asyncio.sleep(1 + retry * 3)
-                # Repeat request once more and see what happens
                 return await self.async_api_load(endpoint, request, 1)
-            # Otherwise just raise the exception
             raise
 
-        # Log status
         _LOGGER.debug("Response %s received from %s", status, endpoint)
 
-        # Try to read the content
         try:
             result = read(endpoint, content, config=self.config)
         except json.JSONDecodeError as ex:
-            # Not like this is supposed to happen, but just in case
             _LOGGER.debug(
                 "Failed to read content from %s: %s", endpoint, content
             )
-            # Just repeat request once more and see what happens
-            # Only if we haven't tried already
             if not retry:
                 return await self.async_api_load(endpoint, request, 1)
             raise AsusRouterDataError(
                 "Something went wrong while reading the content"
             ) from ex
 
-        # Check if we need to drop the connection
-        run_service = result.get("run_service")
-        if run_service in ("restart_httpd", "reboot"):
+        if result.get("run_service") in ("restart_httpd", "reboot"):
             self._async_drop_connection()
 
         return result
 
     async def async_api_hook(self, request: str) -> dict[str, Any]:
-        """Perform a hook to the device API.
-
-        Hooks are used to fetch data from the device.
-        """
+        """Perform a hook to the device API."""
 
         _LOGGER.debug("Triggered method async_api_hook: %s", request)
 
@@ -762,28 +734,7 @@ class AsusRouter:
             request=str(commands),
         )
 
-    def _where_to_get_data(self, datatype: AsusData) -> AsusDataFinder | None:
-        """Get the list of endpoints to get data from."""
-
-        _LOGGER.debug("Triggered method _where_to_get_data")
-
-        # Get the map
-        data_map = ASUSDATA_MAP.get(datatype)
-        # Consider aliases
-        while isinstance(data_map, AsusData):
-            data_map = ASUSDATA_MAP.get(data_map)
-        # Check if we have a map
-        if not isinstance(data_map, AsusDataFinder):
-            _LOGGER.debug("No map found for %s", datatype)
-            return None
-
-        _LOGGER.debug("Endpoints to check: %s", data_map.endpoint)
-
-        return data_map
-
-    def _transform_data(
-        self, datatype: AsusData, data: Any, **kwargs: Any
-    ) -> Any:
+    def _transform_data(self, datatype: AsusData, data: Any) -> Any:
         """Transform data if needed."""
 
         _LOGGER.debug("Triggered method _transform_data for `%s`", datatype)
@@ -791,7 +742,6 @@ class AsusRouter:
         description = self.description
 
         if datatype == AsusData.CLIENTS:
-            _LOGGER.debug("Transforming clients data")
             return transform_clients(
                 data,
                 self._state.get(AsusData.CLIENTS),
@@ -801,11 +751,9 @@ class AsusRouter:
             )
 
         if datatype == AsusData.CPU:
-            _LOGGER.debug("Transforming CPU data")
             return transform_cpu(data)
 
         if datatype == AsusData.NETWORK:
-            _LOGGER.debug("Transforming network data")
             return transform_network(
                 data,
                 description,
@@ -813,14 +761,12 @@ class AsusRouter:
             )
 
         if datatype == AsusData.PORTS:
-            _LOGGER.debug("Transforming port data")
             return transform_ethernet_ports(
                 data,
                 mac.as_asus() if (mac := description.mac) else None,
             )
 
         if datatype == AsusData.WAN:
-            _LOGGER.debug("Transforming WAN data")
             return transform_wan(
                 data,
                 description.support,
@@ -829,10 +775,7 @@ class AsusRouter:
         return data
 
     def _drop_data(self, datatype: AsusData, endpoint: AREndpoint) -> bool:
-        """Check whether data should be dropped.
-
-        This is required for some data obtained from multiple endpoints.
-        """
+        """Check whether data should be dropped."""
 
         if (
             datatype == AsusData.OPENVPN_CLIENT
@@ -842,32 +785,17 @@ class AsusRouter:
 
         return False
 
-    def _check_prerequisites(self, datatype: AsusData) -> None:
-        """Check prerequisites before fetching data."""
-
-        _LOGGER.debug(
-            "Triggered method _check_prerequisites for datatype `%s`", datatype
-        )
-
-        # A placeholder for future checks
-
     async def _check_postrequisites(self, datatype: AsusData) -> None:
-        """Check postrequisites after fetching data.
-
-        This method is also used to fetch additional data.
-        """
+        """Check postrequisites after fetching data."""
 
         _LOGGER.debug(
             "Triggered method _check_postrequisites for datatype `%s`",
             datatype,
         )
 
-        # Firmware
         if datatype == AsusData.FIRMWARE:
-            # Check if update is available
             firmware = self._state[AsusData.FIRMWARE].data
             if firmware and firmware["state"] is True:
-                # Get release notes
                 release_note = await self.async_get_data(
                     AsusData.FIRMWARE_NOTE, force=True
                 )
@@ -882,7 +810,6 @@ class AsusRouter:
         if datatype is None:
             return
 
-        # Add state object but make sure it's marked expired
         if datatype not in self._state:
             self._state[datatype] = AsusDataState(
                 timestamp=datetime.now(UTC) - 2 * self._cache_threshold
@@ -893,14 +820,10 @@ class AsusRouter:
 
         _LOGGER.debug("Triggered method _return_state")
 
-        # Get the state
         state = self._state[datatype].data
 
         if datatype == AsusData.PORTS:
-            mac = self.description.mac
-            own_mac = mac.as_asus() if mac else None
-
-            # Get the device selected
+            own_mac = mac.as_asus() if (mac := self.description.mac) else None
             device = kwargs.get("device")
 
             match device:
@@ -910,10 +833,9 @@ class AsusRouter:
                     return state
                 case "all":
                     return state
-                # Case when substate is a MAC address
-                case str() as a:
+                case str() as node_mac:
                     if isinstance(state, dict):
-                        return state.get(a, {})
+                        return state.get(node_mac, {})
                     return {}
 
         return state
@@ -924,24 +846,22 @@ class AsusRouter:
         """Get data from the device."""
 
         # --- V2 COMPATIBILITY ---
-        # This small switcher will allow gradual switching from v1 to v2 logic
         if isinstance(datatype, ARDataSource | ARDataType):
             return await self.async_fetch_data(
                 source=datatype, force=force, **kwargs
             )
 
-        # Check if we have a state object for this data
         self._check_state(datatype)
-        _state_dt = self._state[datatype]
+        _state = self._state
+        state_dt = _state[datatype]
 
-        # If state object is active, wait for it to finish and return the data
-        if _state_dt.active:
+        if state_dt.active:
             try:
                 _LOGGER.debug(
                     "Already in progress. Waiting for data to be fetched"
                 )
                 await asyncio.wait_for(
-                    _state_dt.inactive_event.wait(),
+                    state_dt.inactive_event.wait(),
                     DEFAULT_TIMEOUT,
                 )
             except TimeoutError:
@@ -949,29 +869,20 @@ class AsusRouter:
                     "Timeout while waiting for data. Will try fetching again"
                 )
 
-        # Check if we have the data already and not forcing a refresh
-        if _state_dt.data and not force:
-            # Check if the data is younger than the cache time
-            if datetime.now(UTC) - _state_dt.timestamp < self._cache_threshold:
+        if state_dt.data and not force:
+            if datetime.now(UTC) - state_dt.timestamp < self._cache_threshold:
                 _LOGGER.debug(
                     "Using cached data for `%s`: %s",
                     datatype,
-                    _state_dt.data,
+                    state_dt.data,
                 )
-                # Return the cached data
-                return _state_dt.data
+                return state_dt.data
             _LOGGER.debug("Data for %s is too old. Fetching", datatype)
 
-        # Mark the data as active
-        _state_dt.start()
+        state_dt.start()
 
-        # Check prerequisites
-        self._check_prerequisites(datatype)
+        data_finder = _where_to_get_data(datatype)
 
-        # Get the data finder
-        data_finder = self._where_to_get_data(datatype)
-
-        # Check if we have a data finder
         if not data_finder:
             _LOGGER.debug("No data finder for %s", datatype)
             return {}
@@ -982,73 +893,66 @@ class AsusRouter:
         df_method = data_finder.method
         df_merge = data_finder.merge
         description = self.description
+        drop_data = self._drop_data
+        transform_data = self._transform_data
+
+        kw_raw = kwargs.get("request", {})
+        kw_extra = (
+            ";".join(f"{k}={v}" for k, v in kw_raw.items())
+            if isinstance(kw_raw, dict) and kw_raw
+            else ""
+        )
 
         try:
             for endpoint in data_finder.endpoint:
-                # Get the data from the endpoint
                 request = "hook=" if endpoint == AREndpoint.FETCH_DATA else ""
-                for key, value in df_request:
-                    request += f"{key}({value});"
+                request += "".join(f"{k}({v});" for k, v in df_request)
                 if df_method and (method_result := df_method(description)):
                     request += method_result
+                if kw_extra:
+                    request += kw_extra
 
-                # Add the request from kwargs
-                kw_request = kwargs.get("request", {})
-                if isinstance(kw_request, dict) and kw_request:
-                    for key, value in kw_request.items():
-                        request += f"{key}={value};"
-                    # Remove trailing symbol
-                    request = request[:-1]
-
-                # Fetch the data
                 data = await self.async_api_load(endpoint, request)
 
                 processed = process(
                     endpoint,
                     data,
-                    self._state,
+                    _state,
                     description=description,
                 )
 
-                # Check whether data should be dropped
                 processed = {
                     key: val
                     for key, val in processed.items()
-                    if not self._drop_data(key, endpoint)
+                    if not drop_data(key, endpoint)
                 }
 
                 result = merge_dicts(result, processed)
 
-                # Check if we have data and data finder merge is ANY
                 if result and df_merge == AsusDataMerge.ANY:
                     break
 
-            # Transform data if needed
             result = {
-                key: self._transform_data(key, value)
+                key: transform_data(key, value)
                 for key, value in result.items()
             }
-            # Save the data state
             for key, value in result.items():
-                state = self._state.get(key)
+                state = _state.get(key)
                 if state is None:
                     state = AsusDataState()
-                    self._state[key] = state
+                    _state[key] = state
                 state.update(value)
         except (AsusRouterConnectionError, AsusRouterDataError):
             return self._return_state(datatype, **kwargs)
 
-        # Check flags
         await self._check_flags()
 
-        # Check postrequisites
         await self._check_postrequisites(datatype)
 
-        # Return the data we were looking for
         _LOGGER.debug(
             "Returning data for `%s` with object type `%s`",
             datatype,
-            type(_state_dt.data),
+            type(state_dt.data),
         )
         return self._return_state(datatype, **kwargs)
 
@@ -1064,7 +968,6 @@ class AsusRouter:
 
         _LOGGER.debug("Triggered method async_run_service")
 
-        # Run the service
         result, self._needed_time, self._last_id = await async_call_service(
             self.async_api_command,
             service,
@@ -1085,13 +988,9 @@ class AsusRouter:
 
         dependency = get_datatype(state)
 
-        if dependency == AsusData.VPNC:
-            # VPNC state change requires the correct previous state
-            await self.async_get_data(AsusData.VPNC, force=True)
-
-        elif dependency == AsusData.AURA:
-            # Aura state change requires the correct previous state
-            await self.async_get_data(AsusData.AURA, force=True)
+        if dependency in (AsusData.VPNC, AsusData.AURA):
+            # State change requires the correct previous state
+            await self.async_get_data(dependency, force=True)
 
     def _async_get_state_callback(
         self, state: AsusState
@@ -1100,9 +999,7 @@ class AsusRouter:
 
         _LOGGER.debug("Triggered method _async_get_state_callback")
 
-        datatype = get_datatype(state)
-        # If state is one of AsusState.AURA enum
-        if datatype == AsusData.AURA:
+        if get_datatype(state) == AsusData.AURA:
             return self.async_api_command
 
         return self.async_run_service
@@ -1123,10 +1020,8 @@ class AsusRouter:
             expect_modify,
         )
 
-        # Check dependencies
         await self._async_check_state_dependency(state)
 
-        # Get the state callback
         callback = self._async_get_state_callback(state)
 
         result = await set_state(
@@ -1138,14 +1033,10 @@ class AsusRouter:
             **kwargs,
         )
 
-        # Rewrite the result if it is the default one
-        if result == DEFAULT_RESULT_SUCCESS:
-            result = True
-
         if result is True:
-            _datatype = get_datatype(state)
+            datatype = get_datatype(state)
 
-            if _datatype in (AsusData.VPNC, AsusData.AURA):
+            if datatype in (AsusData.VPNC, AsusData.AURA):
                 # The only way to make it work with VPN Fusion
                 await asyncio.sleep(1)
                 await self._async_check_state_dependency(state)
@@ -1153,14 +1044,9 @@ class AsusRouter:
                 get_enum_key_by_value(
                     AsusState, type(state), default=AsusState.NONE
                 )
-                == AsusState.PC_RULE
+                != AsusState.PC_RULE
             ):
-                # We should not save this state, since it is saved differently
-                pass
-            else:
-                # Check if we have a state object for this data
-                self._check_state(_datatype)
-                # Save the state
+                self._check_state(datatype)
                 _LOGGER.debug(
                     "Saving state `%s` for `%s` s with id=`%s`",
                     state,
@@ -1170,7 +1056,6 @@ class AsusRouter:
                 save_state(
                     state, self._state, self._needed_time, self._last_id
                 )
-                # Reset the needed time and last id
                 self._needed_time = None
                 self._last_id = None
 
@@ -1219,16 +1104,13 @@ class AsusRouter:
         ips = set() if ips is None else set(safe_list(ips))
         rules = [] if rules is None else safe_list(rules)
 
-        # Get current rules
         current_rules: list[PortForwardingRule] = (
             await self.async_get_data(AsusData.PORT_FORWARDING)
         )["rules"]
 
-        # Remove all rules for these IPs
         current_rules = [
             rule for rule in current_rules if rule.ip_address not in ips
         ]
-        # Remove exact rules
         for rule_to_find in rules:
             current_rules = [
                 rule
@@ -1248,11 +1130,9 @@ class AsusRouter:
                 )
             ]
 
-        # Apply new rules
         if apply:
             await self.async_apply_port_forwarding_rules(current_rules)
 
-        # Return the new rules
         return current_rules
 
     async def async_set_port_forwarding_rules(
@@ -1263,7 +1143,6 @@ class AsusRouter:
 
         rules = safe_list(rules)
 
-        # Get current rules
         current_rules: list[PortForwardingRule] = (
             await self.async_get_data(AsusData.PORT_FORWARDING)
         )["rules"]
@@ -1271,10 +1150,8 @@ class AsusRouter:
         # Make a copy to avoid modifying the original list
         current_rules = list(current_rules)
 
-        # Add new rules
         current_rules.extend(rules)
 
-        # Apply new rules
         return await self.async_apply_port_forwarding_rules(current_rules)
 
     # ---------------------------
