@@ -46,14 +46,13 @@ from asusrouter.error import (
     AsusRouterFallbackForbiddenError,
     AsusRouterFallbackLoopError,
     AsusRouterLogoutError,
-    AsusRouterNotImplementedError,
     AsusRouterSSLCertificateError,
     AsusRouterTimeoutError,
 )
 from asusrouter.modules.endpoint.error import handle_access_error
 from asusrouter.modules.endpoint_v2 import AREndpoint, get_endpoint_sensitive
 from asusrouter.tools.connection import get_cookie_jar
-from asusrouter.tools.converters_v2.raw import raw_to_float, raw_to_str
+from asusrouter.tools.converters_v2.raw import raw_to_str
 from asusrouter.tools.security import ARSecurityLevel
 
 _LOGGER = logging.getLogger(__name__)
@@ -66,7 +65,6 @@ class ConnectionFallback(StrEnum):
 
     HTTP = "http"
     HTTPS = "https"
-    HTTPS_UNSAFE = "https_unsafe"
 
 
 def generate_credentials(
@@ -125,6 +123,12 @@ def _payload_for_logging(
 def _log_request(endpoint: AREndpoint, payload: str | None) -> None:
     """Log the request details."""
 
+    # Skip all payload resolution work when debug logging is disabled.
+    # _payload_for_logging converts the payload and resolves security
+    # levels — wasted effort if the result is never emitted.
+    if not _LOGGER.isEnabledFor(logging.DEBUG):
+        return
+
     security_level = ARConfig.get(ARConfKey.DEBUG_PAYLOAD)
     payload_to_log = _payload_for_logging(security_level, endpoint, payload)
 
@@ -180,12 +184,7 @@ class Connection:  # pylint: disable=too-many-instance-attributes
         _LOGGER.debug("Initializing a new connection to `%s`", hostname)
 
         self._config = ARConnectionConfig()
-        self._used_fallbacks: dict[ConnectionFallback, bool] = {}
-
-        if config is not None:
-            _LOGGER.debug("Using provided connection config: %s", config)
-            for key, value in config.items():
-                self._config.set(key, value)
+        self._used_fallbacks: set[ConnectionFallback] = set()
 
         self._token: str | None = None
         self._header: dict[str, str] | None = None
@@ -194,13 +193,13 @@ class Connection:  # pylint: disable=too-many-instance-attributes
         self._timeout: int = timeout or DEFAULT_TIMEOUT
 
         # Single in-flight connect task (serialize connection attempts)
-        self._connect_task: asyncio.Task[Any] | None = None
+        self._connect_task: asyncio.Task[bool] | None = None
         # Lock to guard creation of the connect task
         self._connect_task_lock: asyncio.Lock = asyncio.Lock()
 
-        self._hostname = hostname
-        self._username = username
-        self._password = password
+        self._hostname: str = hostname
+        self._username: str = username
+        self._password: str = password
         self._auth_payload, self._auth_headers = generate_credentials(
             username, password
         )
@@ -210,11 +209,17 @@ class Connection:  # pylint: disable=too-many-instance-attributes
             port or (DEFAULT_PORT_HTTPS if use_ssl else DEFAULT_PORT_HTTP),
         )
         self.config.set(ARCCKey.USE_SSL, use_ssl)
+
+        if config is not None:
+            _LOGGER.debug("Using provided connection config: %s", config)
+            for key, value in config.items():
+                self._config.set(key, value)
+
         _LOGGER.debug(
             "Using `%s` and port `%s` with ssl flag `%s`",
             self.http,
             self.config.get(ARCCKey.PORT),
-            use_ssl,
+            self.config.get(ARCCKey.USE_SSL),
         )
 
         self._dumpback = dumpback
@@ -244,6 +249,44 @@ class Connection:  # pylint: disable=too-many-instance-attributes
 
     # ---------------------------
     # <-- Init / Context manager
+    # ---------------------------
+
+    # ---------------------------
+    # Properties -->
+    # ---------------------------
+
+    @property
+    def config(self) -> ARConnectionConfig:
+        """Return connection config."""
+
+        return self._config
+
+    @property
+    def connected(self) -> bool:
+        """Return connection status."""
+
+        return self._connected
+
+    @property
+    def http(self) -> str:
+        """Return HTTP scheme."""
+
+        return "https" if self._config.get(ARCCKey.USE_SSL) else "http"
+
+    @property
+    def port(self) -> int:
+        """Return port number."""
+
+        return safe_int_config(self._config.get(ARCCKey.PORT))
+
+    @property
+    def webpanel(self) -> str:
+        """Return web panel URL."""
+
+        return f"{self.http}://{self._hostname}:{self.port}"
+
+    # ---------------------------
+    # <-- Properties
     # ---------------------------
 
     # ---------------------------
@@ -290,9 +333,7 @@ class Connection:  # pylint: disable=too-many-instance-attributes
         if self._connected:
             return True
 
-        timeout = (
-            raw_to_float(t_overwrite) if t_overwrite is not None else None
-        ) or self._timeout
+        timeout = t_overwrite or self._timeout
 
         task = await self._ensure_connect_task()
         if task is None:
@@ -302,8 +343,9 @@ class Connection:  # pylint: disable=too-many-instance-attributes
             # Await the in-flight connect but don't cancel it on
             # outer timeout: use shield so that callers timing out
             # won't cancel the actual attempt.
-            await asyncio.wait_for(asyncio.shield(task), timeout=timeout)
-            return True
+            return await asyncio.wait_for(
+                asyncio.shield(task), timeout=timeout
+            )
         except TimeoutError:
             if not block_error:
                 _LOGGER.error("Connection to %s timed out", self._hostname)
@@ -330,7 +372,12 @@ class Connection:  # pylint: disable=too-many-instance-attributes
         async with self._connect_task_lock:
             if self._connected:
                 return None
-            if self._connect_task is None or self._connect_task.done():
+            if self._connect_task is not None and self._connect_task.done():
+                if not self._connect_task.cancelled():
+                    with contextlib.suppress(Exception):
+                        self._connect_task.result()
+                self._connect_task = None
+            if self._connect_task is None:
                 self._connect_task = asyncio.create_task(self._login())
             # Capture before releasing the lock: another coroutine's
             # _clear_connect_task could set self._connect_task = None
@@ -374,12 +421,10 @@ class Connection:  # pylint: disable=too-many-instance-attributes
                 f"Cannot access {AREndpoint.LOGIN} "
                 "due to the SSL certificate error"
             ) from ex
-        except AsusRouterAccessError as ex:
-            raise AsusRouterAccessError(
-                f"Cannot access {AREndpoint.LOGIN}. Failed in `async_connect`"
-            ) from ex
         except AsusRouterError as ex:
-            _LOGGER.debug("Connection failed with error: %s", ex)
+            _LOGGER.debug(
+                "Connection to %s failed with error: %s", self._hostname, ex
+            )
             raise
         except Exception as ex:  # pylint: disable=broad-except
             _LOGGER.debug(
@@ -421,13 +466,15 @@ class Connection:  # pylint: disable=too-many-instance-attributes
 
         # Cancel any in-flight connect task so it can't re-establish
         # connection state after we tear it down.
-        old_task: asyncio.Task[Any] | None = None
+        old_task: asyncio.Task[bool] | None = None
         async with self._connect_task_lock:
-            pending = self._connect_task
-            if pending is not None and not pending.done():
-                old_task = pending
-                old_task.cancel()
+            if (
+                self._connect_task is not None
+                and not self._connect_task.done()
+            ):
+                old_task = self._connect_task
                 self._connect_task = None
+                old_task.cancel()
 
         if old_task is not None:
             with contextlib.suppress(asyncio.CancelledError, Exception):
@@ -446,7 +493,10 @@ class Connection:  # pylint: disable=too-many-instance-attributes
             )
             return False
 
-        return False
+        # Router returned a non-error response — unexpected but auth is gone.
+        self.reset_auth()
+        _LOGGER.debug("Disconnected from %s", self._hostname)
+        return True
 
     def reset_auth(self) -> None:
         """Clear auth state when the connection is no longer valid."""
@@ -480,6 +530,12 @@ class Connection:  # pylint: disable=too-many-instance-attributes
             )
             self.reset_auth()
             self._session = self._create_session()
+            # If called from within the in-flight login task, awaiting
+            # async_connect() would await the current task itself and
+            # deadlock until the outer timeout fires. The ongoing login
+            # proceeds on the fresh session, so skip the nested reconnect.
+            if asyncio.current_task() is self._connect_task:
+                return
             await self.async_connect()
             if not self._connected:
                 raise AsusRouterTimeoutError(
@@ -532,43 +588,19 @@ class Connection:  # pylint: disable=too-many-instance-attributes
 
             _check_response(endpoint, resp_status, resp_headers, resp_content)
 
-            if self.config.get(ARCCKey.ALLOW_MULTIPLE_FALLBACKS):
+            if self._used_fallbacks:
+                if not self.config.get(ARCCKey.ALLOW_MULTIPLE_FALLBACKS):
+                    # Config discovery complete — lock connection parameters
+                    # so no further fallbacks alter the working config.
+                    self.config.set(ARCCKey.ALLOW_FALLBACK, False)
                 self._used_fallbacks.clear()
 
             return (resp_status, resp_headers, resp_content)
 
-        except ssl.SSLCertVerificationError as ex:
-            if self.config.get(
-                ARCCKey.STRICT_SSL
-            ) is False and self.config.get(ARCCKey.ALLOW_FALLBACK):
-                _LOGGER.warning(
-                    "Cannot verify SSL certificate. Since `STRICT_SSL` "
-                    "configuration is disabled, falling back to HTTP "
-                    "with a default port"
-                )
-                await self._fallback()
-                return await self._send_request(
-                    endpoint, payload, headers, request_type
-                )
-            raise AsusRouterSSLCertificateError(
-                "SSL certificate verification failed. Your configuration "
-                "requires a strict SSL certificate verification."
-            ) from ex
-
         except aiohttp.ClientConnectorError as ex:
-            if self.config.get(ARCCKey.ALLOW_FALLBACK):
-                return await self._async_handle_fallback(
-                    callback=self._send_request,
-                    endpoint=endpoint,
-                    payload=payload,
-                    headers=headers,
-                    request_type=request_type,
-                )
-            self.reset_auth()
-            raise AsusRouterConnectionError(
-                f"Cannot connect to `{self._hostname}` on port "
-                f"`{self.port}`. Failed in `_send_request` with error: `{ex}`"
-            ) from ex
+            return await self._handle_connector_error(
+                ex, endpoint, payload, headers, request_type
+            )
 
         except (aiohttp.ClientConnectionError, aiohttp.ClientOSError) as ex:
             raise AsusRouterConnectionError(
@@ -578,7 +610,7 @@ class Connection:  # pylint: disable=too-many-instance-attributes
 
         except TimeoutError as ex:
             raise AsusRouterTimeoutError(
-                f"Data cannot be retrieved due to an asyncio error. "
+                "Data cannot be retrieved due to an asyncio error. "
                 f"Connection failed: {ex}"
             ) from ex
 
@@ -593,6 +625,56 @@ class Connection:  # pylint: disable=too-many-instance-attributes
             )
             raise
 
+    async def _handle_connector_error(
+        self,
+        ex: aiohttp.ClientConnectorError,
+        endpoint: AREndpoint,
+        payload: str | None,
+        headers: dict[str, str] | None,
+        request_type: RequestType,
+    ) -> tuple[int, dict[str, str], str]:
+        """Route a ClientConnectorError to the appropriate handler.
+
+        Detects SSL certificate verification errors and handles them
+        separately from general connectivity failures.
+        """
+
+        if isinstance(ex, aiohttp.ClientConnectorSSLError) and isinstance(
+            ex.os_error, ssl.SSLCertVerificationError
+        ):
+            if not self.config.get(ARCCKey.STRICT_SSL) and self.config.get(
+                ARCCKey.ALLOW_FALLBACK
+            ):
+                _LOGGER.warning(
+                    "Cannot verify SSL certificate. Since `STRICT_SSL` "
+                    "configuration is disabled, falling back to HTTP "
+                    "with a default port"
+                )
+                self._used_fallbacks.add(ConnectionFallback.HTTPS)
+                await self._apply_fallback(
+                    {ARCCKey.USE_SSL: False, ARCCKey.PORT: DEFAULT_PORT_HTTP}
+                )
+                return await self._send_request(
+                    endpoint, payload, headers, request_type
+                )
+            raise AsusRouterSSLCertificateError(
+                "SSL certificate verification failed. Your configuration "
+                "requires a strict SSL certificate verification."
+            ) from ex
+        if self.config.get(ARCCKey.ALLOW_FALLBACK):
+            return await self._handle_fallback(
+                callback=self._send_request,
+                endpoint=endpoint,
+                payload=payload,
+                headers=headers,
+                request_type=request_type,
+            )
+        self.reset_auth()
+        raise AsusRouterConnectionError(
+            f"Cannot connect to `{self._hostname}` on port "
+            f"`{self.port}`. Failed in `_send_request` with error: `{ex}`"
+        ) from ex
+
     async def _make_request(
         self,
         endpoint: AREndpoint,
@@ -602,7 +684,7 @@ class Connection:  # pylint: disable=too-many-instance-attributes
     ) -> tuple[int, Any, str]:
         """Make an HTTP request and return raw (status, headers, content)."""
 
-        if not headers:
+        if headers is None:
             headers = self._header
 
         url = f"{self.webpanel}/{endpoint.value}"
@@ -610,12 +692,15 @@ class Connection:  # pylint: disable=too-many-instance-attributes
         if request_type == RequestType.GET and payload:
             url = f"{url}?{payload.replace(';', '&')}"
 
-        payload_to_send = quote(payload) if payload else None
+        if request_type == RequestType.POST:
+            payload_to_send = quote(payload) if payload else None
+        else:
+            payload_to_send = None
 
         async with self._session.request(  # type: ignore[union-attr]
             request_type.value,
             url,
-            data=payload_to_send if request_type == RequestType.POST else None,
+            data=payload_to_send,
             headers=headers,
             ssl=self.config.get(ARCCKey.VERIFY_SSL),
         ) as response:
@@ -642,47 +727,50 @@ class Connection:  # pylint: disable=too-many-instance-attributes
     # Fallback handling -->
     # ---------------------------
 
-    async def _async_handle_fallback(
-        self, callback: Callable[..., Awaitable[_T]], **kwargs: Any
-    ) -> _T:
-        """Handle fallbacks on sending requests.
+    def _next_fallback_config(self) -> dict[ARCCKey, Any]:
+        """Return config delta for the next fallback transition.
 
-        The matrix for the automatic feedback is as follows:
+        Reads current connection state, checks loop detection and
+        constraints, logs the transition, marks the fallback as used,
+        and returns the config keys to apply.
 
-        | Con @ Port      | New @ port      | Required config             |
-        | --------------- | --------------- | --------------------------- |
-        | HTTPS @ Custom  | HTTPS @ Default |                             |
-        | HTTPS @ Default | HTTP @ Default  | STRICT_SSL not set          |
-        | HTTP @ Custom   | HTTP @ Default  |                             |
-        | HTTP @ Default  | HTTPS @ Default | ALLOW_UPGRADE_HTTP_TO_HTTPS |
+        Fallback matrix:
+        | Current             | Next            | Guard                   |
+        | ------------------- | --------------- | ----------------------- |
+        | HTTPS @ custom port | HTTPS @ default |                         |
+        | HTTPS @ default     | HTTP @ default  | STRICT_SSL not set      |
+        | HTTP @ custom port  | HTTP @ default  |                         |
+        | HTTP @ default      | HTTPS @ default | ALLOW_UPGRADE_HTTP→HTTPS|
         """
 
-        if self.config.get(ARCCKey.USE_SSL):
-            # From custom HTTPS to default HTTPS
-            if self.port != DEFAULT_PORT_HTTPS:
-                if self._used_fallbacks.get(ConnectionFallback.HTTPS):
+        use_ssl = self.config.get(ARCCKey.USE_SSL)
+        port = self.port
+
+        if use_ssl:
+            if port != DEFAULT_PORT_HTTPS:
+                if ConnectionFallback.HTTPS in self._used_fallbacks:
                     raise AsusRouterFallbackLoopError(
                         "Fallback loop detected trying to heal HTTPS "
-                        f"connection with set port `{self.port}`"
+                        f"connection with set port `{port}`"
                     )
-
                 _LOGGER.warning(
                     "Cannot connect on the provided HTTPS port `%d`. "
                     "Will fallback to the default port `%d`",
-                    self.port,
+                    port,
                     DEFAULT_PORT_HTTPS,
                 )
-                await self._fallback(fallback_type=ConnectionFallback.HTTPS)
-                # Repeat the attempt
-                return await callback(**kwargs)
+                self._used_fallbacks.add(ConnectionFallback.HTTPS)
+                return {
+                    ARCCKey.USE_SSL: True,
+                    ARCCKey.PORT: DEFAULT_PORT_HTTPS,
+                }
 
-            # From default HTTPS to default HTTP
             if self.config.get(ARCCKey.STRICT_SSL):
                 raise AsusRouterFallbackForbiddenError(
                     "Fallback from HTTPS to HTTP connection is forbidden "
                     "by the `STRICT_SSL` configuration option"
                 )
-            if self._used_fallbacks.get(ConnectionFallback.HTTP):
+            if ConnectionFallback.HTTP in self._used_fallbacks:
                 raise AsusRouterFallbackLoopError(
                     "Fallback loop detected trying to heal HTTPS "
                     "by switching to HTTP"
@@ -694,167 +782,118 @@ class Connection:  # pylint: disable=too-many-instance-attributes
                 DEFAULT_PORT_HTTPS,
                 DEFAULT_PORT_HTTP,
             )
-            await self._fallback(fallback_type=ConnectionFallback.HTTP)
-            # Repeat the attempt
-            return await callback(**kwargs)
+            self._used_fallbacks.add(ConnectionFallback.HTTP)
+            return {ARCCKey.USE_SSL: False, ARCCKey.PORT: DEFAULT_PORT_HTTP}
 
-        # From custom HTTP to default HTTP
-        if self.port != DEFAULT_PORT_HTTP:
-            if self._used_fallbacks.get(ConnectionFallback.HTTP):
+        if port != DEFAULT_PORT_HTTP:
+            if ConnectionFallback.HTTP in self._used_fallbacks:
                 raise AsusRouterFallbackLoopError(
                     "Fallback loop detected trying to heal HTTP "
-                    "by upgrading to HTTPS"
+                    f"connection with set port `{port}`"
                 )
-
             _LOGGER.warning(
                 "Cannot connect on the custom HTTP port `%d`. "
                 "Will try using the default HTTP port `%d`",
-                self.port,
+                port,
                 DEFAULT_PORT_HTTP,
             )
-            await self._fallback(fallback_type=ConnectionFallback.HTTP)
-            # Repeat the attempt
-            return await callback(**kwargs)
+            self._used_fallbacks.add(ConnectionFallback.HTTP)
+            return {ARCCKey.USE_SSL: False, ARCCKey.PORT: DEFAULT_PORT_HTTP}
 
-        # From default HTTP to default HTTPS
-        if self.config.get(ARCCKey.ALLOW_UPGRADE_HTTP_TO_HTTPS):
-            # Force certificate verification
-            self.config.set(ARCCKey.VERIFY_SSL, True)
-            if self._used_fallbacks.get(ConnectionFallback.HTTPS):
-                raise AsusRouterFallbackLoopError(
-                    "Fallback loop detected trying to heal HTTP "
-                    "by upgrading to HTTPS"
-                )
-
-            _LOGGER.warning(
-                "Cannot connect on the default HTTP port `%d`. "
-                "Will try upgrading to the default HTTPS port `%d`",
-                self.port,
-                DEFAULT_PORT_HTTPS,
+        if not self.config.get(ARCCKey.ALLOW_UPGRADE_HTTP_TO_HTTPS):
+            raise AsusRouterFallbackError(
+                "Cannot connect on HTTP — no further fallback options. "
+                "Enable `ALLOW_UPGRADE_HTTP_TO_HTTPS` to allow HTTPS upgrade."
             )
-            await self._fallback(fallback_type=ConnectionFallback.HTTPS)
-            # Repeat the attempt
-            return await callback(**kwargs)
-
-        raise AsusRouterFallbackError(
-            "Automatic fallback failed. Consider disabling it."
+        if ConnectionFallback.HTTPS in self._used_fallbacks:
+            raise AsusRouterFallbackLoopError(
+                "Fallback loop detected trying to upgrade HTTP to HTTPS"
+            )
+        _LOGGER.warning(
+            "Cannot connect on the default HTTP port `%d`. "
+            "Will try upgrading to the default HTTPS port `%d`",
+            DEFAULT_PORT_HTTP,
+            DEFAULT_PORT_HTTPS,
         )
+        self._used_fallbacks.add(ConnectionFallback.HTTPS)
+        return {
+            ARCCKey.USE_SSL: True,
+            ARCCKey.PORT: DEFAULT_PORT_HTTPS,
+        }
 
-    async def _fallback(
-        self, fallback_type: ConnectionFallback | None = None
-    ) -> None:
-        """Perform connection fallback."""
+    async def _apply_fallback(self, config: dict[ARCCKey, Any]) -> None:
+        """Apply fallback config, then reconnect unless in login context.
 
-        if not fallback_type:
-            fallback_type = ConnectionFallback.HTTP
+        Sets each config key, cancels any in-flight connect task (skipping
+        self-cancel when called from within the login task), resets auth
+        state, and reconnects with a short fallback timeout.
 
-        # Mark fallback type as used to avoid loops
-        self._used_fallbacks[fallback_type] = True
+        When called from within the active login task (login context),
+        skips the reconnect step entirely — _login retries _send_request
+        directly on the updated config, so no extra login request is made.
+        _connect_task is left pointing to the current task so that any
+        further fallbacks in the same login chain also detect login context.
+        """
 
-        # Set fallback connection parameters
-        match fallback_type:
-            case ConnectionFallback.HTTP:
-                self.config.set(ARCCKey.USE_SSL, False)
-                self.config.set(ARCCKey.PORT, DEFAULT_PORT_HTTP)
-                # We should not change the VERIFY_SSL setting here
+        for key, value in config.items():
+            self.config.set(key, value)
 
-            case ConnectionFallback.HTTPS:
-                self.config.set(ARCCKey.USE_SSL, True)
-                self.config.set(ARCCKey.PORT, DEFAULT_PORT_HTTPS)
-                # We should not change the VERIFY_SSL setting here
-
-            case ConnectionFallback.HTTPS_UNSAFE:
-                self.config.set(ARCCKey.USE_SSL, True)
-                self.config.set(ARCCKey.PORT, DEFAULT_PORT_HTTPS)
-                self.config.set(ARCCKey.VERIFY_SSL, False)
-
-            case _:
-                raise AsusRouterNotImplementedError(
-                    f"Connection fallback not implemented: {fallback_type}"
-                )
-
-        # Reconnect with new parameters
-        # If there is an in-flight connect task, cancel it first so the
-        # fallback can start a fresh immediate connection attempt instead of
-        # awaiting the old (failing) task until its timeout.
-        old_task: asyncio.Task | None = None
+        current = asyncio.current_task()
+        old_task: asyncio.Task[bool] | None = None
+        login_context = False
         async with self._connect_task_lock:
             if (
                 self._connect_task is not None
                 and not self._connect_task.done()
             ):
-                _LOGGER.debug(
-                    "Cancelling in-flight connect attempt to "
-                    "allow fallback reconnect"
-                )
-                # Capture and cancel the in-flight connect task
-                # so we can await it later (outside the lock)
-                # and consume any exception it raises.
                 old_task = self._connect_task
-                with contextlib.suppress(Exception):
+                if old_task is current:
+                    login_context = True
+                    # Leave _connect_task as-is so the next fallback
+                    # call in this login chain also detects login context.
+                else:
+                    self._connect_task = None
+                    _LOGGER.debug(
+                        "Cancelling in-flight connect attempt to "
+                        "allow fallback reconnect"
+                    )
                     old_task.cancel()
-                # Clear reference so a new connect can be started by fallback
-                self._connect_task = None
 
-        # Await the cancelled task to consume its exception (if any).
-        # Do this outside the connect_task_lock to avoid deadlocks.
-        if old_task is not None:
-            try:
+        if old_task is not None and not login_context:
+
+            def _log_task_exc(task: asyncio.Task[bool]) -> None:
+                if not task.cancelled() and (exc := task.exception()):
+                    _LOGGER.debug(
+                        "In-flight connect task raised after cancel: %s",
+                        exc,
+                    )
+
+            old_task.add_done_callback(_log_task_exc)
+            with contextlib.suppress(asyncio.CancelledError, Exception):
                 await old_task
-            except asyncio.CancelledError:
-                # expected due to cancel()
-                pass
-            except Exception as exc:  # noqa: BLE001
-                _LOGGER.debug(
-                    "In-flight connect task finished after cancel with: %s",
-                    exc,
-                )
 
-        # Reset connection state and perform a bounded reconnect
-        # for the fallback.
         self.reset_auth()
-        await self.async_connect(
+        if login_context:
+            # Config is updated. _login will retry _send_request on the
+            # new config — a separate reconnect here would add a redundant
+            # login request.
+            return
+        if not await self.async_connect(
             t_overwrite=DEFAULT_TIMEOUT_FALLBACK, block_error=True
-        )
+        ):
+            raise AsusRouterConnectionError(
+                f"Fallback reconnect to `{self._hostname}` failed"
+            )
+
+    async def _handle_fallback(
+        self, callback: Callable[..., Awaitable[_T]], **kwargs: Any
+    ) -> _T:
+        """Select next fallback config, apply it, and retry callback."""
+
+        config = self._next_fallback_config()
+        await self._apply_fallback(config)
+        return await callback(**kwargs)
 
     # ---------------------------
     # <-- Fallback handling
-    # ---------------------------
-
-    # ---------------------------
-    # Properties -->
-    # ---------------------------
-
-    @property
-    def config(self) -> ARConnectionConfig:
-        """Return connection config."""
-
-        return self._config
-
-    @property
-    def connected(self) -> bool:
-        """Return connection status."""
-
-        return self._connected
-
-    @property
-    def http(self) -> str:
-        """Return HTTP scheme."""
-
-        return "https" if self._config.get(ARCCKey.USE_SSL) else "http"
-
-    @property
-    def port(self) -> int:
-        """Return port number."""
-
-        return safe_int_config(self._config.get(ARCCKey.PORT))
-
-    @property
-    def webpanel(self) -> str:
-        """Return web panel URL."""
-
-        return f"{self.http}://{self._hostname}:{self.port}"
-
-    # ---------------------------
-    # <-- Properties
     # ---------------------------

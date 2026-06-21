@@ -170,6 +170,21 @@ class TestAsyncConnect:
             with pytest.raises(asyncio.CancelledError):
                 await outer
 
+    async def test_login_returns_false_propagates(
+        self,
+        connection_factory: ConnectionFactory,
+        login: AsyncPatch,
+    ) -> None:
+        """Returns False when _login completes with False (e.g. no token)."""
+
+        conn = connection_factory()
+        login(conn, return_value=False)
+
+        result = await conn.async_connect()
+
+        assert result is False
+        assert conn._connected is False
+
     async def test_connect_task_cleared_after_completion(
         self,
         connection_factory: ConnectionFactory,
@@ -246,17 +261,45 @@ class TestEnsureConnectTask:
         connection_factory: ConnectionFactory,
         login: AsyncPatch,
     ) -> None:
-        """Creates a new Task when the previous one is already done."""
+        """Creates a new Task and consumes a finished previous one."""
 
         conn = connection_factory()
         login(conn, return_value=True)
         done_task: asyncio.Task[bool] = Mock(spec=asyncio.Task)
         done_task.done.return_value = True  # type: ignore[attr-defined]
+        done_task.cancelled.return_value = False  # type: ignore[attr-defined]
+        done_task.result.return_value = True  # type: ignore[attr-defined]
         conn._connect_task = done_task
 
         task = await conn._ensure_connect_task()
 
+        assert task is not None
         assert task is not done_task
+        # Finished task's result is consumed to avoid "never retrieved".
+        done_task.result.assert_called_once()  # type: ignore[attr-defined]
+        with contextlib.suppress(Exception):
+            await task
+
+    async def test_consumes_exception_from_previous_done_task(
+        self,
+        connection_factory: ConnectionFactory,
+        login: AsyncPatch,
+    ) -> None:
+        """Swallows an exception from a finished previous task."""
+
+        conn = connection_factory()
+        login(conn, return_value=True)
+        done_task: asyncio.Task[bool] = Mock(spec=asyncio.Task)
+        done_task.done.return_value = True  # type: ignore[attr-defined]
+        done_task.cancelled.return_value = False  # type: ignore[attr-defined]
+        done_task.result.side_effect = RuntimeError("boom")  # type: ignore[attr-defined]
+        conn._connect_task = done_task
+
+        task = await conn._ensure_connect_task()  # must not raise
+
+        assert task is not None
+        assert task is not done_task
+        done_task.result.assert_called_once()  # type: ignore[attr-defined]
         with contextlib.suppress(Exception):
             await task
 
@@ -394,7 +437,7 @@ class TestLogin:
             (
                 AsusRouterAccessError("denied"),
                 AsusRouterAccessError,
-                r"Failed in `async_connect`",
+                "denied",
             ),
             (
                 AsusRouterError("generic"),
@@ -525,7 +568,7 @@ class TestAsyncDisconnect:
         [
             (AsusRouterLogoutError("ok"), None, True, True),
             (AsusRouterError("fail"), None, False, False),
-            (None, (200, {}, ""), False, False),
+            (None, (200, {}, ""), True, True),
         ],
         ids=["logout_error_success", "asusrouter_error", "unexpected_200"],
     )
@@ -599,8 +642,8 @@ class TestResetAuth:
     def test_reset_auth(
         self,
         connected: bool,
-        token: str,
-        header: dict[str, str],
+        token: str | None,
+        header: dict[str, str] | None,
         expect_cleared: bool,
         connection_factory: ConnectionFactory,
     ) -> None:

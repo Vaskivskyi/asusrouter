@@ -115,6 +115,31 @@ class TestEnsureSession:
         ):
             await conn._ensure_session()
 
+    async def test_session_closed_in_login_context_skips_reconnect(
+        self,
+        connection_factory: ConnectionFactory,
+        new_session: SyncPatch,
+        async_connect: AsyncPatch,
+    ) -> None:
+        """Recreates session but skips reconnect when in login task."""
+
+        conn = connection_factory()
+        closed_session = MagicMock()
+        closed_session.closed = True
+        conn._session = closed_session
+        mock_new_session = new_session(conn)
+        mock_connect = async_connect(conn)
+
+        async def login_body() -> None:
+            conn._connect_task = asyncio.current_task()
+            await conn._ensure_session()
+
+        await asyncio.create_task(login_body())
+
+        mock_new_session.assert_called_once()
+        mock_connect.assert_not_called()
+        assert conn._session is mock_new_session.return_value
+
 
 class TestAsyncQuery:
     """Tests for Connection.async_query."""
@@ -318,7 +343,9 @@ class TestSendRequest:
             nonlocal call_count
             call_count += 1
             if call_count == 1:
-                raise ssl.SSLCertVerificationError
+                raise aiohttp.ClientConnectorSSLError(
+                    MagicMock(), ssl.SSLCertVerificationError()
+                )
             return (200, {}, "ok")
 
         make_request(conn, side_effect=ssl_then_ok)
@@ -331,6 +358,9 @@ class TestSendRequest:
             result = await conn._send_request(self._ENDPOINT)
             assert result == (200, {}, "ok")
             mock_fallback.assert_called_once()
+            # Discovery complete: tracker cleared, config locked.
+            assert not conn._used_fallbacks
+            assert conn.config.get(ARCCKey.ALLOW_FALLBACK) is False
 
     @pytest.mark.parametrize(
         ("allow_fallback", "expected_exc"),
@@ -362,7 +392,7 @@ class TestSendRequest:
         if allow_fallback:
             with patch.object(
                 conn,
-                "_async_handle_fallback",
+                "_handle_fallback",
                 new_callable=AsyncMock,
                 return_value=(200, {}, "ok"),
             ) as mock_fallback:
@@ -383,22 +413,29 @@ class TestSendRequest:
             mock_reset.assert_called_once()
 
     @pytest.mark.parametrize(
-        ("allow_multiple", "expect_clear"),
-        [(True, True), (False, False)],
-        ids=["clears_tracker", "leaves_tracker"],
+        ("allow_multiple", "expect_lock"),
+        [(True, False), (False, True)],
+        ids=["multiple_clears_no_lock", "single_clears_and_locks"],
     )
-    async def test_allow_multiple_fallbacks_tracker(
+    async def test_fallback_tracker_on_success(
         self,
         allow_multiple: bool,
-        expect_clear: bool,
+        expect_lock: bool,
         connection_factory: ConnectionFactory,
         make_request: AsyncPatch,
         log_request: SyncPatch,
     ) -> None:
-        """Clears _used_fallbacks when ALLOW_MULTIPLE_FALLBACKS is True."""
+        """Always clears _used_fallbacks on success.
+
+        Locks ALLOW_FALLBACK permanently when ALLOW_MULTIPLE_FALLBACKS is
+        False.
+        """
 
         conn = connection_factory(
-            config={ARCCKey.ALLOW_MULTIPLE_FALLBACKS: allow_multiple}
+            config={
+                ARCCKey.ALLOW_FALLBACK: True,
+                ARCCKey.ALLOW_MULTIPLE_FALLBACKS: allow_multiple,
+            }
         )
         self._open_session(conn)
         log_request(conn)
@@ -409,10 +446,11 @@ class TestSendRequest:
 
         await conn._send_request(self._ENDPOINT)
 
-        if expect_clear:
-            tracker.clear.assert_called_once()
+        tracker.clear.assert_called_once()
+        if expect_lock:
+            assert conn.config.get(ARCCKey.ALLOW_FALLBACK) is False
         else:
-            tracker.clear.assert_not_called()
+            assert conn.config.get(ARCCKey.ALLOW_FALLBACK) is True
 
     async def test_log_request_called_with_correct_args(
         self,

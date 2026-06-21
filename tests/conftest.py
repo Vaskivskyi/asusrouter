@@ -86,13 +86,13 @@ def mock_login(
 def mock_fallback(
     universal_mock: UniversalMockPatcher,
 ) -> AsyncPatch:
-    """Fixture to patch the `_fallback` method."""
+    """Fixture to patch the `_apply_fallback` method."""
 
     def _patch(
         connection: Any, side_effect: Any = None, return_value: Any = None
     ) -> AsyncMock:
         return universal_mock.patch(
-            connection, "_fallback", side_effect, return_value
+            connection, "_apply_fallback", side_effect, return_value
         )
 
     return _patch

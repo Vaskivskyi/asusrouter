@@ -128,6 +128,21 @@ class TestLogRequest:
                 ARSecurityLevel.DEFAULT, AREndpoint.LOGIN, "raw"
             )
 
+    def test_skips_work_when_debug_disabled(self) -> None:
+        """Resolves no payload and emits nothing when DEBUG is off."""
+
+        with (
+            patch(
+                "asusrouter.connection._payload_for_logging",
+            ) as mock_plf,
+            patch("asusrouter.connection._LOGGER") as mock_logger,
+        ):
+            mock_logger.isEnabledFor.return_value = False
+            _log_request(AREndpoint.LOGIN, "raw")
+
+            mock_plf.assert_not_called()
+            mock_logger.debug.assert_not_called()
+
 
 class TestCheckResponse:
     """Tests for _check_response."""
