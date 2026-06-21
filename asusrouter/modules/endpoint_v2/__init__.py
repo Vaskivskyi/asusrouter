@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from enum import StrEnum
+from typing import Any
 
 from asusrouter.const import UNKNOWN_MEMBER_STR, RequestType
 from asusrouter.tools.enum import FromStrMixin
+from asusrouter.tools.readers import read_js_variables, read_json_content
 
 
 class AREndpoint(FromStrMixin, StrEnum):
@@ -93,3 +96,16 @@ def get_endpoint_sensitive(endpoint: AREndpoint) -> bool:
     """Check if the given endpoint is sensitive."""
 
     return get_endpoint_meta(endpoint).sensitive
+
+
+_ENDPOINT_READER: dict[AREndpoint, Callable[[str], dict[str, Any]]] = {
+    AREndpoint.FETCH_TEMPERATURE: read_js_variables,
+}
+
+
+def get_endpoint_reader(
+    endpoint: AREndpoint,
+) -> Callable[[str], dict[str, Any]]:
+    """Get the content reader for the given endpoint."""
+
+    return _ENDPOINT_READER.get(endpoint, read_json_content)

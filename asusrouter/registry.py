@@ -22,7 +22,7 @@ class ARCallableRegistryBase:
 
         self._map: dict[type, dict[str, ARCallableEntry]] = {}
         self._flags: dict[ARCallableType, bool] = {}
-        self._lock = threading.RLock()
+        self._lock = threading.Lock()
 
     def register(self, source_cls: type, **callables: ARCallableEntry) -> None:
         """Register one or more named callables for `source_cls`."""
@@ -63,7 +63,7 @@ class ARCallableRegistryBase:
         """Resolve a registered entry for `source` and `name` by MRO."""
 
         cls = source if isinstance(source, type) else type(source)
-        for base in getattr(cls, "__mro__", ()):
+        for base in cls.__mro__:
             entry = self._map.get(base)
             if entry and name in entry:
                 return entry[name]
@@ -113,7 +113,7 @@ class ARCallableRegistryBase:
         merged: dict[str, ARCallableEntry] = {}
         with self._lock:
             # walk MRO from base -> subclass so subclasses override
-            for base in reversed(getattr(cls, "__mro__", ())):
+            for base in reversed(cls.__mro__):
                 entry = self._map.get(base)
                 if entry:
                     merged.update(entry)

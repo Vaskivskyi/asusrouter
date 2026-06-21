@@ -1,4 +1,4 @@
-"""Tests for the configuration module."""
+"""Tests for the configuration package — base ARConfig."""
 
 from __future__ import annotations
 
@@ -13,23 +13,16 @@ from asusrouter.config import (
     CONFIG_DEFAULT_INT,
     TYPES_DEFAULT,
     ARConfig,
+    ARConfigBase,
     ARConfigKey as ARConfKey,
     safe_bool_config,
     safe_int_config,
-)
-from asusrouter.connection_config import (
-    ARConnectionConfig,
-    ARConnectionConfigKey as ARCCKey,
 )
 
 KEYS_BOOL = [
     ARConfKey.OPTIMISTIC_DATA,
     ARConfKey.OPTIMISTIC_TEMPERATURE,
     ARConfKey.ROBUST_BOOTTIME,
-]
-
-KEYS_INT = [
-    ARCCKey.PORT,
 ]
 
 
@@ -77,6 +70,13 @@ class TestConfig:
         for key in KEYS_BOOL:
             assert key in ARConfig
         assert "not_a_key" not in ARConfig  # type: ignore[operator]
+
+    def test_get_valid_key_not_registered(self) -> None:
+        """A valid enum key that is not registered raises KeyError."""
+
+        empty = ARConfigBase()
+        with pytest.raises(KeyError, match="Unknown configuration option"):
+            empty.get(ARConfKey.OPTIMISTIC_DATA)
 
     def test_keys(self) -> None:
         """Test that we can get the full list of configuration keys."""
@@ -326,23 +326,3 @@ class TestBoolConfig:
 
         ARConfig.set(key, value)
         assert ARConfig.get(key) is value
-
-
-class TestIntConfig:
-    """Tests for integer configuration options."""
-
-    @pytest.mark.parametrize("key", KEYS_INT)
-    def test_default_int(self, key: ARConfKey) -> None:
-        """Test the default value of an integer configuration key."""
-
-        configs = ARConnectionConfig()
-        assert configs.get(key) is CONFIG_DEFAULT_INT
-
-    @pytest.mark.parametrize("key", KEYS_INT)
-    @pytest.mark.parametrize("value", [1, 2, 3])
-    def test_set_int(self, key: ARConfKey, value: int) -> None:
-        """Test setting an integer configuration key."""
-
-        configs = ARConnectionConfig()
-        configs.set(key, value)
-        assert configs.get(key) is value

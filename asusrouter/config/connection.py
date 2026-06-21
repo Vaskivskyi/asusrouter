@@ -10,7 +10,6 @@ from collections.abc import Callable
 from typing import Any
 
 from asusrouter.config import (
-    CONFIG_DEFAULT_ALREADY_NOTIFIED,
     CONFIG_DEFAULT_BOOL,
     CONFIG_DEFAULT_INT,
     ARConfigBase,
@@ -33,12 +32,10 @@ class ARConnectionConfigKey(ARConfigKeyBase):
     PORT = "port"
     # Strict SSL
     STRICT_SSL = "strict_ssl"
-    NOTIFIED_STRICT_SSL_NO_SSL = "notified_strict_ssl_fallback"
     # Use SSL
     USE_SSL = "use_ssl"
     # Verify SSL certificate
     VERIFY_SSL = "verify_ssl"
-    NOTIFIED_VERIFY_SSL_FAILED = "notified_verify_ssl_failed"
 
 
 CONNECTION_CONFIG_DEFAULT: dict[ARConnectionConfigKey, Any] = {
@@ -56,7 +53,6 @@ CONNECTION_CONFIG_DEFAULT: dict[ARConnectionConfigKey, Any] = {
     # If set, AsusRouter will not allow falling back to a non-SSL connection
     # automatically.
     ARConnectionConfigKey.STRICT_SSL: CONFIG_DEFAULT_BOOL,
-    ARConnectionConfigKey.NOTIFIED_STRICT_SSL_NO_SSL: CONFIG_DEFAULT_ALREADY_NOTIFIED,  # noqa: E501
     # Use SSL
     ARConnectionConfigKey.USE_SSL: CONFIG_DEFAULT_BOOL,
     # If set, AsusRouter will verify SSL certificates when connecting
@@ -64,7 +60,6 @@ CONNECTION_CONFIG_DEFAULT: dict[ARConnectionConfigKey, Any] = {
     # connections may fail unless you manually add the issuer to your
     # trusted certificates.
     ARConnectionConfigKey.VERIFY_SSL: CONFIG_DEFAULT_BOOL,
-    ARConnectionConfigKey.NOTIFIED_VERIFY_SSL_FAILED: CONFIG_DEFAULT_ALREADY_NOTIFIED,  # noqa: E501
 }
 
 CONNECTION_CONFIG_TYPES_DEFAULTS: dict[
@@ -80,12 +75,10 @@ CONNECTION_CONFIG_TYPES_DEFAULTS: dict[
     ARConnectionConfigKey.PORT: safe_int_config,
     # Strict SSL
     ARConnectionConfigKey.STRICT_SSL: safe_bool_config,
-    ARConnectionConfigKey.NOTIFIED_STRICT_SSL_NO_SSL: safe_bool_config,
     # Use SSL
     ARConnectionConfigKey.USE_SSL: safe_bool_config,
     # Verify SSL certificate
     ARConnectionConfigKey.VERIFY_SSL: safe_bool_config,
-    ARConnectionConfigKey.NOTIFIED_VERIFY_SSL_FAILED: safe_bool_config,
 }
 
 
