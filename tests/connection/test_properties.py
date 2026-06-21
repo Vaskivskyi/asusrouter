@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import pytest
 
+from asusrouter.config.connection import ARConnectionConfigKey as ARCCKey
 from asusrouter.connection import Connection
-from asusrouter.connection_config import ARConnectionConfigKey as ARCCKey
 from asusrouter.const import DEFAULT_PORT_HTTP, DEFAULT_PORT_HTTPS
 from tests.helpers import TCONST_HOST, TCONST_PASS, TCONST_USER
 

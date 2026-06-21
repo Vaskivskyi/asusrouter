@@ -1,4 +1,4 @@
-"""Test for the configuration module / Instance."""
+"""Tests for the configuration package — ARInstanceConfig."""
 
 from __future__ import annotations
 

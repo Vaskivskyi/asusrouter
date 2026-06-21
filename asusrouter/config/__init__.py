@@ -10,6 +10,9 @@ from typing import Any
 from asusrouter.tools.converters_v2.raw import raw_to_bool, raw_to_int
 from asusrouter.tools.security import ARSecurityLevel
 
+# Sentinel for distinguishing "missing" from a stored None value.
+_MISSING = object()
+
 
 class ARConfigKeyBase(StrEnum):
     """Base configuration key class."""
@@ -96,25 +99,34 @@ class ARConfigBase:
     def set(self, key: ARConfigKeyBase, value: Any) -> None:
         """Set the configuration option."""
 
+        if not isinstance(key, ARConfigKeyBase):
+            raise KeyError(
+                f"Unknown configuration option: {key}. "
+                "Register it before setting."
+            )
         with self._lock:
-            if isinstance(key, ARConfigKeyBase) and key in self._options:
-                converter: Callable[[Any], Any] = self._types.get(
-                    key, safe_bool_config
-                )
-                self._options[key] = converter(value)
-            else:
+            if key not in self._options:
                 raise KeyError(
                     f"Unknown configuration option: {key}. "
                     "Register it before setting."
                 )
+            converter: Callable[[Any], Any] = self._types.get(
+                key, safe_bool_config
+            )
+            self._options[key] = converter(value)
 
     def get(self, key: ARConfigKeyBase) -> Any:
         """Get the configuration option."""
 
-        with self._lock:
-            if isinstance(key, ARConfigKeyBase) and key in self._options:
-                return self._options[key]
+        if not isinstance(key, ARConfigKeyBase):
             raise KeyError(f"Unknown configuration option: {key}")
+        with self._lock:
+            try:
+                return self._options[key]
+            except KeyError:
+                raise KeyError(
+                    f"Unknown configuration option: {key}"
+                ) from None
 
     def keys(self) -> list[ARConfigKeyBase]:
         """Get the list of configuration keys."""
@@ -247,10 +259,13 @@ class ARInstanceConfig(ARConfigBase):
         This method falls back to global ARConfig if not present.
         """
 
-        # Prefer instance option, otherwise consult global config
+        # Prefer instance option, otherwise consult global config.
+        # Single lookup via sentinel — a stored None must not fall through.
         with self._lock:
-            if key in self._options:
-                return self._options[key]
+            value = self._options.get(key, _MISSING)
+
+        if value is not _MISSING:
+            return value
 
         # Defer to global configuration
         return ARConfig.get(key)

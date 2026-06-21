@@ -10,8 +10,8 @@ import pytest
 
 from asusrouter.asusrouter import AsusRouter
 from asusrouter.config import ARInstanceConfig
+from asusrouter.config.connection import ARConnectionConfigKey as ARCCKey
 from asusrouter.connection import Connection
-from asusrouter.connection_config import ARConnectionConfigKey as ARCCKey
 from asusrouter.const import (
     DEFAULT_CACHE_TIME,
     DEFAULT_PORT_HTTP,

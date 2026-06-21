@@ -9,8 +9,8 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
+from asusrouter.config.connection import ARConnectionConfigKey as ARCCKey
 from asusrouter.connection import ConnectionFallback
-from asusrouter.connection_config import ARConnectionConfigKey as ARCCKey
 from asusrouter.const import (
     DEFAULT_PORT_HTTP,
     DEFAULT_PORT_HTTPS,

@@ -11,7 +11,7 @@ from urllib.parse import quote
 import aiohttp
 import pytest
 
-from asusrouter.connection_config import ARConnectionConfigKey as ARCCKey
+from asusrouter.config.connection import ARConnectionConfigKey as ARCCKey
 from asusrouter.const import DEFAULT_PORT_HTTP, RequestType
 from asusrouter.error import (
     AsusRouter404Error,

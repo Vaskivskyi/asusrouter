@@ -16,11 +16,11 @@ from typing import Any, Self
 import aiohttp
 
 from asusrouter.config import ARConfigKey as ARConfKey, ARInstanceConfig
-from asusrouter.connection import Connection
-from asusrouter.connection_config import (
+from asusrouter.config.connection import (
     ARConnectionConfig,
     ARConnectionConfigKey as ARCCKey,
 )
+from asusrouter.connection import Connection
 from asusrouter.const import (
     AR_CALL_GET_STATE,
     AR_CALL_TRANSLATE_STATE,

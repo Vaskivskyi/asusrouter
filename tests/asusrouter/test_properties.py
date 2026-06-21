@@ -8,7 +8,7 @@ import pytest
 
 from asusrouter.asusrouter import AsusRouter
 from asusrouter.config import ARInstanceConfig
-from asusrouter.connection_config import ARConnectionConfig
+from asusrouter.config.connection import ARConnectionConfig
 from asusrouter.const import DEFAULT_PORT_HTTP, DEFAULT_PORT_HTTPS
 from asusrouter.modules.device import ARDeviceSourceUniversal
 from asusrouter.modules.device.identity import ARDeviceIdentity
