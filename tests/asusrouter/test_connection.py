@@ -7,6 +7,7 @@ from unittest.mock import AsyncMock, Mock
 import pytest
 
 from asusrouter.asusrouter import AsusRouter
+from asusrouter.modules.endpoint_v2 import AREndpoint
 
 
 @pytest.mark.asyncio
@@ -98,6 +99,28 @@ async def test_async_connect_fetches_data_and_identity_on_success(
 
     mock_identity.assert_called_once()
     assert result is True
+
+
+@pytest.mark.asyncio
+async def test_async_connect_clears_unavailable_endpoints(
+    router: AsusRouter,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A successful connect re-evaluates endpoint availability."""
+
+    router._unavailable_endpoints.add(AREndpoint.FETCH_TEMPERATURE)
+
+    conn = Mock()
+    conn.async_connect = AsyncMock(return_value=True)
+    monkeypatch.setattr(router, "_connection", conn)
+    monkeypatch.setattr(
+        router, "async_fetch_data", AsyncMock(return_value={"x": 1})
+    )
+    monkeypatch.setattr(router, "_apply_v1_conditional_rules", Mock())
+
+    await router.async_connect()
+
+    assert router._unavailable_endpoints == set()
 
 
 @pytest.mark.asyncio
