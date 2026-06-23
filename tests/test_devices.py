@@ -120,8 +120,9 @@ def load_test_data() -> list[DataItem]:
                         continue
 
                     item = load_test_item(device_path, module_name)
-                    data.append(item)
-                    device_test_count += 1
+                    if item is not None:
+                        data.append(item)
+                        device_test_count += 1
 
                 _LOGGER.info(
                     "Found %s test items for device: %s",

@@ -43,7 +43,6 @@ class AsusData(StrEnum):
     # SPEEDTEST_SERVERS = "speedtest_servers"
     SYSINFO = "sysinfo"
     SYSTEM = "system"
-    TEMPERATURE = "temperature"
     VPNC = "vpnc"
     VPNC_CLIENTLIST = "vpnc_clientlist"
     WAN = "wan"
