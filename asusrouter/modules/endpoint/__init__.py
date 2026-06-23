@@ -30,8 +30,6 @@ _SUBMODULE_MAP: dict[str, str] = {
     AREndpoint.FETCH_FIRMWARE_UPDATE_NOTE_AIMESH: "firmware_note",
     AREndpoint.FETCH_NETWORK: "network",
     AREndpoint.FETCH_ONBOARDING: "onboarding",
-    AREndpoint.FETCH_PORT_STATUS: "port_status",
-    AREndpoint.FETCH_PORTS_ETHERNET: "ethernet_ports",
     AREndpoint.FETCH_SYSINFO: "sysinfo",
     AREndpoint.FETCH_VPN_STATUS: "vpn",
 }

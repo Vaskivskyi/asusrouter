@@ -35,7 +35,6 @@ from asusrouter.error import (
 )
 from asusrouter.modules.data import AsusData, AsusDataState
 from asusrouter.modules.data_finder import (
-    ASUSDATA_ENDPOINT_APPEND,
     ASUSDATA_MAP,
     ASUSDATA_NVRAM,
     AsusDataFinder,
@@ -47,7 +46,6 @@ from asusrouter.modules.data_finder import (
 from asusrouter.modules.data_transform import (
     transform_clients,
     transform_cpu,
-    transform_ethernet_ports,
     transform_network,
     transform_wan,
 )
@@ -690,11 +688,6 @@ class AsusRouter:
     ) -> tuple[int, dict[str, str], str]:
         """Query the API endpoint."""
 
-        if append_map := ASUSDATA_ENDPOINT_APPEND.get(endpoint):
-            extra = ";".join(f"{k}={v}" for k, v in append_map.items() if v)
-            if extra:
-                payload = f"{payload or ''}{extra}"
-
         _LOGGER.debug(
             "Triggered method async_api_query: %s | %s", endpoint, payload
         )
@@ -796,12 +789,6 @@ class AsusRouter:
                 self._state.get(AsusData.NETWORK),
             )
 
-        if datatype == AsusData.PORTS:
-            return transform_ethernet_ports(
-                data,
-                mac.as_asus() if (mac := description.mac) else None,
-            )
-
         if datatype == AsusData.WAN:
             return transform_wan(
                 data,
@@ -856,25 +843,7 @@ class AsusRouter:
 
         _LOGGER.debug("Triggered method _return_state")
 
-        state = self._state[datatype].data
-
-        if datatype == AsusData.PORTS:
-            own_mac = mac.as_asus() if (mac := self.description.mac) else None
-            device = kwargs.get("device")
-
-            match device:
-                case None:
-                    if isinstance(state, dict):
-                        return state.get(own_mac, {})
-                    return state
-                case "all":
-                    return state
-                case str() as node_mac:
-                    if isinstance(state, dict):
-                        return state.get(node_mac, {})
-                    return {}
-
-        return state
+        return self._state[datatype].data
 
     async def async_get_data(  # noqa: C901, PLR0912, PLR0915
         self, datatype: AsusData, force: bool = False, **kwargs: Any

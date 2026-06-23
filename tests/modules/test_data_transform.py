@@ -12,11 +12,9 @@ from asusrouter.modules.data_transform import (
     MODEL_WITH_6GHZ,
     transform_clients,
     transform_cpu,
-    transform_ethernet_ports,
     transform_network,
     transform_wan,
 )
-from asusrouter.modules.ports import ARPortType
 from asusrouter.modules.support.flag import ARSupportType
 from asusrouter.modules.wan import ARWANCapability
 from asusrouter.modules.wifi import ARWiFiBand
@@ -237,47 +235,6 @@ class TestTransformCpu:
         """Empty dict → empty dict returned."""
 
         assert transform_cpu({}) == {}
-
-
-class TestTransformEthernetPorts:
-    """Tests for transform_ethernet_ports."""
-
-    def test_non_porttype_key_returns_as_is(self) -> None:
-        """Any non-ARPortType key → return original data unchanged."""
-
-        data: dict[Any, Any] = {"string_key": {}}
-        result = transform_ethernet_ports(data, "AA:BB:CC:11:22:33")
-        assert result is data
-
-    def test_porttype_keys_no_mac_returns_as_is(self) -> None:
-        """All ARPortType keys but no mac → return original data unchanged."""
-
-        data: dict[Any, Any] = {ARPortType.LAN: {}}
-        result = transform_ethernet_ports(data, None)
-        assert result is data
-
-    def test_porttype_keys_with_mac_wraps_in_mac_dict(self) -> None:
-        """All ARPortType keys + mac → wraps in {mac: data}."""
-
-        data: dict[Any, Any] = {ARPortType.LAN: {"port_1": True}}
-        mac = "AA:BB:CC:11:22:33"
-        result = transform_ethernet_ports(data, mac)
-        assert result == {mac: data}
-
-    def test_empty_data_with_mac_returns_wrapped(self) -> None:
-        """Empty dict with ARPortType keys passes ARPortType check, wraps."""
-
-        data: dict[Any, Any] = {}
-        mac = "AA:BB:CC:11:22:33"
-        result = transform_ethernet_ports(data, mac)
-        assert result == {mac: data}
-
-    def test_mixed_keys_first_non_porttype_exits_early(self) -> None:
-        """Mixed keys: first non-ARPortType triggers early return."""
-
-        data: dict[Any, Any] = {"bad_key": {}, ARPortType.LAN: {}}
-        result = transform_ethernet_ports(data, "AA:BB:CC:11:22:33")
-        assert result is data
 
 
 class TestTransformWan:
