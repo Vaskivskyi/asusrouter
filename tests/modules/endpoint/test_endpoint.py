@@ -25,10 +25,10 @@ def test_get_module() -> None:
     with patch(
         "importlib.import_module", return_value="mocked_module"
     ) as mock_import:
-        result = _get_module(AREndpoint.FETCH_PORT_STATUS)
+        result = _get_module(AREndpoint.FETCH_DEVICEMAP)
         assert result == "mocked_module"  # type: ignore[comparison-overlap]
         mock_import.assert_called_once_with(
-            "asusrouter.modules.endpoint.port_status"
+            "asusrouter.modules.endpoint.devicemap"
         )
 
     # Test invalid endpoint

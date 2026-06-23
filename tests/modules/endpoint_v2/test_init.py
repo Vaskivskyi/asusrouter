@@ -13,6 +13,7 @@ from asusrouter.modules.endpoint_v2 import (
     get_endpoint_request_type,
     get_endpoint_sensitive,
 )
+from asusrouter.modules.endpoint_v2.translate import read_wan_lan_status
 from asusrouter.tools.readers import read_js_variables, read_json_content
 
 GET_ENDPOINTS = (
@@ -123,16 +124,28 @@ def test_get_endpoint_sensitive_others(endpoint: AREndpoint) -> None:
     assert get_endpoint_sensitive(endpoint) is False
 
 
-def test_get_endpoint_reader_temperature() -> None:
-    """FETCH_TEMPERATURE maps to read_js_variables."""
+_CUSTOM_READERS = {
+    AREndpoint.FETCH_TEMPERATURE: read_js_variables,
+    AREndpoint.FETCH_PORTS_ETHERNET: read_wan_lan_status,
+}
 
-    reader = get_endpoint_reader(AREndpoint.FETCH_TEMPERATURE)
-    assert reader is read_js_variables
+
+@pytest.mark.parametrize(
+    ("endpoint", "reader"),
+    list(_CUSTOM_READERS.items()),
+    ids=lambda v: v.name if isinstance(v, AREndpoint) else v.__name__,
+)
+def test_get_endpoint_reader_custom(
+    endpoint: AREndpoint, reader: object
+) -> None:
+    """Endpoints with a dedicated reader resolve to it."""
+
+    assert get_endpoint_reader(endpoint) is reader
 
 
 @pytest.mark.parametrize(
     "endpoint",
-    [e for e in AREndpoint if e is not AREndpoint.FETCH_TEMPERATURE],
+    [e for e in AREndpoint if e not in _CUSTOM_READERS],
 )
 def test_get_endpoint_reader_default(endpoint: AREndpoint) -> None:
     """All other endpoints map to the JSON reader by default."""

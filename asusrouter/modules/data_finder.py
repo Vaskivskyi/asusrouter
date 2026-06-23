@@ -177,16 +177,6 @@ ASUSDATA_NVRAM["wireguard_server"].extend(
     ]
 )
 
-ASUSDATA_ENDPOINT_APPEND = {
-    AREndpoint.FETCH_PORT_STATUS: {
-        # Request status of the ports for the whole AiMesh network
-        # This will save time and requests, since we then cache the data
-        # in most cases
-        "node_mac": "all",
-    }
-}
-
-
 # A map of endptoins to get data from
 ASUSDATA_MAP: dict[AsusData, AsusData | AsusDataFinder] = {
     AsusData.AIMESH: AsusDataFinder(AREndpoint.FETCH_ONBOARDING),
@@ -222,7 +212,6 @@ ASUSDATA_MAP: dict[AsusData, AsusData | AsusDataFinder] = {
         AREndpoint.FETCH_DATA, nvram=ASUSDATA_NVRAM["light"]
     ),
     AsusData.NETWORK: AsusData.CPU,
-    AsusData.NODE_INFO: AsusDataFinder(AREndpoint.FETCH_PORT_STATUS),
     AsusData.OPENVPN: AsusDataFinder(
         [AREndpoint.FETCH_VPN_STATUS, AREndpoint.FETCH_DEVICEMAP],
         AsusDataMerge.ANY,
@@ -235,9 +224,6 @@ ASUSDATA_MAP: dict[AsusData, AsusData | AsusDataFinder] = {
     AsusData.PING: AsusDataFinder(AREndpoint.FETCH_NETWORK),
     AsusData.PORT_FORWARDING: AsusDataFinder(
         AREndpoint.FETCH_DATA, nvram=ASUSDATA_NVRAM["port_forwarding"]
-    ),
-    AsusData.PORTS: AsusDataFinder(
-        [AREndpoint.FETCH_PORT_STATUS, AREndpoint.FETCH_PORTS_ETHERNET]
     ),
     AsusData.RAM: AsusData.CPU,
     AsusData.SPEEDTEST: AsusDataFinder(

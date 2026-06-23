@@ -8,6 +8,7 @@ from enum import StrEnum
 from typing import Any
 
 from asusrouter.const import UNKNOWN_MEMBER_STR, RequestType
+from asusrouter.modules.endpoint_v2.translate import read_wan_lan_status
 from asusrouter.tools.enum import FromStrMixin
 from asusrouter.tools.readers import read_js_variables, read_json_content
 
@@ -100,6 +101,7 @@ def get_endpoint_sensitive(endpoint: AREndpoint) -> bool:
 
 _ENDPOINT_READER: dict[AREndpoint, Callable[[str], dict[str, Any]]] = {
     AREndpoint.FETCH_TEMPERATURE: read_js_variables,
+    AREndpoint.FETCH_PORTS_ETHERNET: read_wan_lan_status,
 }
 
 

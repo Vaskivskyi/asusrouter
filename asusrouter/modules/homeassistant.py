@@ -66,7 +66,6 @@ def convert_to_ha_sensors(
             sensors = convert_to_ha_sensors_by_map(data, SENSORS_NETWORK)
         case AsusData.OPENVPN:
             sensors = convert_to_ha_sensors_by_map_2(data, SENSORS_VPN)
-        # case AsusData.PORTS:
         case _:
             sensors = convert_to_ha_sensors_list(data)
 

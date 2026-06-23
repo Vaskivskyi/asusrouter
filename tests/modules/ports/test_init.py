@@ -1,115 +1,144 @@
-"""Tests for asusrouter.modules.ports."""
+"""Tests for the ports module source and pipeline."""
 
 from __future__ import annotations
 
 from typing import Any
+from unittest.mock import AsyncMock
 
 import pytest
 
+from asusrouter.modules.device.identity import ARDeviceIdentity
+from asusrouter.modules.endpoint_v2 import AREndpoint
 from asusrouter.modules.ports import (
-    ARPortCapability,
-    ARPortEthernetSpeed,
+    ARPortProperty as P,
+    ARPortsSource,
+    ARPortsSourceUniversal,
     ARPortType,
-    ARPortUSBSpeed,
-    read_port_capabilities,
-    read_port_speed,
-    read_port_type,
+    get_state,
+    translate_state,
 )
+from asusrouter.modules.source import ARDataSource
+from asusrouter.tools.identifiers import MacAddress
+
+_MAC = "CC:28:AA:F4:53:A0"
+
+_PORT_STATUS = {
+    "node_info": {},
+    "port_info": {
+        _MAC: {
+            "W0": {
+                "is_on": "1",
+                "cap": "1",
+                "max_rate": "1000",
+                "link_rate": "1000",
+            }
+        },
+    },
+}
+_ETHERNET = {"portSpeed": {"LAN 1": "G"}}
 
 
-def _caps(*true_caps: ARPortCapability) -> dict[ARPortCapability, bool]:
-    """Build full capability dict with given caps True, rest False."""
+def _identity(mac: str | None = _MAC) -> ARDeviceIdentity:
+    """Build an identity with the given MAC."""
 
-    true_set = set(true_caps)
-    return {cap: cap in true_set for cap in ARPortCapability if cap.value >= 0}
-
-
-@pytest.mark.parametrize(
-    ("raw", "expected"),
-    [
-        # Non-int and negative -> early return
-        (None, {}),
-        ("str", {}),
-        (-1, {}),
-        # Zero -> all False
-        (0, _caps()),
-        # Single capability bits
-        (1, _caps(ARPortCapability.WAN)),
-        (2, _caps(ARPortCapability.LAN)),
-        (128, _caps(ARPortCapability.USB)),
-        (1 << 30, _caps(ARPortCapability.DUALWAN_PRIMARY)),
-        # Multiple capability bits
-        (3, _caps(ARPortCapability.WAN, ARPortCapability.LAN)),
-        (
-            (1 << 0) | (1 << 1) | (1 << 30),
-            _caps(
-                ARPortCapability.WAN,
-                ARPortCapability.LAN,
-                ARPortCapability.DUALWAN_PRIMARY,
-            ),
-        ),
-    ],
-)
-def test_read_port_capabilities(
-    raw: Any, expected: dict[ARPortCapability, bool]
-) -> None:
-    """Test read_port_capabilities."""
-
-    assert read_port_capabilities(raw) == expected
+    identity = ARDeviceIdentity()
+    if mac is not None:
+        identity._mac = MacAddress(mac)
+    return identity
 
 
-@pytest.mark.parametrize(
-    ("capabilities", "expected"),
-    [
-        # Empty dict -> UNKNOWN
-        ({}, ARPortType.UNKNOWN),
-        # Each mapped capability
-        ({ARPortCapability.WAN: True}, ARPortType.WAN),
-        ({ARPortCapability.LAN: True}, ARPortType.LAN),
-        ({ARPortCapability.USB: True}, ARPortType.USB),
-        ({ARPortCapability.MOCA: True}, ARPortType.MOCA),
-        # Order: WAN checked before LAN -> WAN wins
-        (
-            {ARPortCapability.WAN: True, ARPortCapability.LAN: True},
-            ARPortType.WAN,
-        ),
-        # Unmapped capability -> UNKNOWN
-        ({ARPortCapability.GAME: True}, ARPortType.UNKNOWN),
-        # Mapped caps all False -> UNKNOWN
-        (
-            {ARPortCapability.WAN: False, ARPortCapability.LAN: False},
-            ARPortType.UNKNOWN,
-        ),
-    ],
-)
-def test_read_port_type(
-    capabilities: dict[ARPortCapability, bool], expected: ARPortType
-) -> None:
-    """Test read_port_type."""
+class TestARPortsSource:
+    """Tests for the ARPortsSource data source."""
 
-    assert read_port_type(capabilities) == expected
+    def test_is_data_source(self) -> None:
+        """ARPortsSource subclasses ARDataSource."""
+
+        assert issubclass(ARPortsSource, ARDataSource)
+
+    def test_universal_instance(self) -> None:
+        """ARPortsSourceUniversal is an ARPortsSource instance."""
+
+        assert isinstance(ARPortsSourceUniversal, ARPortsSource)
 
 
-@pytest.mark.parametrize(
-    ("port_type", "raw", "expected"),
-    [
-        # USB branch
-        (ARPortType.USB, 5000, ARPortUSBSpeed.USB3),
-        (ARPortType.USB, 0, ARPortUSBSpeed.DOWN),
-        (ARPortType.USB, 999, ARPortUSBSpeed.UNKNOWN),
-        # Ethernet branch - various non-USB port types
-        (ARPortType.LAN, 1000, ARPortEthernetSpeed.MBPS_1000),
-        (ARPortType.WAN, 0, ARPortEthernetSpeed.DOWN),
-        (ARPortType.ETHERNET, 100, ARPortEthernetSpeed.MBPS_100),
-        (ARPortType.SFPP, 10000, ARPortEthernetSpeed.MBPS_10000),
-        (ARPortType.LAN, 999, ARPortEthernetSpeed.UNKNOWN),
-    ],
-)
-def test_read_port_speed(
-    port_type: ARPortType,
-    raw: int,
-    expected: ARPortEthernetSpeed | ARPortUSBSpeed,
-) -> None:
-    """Test read_port_speed."""
+class TestGetState:
+    """Tests for get_state."""
 
-    assert read_port_speed(port_type, raw) == expected
+    @staticmethod
+    def _callback(mapping: dict[AREndpoint, Any]) -> AsyncMock:
+        """Build a callback returning the mapped value per endpoint."""
+
+        async def side_effect(
+            endpoint: AREndpoint, request: str | None = None
+        ) -> Any:
+            return mapping.get(endpoint, {})
+
+        return AsyncMock(side_effect=side_effect)
+
+    async def test_prefers_port_status(self) -> None:
+        """Returns port_status data and does not call the legacy endpoint."""
+
+        callback = self._callback({AREndpoint.FETCH_PORT_STATUS: _PORT_STATUS})
+
+        result = await get_state(
+            callback, ARPortsSourceUniversal, identity=_identity()
+        )
+
+        assert result == _PORT_STATUS
+        callback.assert_awaited_once_with(
+            endpoint=AREndpoint.FETCH_PORT_STATUS, request="node_mac=all"
+        )
+
+    async def test_falls_back_to_ethernet(self) -> None:
+        """Falls back to the legacy endpoint when port_status is empty."""
+
+        callback = self._callback({AREndpoint.FETCH_PORTS_ETHERNET: _ETHERNET})
+
+        result = await get_state(
+            callback, ARPortsSourceUniversal, identity=_identity()
+        )
+
+        assert result == _ETHERNET
+        assert callback.await_count == 2
+
+    async def test_returns_empty_when_nothing_available(self) -> None:
+        """Returns {} when neither endpoint yields data."""
+
+        callback = self._callback({})
+
+        result = await get_state(
+            callback, ARPortsSourceUniversal, identity=_identity()
+        )
+
+        assert result == {}
+
+
+class TestTranslateState:
+    """Tests for translate_state."""
+
+    def test_dispatches_port_status(self) -> None:
+        """A port_info payload is translated via the modern parser."""
+
+        result = translate_state(_PORT_STATUS, identity=_identity())
+
+        ports = result[MacAddress(_MAC)].ports
+        w0 = next(p for p in ports if p[P.NATIVE_NAME] == "W0")
+        assert w0[P.ROLE] == ARPortType.WAN
+
+    def test_dispatches_ethernet(self) -> None:
+        """A portSpeed payload is translated via the legacy parser."""
+
+        result = translate_state(_ETHERNET, identity=_identity())
+
+        ports = result[MacAddress(_MAC)].ports
+        assert {p[P.NATIVE_NAME] for p in ports} == {"L1"}
+
+    @pytest.mark.parametrize(
+        "data",
+        [{}, {"unknown": 1}, "not-a-dict", None],
+        ids=["empty", "unknown_shape", "str", "none"],
+    )
+    def test_returns_empty_for_unusable(self, data: Any) -> None:
+        """Empty, non-dict, or unrecognized payloads yield {}."""
+
+        assert translate_state(data, identity=_identity()) == {}
