@@ -159,6 +159,9 @@ class AsusRouter:
         self._state: dict[AsusData, AsusDataState] = {}
         self._data_states: dict[ARDataSource | ARDataType, ARDataState] = {}
 
+        # Endpoints that returned 404
+        self._unavailable_endpoints: set[AREndpoint] = set()
+
         # Time for change to take effect before available to fetch
         self._needed_time: int | None = None
         # ID from the last called service
@@ -261,6 +264,9 @@ class AsusRouter:
         if result is False:
             return False
 
+        # Fresh connection — re-evaluate endpoint availability
+        self._unavailable_endpoints.clear()
+
         # Fetch the device description
         result = await self.async_fetch_data(
             ARDeviceSourceUniversal, force=True
@@ -317,6 +323,13 @@ class AsusRouter:
 
         _LOGGER.debug("Triggered method async_fetch: %s", endpoint)
 
+        # Skip endpoints already known absent on this firmware
+        if endpoint in self._unavailable_endpoints:
+            _LOGGER.debug(
+                "Endpoint %s is known unavailable, skipping", endpoint
+            )
+            return None
+
         request_type = get_endpoint_request_type(endpoint)
 
         for attempt in range(2):
@@ -327,7 +340,10 @@ class AsusRouter:
                 _LOGGER.debug("Response %s from %s", status, endpoint)
                 return content
             except AsusRouter404Error:
-                _LOGGER.debug("Endpoint %s not found", endpoint)
+                _LOGGER.debug(
+                    "Endpoint %s not found, marking unavailable", endpoint
+                )
+                self._unavailable_endpoints.add(endpoint)
                 return None
             except AsusRouterAccessError as ex:
                 if ex.args[1] != AccessError.AUTHORIZATION or attempt > 0:
