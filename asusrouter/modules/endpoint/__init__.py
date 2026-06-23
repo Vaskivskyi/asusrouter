@@ -33,7 +33,6 @@ _SUBMODULE_MAP: dict[str, str] = {
     AREndpoint.FETCH_PORT_STATUS: "port_status",
     AREndpoint.FETCH_PORTS_ETHERNET: "ethernet_ports",
     AREndpoint.FETCH_SYSINFO: "sysinfo",
-    AREndpoint.FETCH_TEMPERATURE: "temperature",
     AREndpoint.FETCH_VPN_STATUS: "vpn",
 }
 
