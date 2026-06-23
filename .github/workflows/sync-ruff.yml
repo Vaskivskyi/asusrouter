@@ -134,7 +134,7 @@ jobs:
 
       - name: Checkout dev
         if: steps.resolved.outputs.skip == 'false' && steps.existing.outputs.url == ''
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: dev
           token: ${{ steps.app_token.outputs.token }}
