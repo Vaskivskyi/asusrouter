@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 from typing import Any, cast
-from unittest.mock import AsyncMock, Mock
+from unittest.mock import ANY, AsyncMock, Mock
 
 import pytest
 
 from asusrouter.asusrouter import ARCallReg, AsusRouter
+from asusrouter.modules.device.identity import ARDeviceIdentity
 from asusrouter.modules.source import (
     ARDataCollection,
     ARDataSource,
@@ -23,6 +24,13 @@ from tests.helpers import (
     assert_state_not_updated,
     assert_state_updated,
 )
+
+
+@pytest.fixture
+def identity() -> ARDeviceIdentity:
+    """Provide a blank device identity for pipeline calls."""
+
+    return ARDeviceIdentity()
 
 
 class TestCreateDataState:
@@ -164,7 +172,11 @@ class TestAsyncRefreshDataState:
         )
 
         cast(AsyncMock, state.state_caller).assert_awaited_once_with(
-            router.async_read, [source], force=True, extra_kw="x"
+            router.async_read,
+            [source],
+            force=True,
+            identity=ANY,
+            extra_kw="x",
         )
         assert_state_updated(state, {"a": 1})
 
@@ -205,10 +217,14 @@ class TestAsyncRefreshDataState:
         )
 
         cast(AsyncMock, state.state_caller).assert_awaited_once_with(
-            router.async_read, source, force=True, extra_kw="x"
+            router.async_read,
+            source,
+            force=True,
+            identity=ANY,
+            extra_kw="x",
         )
         if translator:
-            translator.assert_called_once_with({"a": 1})
+            translator.assert_called_once_with({"a": 1}, identity=ANY)
         assert_state_updated(state, expected_value)
 
 
@@ -330,6 +346,7 @@ class TestTranslateMultidataBatch:
         router: AsusRouter,
         source: ARDataSource,
         bind_state: BindStateFactory,
+        identity: ARDeviceIdentity,
     ) -> None:
         """Commits translated value when source key is in result."""
 
@@ -337,10 +354,12 @@ class TestTranslateMultidataBatch:
         translator = Mock(return_value={source: {"b": 2}})
 
         router._translate_multidata_batch(
-            translator, [state], {source: {"a": 1}}
+            translator, [state], {source: {"a": 1}}, identity
         )
 
-        translator.assert_called_once_with({source: {"a": 1}})
+        translator.assert_called_once_with(
+            {source: {"a": 1}}, identity=identity
+        )
         assert_state_updated(state, {"b": 2})
 
     @pytest.mark.parametrize(
@@ -357,6 +376,7 @@ class TestTranslateMultidataBatch:
         source: ARDataSource,
         bind_state: BindStateFactory,
         make_result: Any,
+        identity: ARDeviceIdentity,
     ) -> None:
         """Skips commit when result is non-dict or source absent."""
 
@@ -364,7 +384,7 @@ class TestTranslateMultidataBatch:
         translator = Mock(return_value=make_result(source))
 
         router._translate_multidata_batch(
-            translator, [state], {source: {"a": 1}}
+            translator, [state], {source: {"a": 1}}, identity
         )
 
         assert_state_not_updated(state)
@@ -378,13 +398,14 @@ class TestTranslateMultidataSingle:
         router: AsusRouter,
         source: ARDataSource,
         bind_state: BindStateFactory,
+        identity: ARDeviceIdentity,
     ) -> None:
         """Skips state when its source is absent from data."""
 
         state = bind_state(source)
         translator = Mock()
 
-        router._translate_multidata_single(translator, [state], {})
+        router._translate_multidata_single(translator, [state], {}, identity)
 
         translator.assert_not_called()
         assert_state_not_updated(state)
@@ -400,6 +421,7 @@ class TestTranslateMultidataSingle:
         source: ARDataSource,
         bind_state: BindStateFactory,
         translator_return: Any,
+        identity: ARDeviceIdentity,
     ) -> None:
         """Forwards any translator return value to commit."""
 
@@ -407,10 +429,10 @@ class TestTranslateMultidataSingle:
         translator = Mock(return_value=translator_return)
 
         router._translate_multidata_single(
-            translator, [state], {source: {"a": 1}}
+            translator, [state], {source: {"a": 1}}, identity
         )
 
-        translator.assert_called_once_with({"a": 1})
+        translator.assert_called_once_with({"a": 1}, identity=identity)
         cast(Mock, state.update).assert_called_once_with(translator_return)
 
 
@@ -422,12 +444,13 @@ class TestTranslateMultidata:
         router: AsusRouter,
         source: ARDataSource,
         bind_state: BindStateFactory,
+        identity: ARDeviceIdentity,
     ) -> None:
         """Returns early without updating state when data is not a dict."""
 
         state = bind_state(source)
 
-        router._translate_multidata([state], cast(Any, [1, 2, 3]))
+        router._translate_multidata([state], cast(Any, [1, 2, 3]), identity)
 
         assert_state_not_updated(state)
 
@@ -436,12 +459,13 @@ class TestTranslateMultidata:
         router: AsusRouter,
         source: ARDataSource,
         bind_state: BindStateFactory,
+        identity: ARDeviceIdentity,
     ) -> None:
         """Commits directly when state has no translator and source in data."""
 
         state = bind_state(source)
 
-        router._translate_multidata([state], {source: {"val": 1}})
+        router._translate_multidata([state], {source: {"val": 1}}, identity)
 
         assert_state_updated(state, {"val": 1})
 
@@ -450,12 +474,13 @@ class TestTranslateMultidata:
         router: AsusRouter,
         source: ARDataSource,
         bind_state: BindStateFactory,
+        identity: ARDeviceIdentity,
     ) -> None:
         """Skips commit when state has no translator and source absent."""
 
         state = bind_state(source)
 
-        router._translate_multidata([state], {})
+        router._translate_multidata([state], {}, identity)
 
         assert_state_not_updated(state)
 
@@ -471,6 +496,7 @@ class TestTranslateMultidata:
         bind_state: BindStateFactory,
         universal_mock: UniversalMockPatcher,
         is_batch: bool,
+        identity: ARDeviceIdentity,
     ) -> None:
         """Dispatches to batch or single translator based on callable flag."""
 
@@ -485,8 +511,8 @@ class TestTranslateMultidata:
             mock_type=Mock,
         )
 
-        router._translate_multidata([state], {source: {"a": 1}})
+        router._translate_multidata([state], {source: {"a": 1}}, identity)
 
         expected_arg = {source: {"a": 1}} if is_batch else {"a": 1}
-        translator.assert_called_once_with(expected_arg)
+        translator.assert_called_once_with(expected_arg, identity=identity)
         assert_state_updated(state, {"x": 1})

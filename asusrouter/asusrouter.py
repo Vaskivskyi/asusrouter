@@ -396,10 +396,11 @@ class AsusRouter:
         translator: ARCallableType,
         states: list[ARDataState],
         data: dict[ARDataSource | ARDataType, Any],
+        identity: ARDeviceIdentity,
     ) -> None:
         """Translate a full multicaller result using a batch translator."""
 
-        translated = translator(data)
+        translated = translator(data, identity=identity)
         if not isinstance(translated, dict):
             _LOGGER.debug(
                 "Translator %s returned %s instead of dict",
@@ -419,6 +420,7 @@ class AsusRouter:
         translator: ARCallableType,
         states: list[ARDataState],
         data: dict[ARDataSource | ARDataType, Any],
+        identity: ARDeviceIdentity,
     ) -> None:
         """Translate individual state entries from multicaller output."""
 
@@ -428,12 +430,16 @@ class AsusRouter:
             if state_source not in data:
                 continue
 
-            commit(state, translator(data[state_source]))
+            commit(
+                state,
+                translator(data[state_source], identity=identity),
+            )
 
     def _translate_multidata(
         self,
         states: list[ARDataState],
         data: dict[ARDataSource | ARDataType, Any],
+        identity: ARDeviceIdentity,
     ) -> None:
         """Translate data obtained from a multicaller."""
 
@@ -462,11 +468,13 @@ class AsusRouter:
 
             if get_callable_flag(translator):
                 self._translate_multidata_batch(
-                    translator, grouped_states, data
+                    translator, grouped_states, data, identity
                 )
                 continue
 
-            self._translate_multidata_single(translator, grouped_states, data)
+            self._translate_multidata_single(
+                translator, grouped_states, data, identity
+            )
 
     async def _async_refresh_data_state(
         self,
@@ -489,19 +497,31 @@ class AsusRouter:
         read = self.async_read
         get_callable_flag = ARCallReg.get_callable_flag
         commit = self._commit_data_state
+        identity = self.description
 
         for caller, caller_states in matrix.items():
             if get_callable_flag(caller):
                 sources = [state.source for state in caller_states]
-                data = await caller(read, sources, force=force, **kwargs)
-                self._translate_multidata(caller_states, data)
+                data = await caller(
+                    read, sources, force=force, identity=identity, **kwargs
+                )
+                self._translate_multidata(caller_states, data, identity)
             else:
                 for state in caller_states:
                     raw = await caller(
-                        read, state.source, force=force, **kwargs
+                        read,
+                        state.source,
+                        force=force,
+                        identity=identity,
+                        **kwargs,
                     )
                     translate = state.translate_caller
-                    commit(state, translate(raw) if translate else raw)
+                    commit(
+                        state,
+                        translate(raw, identity=identity)
+                        if translate
+                        else raw,
+                    )
 
     async def _async_get_data_state(
         self,
