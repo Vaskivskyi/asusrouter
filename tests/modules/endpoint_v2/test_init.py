@@ -17,6 +17,7 @@ from asusrouter.modules.endpoint_v2.translate import read_wan_lan_status
 from asusrouter.tools.readers import read_js_variables, read_json_content
 
 GET_ENDPOINTS = (
+    AREndpoint.FETCH_DIAGNOSTICS_DATA,
     AREndpoint.FETCH_NETWORK,
     AREndpoint.FETCH_PORT_STATUS,
     AREndpoint.FETCH_TRAFFIC_BACKHAUL,

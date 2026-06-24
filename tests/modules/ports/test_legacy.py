@@ -14,7 +14,7 @@ from asusrouter.modules.ports.legacy import (
 )
 from asusrouter.tools.identifiers import MacAddress
 
-_MAC = "CC:28:AA:F4:53:A0"
+_MAC = "12:34:56:78:9A:BC"
 
 
 @pytest.fixture(autouse=True)
