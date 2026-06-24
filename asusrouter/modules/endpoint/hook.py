@@ -35,8 +35,6 @@ from asusrouter.tools.converters import (
     safe_speed,
     safe_unpack_key,
     safe_unpack_keys,
-    safe_usage,
-    safe_usage_historic,
 )
 from asusrouter.tools.converters_v2.raw import (
     raw_to_bool,
@@ -82,18 +80,6 @@ def process(data: dict[str, Any]) -> dict[AsusData, Any]:  # noqa: C901, PLR0912
     # Aura
     if "ledg_scheme" in data:
         state[AsusData.AURA] = process_aura(data)
-
-    # CPU
-    if "cpu_usage" in data:
-        cpu_usage = data.get("cpu_usage", {})
-        prev_cpu: AsusDataState | None = history.get(AsusData.CPU)
-        state[AsusData.CPU] = (
-            process_cpu(cpu_usage, prev_cpu)
-            if cpu_usage
-            else prev_cpu.data
-            if isinstance(prev_cpu, AsusDataState)
-            else {}
-        )
 
     # DDNS
     if (
@@ -143,11 +129,6 @@ def process(data: dict[str, Any]) -> dict[AsusData, Any]:  # noqa: C901, PLR0912
     if KEY_PORT_FORWARDING_STATE in data:
         state[AsusData.PORT_FORWARDING] = process_port_forwarding(data)
 
-    # RAM
-    if "memory_usage" in data:
-        memory_usage = data.get("memory_usage", {})
-        state[AsusData.RAM] = process_ram(memory_usage) if memory_usage else {}
-
     # Speedtest
     if "ookla_state" in data:
         speedtest = process_speedtest(data)
@@ -184,53 +165,6 @@ def process(data: dict[str, Any]) -> dict[AsusData, Any]:  # noqa: C901, PLR0912
         state[AsusData.DSL] = process_dsl(data)
 
     return state
-
-
-def process_cpu(
-    cpu_usage: dict[str, Any], history: AsusDataState | None
-) -> dict[str | int, Any]:
-    """Process CPU data."""
-
-    cpu = process_cpu_usage(cpu_usage)
-
-    # Get the previous data
-    prev_cpu = history.data if history else None
-
-    # Safe calculate of actual usage if previous data is available
-    if prev_cpu:
-        for item, after in cpu.items():
-            if item in prev_cpu:
-                before = prev_cpu[item]
-                after["usage"] = safe_usage_historic(
-                    after["used"],
-                    after["total"],
-                    before["used"],
-                    before["total"],
-                )
-
-    return cpu
-
-
-def process_cpu_usage(raw: dict[str, Any]) -> dict[str | int, Any]:
-    """Process CPU usage."""
-
-    # Populate total
-    cpu: dict[str | int, Any] = {"total": {"total": 0.0, "used": 0.0}}
-
-    # Process each core
-    core = 1
-    while f"cpu{core}_total" in raw:
-        cpu[core] = {
-            "total": int(raw[f"cpu{core}_total"]),
-            "used": int(raw[f"cpu{core}_usage"]),
-        }
-        # Update the total
-        cpu["total"]["total"] += cpu[core]["total"]
-        cpu["total"]["used"] += cpu[core]["used"]
-
-        core += 1
-
-    return cpu
 
 
 def process_gwlan(
@@ -403,26 +337,6 @@ def process_port_forwarding(data: dict[str, Any]) -> dict[str, Any]:
         port_forwarding["rules"] = rules.copy()
 
     return port_forwarding
-
-
-def process_ram(memory_usage: dict[str, Any]) -> dict[str, Any]:
-    """Process RAM data."""
-
-    ram: dict[str, Any] = {}
-    # Data is in KiB. To get MB as they are shown in the device Web-GUI,
-    # should be divided by 1024 (yes, those will be MiB)
-
-    # Populate RAM with known values
-    ram = {
-        "free": raw_to_int(memory_usage.get("mem_free")),
-        "total": raw_to_int(memory_usage.get("mem_total")),
-        "used": raw_to_int(memory_usage.get("mem_used")),
-    }
-    # Calculate usage in percents
-    if "used" in ram and "total" in ram:
-        ram["usage"] = safe_usage(ram["used"], ram["total"])
-
-    return ram
 
 
 def process_speedtest(data: dict[str, Any]) -> dict[str, Any]:

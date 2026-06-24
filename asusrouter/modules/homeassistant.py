@@ -28,7 +28,6 @@ _VPNC_BOOL_MAP: dict[AsusVPNC, bool] = {
     AsusVPNC.ERROR: False,
 }
 
-SENSORS_CPU = ["total", "usage", "used"]
 SENSORS_NETWORK = ["rx", "rx_speed", "tx", "tx_speed"]
 SENSORS_VPN = {
     "client": [
@@ -60,8 +59,6 @@ def convert_to_ha_sensors(
     sensors = []
 
     match datatype:
-        case AsusData.CPU:
-            sensors = convert_to_ha_sensors_by_map(data, SENSORS_CPU)
         case AsusData.NETWORK:
             sensors = convert_to_ha_sensors_by_map(data, SENSORS_NETWORK)
         case AsusData.OPENVPN:

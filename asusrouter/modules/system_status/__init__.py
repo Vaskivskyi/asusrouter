@@ -4,8 +4,9 @@ from __future__ import annotations
 
 from enum import StrEnum
 import time
-from typing import Any
+from typing import Any, NamedTuple
 
+from asusrouter.config.connection import ARConnectionConfigKey as ARCCKey
 from asusrouter.const import (
     AR_CALL_GET_STATE,
     AR_CALL_TRANSLATE_STATE,
@@ -18,6 +19,8 @@ from asusrouter.modules.endpoint_v2 import (
 )
 from asusrouter.modules.metrics import ARMetricType
 from asusrouter.modules.source import ARDataSource
+from asusrouter.modules.system_status import legacy
+from asusrouter.modules.system_status.legacy import CpuCounters
 from asusrouter.registry import (
     ARCallableEntry,
     ARCallableRegistry as ARCallReg,
@@ -28,10 +31,8 @@ from asusrouter.tools.identifiers import MacAddress
 from asusrouter.tools.types import ARCallbackType
 from asusrouter.tools.writers import dict_to_request
 
-# Diagnostics request constants. A single point is unreliable for nodes
-# with sparse history, so a window of points is requested and the newest
-# (last) is used. `duration`/`point` ~ seconds per point; 60/30 matches
-# the device dashboard and leaves margin for sparse nodes
+# Diagnostics window: newest of several points (a single point is
+# unreliable for sparse nodes); 60/30 matches the device dashboard
 _DIAG_DB = "sys_detect"
 _DIAG_DURATION = 60
 _DIAG_POINT = 30
@@ -39,18 +40,42 @@ _DIAG_REQUEST_TYPE = get_endpoint_request_type(
     AREndpoint.FETCH_DIAGNOSTICS_DATA
 )
 
+# Highest per-core index reported; extra cores still feed the aggregate
+_MAX_CORES = 8
+
+
+class _LegacyPayload(NamedTuple):
+    """Transient legacy cpu/ram transport from get_state to translate."""
+
+    now: CpuCounters
+    prev: CpuCounters | None
+    ram: dict[ARMetricType, float]
+
 
 class ARSystemType(FromStrMixin, StrEnum):
     """A system component reported in the status."""
 
     UNKNOWN = UNKNOWN_MEMBER_STR
 
+    CORE_1 = "core_1"
+    CORE_2 = "core_2"
+    CORE_3 = "core_3"
+    CORE_4 = "core_4"
+    CORE_5 = "core_5"
+    CORE_6 = "core_6"
+    CORE_7 = "core_7"
+    CORE_8 = "core_8"
     CPU = "cpu"
     RAM = "ram"
 
 
-# Device metric name -> (system type, metric). The response columns and
-# the request `content` both follow this order, so they cannot drift
+# Core index -> per-core system type
+_CORE_TYPES: dict[int, ARSystemType] = {
+    index: ARSystemType[f"CORE_{index}"] for index in range(1, _MAX_CORES + 1)
+}
+
+
+# Modern metric name -> (system type, metric), in response/content order
 _METRICS: tuple[tuple[str, ARSystemType, ARMetricType], ...] = (
     ("cpu_usage", ARSystemType.CPU, ARMetricType.USAGE),
     ("mem_usage", ARSystemType.RAM, ARMetricType.USAGE),
@@ -61,9 +86,10 @@ _DIAG_CONTENT = ";".join(name for name, *_ in _METRICS)
 class ARSystemStatusSource(ARDataSource):
     """AsusRouter system status data source.
 
-    Optionally targets a specific device by MAC; without a target the
-    main router is used. Two instances are equal when they target the
-    same MAC, so a fresh instance built from any MAC works as a key.
+    Optionally targets a device by MAC; without a target the main router
+    is used. Instances are equal by target MAC. The pipeline caches one
+    instance per target, so the cpu counters stashed here survive across
+    refreshes and let the legacy usage be derived statelessly.
     """
 
     def __init__(self, target: Any = None) -> None:
@@ -73,6 +99,8 @@ class ARSystemStatusSource(ARDataSource):
 
         self._target: MacAddress | None = None
         self.target = target
+        # Previous legacy cpu counters for usage deltas
+        self._prev_cpu: CpuCounters | None = None
 
     @property
     def target(self) -> MacAddress | None:
@@ -85,6 +113,13 @@ class ARSystemStatusSource(ARDataSource):
         """Set the target MAC address."""
 
         self._target = MacAddress.from_value_safe(value)
+
+    def stash_cpu(self, counters: CpuCounters) -> CpuCounters | None:
+        """Store the current cpu counters, returning the previous ones."""
+
+        prev = self._prev_cpu
+        self._prev_cpu = counters
+        return prev
 
     def __eq__(self, other: object) -> bool:
         """Two sources are equal when they target the same MAC."""
@@ -108,6 +143,17 @@ class ARSystemStatusSource(ARDataSource):
 ARSystemStatusSourceUniversal: ARSystemStatusSource = ARSystemStatusSource()
 
 
+def _force_legacy(connection_config: Any) -> bool:
+    """Whether the connection config forces the legacy data path."""
+
+    if connection_config is None:
+        return False
+    try:
+        return bool(connection_config.get(ARCCKey.FORCE_LEGACY_SYSTEM_STATUS))
+    except KeyError:
+        return False
+
+
 def _build_request(mac: MacAddress) -> str:
     """Build the diagnostics request for the given target MAC."""
 
@@ -124,18 +170,10 @@ def _build_request(mac: MacAddress) -> str:
     )
 
 
-async def get_state(
-    callback: ARCallbackType,
-    source: ARSystemStatusSource,
-    *,
-    identity: ARDeviceIdentity,
-    **kwargs: Any,
+async def _get_modern(
+    callback: ARCallbackType, mac: MacAddress
 ) -> dict[str, Any]:
-    """Fetch raw cpu/ram usage for the target, keyed by MAC."""
-
-    mac = source.target or identity.mac
-    if mac is None:
-        return {}
+    """Fetch modern diagnostics rows for the target, keyed by MAC."""
 
     data = await callback(
         endpoint=AREndpoint.FETCH_DIAGNOSTICS_DATA,
@@ -148,33 +186,118 @@ async def get_state(
     return {mac.as_asus(): contents}
 
 
+async def _get_legacy(
+    callback: ARCallbackType,
+    source: ARSystemStatusSource,
+    mac: MacAddress,
+    identity: ARDeviceIdentity,
+) -> dict[str, Any]:
+    """Fetch legacy appGet cpu/ram data for the connected router."""
+
+    # appGet cpu/ram is served only for the connected router, never nodes
+    if mac != identity.mac:
+        return {}
+
+    data = await callback(
+        endpoint=AREndpoint.FETCH_DATA,
+        request=legacy.LEGACY_REQUEST,
+    )
+    if not isinstance(data, dict):
+        return {}
+
+    now = legacy.parse_cpu(data.get("cpu_usage") or {})
+    ram = legacy.parse_ram(data.get("memory_usage") or {})
+    if not now and not ram:
+        return {}
+
+    return {mac.as_asus(): _LegacyPayload(now, source.stash_cpu(now), ram)}
+
+
+async def get_state(
+    callback: ARCallbackType,
+    source: ARSystemStatusSource,
+    *,
+    identity: ARDeviceIdentity,
+    **kwargs: Any,
+) -> dict[str, Any]:
+    """Fetch raw cpu/ram data, preferring the modern endpoint.
+
+    Legacy appGet data is calculated and less precise, so it is used only
+    when the modern endpoint yields nothing or is forced off.
+    """
+
+    mac = source.target or identity.mac
+    if mac is None:
+        return {}
+
+    if not _force_legacy(kwargs.get("connection_config")):
+        modern = await _get_modern(callback, mac)
+        if modern:
+            return modern
+
+    return await _get_legacy(callback, source, mac, identity)
+
+
+def _translate_modern(
+    rows: list[Any],
+) -> dict[ARSystemType, dict[ARMetricType, Any]]:
+    """Translate modern diagnostics rows (newest row wins)."""
+
+    row = rows[-1]
+    status: dict[ARSystemType, dict[ARMetricType, Any]] = {}
+    for index, (_, system_type, metric) in enumerate(_METRICS):
+        if index >= len(row):
+            break
+        value = raw_to_int(row[index])
+        if value is not None:
+            status.setdefault(system_type, {})[metric] = value
+
+    return status
+
+
+def _translate_legacy(
+    payload: _LegacyPayload,
+) -> dict[ARSystemType, dict[ARMetricType, Any]]:
+    """Translate legacy cpu/ram payload into the unified format."""
+
+    status: dict[ARSystemType, dict[ARMetricType, Any]] = {}
+
+    aggregate, cores = legacy.translate_cpu(payload.now, payload.prev)
+    if aggregate is not None:
+        status[ARSystemType.CPU] = {ARMetricType.USAGE: aggregate}
+        for core, usage in cores.items():
+            core_type = _CORE_TYPES.get(core)
+            if core_type is not None:
+                status[core_type] = {ARMetricType.USAGE: usage}
+
+    if payload.ram:
+        status[ARSystemType.RAM] = dict(payload.ram)
+
+    return status
+
+
 def translate_state(
     data: dict[str, Any],
     *,
     identity: ARDeviceIdentity,
     **kwargs: Any,
 ) -> dict[MacAddress, dict[ARSystemType, dict[ARMetricType, Any]]]:
-    """Translate raw diagnostics rows to the unified per-MAC format."""
+    """Translate raw cpu/ram data to the unified per-MAC format."""
 
     if not isinstance(data, dict) or not data:
         return {}
 
     result: dict[MacAddress, dict[ARSystemType, dict[ARMetricType, Any]]] = {}
-    for mac_raw, contents in data.items():
+    for mac_raw, payload in data.items():
         mac = MacAddress.from_value_safe(mac_raw)
-        if mac is None or not contents:
+        if mac is None or not payload:
             continue
 
-        # Rows are time-ascending; the last one is the most recent
-        row = contents[-1]
-        status: dict[ARSystemType, dict[ARMetricType, Any]] = {}
-        for index, (_, system_type, metric) in enumerate(_METRICS):
-            if index >= len(row):
-                break
-            value = raw_to_int(row[index])
-            if value is not None:
-                status.setdefault(system_type, {})[metric] = value
-
+        status = (
+            _translate_legacy(payload)
+            if isinstance(payload, _LegacyPayload)
+            else _translate_modern(payload)
+        )
         if status:
             result[mac] = status
 

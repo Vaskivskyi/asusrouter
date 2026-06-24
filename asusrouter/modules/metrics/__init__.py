@@ -13,4 +13,7 @@ class ARMetricType(FromStrMixin, StrEnum):
 
     UNKNOWN = UNKNOWN_MEMBER_STR
 
+    FREE = "free"
+    TOTAL = "total"
     USAGE = "usage"
+    USED = "used"

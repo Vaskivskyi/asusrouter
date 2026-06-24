@@ -3,10 +3,14 @@
 from __future__ import annotations
 
 from typing import Any
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, Mock
 
 import pytest
 
+from asusrouter.config.connection import (
+    ARConnectionConfig,
+    ARConnectionConfigKey as ARCCKey,
+)
 from asusrouter.modules.device.identity import ARDeviceIdentity
 from asusrouter.modules.endpoint_v2 import AREndpoint
 from asusrouter.modules.metrics import ARMetricType as M
@@ -16,11 +20,42 @@ from asusrouter.modules.system_status import (
     ARSystemStatusSourceUniversal,
     ARSystemType as T,
     get_state,
+    legacy,
     translate_state,
 )
 from asusrouter.tools.identifiers import MacAddress
 
 _MAC = "12:34:56:78:9A:BC"
+_MEM = {"mem_free": "400", "mem_total": "1000", "mem_used": "600"}
+_KIB = 1024
+
+
+def _force_config() -> ARConnectionConfig:
+    """Build a connection config forcing the legacy data path."""
+
+    config = ARConnectionConfig()
+    config.set(ARCCKey.FORCE_LEGACY_SYSTEM_STATUS, True)
+    return config
+
+
+def _legacy_callback(cpu: dict[str, Any], mem: dict[str, Any]) -> AsyncMock:
+    """Build a callback returning legacy appGet cpu/ram data."""
+
+    async def call(*, endpoint: AREndpoint, request: str) -> dict[str, Any]:
+        return {"cpu_usage": cpu, "memory_usage": mem}
+
+    return AsyncMock(side_effect=call)
+
+
+def _fallback_callback(cpu: dict[str, Any], mem: dict[str, Any]) -> AsyncMock:
+    """Build a callback with an empty modern endpoint and legacy data."""
+
+    async def call(*, endpoint: AREndpoint, request: str) -> dict[str, Any]:
+        if endpoint == AREndpoint.FETCH_DATA:
+            return {"cpu_usage": cpu, "memory_usage": mem}
+        return {}
+
+    return AsyncMock(side_effect=call)
 
 
 def _identity(mac: str | None = _MAC) -> ARDeviceIdentity:
@@ -200,3 +235,187 @@ class TestTranslateState:
         """Empty, non-dict, or unkeyable input yields an empty result."""
 
         assert translate_state(data, identity=_identity()) == {}
+
+
+class TestSourceStash:
+    """Tests for the cpu history stashed on the source."""
+
+    def test_stash_returns_previous(self) -> None:
+        """Stashing current counters returns the previous sample."""
+
+        source = ARSystemStatusSource()
+
+        assert source.stash_cpu({1: (1, 1)}) is None
+        assert source.stash_cpu({1: (2, 2)}) == {1: (1, 1)}
+
+
+class TestLegacyGetState:
+    """Tests for the legacy cpu/ram data path."""
+
+    async def test_force_legacy_uses_appget(self) -> None:
+        """The force flag bypasses the modern endpoint."""
+
+        callback = _legacy_callback(
+            {"cpu1_total": "100", "cpu1_usage": "10"}, _MEM
+        )
+
+        result = await get_state(
+            callback,
+            ARSystemStatusSource(),
+            identity=_identity(),
+            connection_config=_force_config(),
+        )
+
+        assert callback.await_args is not None
+        call = callback.await_args.kwargs
+        assert call["endpoint"] == AREndpoint.FETCH_DATA
+        assert call["request"] == legacy.LEGACY_REQUEST
+        # First sample has no previous counters, so only ram is reported
+        node = translate_state(result, identity=_identity())[MacAddress(_MAC)]
+        assert T.CPU not in node
+        assert node[T.RAM][M.TOTAL] == 1000 * _KIB
+        assert node[T.RAM][M.USAGE] == 60.0
+
+    async def test_modern_empty_falls_back_to_legacy(self) -> None:
+        """An empty modern response falls back to legacy data."""
+
+        callback = _fallback_callback(
+            {"cpu1_total": "100", "cpu1_usage": "10"}, _MEM
+        )
+
+        result = await get_state(
+            callback, ARSystemStatusSource(), identity=_identity()
+        )
+
+        node = translate_state(result, identity=_identity())[MacAddress(_MAC)]
+        assert node[T.RAM][M.USED] == 600 * _KIB
+
+    async def test_usage_computed_on_second_sample(self) -> None:
+        """The cached source lets the second sample derive usage."""
+
+        source = ARSystemStatusSource()
+        config = _force_config()
+
+        await get_state(
+            _legacy_callback(
+                {
+                    "cpu1_total": "100",
+                    "cpu1_usage": "10",
+                    "cpu2_total": "100",
+                    "cpu2_usage": "20",
+                },
+                _MEM,
+            ),
+            source,
+            identity=_identity(),
+            connection_config=config,
+        )
+        result = await get_state(
+            _legacy_callback(
+                {
+                    "cpu1_total": "200",
+                    "cpu1_usage": "60",
+                    "cpu2_total": "200",
+                    "cpu2_usage": "40",
+                },
+                _MEM,
+            ),
+            source,
+            identity=_identity(),
+            connection_config=config,
+        )
+
+        node = translate_state(result, identity=_identity())[MacAddress(_MAC)]
+        assert node[T.CPU][M.USAGE] == 35.0
+        assert node[T.CORE_1][M.USAGE] == 50.0
+        assert node[T.CORE_2][M.USAGE] == 20.0
+
+    async def test_cores_beyond_members_feed_aggregate_only(self) -> None:
+        """Cores past the member cap still count toward the aggregate."""
+
+        source = ARSystemStatusSource()
+        config = _force_config()
+        cores = range(1, 10)
+
+        first = {f"cpu{i}_total": "100" for i in cores}
+        first.update({f"cpu{i}_usage": "10" for i in cores})
+        second = {f"cpu{i}_total": "200" for i in cores}
+        second.update({f"cpu{i}_usage": "60" for i in cores})
+
+        await get_state(
+            _legacy_callback(first, _MEM),
+            source,
+            identity=_identity(),
+            connection_config=config,
+        )
+        result = await get_state(
+            _legacy_callback(second, _MEM),
+            source,
+            identity=_identity(),
+            connection_config=config,
+        )
+
+        node = translate_state(result, identity=_identity())[MacAddress(_MAC)]
+        assert T.CPU in node
+        core_types = [t for t in node if t.value.startswith("core_")]
+        assert len(core_types) == 8
+
+    async def test_node_target_skips_legacy(self) -> None:
+        """Legacy appGet is not queried for a node target."""
+
+        callback = _legacy_callback(
+            {"cpu1_total": "100", "cpu1_usage": "10"}, _MEM
+        )
+
+        result = await get_state(
+            callback,
+            ARSystemStatusSource("AA:BB:CC:DD:EE:FF"),
+            identity=_identity(),
+            connection_config=_force_config(),
+        )
+
+        assert result == {}
+        callback.assert_not_awaited()
+
+    async def test_non_dict_response(self) -> None:
+        """A non-dict legacy response yields an empty result."""
+
+        async def call(*, endpoint: AREndpoint, request: str) -> Any:
+            return "not-a-dict"
+
+        result = await get_state(
+            AsyncMock(side_effect=call),
+            ARSystemStatusSource(),
+            identity=_identity(),
+            connection_config=_force_config(),
+        )
+
+        assert result == {}
+
+    async def test_empty_data(self) -> None:
+        """Empty cpu and ram data yields an empty result."""
+
+        result = await get_state(
+            _legacy_callback({}, {}),
+            ARSystemStatusSource(),
+            identity=_identity(),
+            connection_config=_force_config(),
+        )
+
+        assert result == {}
+
+    async def test_force_legacy_config_error_uses_modern(self) -> None:
+        """A config lookup error leaves the modern endpoint in use."""
+
+        config = Mock()
+        config.get.side_effect = KeyError
+        callback = AsyncMock(return_value={"contents": [["5", "26"]]})
+
+        result = await get_state(
+            callback,
+            ARSystemStatusSourceUniversal,
+            identity=_identity(),
+            connection_config=config,
+        )
+
+        assert result == {_MAC: [["5", "26"]]}

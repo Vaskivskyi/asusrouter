@@ -176,6 +176,7 @@ class TestAsyncRefreshDataState:
             [source],
             force=True,
             identity=ANY,
+            connection_config=ANY,
             extra_kw="x",
         )
         assert_state_updated(state, {"a": 1})
@@ -221,6 +222,7 @@ class TestAsyncRefreshDataState:
             source,
             force=True,
             identity=ANY,
+            connection_config=ANY,
             extra_kw="x",
         )
         if translator:

@@ -45,7 +45,6 @@ from asusrouter.modules.data_finder import (
 )
 from asusrouter.modules.data_transform import (
     transform_clients,
-    transform_cpu,
     transform_network,
     transform_wan,
 )
@@ -512,12 +511,18 @@ class AsusRouter:
         get_callable_flag = ARCallReg.get_callable_flag
         commit = self._commit_data_state
         identity = self.description
+        connection_config = self.connection_config
 
         for caller, caller_states in matrix.items():
             if get_callable_flag(caller):
                 sources = [state.source for state in caller_states]
                 data = await caller(
-                    read, sources, force=force, identity=identity, **kwargs
+                    read,
+                    sources,
+                    force=force,
+                    identity=identity,
+                    connection_config=connection_config,
+                    **kwargs,
                 )
                 self._translate_multidata(caller_states, data, identity)
             else:
@@ -527,6 +532,7 @@ class AsusRouter:
                         state.source,
                         force=force,
                         identity=identity,
+                        connection_config=connection_config,
                         **kwargs,
                     )
                     translate = state.translate_caller
@@ -778,9 +784,6 @@ class AsusRouter:
                     description.support, ARSupportType.AIMESH
                 ),
             )
-
-        if datatype == AsusData.CPU:
-            return transform_cpu(data)
 
         if datatype == AsusData.NETWORK:
             return transform_network(

@@ -28,6 +28,8 @@ class ARConnectionConfigKey(ARConfigKeyBase):
     ALLOW_MULTIPLE_FALLBACKS = "allow_multiple_fallbacks"
     # Allow upgrade from HTTP to HTTPS
     ALLOW_UPGRADE_HTTP_TO_HTTPS = "allow_upgrade_http_to_https"
+    # Force legacy system status (skip the modern diagnostics endpoint)
+    FORCE_LEGACY_SYSTEM_STATUS = "force_legacy_system_status"
     # Port
     PORT = "port"
     # Strict SSL
@@ -48,6 +50,8 @@ CONNECTION_CONFIG_DEFAULT: dict[ARConnectionConfigKey, Any] = {
     ARConnectionConfigKey.ALLOW_MULTIPLE_FALLBACKS: CONFIG_DEFAULT_BOOL,
     # Allow upgrade from HTTP to HTTPS
     ARConnectionConfigKey.ALLOW_UPGRADE_HTTP_TO_HTTPS: True,
+    # If set, system status always uses legacy appGet cpu/ram data
+    ARConnectionConfigKey.FORCE_LEGACY_SYSTEM_STATUS: CONFIG_DEFAULT_BOOL,
     # Port
     ARConnectionConfigKey.PORT: CONFIG_DEFAULT_INT,
     # If set, AsusRouter will not allow falling back to a non-SSL connection
@@ -71,6 +75,8 @@ CONNECTION_CONFIG_TYPES_DEFAULTS: dict[
     ARConnectionConfigKey.ALLOW_MULTIPLE_FALLBACKS: safe_bool_config,
     # Allow upgrade from HTTP to HTTPS
     ARConnectionConfigKey.ALLOW_UPGRADE_HTTP_TO_HTTPS: safe_bool_config,
+    # Force legacy system status
+    ARConnectionConfigKey.FORCE_LEGACY_SYSTEM_STATUS: safe_bool_config,
     # Port
     ARConnectionConfigKey.PORT: safe_int_config,
     # Strict SSL

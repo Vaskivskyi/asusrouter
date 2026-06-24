@@ -88,17 +88,6 @@ def transform_clients(
     return clients
 
 
-def transform_cpu(
-    data: dict[str, dict[str, Any]],
-) -> dict[str, Any]:
-    """Transform cpu data."""
-
-    for info in data.values():
-        info.setdefault("usage", None)
-
-    return data
-
-
 def transform_wan(
     data: dict[str, Any],
     support: dict[ARSupportType, Any] | None,
