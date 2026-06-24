@@ -11,7 +11,6 @@ from asusrouter.modules.data import AsusDataState
 from asusrouter.modules.data_transform import (
     MODEL_WITH_6GHZ,
     transform_clients,
-    transform_cpu,
     transform_network,
     transform_wan,
 )
@@ -205,36 +204,6 @@ class TestTransformClients:
             transform_clients({mac: {}}, None)
 
         mock_pc.assert_called_once_with({}, None)
-
-
-class TestTransformCpu:
-    """Tests for transform_cpu."""
-
-    def test_adds_usage_none_when_missing(self) -> None:
-        """Adds usage: None for cores missing the key."""
-
-        data: dict[str, Any] = {"core_1": {"load": 50}}
-        result = transform_cpu(data)
-        assert result["core_1"]["usage"] is None
-
-    def test_preserves_existing_usage(self) -> None:
-        """Existing usage value is not overwritten."""
-
-        data: dict[str, Any] = {"core_1": {"usage": 75}}
-        result = transform_cpu(data)
-        assert result["core_1"]["usage"] == 75
-
-    def test_mutates_and_returns_input(self) -> None:
-        """Returns the same dict object (in-place mutation)."""
-
-        data: dict[str, Any] = {"core_1": {}}
-        result = transform_cpu(data)
-        assert result is data
-
-    def test_empty_data(self) -> None:
-        """Empty dict → empty dict returned."""
-
-        assert transform_cpu({}) == {}
 
 
 class TestTransformWan:

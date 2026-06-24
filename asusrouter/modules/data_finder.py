@@ -67,9 +67,7 @@ ASUSDATA_REQUEST = {
     "devices": [
         ("get_clientlist", ""),
     ],
-    "main": [
-        ("cpu_usage", "appobj"),
-        ("memory_usage", "appobj"),
+    "network": [
         ("netdev", "appobj"),
     ],
     "speedtest": [
@@ -189,9 +187,6 @@ ASUSDATA_MAP: dict[AsusData, AsusData | AsusDataFinder] = {
         [AREndpoint.FETCH_ONBOARDING, AREndpoint.FETCH_CLIENTS_UPDATE],
         AsusDataMerge.ALL,
     ),
-    AsusData.CPU: AsusDataFinder(
-        AREndpoint.FETCH_DATA, request=ASUSDATA_REQUEST["main"]
-    ),
     AsusData.DDNS: AsusDataFinder(
         AREndpoint.FETCH_DATA,
         nvram=ASUSDATA_NVRAM["ddns"],
@@ -211,7 +206,9 @@ ASUSDATA_MAP: dict[AsusData, AsusData | AsusDataFinder] = {
     AsusData.LED: AsusDataFinder(
         AREndpoint.FETCH_DATA, nvram=ASUSDATA_NVRAM["light"]
     ),
-    AsusData.NETWORK: AsusData.CPU,
+    AsusData.NETWORK: AsusDataFinder(
+        AREndpoint.FETCH_DATA, request=ASUSDATA_REQUEST["network"]
+    ),
     AsusData.OPENVPN: AsusDataFinder(
         [AREndpoint.FETCH_VPN_STATUS, AREndpoint.FETCH_DEVICEMAP],
         AsusDataMerge.ANY,
@@ -225,7 +222,6 @@ ASUSDATA_MAP: dict[AsusData, AsusData | AsusDataFinder] = {
     AsusData.PORT_FORWARDING: AsusDataFinder(
         AREndpoint.FETCH_DATA, nvram=ASUSDATA_NVRAM["port_forwarding"]
     ),
-    AsusData.RAM: AsusData.CPU,
     AsusData.SPEEDTEST: AsusDataFinder(
         AREndpoint.FETCH_DATA,
         nvram=ASUSDATA_NVRAM["speedtest"],
