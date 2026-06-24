@@ -344,10 +344,10 @@ class TestTranslatePortStatus:
 
         data = {
             "node_info": {
-                "CC:28:AA:F4:53:A0": {"cd_good_to_go": "1"},
+                "12:34:56:78:9A:BC": {"cd_good_to_go": "1"},
             },
             "port_info": {
-                "CC:28:AA:F4:53:A0": {
+                "12:34:56:78:9A:BC": {
                     "W0": {
                         "is_on": "1",
                         "cap": "1",
@@ -366,7 +366,7 @@ class TestTranslatePortStatus:
 
         result = translate_port_status(data, ARDeviceIdentity())
 
-        node = result[MacAddress("CC:28:AA:F4:53:A0")]
+        node = result[MacAddress("12:34:56:78:9A:BC")]
         assert node.info == {ARPortsInfo.CD_GOOD_TO_GO: True}
         assert {p[P.NATIVE_NAME] for p in node.ports} == {"W0", "L1"}
         w0 = next(p for p in node.ports if p[P.NATIVE_NAME] == "W0")
@@ -377,7 +377,7 @@ class TestTranslatePortStatus:
 
         data = {
             "node_info": {},
-            "port_info": {"CC:28:AA:F4:53:A0": {"W0": {"is_on": "1"}}},
+            "port_info": {"12:34:56:78:9A:BC": {"W0": {"is_on": "1"}}},
         }
 
         result = translate_port_status(data, ARDeviceIdentity())

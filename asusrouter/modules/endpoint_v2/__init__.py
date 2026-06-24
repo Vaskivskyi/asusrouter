@@ -25,6 +25,7 @@ class AREndpoint(FromStrMixin, StrEnum):
     FETCH_CLIENTS_UPDATE = "update_clients.asp"
     FETCH_DATA = "appGet.cgi"
     FETCH_DEVICEMAP = "ajax_status.xml"
+    FETCH_DIAGNOSTICS_DATA = "get_diag_content_data.cgi"
     FETCH_FIRMWARE_UPDATE = "detect_firmware.asp"
     FETCH_FIRMWARE_UPDATE_NOTE = "release_note0.asp"
     FETCH_FIRMWARE_UPDATE_NOTE_AIMESH = "release_note_amas.asp"
@@ -72,6 +73,7 @@ _DEFAULT_META = AREndpointMeta()
 _GET_META = AREndpointMeta(request_type=RequestType.GET)
 
 _ENDPOINT_META: dict[AREndpoint, AREndpointMeta] = {
+    AREndpoint.FETCH_DIAGNOSTICS_DATA: _GET_META,
     AREndpoint.FETCH_NETWORK: _GET_META,
     AREndpoint.FETCH_PORT_STATUS: _GET_META,
     AREndpoint.FETCH_TRAFFIC_BACKHAUL: _GET_META,
