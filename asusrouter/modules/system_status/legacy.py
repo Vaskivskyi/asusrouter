@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from asusrouter.modules.metrics import ARMetricType
+from asusrouter.modules.common.metrics import ARMetricType
 from asusrouter.tools.converters import safe_usage, safe_usage_historic
 from asusrouter.tools.converters_v2.raw import raw_to_int
 from asusrouter.tools.units import DataUnitConverter, UnitOfData

@@ -1,4 +1,4 @@
-"""Tests for asusrouter.modules.metrics."""
+"""Tests for asusrouter.modules.common.metrics."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ from typing import Any
 
 import pytest
 
-from asusrouter.modules.metrics import ARMetricType
+from asusrouter.modules.common.metrics import ARMetricType
 
 
 class TestARMetricType:

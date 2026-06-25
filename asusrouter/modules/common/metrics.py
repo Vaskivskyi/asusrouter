@@ -1,4 +1,4 @@
-"""Metrics module for AsusRouter."""
+"""Common metrics module for AsusRouter."""
 
 from __future__ import annotations
 
@@ -13,7 +13,16 @@ class ARMetricType(FromStrMixin, StrEnum):
 
     UNKNOWN = UNKNOWN_MEMBER_STR
 
+    # General
     FREE = "free"
     TOTAL = "total"
     USAGE = "usage"
     USED = "used"
+
+    # Traffic and rates
+    PHY_RX_SPEED = "phy_rx_speed"
+    PHY_TX_SPEED = "phy_tx_speed"
+    RX_SPEED = "rx_speed"
+    RX_SPEED_AVG = "rx_speed_avg"
+    TX_SPEED = "tx_speed"
+    TX_SPEED_AVG = "tx_speed_avg"

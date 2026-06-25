@@ -6,7 +6,7 @@ from typing import Any
 
 import pytest
 
-from asusrouter.modules.metrics import ARMetricType as M
+from asusrouter.modules.common.metrics import ARMetricType as M
 from asusrouter.modules.system_status import legacy
 
 _KIB = 1024
