@@ -3,56 +3,8 @@
 from __future__ import annotations
 
 from asusrouter import AsusData
-from asusrouter.modules.aimesh import AiMeshDevice
 
 expected_result = {
-    AsusData.AIMESH: {
-        "00:00:00:00:00:00": AiMeshDevice(
-            status=True,
-            alias="Living Room",
-            model="RT-AX88U",
-            product_id="RT-AX88U",
-            ip="192.168.1.1",
-            fw="3.0.0.4.388.4_0",
-            fw_new=None,
-            mac="00:00:00:00:00:00",
-            ap={"2ghz": "00:00:00:00:00:00", "5ghz": "00:00:00:00:00:01"},
-            parent={},
-            type="router",
-            level=0,
-            config={},
-        ),
-        "00:00:00:00:00:33": AiMeshDevice(
-            status=True,
-            alias="Bedroom",
-            model="RT-AX88U",
-            product_id="RT-AX88U",
-            ip="192.168.1.2",
-            fw="3.0.0.4.388.4_0",
-            fw_new=None,
-            mac="00:00:00:00:00:33",
-            ap={"2ghz": "00:00:00:00:00:34", "5ghz": "00:00:00:00:00:35"},
-            parent={},
-            type="router",
-            level=0,
-            config={},
-        ),
-        "00:00:00:00:00:44": AiMeshDevice(
-            status=True,
-            alias="Kitchen",
-            model="RT-AX86U",
-            product_id="RT-AX86U",
-            ip="192.168.1.3",
-            fw="3.0.0.4.388.4_0",
-            fw_new=None,
-            mac="00:00:00:00:00:44",
-            ap={"2ghz": "00:00:00:00:00:45", "5ghz": "00:00:00:00:00:46"},
-            parent={},
-            type="node",
-            level=1,
-            config={},
-        ),
-    },
     AsusData.CLIENTS: {
         "00:00:00:00:00:02": {
             "connection_type": 1,

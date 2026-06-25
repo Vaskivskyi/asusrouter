@@ -3,22 +3,18 @@
 from __future__ import annotations
 
 from typing import Any
-from unittest.mock import patch
 
 import pytest
 
 from asusrouter import AsusData
-from asusrouter.modules.aimesh import AiMeshDevice
 from asusrouter.modules.endpoint.onboarding import (
     CONNECTION_TYPE,
     process,
-    process_aimesh_node,
     process_connection,
     read,
 )
 from asusrouter.tools.readers import read_js_variables
 
-DATA_CLIENTLIST = [[{"mac": "00:aa:11:bb:22:cc", "ip": "192.168.1.1"}]]
 DATA_ALLCLIENTLIST = [
     {
         "00:aa:11:bb:22:cc": {
@@ -27,28 +23,10 @@ DATA_ALLCLIENTLIST = [
     }
 ]
 
-RESULT_CLIENTLIST = {
-    "00:aa:11:bb:22:cc": AiMeshDevice(
-        status=False,
-        alias=None,
-        model=None,
-        product_id=None,
-        ip="192.168.1.1",
-        fw=None,
-        fw_new=None,
-        mac="00:aa:11:bb:22:cc",
-        ap={},
-        parent={},
-        type="router",
-        level=0,
-        config=None,
-    ),
-}
-
 RESULT_ALLCLIENTLIST = {
     "00:aa:11:bb:22:dd": {
-        "connection_type": None,
-        "guest": None,
+        "connection_type": 1,
+        "guest": 0,
         "ip": "192.168.1.12",
         "mac": "00:aa:11:bb:22:dd",
         "node": "00:aa:11:bb:22:cc",
@@ -66,158 +44,26 @@ def test_read() -> None:
 
 
 @pytest.mark.parametrize(
-    (
-        "data_clientlist",
-        "data_allclientlist",
-        "result_clientlist",
-        "result_allclientlist",
-    ),
+    ("data_allclientlist", "result_allclientlist"),
     [
-        # Correct data
-        (
-            DATA_CLIENTLIST,
-            DATA_ALLCLIENTLIST,
-            RESULT_CLIENTLIST,
-            RESULT_ALLCLIENTLIST,
-        ),
-        # AiMesh node data missing
-        (None, DATA_ALLCLIENTLIST, None, RESULT_ALLCLIENTLIST),
-        # Clients data missing
-        (DATA_CLIENTLIST, None, RESULT_CLIENTLIST, None),
-        # No data
-        (None, None, None, None),
+        (DATA_ALLCLIENTLIST, RESULT_ALLCLIENTLIST),
+        (None, {}),
     ],
+    ids=["with_clients", "no_clients"],
 )
 def test_process(
-    data_clientlist: list[dict[str, Any]] | None,
     data_allclientlist: list[dict[str, Any]] | None,
-    result_clientlist: dict[str, AiMeshDevice] | None,
-    result_allclientlist: dict[str, dict[str, Any]] | None,
+    result_allclientlist: dict[str, dict[str, Any]],
 ) -> None:
-    """Test process function."""
+    """Process builds the client list keyed by AsusData.CLIENTS."""
 
-    # Test data and expected result
-    data = {}
-    expected_result = {}
-
-    # AiMesh nodes data
-    if data_clientlist is not None:
-        data["get_cfg_clientlist"] = data_clientlist
-    expected_result[AsusData.AIMESH] = result_clientlist or {}
-
-    # Clients data
+    data: dict[str, Any] = {}
     if data_allclientlist is not None:
         data["get_allclientlist"] = data_allclientlist
-    expected_result[AsusData.CLIENTS] = result_allclientlist or {}
 
-    # Define the side effects for the mocked functions
-    def mock_aimesh_node_side_effect(
-        device: dict[str, Any],
-    ) -> AiMeshDevice | None:
-        """Mock the process_aimesh_node function."""
+    result = process(data)
 
-        if result_clientlist and device.get("mac") in result_clientlist:
-            return result_clientlist[device.get("mac")]
-        return None
-
-    # Patch the functions and set their return values
-    with (
-        patch(
-            "asusrouter.modules.endpoint.onboarding.process_aimesh_node",
-            side_effect=mock_aimesh_node_side_effect,
-        ) as mock_aimesh_node,
-        patch(
-            "asusrouter.modules.endpoint.onboarding.process_connection",
-            return_value=result_allclientlist,
-        ) as mock_connection,
-    ):
-        # Get the result
-        result = process(data)
-
-        # Assert that the result is as expected
-        assert result == expected_result
-
-        # Check that mock_aimesh_node was called
-        # (if data_clientlist was provided)
-        if data_clientlist is not None:
-            assert len(mock_aimesh_node.call_args_list) == len(
-                data_clientlist[0]
-            )
-            for i, call in enumerate(mock_aimesh_node.call_args_list):
-                assert call.args[0] == data_clientlist[0][i]
-        else:
-            mock_aimesh_node.assert_not_called()
-
-        # Check that mock_connection was called appropriate number of times
-        if data_allclientlist is not None:
-            assert mock_connection.call_count == len(data_allclientlist)
-        else:
-            mock_connection.assert_not_called()
-
-
-def test_process_aimesh_node() -> None:
-    """Test process_aimesh_node function."""
-
-    # Test data and expected result
-    data = {
-        "ap2g": "ap2g_value",
-        "ap5g": "ap5g_value",
-        "ap5g1": "ap5g1_value",
-        "ap6g": "ap6g_value",
-        "apdwb": "apdwb_value",
-        "pap2g": "",
-        "pap5g": "pap5g_value",
-        "pap6g": "pap6g_value",
-        "rssi2g": "",
-        "rssi5g": "rssi5g_value",
-        "rssi6g": "rssi6g_value",
-        "pap2g_ssid": "",
-        "pap5g_ssid": "pap5g_ssid_value",
-        "pap6g_ssid": "pap6g_ssid_value",
-        "level": "1",
-        "online": "1",
-        "alias": "alias_value",
-        "ui_model_name": "ui_model_name_value",
-        "model_name": "model_name_value",
-        "product_id": "product_id_value",
-        "ip": "192.168.0.2",
-        "fwver": "fwver_value",
-        "newfwver": "newfwver_value",
-        "mac": "00:aa:11:bb:22:cc",
-        "config": {"config_key": "config_value"},
-    }
-    expected_result = AiMeshDevice(
-        status=True,
-        alias="alias_value",
-        model="ui_model_name_value",
-        product_id="product_id_value",
-        ip="192.168.0.2",
-        fw="fwver_value",
-        fw_new="newfwver_value",
-        mac="00:aa:11:bb:22:cc",
-        ap={
-            "2ghz": "ap2g_value",
-            "5ghz": "ap5g_value",
-            "5ghz2": "ap5g1_value",
-            "6ghz": "ap6g_value",
-            "dwb": "apdwb_value",
-        },
-        parent={
-            "connection": "5ghz",
-            "mac": "pap5g_value",
-            "rssi": "rssi5g_value",
-            "ssid": "pap5g_ssid_value",
-        },
-        type="node",
-        level=1,
-        config={"config_key": "config_value"},
-    )
-
-    # Get the result
-    result = process_aimesh_node(data)
-
-    # Check the result
-    assert result == expected_result
+    assert result == {AsusData.CLIENTS: result_allclientlist}
 
 
 @pytest.mark.parametrize(
