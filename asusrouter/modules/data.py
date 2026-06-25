@@ -14,7 +14,6 @@ from asusrouter.tools.converters_v2.raw import raw_to_bool
 class AsusData(StrEnum):
     """AsusRouter data class."""
 
-    AIMESH = "aimesh"
     AURA = "aura"
     BOOTTIME = "boottime"
     CLIENTS = "clients"

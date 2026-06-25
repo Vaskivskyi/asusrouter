@@ -4,13 +4,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from asusrouter.modules.aimesh import AiMeshDevice
 from asusrouter.modules.data import AsusData
-from asusrouter.tools.converters_v2.raw import (
-    raw_to_bool,
-    raw_to_int,
-    raw_to_str,
-)
+from asusrouter.tools.converters_v2.raw import raw_to_int, raw_to_str
 from asusrouter.tools.readers import read_js_variables
 
 read = read_js_variables
@@ -24,32 +19,10 @@ CONNECTION_TYPE = {
 }
 
 
-CONST_AP = {
-    "2g": "2ghz",
-    "5g": "5ghz",
-    "5g1": "5ghz2",
-    "6g": "6ghz",
-    "dwb": "dwb",
-}
-
-CONST_FREQ = [
-    "2g",
-    "5g",
-    "6g",
-]
-
-
 def process(data: dict[str, Any]) -> dict[AsusData, Any]:
     """Process the onboarding data."""
 
     state: dict[AsusData, Any] = {}
-
-    # AiMesh nodes state
-    state[AsusData.AIMESH] = {
-        node.mac: node
-        for device in data.get("get_cfg_clientlist", [[]])[0]
-        for node in [process_aimesh_node(device)]
-    }
 
     # Client list
     clients = {}
@@ -76,47 +49,6 @@ def process(data: dict[str, Any]) -> dict[AsusData, Any]:
     state[AsusData.CLIENTS] = clients
 
     return state
-
-
-def process_aimesh_node(data: dict[str, Any]) -> AiMeshDevice:
-    """Process AiMesh node data."""
-
-    # Get the list of WLAN APs
-    ap = {}
-    for el, value in CONST_AP.items():
-        if f"ap{el}" in data and data[f"ap{el}"] != "":
-            ap[value] = data[f"ap{el}"]
-
-    # Get the parent data
-    parent = {}
-    for el in CONST_FREQ:
-        if f"pap{el}" in data and data[f"pap{el}"] != "":
-            parent["connection"] = CONST_AP[el]
-            parent["mac"] = data[f"pap{el}"]
-            parent["rssi"] = raw_to_str(data.get(f"rssi{el}"))
-            parent["ssid"] = raw_to_str(data.get(f"pap{el}_ssid"))
-
-            # Stop the loop since we found the parent
-            break
-
-    level = raw_to_int(data.get("level", "0"))
-    node_type = "router" if level == 0 else "node"
-
-    return AiMeshDevice(
-        status=raw_to_bool(data.get("online", 0)) or False,
-        alias=data.get("alias"),
-        model=data.get("ui_model_name", data.get("model_name")),
-        product_id=data.get("product_id"),
-        ip=data.get("ip"),
-        fw=data.get("fwver"),
-        fw_new=raw_to_str(data.get("newfwver")),
-        mac=data.get("mac"),
-        ap=ap,
-        parent=parent,
-        type=node_type,
-        level=level,
-        config=data.get("config"),
-    )
 
 
 def process_connection(data: str) -> dict[str, int]:

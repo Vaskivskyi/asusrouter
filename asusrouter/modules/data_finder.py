@@ -177,7 +177,6 @@ ASUSDATA_NVRAM["wireguard_server"].extend(
 
 # A map of endptoins to get data from
 ASUSDATA_MAP: dict[AsusData, AsusData | AsusDataFinder] = {
-    AsusData.AIMESH: AsusDataFinder(AREndpoint.FETCH_ONBOARDING),
     AsusData.AURA: AsusDataFinder(
         AREndpoint.FETCH_DATA,
         nvram=ASUSDATA_NVRAM["aura"],
