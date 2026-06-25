@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from typing import Any, cast
 from unittest.mock import ANY, AsyncMock, Mock
 
@@ -168,6 +169,77 @@ class TestAsyncRefreshDataState:
 
         await router._async_refresh_data_state(collection, force=True)
         assert router._data_states == {}
+
+    @pytest.mark.asyncio
+    async def test_skips_state_fresh_in_v2_window(
+        self,
+        router: AsusRouter,
+        source: ARDataSource,
+        bind_state: BindStateFactory,
+        universal_mock: UniversalMockPatcher,
+    ) -> None:
+        """A state fresh within the V2 window is not refetched."""
+
+        state_caller = AsyncMock(return_value={"a": 1})
+        state = bind_state(source, caller=state_caller)
+        cast(Any, state)._last_update = datetime.now(UTC)
+
+        universal_mock.patch(
+            ARCallReg, "get_callable_flag", return_value=False, mock_type=Mock
+        )
+        collection = ARDataCollection.from_value(source)
+        assert collection is not None
+
+        await router._async_refresh_data_state(collection, force=False)
+
+        state_caller.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_fetches_stale_state_without_force(
+        self,
+        router: AsusRouter,
+        source: ARDataSource,
+        bind_state: BindStateFactory,
+        universal_mock: UniversalMockPatcher,
+    ) -> None:
+        """A never-fetched (stale) state is refetched without force."""
+
+        state_caller = AsyncMock(return_value={"a": 1})
+        bind_state(source, caller=state_caller)
+
+        universal_mock.patch(
+            ARCallReg, "get_callable_flag", return_value=False, mock_type=Mock
+        )
+        collection = ARDataCollection.from_value(source)
+        assert collection is not None
+
+        await router._async_refresh_data_state(collection, force=False)
+
+        state_caller.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_force_refetches_fresh_state(
+        self,
+        router: AsusRouter,
+        source: ARDataSource,
+        bind_state: BindStateFactory,
+        universal_mock: UniversalMockPatcher,
+    ) -> None:
+        """force=True refetches even a fresh state."""
+
+        state_caller = AsyncMock(return_value={"a": 1})
+        state = bind_state(source, caller=state_caller)
+        cast(Any, state)._last_update = datetime.now(UTC)
+
+        universal_mock.patch(
+            ARCallReg, "get_callable_flag", return_value=False, mock_type=Mock
+        )
+        collection = ARDataCollection.from_value(source)
+        assert collection is not None
+
+        await router._async_refresh_data_state(collection, force=True)
+
+        state_caller.assert_awaited_once()
 
     @pytest.mark.asyncio
     async def test_batch_caller(
@@ -357,7 +429,7 @@ class TestAsyncFetchData:
             source, force=True, extra_kw="x"
         )
 
-        fake_state.is_fresh.assert_called_once_with(router._cache_threshold)
+        fake_state.is_fresh.assert_called_once_with(router._cache_threshold_v2)
         assert result == ({source: content} if is_fresh else None)
 
 
