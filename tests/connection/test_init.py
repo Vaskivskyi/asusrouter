@@ -188,6 +188,31 @@ class TestConnectionInit:
         conn = Connection(TCONST_HOST, TCONST_USER, TCONST_PASS, config=config)
         assert conn.config.get(ARCCKey.ALLOW_FALLBACK) is True
 
+    def test_request_semaphore_default(self) -> None:
+        """Default concurrency is 1 (requests fully serialized)."""
+
+        conn = Connection(TCONST_HOST, TCONST_USER, TCONST_PASS)
+        assert isinstance(conn._request_semaphore, asyncio.Semaphore)
+        assert conn._request_semaphore._value == 1
+
+    @pytest.mark.parametrize(
+        ("configured", "expected"),
+        [(3, 3), (1, 1), (0, 1), (-5, 1), (None, 1)],
+        ids=["three", "one", "zero", "negative", "none"],
+    )
+    def test_request_semaphore_clamped(
+        self, configured: int | None, expected: int
+    ) -> None:
+        """Configured concurrency is read once and clamped to at least 1."""
+
+        conn = Connection(
+            TCONST_HOST,
+            TCONST_USER,
+            TCONST_PASS,
+            config={ARCCKey.MAX_CONCURRENT_REQUESTS: configured},
+        )
+        assert conn._request_semaphore._value == expected
+
     def test_config_none_leaves_defaults(self) -> None:
         """config=None leaves all settings at their defaults."""
 
