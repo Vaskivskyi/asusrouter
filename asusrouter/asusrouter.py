@@ -25,6 +25,7 @@ from asusrouter.const import (
     AR_CALL_GET_STATE,
     AR_CALL_TRANSLATE_STATE,
     DEFAULT_CACHE_TIME,
+    DEFAULT_CACHE_TIME_V2,
     DEFAULT_TIMEOUT,
 )
 from asusrouter.error import (
@@ -154,6 +155,7 @@ class AsusRouter:
         self._cache_threshold = timedelta(
             seconds=cache_time or DEFAULT_CACHE_TIME
         )
+        self._cache_threshold_v2 = timedelta(seconds=DEFAULT_CACHE_TIME_V2)
 
         self._state: dict[AsusData, AsusDataState] = {}
         self._data_states: dict[ARDataSource | ARDataType, ARDataState] = {}
@@ -506,10 +508,12 @@ class AsusRouter:
         """Refresh data states for all sources in the collection."""
 
         data_states = self._data_states
+        threshold = self._cache_threshold_v2
         states = [
             s
             for item in collection
             if (s := data_states.get(item)) is not None
+            and (force or not s.is_fresh(threshold))
         ]
         if not states:
             return
@@ -591,7 +595,7 @@ class AsusRouter:
         if not data_state:
             return None
 
-        threshold = self._cache_threshold
+        threshold = self._cache_threshold_v2
         result = {
             key: state.content
             for key, state in data_state.items()
