@@ -7,6 +7,7 @@ from unittest.mock import AsyncMock, Mock
 import pytest
 
 from asusrouter.asusrouter import AsusRouter
+from asusrouter.modules.aimesh import ARAiMeshSourceUniversal
 from asusrouter.modules.endpoint_v2 import AREndpoint
 
 
@@ -99,6 +100,27 @@ async def test_async_connect_fetches_data_and_identity_on_success(
 
     mock_identity.assert_called_once()
     assert result is True
+
+
+@pytest.mark.asyncio
+async def test_async_connect_seeds_aimesh_topology(
+    router: AsusRouter,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Connect seeds the AiMesh topology right after the identity."""
+
+    conn = Mock()
+    conn.async_connect = AsyncMock(return_value=True)
+    monkeypatch.setattr(router, "_connection", conn)
+    fetch = AsyncMock(return_value={"x": 1})
+    monkeypatch.setattr(router, "async_fetch_data", fetch)
+    monkeypatch.setattr(router, "_apply_v1_conditional_rules", Mock())
+
+    await router.async_connect()
+
+    assert (ARAiMeshSourceUniversal,) in [
+        call.args for call in fetch.await_args_list
+    ]
 
 
 @pytest.mark.asyncio

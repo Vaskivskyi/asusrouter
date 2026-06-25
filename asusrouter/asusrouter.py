@@ -33,6 +33,8 @@ from asusrouter.error import (
     AsusRouterConnectionError,
     AsusRouterDataError,
 )
+from asusrouter.modules.aimesh import ARAiMeshSourceUniversal
+from asusrouter.modules.aimesh.topology import ARAiMeshTopology
 from asusrouter.modules.data import AsusData, AsusDataState
 from asusrouter.modules.data_finder import (
     ASUSDATA_MAP,
@@ -271,6 +273,9 @@ class AsusRouter:
         # Apply legacy conditional data rules only if description was fetched
         if result is not None:
             self._apply_v1_conditional_rules()
+            # Seed the live AiMesh topology before any user request, so it
+            # is available on the identity right after connecting
+            await self.async_fetch_data(ARAiMeshSourceUniversal, force=True)
 
         return result is not None
 
@@ -403,6 +408,9 @@ class AsusRouter:
 
         state.update(value)
         self._data_states[state.source] = state
+        # Keep the identity's live AiMesh topology in sync
+        if isinstance(value, ARAiMeshTopology):
+            self.description.update_aimesh(value)
 
     def _translate_multidata_batch(
         self,

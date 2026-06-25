@@ -6,6 +6,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from asusrouter.const import DEFAULT_IDENTITY_BRAND
+from asusrouter.modules.aimesh.topology import ARAiMeshTopology
 from asusrouter.modules.firmware import ARFirmware
 from asusrouter.modules.nvram import ARNvramType
 from asusrouter.modules.support import ARSupportSourceUniversal
@@ -79,6 +80,9 @@ class ARDeviceIdentity:
         self._serial: str | None = None
         self._support: dict[ARSupportType, Any] = {}
         self._wifi: dict[ARWiFiBand, int] = {}
+        # Live AiMesh topology - the only mutable identity part, swapped
+        # atomically as a whole snapshot by `update_aimesh`
+        self._aimesh: ARAiMeshTopology = ARAiMeshTopology()
 
     @property
     def brand(self) -> str:
@@ -127,6 +131,17 @@ class ARDeviceIdentity:
         """Get the WiFi information."""
 
         return self._wifi
+
+    @property
+    def aimesh(self) -> ARAiMeshTopology:
+        """Get the live AiMesh topology."""
+
+        return self._aimesh
+
+    def update_aimesh(self, topology: ARAiMeshTopology) -> None:
+        """Replace the AiMesh topology snapshot atomically."""
+
+        self._aimesh = topology
 
     @classmethod
     def build(cls, data: IdentityData) -> ARDeviceIdentity:
