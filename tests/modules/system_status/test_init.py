@@ -11,9 +11,9 @@ from asusrouter.config.connection import (
     ARConnectionConfig,
     ARConnectionConfigKey as ARCCKey,
 )
+from asusrouter.modules.common.metrics import ARMetricType as M
 from asusrouter.modules.device.identity import ARDeviceIdentity
 from asusrouter.modules.endpoint_v2 import AREndpoint
-from asusrouter.modules.metrics import ARMetricType as M
 from asusrouter.modules.source import ARDataSource
 from asusrouter.modules.system_status import (
     ARSystemStatusSource,

@@ -12,12 +12,12 @@ from asusrouter.const import (
     AR_CALL_TRANSLATE_STATE,
     UNKNOWN_MEMBER_STR,
 )
+from asusrouter.modules.common.metrics import ARMetricType
 from asusrouter.modules.device.identity import ARDeviceIdentity
 from asusrouter.modules.endpoint_v2 import (
     AREndpoint,
     get_endpoint_request_type,
 )
-from asusrouter.modules.metrics import ARMetricType
 from asusrouter.modules.source import ARDataSource
 from asusrouter.modules.system_status import legacy
 from asusrouter.modules.system_status.legacy import CpuCounters
