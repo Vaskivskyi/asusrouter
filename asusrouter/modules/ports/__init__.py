@@ -5,10 +5,9 @@ This module is for physical ports on the router, e.g. LAN, WAN, USB, etc.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from asusrouter.const import AR_CALL_GET_STATE, AR_CALL_TRANSLATE_STATE
-from asusrouter.modules.device.identity import ARDeviceIdentity
 from asusrouter.modules.endpoint_v2 import AREndpoint
 from asusrouter.modules.ports.base import (
     ARPortCablePair,
@@ -34,6 +33,9 @@ from asusrouter.registry import (
 )
 from asusrouter.tools.identifiers import MacAddress
 from asusrouter.tools.types import ARCallbackType
+
+if TYPE_CHECKING:
+    from asusrouter.modules.device.identity import ARDeviceIdentity
 
 # Request fetching the whole AiMesh network in one call
 _PORT_STATUS_REQUEST = "node_mac=all"
