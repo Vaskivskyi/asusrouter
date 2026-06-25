@@ -18,7 +18,10 @@ class ARTrafficType(FromStrMixin, StrEnum):
     UNKNOWN = UNKNOWN_MEMBER_STR
 
     BACKHAUL = "backhaul"
+    BRIDGE = "bridge"
     LACP = "lacp"
+    LACP1 = "lacp1"
+    LACP2 = "lacp2"
     USB = "usb"
     WAN = "wan"
     WIRED = "wired"

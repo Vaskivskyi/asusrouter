@@ -599,6 +599,8 @@ class AsusRouter:
         kwargs["get_data_callback"] = partial(
             self.async_fetch_data, force=force
         )
+        # Raw fetch for readers that must see unparsed content
+        kwargs["raw_callback"] = self.async_fetch
 
         data_state = await self._async_get_data_state(
             source, force=force, **kwargs
