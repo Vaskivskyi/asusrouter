@@ -222,6 +222,15 @@ class Connection:  # pylint: disable=too-many-instance-attributes
             self.config.get(ARCCKey.USE_SSL),
         )
 
+        # Bound concurrent HTTP requests; 1 keeps them fully serialized.
+        # Read once here - changing the config later has no effect
+        max_concurrent = max(
+            1, self.config.get(ARCCKey.MAX_CONCURRENT_REQUESTS) or 1
+        )
+        self._request_semaphore: asyncio.Semaphore = asyncio.Semaphore(
+            max_concurrent
+        )
+
         self._dumpback = dumpback
 
         self._manage_session: bool = False
@@ -697,13 +706,18 @@ class Connection:  # pylint: disable=too-many-instance-attributes
         else:
             payload_to_send = None
 
-        async with self._session.request(  # type: ignore[union-attr]
-            request_type.value,
-            url,
-            data=payload_to_send,
-            headers=headers,
-            ssl=self.config.get(ARCCKey.VERIFY_SSL),
-        ) as response:
+        # Bound the live request: hold a permit for the whole exchange,
+        # including reading the body (the connection stays in use until then)
+        async with (
+            self._request_semaphore,
+            self._session.request(  # type: ignore[union-attr]
+                request_type.value,
+                url,
+                data=payload_to_send,
+                headers=headers,
+                ssl=self.config.get(ARCCKey.VERIFY_SSL),
+            ) as response,
+        ):
             resp_status = response.status
             resp_headers = response.headers
             try:

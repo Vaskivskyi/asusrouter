@@ -30,6 +30,8 @@ class ARConnectionConfigKey(ARConfigKeyBase):
     ALLOW_UPGRADE_HTTP_TO_HTTPS = "allow_upgrade_http_to_https"
     # Force legacy system status (skip the modern diagnostics endpoint)
     FORCE_LEGACY_SYSTEM_STATUS = "force_legacy_system_status"
+    # Max concurrent HTTP requests (read once at connection init)
+    MAX_CONCURRENT_REQUESTS = "max_concurrent_requests"
     # Port
     PORT = "port"
     # Strict SSL
@@ -52,6 +54,8 @@ CONNECTION_CONFIG_DEFAULT: dict[ARConnectionConfigKey, Any] = {
     ARConnectionConfigKey.ALLOW_UPGRADE_HTTP_TO_HTTPS: True,
     # If set, system status always uses legacy appGet cpu/ram data
     ARConnectionConfigKey.FORCE_LEGACY_SYSTEM_STATUS: CONFIG_DEFAULT_BOOL,
+    # Max concurrent HTTP requests; 1 keeps requests fully serialized
+    ARConnectionConfigKey.MAX_CONCURRENT_REQUESTS: 1,
     # Port
     ARConnectionConfigKey.PORT: CONFIG_DEFAULT_INT,
     # If set, AsusRouter will not allow falling back to a non-SSL connection
@@ -77,6 +81,8 @@ CONNECTION_CONFIG_TYPES_DEFAULTS: dict[
     ARConnectionConfigKey.ALLOW_UPGRADE_HTTP_TO_HTTPS: safe_bool_config,
     # Force legacy system status
     ARConnectionConfigKey.FORCE_LEGACY_SYSTEM_STATUS: safe_bool_config,
+    # Max concurrent HTTP requests
+    ARConnectionConfigKey.MAX_CONCURRENT_REQUESTS: safe_int_config,
     # Port
     ARConnectionConfigKey.PORT: safe_int_config,
     # Strict SSL

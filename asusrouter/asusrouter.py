@@ -9,6 +9,7 @@ import asyncio
 from collections import defaultdict
 from collections.abc import Awaitable, Callable, Iterable
 from datetime import UTC, datetime, timedelta
+from functools import partial
 import json
 import logging
 from typing import Any, Self
@@ -538,15 +539,22 @@ class AsusRouter:
                 )
                 self._translate_multidata(caller_states, data, identity)
             else:
-                for state in caller_states:
-                    raw = await caller(
-                        read,
-                        state.source,
-                        force=force,
-                        identity=identity,
-                        connection_config=connection_config,
-                        **kwargs,
+                # Fan out concurrently; real concurrency is bounded by the
+                # connection's request semaphore, so this stays device-safe
+                raws = await asyncio.gather(
+                    *(
+                        caller(
+                            read,
+                            state.source,
+                            force=force,
+                            identity=identity,
+                            connection_config=connection_config,
+                            **kwargs,
+                        )
+                        for state in caller_states
                     )
+                )
+                for state, raw in zip(caller_states, raws):
                     translate = state.translate_caller
                     commit(
                         state,
@@ -587,7 +595,10 @@ class AsusRouter:
 
         _LOGGER.debug("Triggered method async_fetch_data")
 
-        kwargs["get_data_callback"] = self.async_fetch_data
+        # Sub-fetches inherit this call's force (override per-call if needed)
+        kwargs["get_data_callback"] = partial(
+            self.async_fetch_data, force=force
+        )
 
         data_state = await self._async_get_data_state(
             source, force=force, **kwargs

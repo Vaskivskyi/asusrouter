@@ -561,6 +561,44 @@ class TestMakeRequest:
             ssl=conn.config.get(ARCCKey.VERIFY_SSL),
         )
 
+    async def test_semaphore_bounds_concurrent_requests(
+        self,
+        connection_factory: ConnectionFactory,
+    ) -> None:
+        """No more than MAX_CONCURRENT_REQUESTS hold the session at once."""
+
+        conn = connection_factory(config={ARCCKey.MAX_CONCURRENT_REQUESTS: 2})
+        mock_session = self._setup_conn(conn)
+
+        active = 0
+        peak = 0
+
+        async def slow_text(*_a: Any, **_k: Any) -> str:
+            nonlocal active, peak
+            active += 1
+            peak = max(peak, active)
+            await asyncio.sleep(0.01)
+            active -= 1
+            return "ok"
+
+        def new_cm(*_a: Any, **_k: Any) -> AsyncMock:
+            response = MagicMock()
+            response.status = 200
+            response.headers = {}
+            response.text = AsyncMock(side_effect=slow_text)
+            cm = AsyncMock()
+            cm.__aenter__.return_value = response
+            cm.__aexit__.return_value = None
+            return cm
+
+        mock_session.request = MagicMock(side_effect=new_cm)
+
+        await asyncio.gather(
+            *(conn._make_request(AREndpoint.LOGIN) for _ in range(6))
+        )
+
+        assert peak == 2
+
     async def test_custom_headers_override_default(
         self,
         connection_factory: ConnectionFactory,

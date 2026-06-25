@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import asyncio
 from datetime import UTC, datetime
+from functools import partial
 from typing import Any, cast
 from unittest.mock import ANY, AsyncMock, Mock
 
@@ -275,6 +277,39 @@ class TestAsyncRefreshDataState:
         assert_state_updated(state, {"a": 1})
 
     @pytest.mark.asyncio
+    async def test_single_caller_fans_out_concurrently(
+        self,
+        router: AsusRouter,
+        bind_state: BindStateFactory,
+        universal_mock: UniversalMockPatcher,
+    ) -> None:
+        """Same-caller sources are fetched concurrently, not serialized."""
+
+        active = 0
+        peak = 0
+
+        async def caller(_read: Any, source: Any, **_kw: Any) -> Any:
+            nonlocal active, peak
+            active += 1
+            peak = max(peak, active)
+            await asyncio.sleep(0.01)
+            active -= 1
+            return {"src": source}
+
+        source_a, source_b = ARDataSource(), ARDataSource()
+        bind_state(source_a, caller=caller)
+        bind_state(source_b, caller=caller)
+
+        universal_mock.patch(
+            ARCallReg, "get_callable_flag", return_value=False, mock_type=Mock
+        )
+        collection = ARDataCollection([source_a, source_b])
+
+        await router._async_refresh_data_state(collection, force=True)
+
+        assert peak == 2
+
+    @pytest.mark.asyncio
     @pytest.mark.parametrize(
         ("has_translate", "expected_value"),
         [
@@ -391,12 +426,16 @@ class TestAsyncFetchData:
             source, force=True, extra_kw="x"
         )
 
-        async_get.assert_awaited_once_with(
-            source,
-            force=True,
-            extra_kw="x",
-            get_data_callback=router.async_fetch_data,
-        )
+        async_get.assert_awaited_once()
+        call = async_get.await_args
+        assert call.args == (source,)
+        assert call.kwargs["force"] is True
+        assert call.kwargs["extra_kw"] == "x"
+        # Sub-fetch callback is bound to this call's force
+        callback = call.kwargs["get_data_callback"]
+        assert isinstance(callback, partial)
+        assert callback.func == router.async_fetch_data
+        assert callback.keywords == {"force": True}
         assert result is None
 
     @pytest.mark.asyncio
