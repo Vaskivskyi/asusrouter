@@ -8,6 +8,8 @@ from unittest.mock import ANY, AsyncMock, Mock
 import pytest
 
 from asusrouter.asusrouter import ARCallReg, AsusRouter
+from asusrouter.modules.aimesh.topology import ARAiMeshTopology
+from asusrouter.modules.device import ARDeviceSourceUniversal
 from asusrouter.modules.device.identity import ARDeviceIdentity
 from asusrouter.modules.source import (
     ARDataCollection,
@@ -127,6 +129,25 @@ class TestCommitState:
 
         assert_state_updated(new_state, {"x": 1})
         assert router._data_states[source] is new_state
+
+    def test_committing_topology_syncs_identity(
+        self,
+        router: AsusRouter,
+        source: ARDataSource,
+        make_state: MakeStateFactory,
+    ) -> None:
+        """Committing an ARAiMeshTopology updates the identity snapshot."""
+
+        identity = ARDeviceIdentity()
+        id_state = make_state(ARDeviceSourceUniversal)
+        # `update` is mocked by the fixture; set the content directly
+        cast(Any, id_state)._content = identity
+        router._data_states[ARDeviceSourceUniversal] = id_state
+
+        topology = ARAiMeshTopology()
+        router._commit_data_state(make_state(source), topology)
+
+        assert identity.aimesh is topology
 
 
 class TestAsyncRefreshDataState:

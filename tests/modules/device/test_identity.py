@@ -7,6 +7,7 @@ from typing import Any
 import pytest
 
 from asusrouter.const import DEFAULT_IDENTITY_BRAND
+from asusrouter.modules.aimesh.topology import ARAiMeshTopology
 from asusrouter.modules.device.identity import (
     ARDeviceIdentity,
     _translate_firmware,
@@ -329,3 +330,25 @@ class TestARDeviceIdentityBuild:
         assert identity.model_original is None
         assert identity.serial is None
         assert identity.wifi == {}
+
+
+class TestAimesh:
+    """Tests for the live AiMesh topology on the identity."""
+
+    def test_default_is_empty_topology(self) -> None:
+        """A fresh identity carries an empty topology."""
+
+        aimesh = ARDeviceIdentity().aimesh
+
+        assert isinstance(aimesh, ARAiMeshTopology)
+        assert aimesh.nodes == {}
+
+    def test_update_swaps_snapshot(self) -> None:
+        """update_aimesh replaces the whole snapshot."""
+
+        identity = ARDeviceIdentity()
+        topology = ARAiMeshTopology()
+
+        identity.update_aimesh(topology)
+
+        assert identity.aimesh is topology
