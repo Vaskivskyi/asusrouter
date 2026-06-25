@@ -6,14 +6,16 @@ no MAC, so the ports are attributed to the main device via its identity.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from asusrouter.modules.device.identity import ARDeviceIdentity
 from asusrouter.modules.ports.base import ARPortProperty, ARPortsData
 from asusrouter.modules.ports.common import warn_unknown_port
 from asusrouter.modules.ports.speed import ARPortSpeed
 from asusrouter.tools.converters_v2.raw import raw_to_int
 from asusrouter.tools.identifiers import MacAddress
+
+if TYPE_CHECKING:
+    from asusrouter.modules.device.identity import ARDeviceIdentity
 
 # Legacy label prefix -> native-name letter
 _LEGACY_PREFIXES: dict[str, str] = {

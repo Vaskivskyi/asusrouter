@@ -126,6 +126,7 @@ def test_get_endpoint_sensitive_others(endpoint: AREndpoint) -> None:
 
 
 _CUSTOM_READERS = {
+    AREndpoint.FETCH_ONBOARDING: read_js_variables,
     AREndpoint.FETCH_TEMPERATURE: read_js_variables,
     AREndpoint.FETCH_PORTS_ETHERNET: read_wan_lan_status,
 }
