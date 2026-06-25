@@ -15,6 +15,7 @@ from asusrouter.modules.endpoint_v2 import (
 )
 from asusrouter.modules.endpoint_v2.translate import read_wan_lan_status
 from asusrouter.tools.readers import read_js_variables, read_json_content
+from asusrouter.tools.readers_v2 import read_netdev
 
 GET_ENDPOINTS = (
     AREndpoint.FETCH_DIAGNOSTICS_DATA,
@@ -129,6 +130,7 @@ _CUSTOM_READERS = {
     AREndpoint.FETCH_ONBOARDING: read_js_variables,
     AREndpoint.FETCH_TEMPERATURE: read_js_variables,
     AREndpoint.FETCH_PORTS_ETHERNET: read_wan_lan_status,
+    AREndpoint.FETCH_UPDATE: read_netdev,
 }
 
 

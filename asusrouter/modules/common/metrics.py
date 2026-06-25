@@ -22,7 +22,9 @@ class ARMetricType(FromStrMixin, StrEnum):
     # Traffic and rates
     PHY_RX_SPEED = "phy_rx_speed"
     PHY_TX_SPEED = "phy_tx_speed"
+    RX = "rx"
     RX_SPEED = "rx_speed"
     RX_SPEED_AVG = "rx_speed_avg"
+    TX = "tx"
     TX_SPEED = "tx_speed"
     TX_SPEED_AVG = "tx_speed_avg"

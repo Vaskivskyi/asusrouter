@@ -436,6 +436,8 @@ class TestAsyncFetchData:
         assert isinstance(callback, partial)
         assert callback.func == router.async_fetch_data
         assert callback.keywords == {"force": True}
+        # Raw fetch is injected for readers that need unparsed content
+        assert call.kwargs["raw_callback"] == router.async_fetch
         assert result is None
 
     @pytest.mark.asyncio

@@ -17,6 +17,7 @@ from asusrouter.modules.traffic.base import (
     ARTrafficSource,
     ARTrafficType,
 )
+from asusrouter.modules.traffic.interface import ARTrafficInterfaceSource
 from asusrouter.registry import (
     ARCallableEntry,
     ARCallableRegistry as ARCallReg,
@@ -25,6 +26,7 @@ from asusrouter.tools.types import ARCallbackType
 
 __all__ = [
     "ARTrafficAiMeshSource",
+    "ARTrafficInterfaceSource",
     "ARTrafficLink",
     "ARTrafficSource",
     "ARTrafficType",
