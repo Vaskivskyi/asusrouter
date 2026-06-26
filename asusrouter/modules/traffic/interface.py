@@ -13,6 +13,7 @@ from asusrouter.modules.endpoint_v2 import (
     AREndpoint,
     get_endpoint_request_type,
 )
+from asusrouter.modules.endpoint_v2.hooks import ARHook, hook_request
 from asusrouter.modules.traffic.base import (
     ARTrafficLink,
     ARTrafficSource,
@@ -29,7 +30,7 @@ from asusrouter.tools.types import ARCallbackType
 from asusrouter.tools.writers import dict_to_request
 
 # Legacy appGet hook that yields the same `netdev` payload
-_APPGET_NETDEV_REQUEST = "hook=netdev(appobj)"
+_APPGET_NETDEV_REQUEST = hook_request((ARHook.NETDEV, "appobj"))
 
 # Bits per byte, for byte-counter delta -> bit rate
 _BITS_PER_BYTE = 8

@@ -2,19 +2,14 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
 import logging
-import re
 from typing import Any
 
 import xmltodict
 
-from asusrouter.config import ARConfig, ARConfigKey as ARConfKey
-from asusrouter.modules.data import AsusData, AsusDataState
-from asusrouter.modules.endpoint import data_get
+from asusrouter.modules.data import AsusData
 from asusrouter.modules.openvpn import AsusOVPNClient, AsusOVPNServer
 from asusrouter.tools.cleaners import clean_dict, clean_dict_key_prefix
-from asusrouter.tools.converters import safe_datetime
 from asusrouter.tools.converters_v2.raw import raw_to_int
 from asusrouter.tools.readers import merge_dicts
 
@@ -25,11 +20,6 @@ from .devicemap_const import (
 )
 
 _LOGGER = logging.getLogger(__name__)
-
-_UPTIME_MIN_PARTS = 2
-_REBOOT_DELTA_THRESHOLD = 2
-
-REQUIRE_HISTORY = True
 
 
 def read(content: str, **kwargs: Any) -> dict[str, Any]:
@@ -161,56 +151,11 @@ def read_key(xml_content: dict[str, Any]) -> dict[str, Any]:
     return devicemap
 
 
-def read_uptime_string(
-    content: str,
-) -> tuple[datetime | None, int | None]:
-    """Read uptime string and return proper datetime object."""
-
-    # Split the content into the date/time part and the seconds part
-    uptime_parts = content.split("(")
-    if len(uptime_parts) < _UPTIME_MIN_PARTS:
-        return (None, None)
-
-    # Extract the number of seconds from the seconds part
-    seconds_match = re.search("([0-9]+)", uptime_parts[1])
-    if not seconds_match:
-        return (None, None)
-    seconds: int | None = raw_to_int(seconds_match.group())
-
-    when = safe_datetime(uptime_parts[0])
-    if when is None or seconds is None:
-        return (None, seconds)
-
-    uptime = when - timedelta(seconds=seconds)
-
-    # If robust_boottime is enabled, floor the uptime to even seconds
-    # This will introduce a systematic error with up to 1 second delay
-    # but will avoid raw data uncertainty and the resulting jitter
-    if ARConfig.get(ARConfKey.ROBUST_BOOTTIME) is True:
-        even_seconds = uptime.second - (uptime.second % 2)
-        uptime = uptime.replace(second=even_seconds, microsecond=0)
-
-    return (uptime, seconds)
-
-
 def process(data: dict[str, Any]) -> dict[AsusData, Any]:
     """Process data from devicemap endpoint."""
 
-    # Get the passed arguments
-    history: dict[AsusData, AsusDataState] = data_get(data, "history") or {}
-
     # Devicemap - just the data itself
     devicemap = data
-
-    # Boot time
-    prev_boottime_object: AsusDataState | None = history.get(AsusData.BOOTTIME)
-    prev_boottime = prev_boottime_object.data if prev_boottime_object else None
-    boottime, reboot = process_boottime(devicemap, prev_boottime)
-
-    # Mark reboot
-    flags = {}
-    if reboot:
-        flags["reboot"] = True
 
     # OpenVPN
     openvpn = process_ovpn(devicemap)
@@ -218,48 +163,8 @@ def process(data: dict[str, Any]) -> dict[AsusData, Any]:
     # Return the processed data
     return {
         AsusData.DEVICEMAP: devicemap,
-        AsusData.BOOTTIME: boottime,
         AsusData.OPENVPN: openvpn,
-        AsusData.FLAGS: flags,
     }
-
-
-def process_boottime(
-    devicemap: dict[str, Any], prev_boottime: dict[str, Any] | None
-) -> tuple[dict[str, Any], bool]:
-    """Process boottime data."""
-
-    # Reboot flag
-    reboot = False
-
-    boottime: dict[str, Any] = {}
-
-    # Since precision is 1 second, could be that old and new
-    # are 1 sec different. In this case, we should not change
-    # the boot time, but keep the previous value to avoid regular changes
-    sys = devicemap.get("sys")
-    if sys:
-        uptime_str = sys.get("uptimeStr")
-        _LOGGER.debug("Uptime string: %s", uptime_str)
-        if uptime_str:
-            time, seconds = read_uptime_string(uptime_str)
-            if time:
-                boottime["datetime"] = time
-                if prev_boottime and "datetime" in prev_boottime:
-                    delta = time - prev_boottime["datetime"]
-
-                    # Check for reboot
-                    if (
-                        abs(delta.seconds) >= _REBOOT_DELTA_THRESHOLD
-                        and delta.seconds >= 0
-                    ):
-                        reboot = True
-                    else:
-                        boottime = prev_boottime
-
-                boottime["uptime"] = seconds
-
-    return boottime, reboot
 
 
 def process_ovpn(devicemap: dict[str, Any]) -> dict[str, Any]:

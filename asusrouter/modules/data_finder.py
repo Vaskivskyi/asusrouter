@@ -181,7 +181,6 @@ ASUSDATA_MAP: dict[AsusData, AsusData | AsusDataFinder] = {
         AREndpoint.FETCH_DATA,
         nvram=ASUSDATA_NVRAM["aura"],
     ),
-    AsusData.BOOTTIME: AsusData.DEVICEMAP,
     AsusData.CLIENTS: AsusDataFinder(
         [AREndpoint.FETCH_ONBOARDING, AREndpoint.FETCH_CLIENTS_UPDATE],
         AsusDataMerge.ALL,

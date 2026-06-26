@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
-
 from asusrouter import AsusData
 from asusrouter.modules.openvpn import AsusOVPNClient, AsusOVPNServer
 
@@ -97,12 +95,6 @@ expected_result = {
         "dhcp": {"dnsqmode": None},
         "diag": {"dblog_enable": "0", "dblog_remaining": "0"},
     },
-    AsusData.BOOTTIME: {
-        "datetime": datetime(
-            2023, 11, 13, 18, 21, 50, tzinfo=timezone(timedelta(hours=1))
-        ),
-        "uptime": 509356,
-    },
     AsusData.OPENVPN: {
         "client": {
             1: {"state": AsusOVPNClient.DISCONNECTED, "errno": 0},
@@ -116,5 +108,4 @@ expected_result = {
             2: {"state": AsusOVPNServer.DISCONNECTED},
         },
     },
-    AsusData.FLAGS: {},
 }

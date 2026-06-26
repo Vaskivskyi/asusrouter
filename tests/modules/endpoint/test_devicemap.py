@@ -3,14 +3,12 @@
 from __future__ import annotations
 
 from collections.abc import Generator
-from datetime import datetime, timedelta, timezone
 from typing import Any
-from unittest.mock import ANY, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
-from asusrouter.config import ARConfigKey as ARConfKey
-from asusrouter.modules.data import AsusData, AsusDataState
+from asusrouter.modules.data import AsusData
 from asusrouter.modules.endpoint import devicemap
 
 
@@ -219,162 +217,20 @@ def test_read_key(
         assert result == const_devicemap_result
 
 
-@pytest.mark.parametrize(
-    ("content", "result"),
-    [
-        # Test with a valid content string
-        (
-            "Thu, 16 Nov 2023 07:17:45 +0100(219355 secs since boot)",
-            (
-                datetime(
-                    2023,
-                    11,
-                    16,
-                    7,
-                    17,
-                    45,
-                    tzinfo=timezone(timedelta(hours=1)),
-                )
-                - timedelta(seconds=219355),
-                219355,
-            ),
-        ),
-        # Test with an invalid content string (no seconds)
-        ("Thu, 16 Nov 2023 07:17:45 +0100(no secs since boot)", (None, None)),
-        # Test with an invalid content string (bad format)
-        ("bad format", (None, None)),
-        # Test with a content string that has an invalid date
-        ("Not a date (219355 secs since boot)", (None, 219355)),
-        # Test with a content string that has an invalid number of seconds
-        (
-            "Thu, 16 Nov 2023 07:17:45 +0100(not a number secs since boot)",
-            (None, None),
-        ),
-    ],
-)
-def test_read_uptime_string(
-    content: str, result: tuple[datetime | None, int | None]
-) -> None:
-    """Test read_uptime_string function."""
-
-    assert devicemap.read_uptime_string(content) == result
-
-
-@pytest.mark.parametrize(
-    ("raw_seconds", "diff_seconds", "result_seconds"),
-    [
-        (15, 0, 14),
-        (15, 1, 14),
-        (15, 2, 12),
-        (16, 0, 16),
-        (16, 1, 14),
-        (16, 2, 14),
-    ],
-)
-def test_read_uptime_string_robust(
-    raw_seconds: int,
-    diff_seconds: int,
-    result_seconds: int,
-) -> None:
-    """Test read_uptime_string with robust boottime enabled."""
-
-    # Mock the ARConfig to enable robust boottime
-    with patch(
-        "asusrouter.modules.endpoint.devicemap.ARConfig"
-    ) as mock_config:
-        mock_config.get.side_effect = lambda key: (
-            key == ARConfKey.ROBUST_BOOTTIME
-        )
-        # Test with a valid content string
-        content = f"Sat, 8 Aug 2025 08:08:{raw_seconds} "
-        content += f"+0100({diff_seconds} secs since boot)"
-        result = devicemap.read_uptime_string(content)
-        assert result == (
-            datetime(
-                2025,
-                8,
-                8,
-                8,
-                8,
-                result_seconds,
-                tzinfo=timezone(timedelta(hours=1)),
-            ),
-            diff_seconds,
-        )
-
-
-@pytest.mark.parametrize(
-    ("boottime_return", "expected_flags"),
-    [
-        (("boottime", False), {}),
-        (("boottime", True), {"reboot": True}),
-    ],
-)
-@patch("asusrouter.modules.endpoint.devicemap.process_boottime")
 @patch("asusrouter.modules.endpoint.devicemap.process_ovpn")
-def test_process(
-    mock_process_ovpn: MagicMock,
-    mock_process_boottime: MagicMock,
-    boottime_return: tuple[str, bool],
-    expected_flags: dict[str, bool],
-) -> None:
-    """Test process function."""
+def test_process(mock_process_ovpn: MagicMock) -> None:
+    """Process returns the devicemap blob and the OpenVPN data."""
 
-    # Prepare the mock functions
-    mock_process_boottime.return_value = boottime_return
     mock_process_ovpn.return_value = "openvpn"
+    data = {"sys": {"x": 1}}
 
-    # Prepare the test data
-    data = {
-        "history": {AsusData.BOOTTIME: AsusDataState(data="prev_boottime")}
-    }
-
-    # Call the function with the test data
     result = devicemap.process(data)
 
-    # Check the result
     assert result == {
         AsusData.DEVICEMAP: data,
-        AsusData.BOOTTIME: boottime_return[0],
         AsusData.OPENVPN: "openvpn",
-        AsusData.FLAGS: expected_flags,
     }
-
-    # Check that the mock functions were called with the correct arguments
-    mock_process_boottime.assert_called_once_with(data, "prev_boottime")
     mock_process_ovpn.assert_called_once_with(data)
-
-
-@pytest.mark.parametrize(
-    ("prev_boottime_delta", "expected_result"),
-    [
-        (timedelta(seconds=1), ({"datetime": ANY, "uptime": 2}, False)),
-        (timedelta(seconds=3), ({"datetime": ANY, "uptime": 2}, True)),
-    ],
-)
-@patch("asusrouter.modules.endpoint.devicemap.read_uptime_string")
-def test_process_boottime(
-    mock_read_uptime_string: MagicMock,
-    prev_boottime_delta: timedelta,
-    expected_result: tuple[dict[str, Any], bool],
-) -> None:
-    """Test process_boottime function."""
-
-    # Prepare the mock function
-    mock_read_uptime_string.return_value = (datetime.now(), 2)
-
-    # Prepare the test data
-    devicemap_data = {"sys": {"uptimeStr": "uptime string"}}
-    prev_boottime = {"datetime": datetime.now() - prev_boottime_delta}
-
-    # Call the function with the test data
-    result = devicemap.process_boottime(devicemap_data, prev_boottime)
-
-    # Check the result
-    assert result == expected_result
-
-    # Check that the mock function was called with the correct argument
-    mock_read_uptime_string.assert_called_once_with("uptime string")
 
 
 @patch("asusrouter.modules.endpoint.devicemap.AsusOVPNClient")

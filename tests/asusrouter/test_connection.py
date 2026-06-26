@@ -2,13 +2,19 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
+from typing import Any, cast
 from unittest.mock import AsyncMock, Mock
 
 import pytest
 
 from asusrouter.asusrouter import AsusRouter
 from asusrouter.modules.aimesh import ARAiMeshSourceUniversal
+from asusrouter.modules.boottime import ARBoottimeSourceUniversal
+from asusrouter.modules.device import ARDeviceSourceUniversal
+from asusrouter.modules.device.identity import ARDeviceIdentity
 from asusrouter.modules.endpoint_v2 import AREndpoint
+from tests.helpers import MakeStateFactory
 
 
 @pytest.mark.asyncio
@@ -119,6 +125,57 @@ async def test_async_connect_seeds_aimesh_topology(
     await router.async_connect()
 
     assert (ARAiMeshSourceUniversal,) in [
+        call.args for call in fetch.await_args_list
+    ]
+
+
+@pytest.mark.asyncio
+async def test_async_connect_fetches_boottime_when_not_seeded(
+    router: AsusRouter,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Connect fetches the boot time when none is seeded in config."""
+
+    conn = Mock()
+    conn.async_connect = AsyncMock(return_value=True)
+    monkeypatch.setattr(router, "_connection", conn)
+    fetch = AsyncMock(return_value={"x": 1})
+    monkeypatch.setattr(router, "async_fetch_data", fetch)
+    monkeypatch.setattr(router, "_apply_v1_conditional_rules", Mock())
+
+    await router.async_connect()
+
+    assert (ARBoottimeSourceUniversal,) in [
+        call.args for call in fetch.await_args_list
+    ]
+
+
+@pytest.mark.asyncio
+async def test_async_connect_seeds_boottime_from_config(
+    router: AsusRouter,
+    monkeypatch: pytest.MonkeyPatch,
+    make_state: MakeStateFactory,
+) -> None:
+    """A seeded boot time is assigned and the fetch is skipped."""
+
+    boottime = datetime(2026, 1, 1, tzinfo=UTC)
+    identity = ARDeviceIdentity()
+    id_state = make_state(ARDeviceSourceUniversal)
+    cast(Any, id_state)._content = identity
+    router._data_states[ARDeviceSourceUniversal] = id_state
+
+    conn = Mock()
+    conn.async_connect = AsyncMock(return_value=True)
+    monkeypatch.setattr(router, "_connection", conn)
+    fetch = AsyncMock(return_value={"x": 1})
+    monkeypatch.setattr(router, "async_fetch_data", fetch)
+    monkeypatch.setattr(router, "_apply_v1_conditional_rules", Mock())
+    monkeypatch.setattr(router._config, "get", lambda key: boottime)
+
+    await router.async_connect()
+
+    assert identity.boottime == boottime
+    assert (ARBoottimeSourceUniversal,) not in [
         call.args for call in fetch.await_args_list
     ]
 

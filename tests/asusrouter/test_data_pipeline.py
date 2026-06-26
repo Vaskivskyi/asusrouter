@@ -12,6 +12,7 @@ import pytest
 
 from asusrouter.asusrouter import ARCallReg, AsusRouter
 from asusrouter.modules.aimesh.topology import ARAiMeshTopology
+from asusrouter.modules.boottime import ARBoottime
 from asusrouter.modules.device import ARDeviceSourceUniversal
 from asusrouter.modules.device.identity import ARDeviceIdentity
 from asusrouter.modules.source import (
@@ -151,6 +152,43 @@ class TestCommitState:
         router._commit_data_state(make_state(source), topology)
 
         assert identity.aimesh is topology
+
+    def test_committing_boottime_syncs_identity(
+        self,
+        router: AsusRouter,
+        source: ARDataSource,
+        make_state: MakeStateFactory,
+    ) -> None:
+        """Committing an ARBoottime updates the identity boot time."""
+
+        identity = ARDeviceIdentity()
+        id_state = make_state(ARDeviceSourceUniversal)
+        cast(Any, id_state)._content = identity
+        router._data_states[ARDeviceSourceUniversal] = id_state
+
+        boottime = ARBoottime(2026, 1, 1, tzinfo=UTC)
+        router._commit_data_state(make_state(source), boottime)
+
+        assert identity.boottime == boottime
+
+    def test_committing_plain_datetime_ignores_boottime(
+        self,
+        router: AsusRouter,
+        source: ARDataSource,
+        make_state: MakeStateFactory,
+    ) -> None:
+        """A plain datetime from another source does not touch boot time."""
+
+        identity = ARDeviceIdentity()
+        id_state = make_state(ARDeviceSourceUniversal)
+        cast(Any, id_state)._content = identity
+        router._data_states[ARDeviceSourceUniversal] = id_state
+
+        router._commit_data_state(
+            make_state(source), datetime(2026, 1, 1, tzinfo=UTC)
+        )
+
+        assert identity.boottime is None
 
 
 class TestAsyncRefreshDataState:
@@ -472,6 +510,58 @@ class TestAsyncFetchData:
 
         fake_state.is_fresh.assert_called_once_with(router._cache_threshold_v2)
         assert result == ({source: content} if is_fresh else None)
+
+    def _seed_identity(
+        self,
+        router: AsusRouter,
+        make_state: MakeStateFactory,
+        rebooted: bool,
+    ) -> ARDeviceIdentity:
+        """Seed a device identity with the given reboot flag."""
+
+        identity = ARDeviceIdentity()
+        identity._rebooted = rebooted
+        id_state = make_state(ARDeviceSourceUniversal)
+        cast(Any, id_state)._content = identity
+        router._data_states[ARDeviceSourceUniversal] = id_state
+        return identity
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("rebooted", [True, False], ids=["reboot", "none"])
+    async def test_fetch_handles_reboot(
+        self,
+        router: AsusRouter,
+        source: ARDataSource,
+        make_state: MakeStateFactory,
+        monkeypatch: pytest.MonkeyPatch,
+        rebooted: bool,
+    ) -> None:
+        """The reboot handler runs only when the identity flags a reboot."""
+
+        self._seed_identity(router, make_state, rebooted)
+        monkeypatch.setattr(
+            router, "_async_get_data_state", AsyncMock(return_value={})
+        )
+        handler = AsyncMock()
+        monkeypatch.setattr(router, "_async_handle_reboot", handler)
+
+        await router.async_fetch_data(source)
+
+        assert handler.await_count == (1 if rebooted else 0)
+
+    @pytest.mark.asyncio
+    async def test_handle_reboot_clears_flag(
+        self,
+        router: AsusRouter,
+        make_state: MakeStateFactory,
+    ) -> None:
+        """The reboot handler clears the identity flag."""
+
+        identity = self._seed_identity(router, make_state, rebooted=True)
+
+        await router._async_handle_reboot()
+
+        assert identity.rebooted is False
 
 
 class TestTranslateMultidataBatch:

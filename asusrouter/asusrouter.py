@@ -37,6 +37,7 @@ from asusrouter.error import (
 )
 from asusrouter.modules.aimesh import ARAiMeshSourceUniversal
 from asusrouter.modules.aimesh.topology import ARAiMeshTopology
+from asusrouter.modules.boottime import ARBoottime, ARBoottimeSourceUniversal
 from asusrouter.modules.data import AsusData, AsusDataState
 from asusrouter.modules.data_finder import (
     ASUSDATA_MAP,
@@ -76,7 +77,6 @@ from asusrouter.modules.state import (
     AsusState,
     add_conditional_state,
     get_datatype,
-    keep_state,
     save_state,
     set_state,
 )
@@ -279,6 +279,15 @@ class AsusRouter:
             # Seed the live AiMesh topology before any user request, so it
             # is available on the identity right after connecting
             await self.async_fetch_data(ARAiMeshSourceUniversal, force=True)
+            # Boot time: use the seeded config value if given (anchors
+            # stabilization), otherwise fetch it once now
+            seeded_boottime = self._config.get(ARConfKey.BOOTTIME)
+            if seeded_boottime is not None:
+                self.description.update_boottime(seeded_boottime)
+            else:
+                await self.async_fetch_data(
+                    ARBoottimeSourceUniversal, force=True
+                )
 
         return result is not None
 
@@ -414,6 +423,9 @@ class AsusRouter:
         # Keep the identity's live AiMesh topology in sync
         if isinstance(value, ARAiMeshTopology):
             self.description.update_aimesh(value)
+        # Keep the identity's live boot time in sync
+        elif isinstance(value, ARBoottime):
+            self.description.update_boottime(value)
 
     def _translate_multidata_batch(
         self,
@@ -605,6 +617,11 @@ class AsusRouter:
         data_state = await self._async_get_data_state(
             source, force=force, **kwargs
         )
+
+        # Check for a reboot
+        if self.description.rebooted:
+            await self._async_handle_reboot()
+
         if not data_state:
             return None
 
@@ -615,6 +632,15 @@ class AsusRouter:
             if state.is_fresh(threshold)
         }
         return result or None
+
+    async def _async_handle_reboot(self) -> None:
+        """Handle a detected device reboot (V2)."""
+
+        _LOGGER.debug("Triggered method _async_handle_reboot")
+
+        # TODO: Add LED recovery for v2
+
+        self.description.clear_rebooted()
 
     # ---------------------------
     # <-- Data pipeline
@@ -679,40 +705,6 @@ class AsusRouter:
         if not support_available(support, ARSupportType.SPEEDTEST):
             remove_data_rule(AsusData.SPEEDTEST)
             remove_data_rule(AsusData.SPEEDTEST_RESULT)
-
-    async def _async_handle_reboot(self, flags: dict[str, Any]) -> None:
-        """Handle reboot."""
-
-        _LOGGER.debug("Triggered method _async_handle_reboot")
-
-        led_state = self._state.get(AsusData.LED)
-        if led_state and (data := led_state.data):
-            _LOGGER.debug("Restoring LED state")
-            await keep_state(
-                callback=self.async_run_service,
-                states=data["state"],
-                identity=self.description,
-            )
-
-        flags.pop("reboot", None)
-        _LOGGER.debug("Flag `reboot` reset")
-
-    async def _check_flags(self) -> None:
-        """Check flags."""
-
-        _LOGGER.debug("Triggered method _check_flags")
-
-        state = self._state.get(AsusData.FLAGS)
-        if state is None:
-            return
-
-        data = state.data
-        if not isinstance(data, dict):
-            return
-
-        if data.get("reboot") is True:
-            _LOGGER.debug("Reboot flag is set")
-            await self._async_handle_reboot(data)
 
     async def async_api_query(
         self, endpoint: AREndpoint, payload: str | None = None
@@ -977,8 +969,6 @@ class AsusRouter:
                 state.update(value)
         except (AsusRouterConnectionError, AsusRouterDataError):
             return self._return_state(datatype, **kwargs)
-
-        await self._check_flags()
 
         await self._check_postrequisites(datatype)
 
