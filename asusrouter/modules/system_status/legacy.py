@@ -9,12 +9,15 @@ from __future__ import annotations
 from typing import Any
 
 from asusrouter.modules.common.metrics import ARMetricType
+from asusrouter.modules.endpoint_v2.hooks import ARHook, hook_request
 from asusrouter.tools.converters import safe_usage, safe_usage_historic
 from asusrouter.tools.converters_v2.raw import raw_to_int
 from asusrouter.tools.units import DataUnitConverter, UnitOfData
 
 # appGet hook request for legacy cpu/ram data (connected router only)
-LEGACY_REQUEST = "hook=cpu_usage(appobj);memory_usage(appobj)"
+LEGACY_REQUEST = hook_request(
+    (ARHook.CPU_USAGE, "appobj"), (ARHook.MEMORY_USAGE, "appobj")
+)
 
 # Memory values are reported in KiB; convert them to bytes
 _KIB_TO_BYTES = DataUnitConverter.converter_factory(
