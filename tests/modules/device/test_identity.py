@@ -372,3 +372,35 @@ class TestBoottime:
         identity.update_boottime(boottime)
 
         assert identity.boottime == boottime
+
+    def test_first_boottime_is_not_a_reboot(self) -> None:
+        """Setting boot time from None does not flag a reboot."""
+
+        identity = ARDeviceIdentity()
+
+        identity.update_boottime(datetime(2026, 1, 1, tzinfo=UTC))
+
+        assert identity.rebooted is False
+
+    def test_unchanged_boottime_is_not_a_reboot(self) -> None:
+        """Re-setting the same boot time does not flag a reboot."""
+
+        identity = ARDeviceIdentity()
+        boottime = datetime(2026, 1, 1, tzinfo=UTC)
+        identity.update_boottime(boottime)
+
+        identity.update_boottime(boottime)
+
+        assert identity.rebooted is False
+
+    def test_moved_boottime_flags_reboot(self) -> None:
+        """A changed boot time flags a reboot; clearing resets it."""
+
+        identity = ARDeviceIdentity()
+        identity.update_boottime(datetime(2026, 1, 1, tzinfo=UTC))
+
+        identity.update_boottime(datetime(2026, 1, 2, tzinfo=UTC))
+        assert identity.rebooted is True
+
+        identity.clear_rebooted()
+        assert identity.rebooted is False

@@ -511,6 +511,58 @@ class TestAsyncFetchData:
         fake_state.is_fresh.assert_called_once_with(router._cache_threshold_v2)
         assert result == ({source: content} if is_fresh else None)
 
+    def _seed_identity(
+        self,
+        router: AsusRouter,
+        make_state: MakeStateFactory,
+        rebooted: bool,
+    ) -> ARDeviceIdentity:
+        """Seed a device identity with the given reboot flag."""
+
+        identity = ARDeviceIdentity()
+        identity._rebooted = rebooted
+        id_state = make_state(ARDeviceSourceUniversal)
+        cast(Any, id_state)._content = identity
+        router._data_states[ARDeviceSourceUniversal] = id_state
+        return identity
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("rebooted", [True, False], ids=["reboot", "none"])
+    async def test_fetch_handles_reboot(
+        self,
+        router: AsusRouter,
+        source: ARDataSource,
+        make_state: MakeStateFactory,
+        monkeypatch: pytest.MonkeyPatch,
+        rebooted: bool,
+    ) -> None:
+        """The reboot handler runs only when the identity flags a reboot."""
+
+        self._seed_identity(router, make_state, rebooted)
+        monkeypatch.setattr(
+            router, "_async_get_data_state", AsyncMock(return_value={})
+        )
+        handler = AsyncMock()
+        monkeypatch.setattr(router, "_async_handle_reboot", handler)
+
+        await router.async_fetch_data(source)
+
+        assert handler.await_count == (1 if rebooted else 0)
+
+    @pytest.mark.asyncio
+    async def test_handle_reboot_clears_flag(
+        self,
+        router: AsusRouter,
+        make_state: MakeStateFactory,
+    ) -> None:
+        """The reboot handler clears the identity flag."""
+
+        identity = self._seed_identity(router, make_state, rebooted=True)
+
+        await router._async_handle_reboot()
+
+        assert identity.rebooted is False
+
 
 class TestTranslateMultidataBatch:
     """Tests for AsusRouter._translate_multidata_batch."""

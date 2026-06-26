@@ -87,6 +87,9 @@ class ARDeviceIdentity:
         # Live boot time - the stabilization anchor; seeded or fetched and
         # kept in sync by `update_boottime`
         self._boottime: datetime | None = None
+        # Edge flag - set when the boot time moves (a reboot), cleared by
+        # the reboot handler once acted upon
+        self._rebooted: bool = False
 
     @property
     def brand(self) -> str:
@@ -154,9 +157,27 @@ class ARDeviceIdentity:
         return self._boottime
 
     def update_boottime(self, boottime: datetime | None) -> None:
-        """Replace the boot time."""
+        """Replace the boot time, flagging a reboot when it moves."""
 
+        previous = self._boottime
         self._boottime = boottime
+        if (
+            previous is not None
+            and boottime is not None
+            and boottime != previous
+        ):
+            self._rebooted = True
+
+    @property
+    def rebooted(self) -> bool:
+        """Whether a reboot was detected since it was last cleared."""
+
+        return self._rebooted
+
+    def clear_rebooted(self) -> None:
+        """Clear the reboot flag after it has been acted upon."""
+
+        self._rebooted = False
 
     @classmethod
     def build(cls, data: IdentityData) -> ARDeviceIdentity:
