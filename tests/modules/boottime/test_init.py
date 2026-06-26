@@ -1,0 +1,169 @@
+"""Tests for the boottime module."""
+
+from __future__ import annotations
+
+from datetime import UTC, datetime, timedelta
+import importlib
+from typing import Any
+from unittest.mock import AsyncMock, Mock, patch
+
+import pytest
+
+from asusrouter.const import AR_CALL_GET_STATE, AR_CALL_TRANSLATE_STATE
+from asusrouter.modules import boottime
+from asusrouter.modules.boottime import (
+    ARBoottimeSource,
+    get_state,
+    read_uptime,
+    translate_state,
+)
+from asusrouter.modules.endpoint_v2 import AREndpoint
+from asusrouter.modules.source import ARDataSource
+
+_WHEN = datetime(2026, 1, 1, 12, 0, 0, tzinfo=UTC)
+_BOOT = _WHEN - timedelta(seconds=100)
+
+
+class TestReadUptime:
+    """Tests for read_uptime."""
+
+    def test_parses_boot_time(self) -> None:
+        """Boot time = parsed `when` minus the uptime seconds."""
+
+        with patch.object(boottime, "safe_datetime", return_value=_WHEN):
+            assert read_uptime("Jan 1 12:00:00 2026(100 secs)") == _BOOT
+
+    @pytest.mark.parametrize(
+        "uptime",
+        ["no-paren", "when(no digits)"],
+        ids=["no_paren", "no_seconds"],
+    )
+    def test_unparseable(self, uptime: str) -> None:
+        """Malformed strings yield None."""
+
+        assert read_uptime(uptime) is None
+
+    def test_bad_datetime(self) -> None:
+        """An unparseable `when` yields None."""
+
+        with patch.object(boottime, "safe_datetime", return_value=None):
+            assert read_uptime("bad(100 secs)") is None
+
+
+class TestSource:
+    """Tests for ARBoottimeSource."""
+
+    def test_is_data_source_all_equal(self) -> None:
+        """All instances are equal and share a hash (router-global)."""
+
+        assert issubclass(ARBoottimeSource, ARDataSource)
+        assert ARBoottimeSource() == ARBoottimeSource()
+        assert hash(ARBoottimeSource()) == hash(ARBoottimeSource())
+
+    def test_not_equal_other_type(self) -> None:
+        """Comparison to a non-source is not equal."""
+
+        assert ARBoottimeSource() != "x"
+
+    def test_repr(self) -> None:
+        """Repr identifies the source."""
+
+        assert repr(ARBoottimeSource()) == "<ARBoottimeSource>"
+
+    def test_stabilize_first_sample(self) -> None:
+        """The first candidate is stored and returned."""
+
+        source = ARBoottimeSource()
+
+        assert source.stabilize(_BOOT) == _BOOT
+
+    def test_stabilize_keeps_within_jitter(self) -> None:
+        """A sub-threshold change keeps the previous boot time."""
+
+        source = ARBoottimeSource()
+        source.stabilize(_BOOT)
+
+        assert source.stabilize(_BOOT + timedelta(seconds=1)) == _BOOT
+
+    def test_stabilize_reboot(self) -> None:
+        """A forward jump beyond the threshold is a new boot time."""
+
+        source = ARBoottimeSource()
+        source.stabilize(_BOOT)
+        rebooted = _BOOT + timedelta(seconds=5)
+
+        assert source.stabilize(rebooted) == rebooted
+
+    def test_stabilize_none_keeps_previous(self) -> None:
+        """A missing candidate keeps the last known boot time."""
+
+        source = ARBoottimeSource()
+        source.stabilize(_BOOT)
+
+        assert source.stabilize(None) == _BOOT
+
+
+class TestGetState:
+    """Tests for get_state."""
+
+    async def test_fetches_and_stabilizes(self) -> None:
+        """The uptime hook is fetched and parsed into a boot time."""
+
+        callback = AsyncMock(return_value={"uptime": "when(100 secs)"})
+        source = ARBoottimeSource()
+
+        with patch.object(boottime, "read_uptime", return_value=_BOOT):
+            result = await get_state(callback, source)
+
+        assert result == _BOOT
+        kwargs = callback.await_args.kwargs
+        assert kwargs["endpoint"] == AREndpoint.FETCH_DATA
+        assert kwargs["request"] == "hook=uptime()"
+
+    @pytest.mark.parametrize(
+        "raw",
+        [None, {}, {"other": 1}],
+        ids=["non_dict", "empty", "no_uptime"],
+    )
+    async def test_missing_uptime(self, raw: Any) -> None:
+        """A response without a usable uptime yields None."""
+
+        callback = AsyncMock(return_value=raw)
+
+        assert await get_state(callback, ARBoottimeSource()) is None
+
+
+class TestTranslateState:
+    """Tests for translate_state."""
+
+    def test_passthrough(self) -> None:
+        """A datetime passes through."""
+
+        assert translate_state(_BOOT) == _BOOT
+
+    @pytest.mark.parametrize(
+        "data", [None, "x", 5], ids=["none", "str", "int"]
+    )
+    def test_non_datetime(self, data: Any) -> None:
+        """A non-datetime yields None."""
+
+        assert translate_state(data) is None
+
+
+def test_registers_callable(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Importing the module registers the boot time source."""
+
+    mock_register = Mock()
+    monkeypatch.setattr(
+        "asusrouter.registry.ARCallableRegistry.register", mock_register
+    )
+
+    importlib.reload(boottime)
+
+    mock_register.assert_called_once_with(
+        boottime.ARBoottimeSource,
+        **{
+            AR_CALL_GET_STATE: boottime.get_state,
+            AR_CALL_TRANSLATE_STATE: boottime.translate_state,
+        },
+    )
