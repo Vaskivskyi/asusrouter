@@ -17,7 +17,6 @@ class AsusData(StrEnum):
     AURA = "aura"
     CLIENTS = "clients"
     DDNS = "ddns"
-    DEVICEMAP = "devicemap"
     DSL = "dsl"
     FIRMWARE = "firmware"
     FIRMWARE_NOTE = "firmware_note"

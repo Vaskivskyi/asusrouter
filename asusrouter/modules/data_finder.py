@@ -189,7 +189,6 @@ ASUSDATA_MAP: dict[AsusData, AsusData | AsusDataFinder] = {
         AREndpoint.FETCH_DATA,
         nvram=ASUSDATA_NVRAM["ddns"],
     ),
-    AsusData.DEVICEMAP: AsusDataFinder(AREndpoint.FETCH_DEVICEMAP),
     AsusData.FIRMWARE: AsusDataFinder(AREndpoint.FETCH_FIRMWARE_UPDATE),
     AsusData.FIRMWARE_NOTE: AsusDataFinder(
         [
@@ -207,10 +206,7 @@ ASUSDATA_MAP: dict[AsusData, AsusData | AsusDataFinder] = {
     AsusData.NETWORK: AsusDataFinder(
         AREndpoint.FETCH_DATA, request=ASUSDATA_REQUEST["network"]
     ),
-    AsusData.OPENVPN: AsusDataFinder(
-        [AREndpoint.FETCH_VPN_STATUS, AREndpoint.FETCH_DEVICEMAP],
-        AsusDataMerge.ANY,
-    ),
+    AsusData.OPENVPN: AsusDataFinder(AREndpoint.FETCH_VPN_STATUS),
     AsusData.OPENVPN_CLIENT: AsusData.OPENVPN,
     AsusData.OPENVPN_SERVER: AsusData.OPENVPN,
     AsusData.PARENTAL_CONTROL: AsusDataFinder(
