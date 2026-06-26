@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from datetime import datetime
 from enum import StrEnum
 import threading
 from typing import Any
 
+from asusrouter.tools.converters import safe_datetime
 from asusrouter.tools.converters_v2.raw import raw_to_bool, raw_to_int
 from asusrouter.tools.security import ARSecurityLevel
 
@@ -28,6 +30,8 @@ class ARConfigKey(ARConfigKeyBase):
     # Optimistic temperature
     OPTIMISTIC_TEMPERATURE = "optimistic_temperature"
     NOTIFIED_OPTIMISTIC_TEMPERATURE = "notified_optimistic_temperature"
+    # Seed boot time; when set it anchors stabilization instead of fetching
+    BOOTTIME = "boottime"
     # Robust boottime
     ROBUST_BOOTTIME = "robust_boottime"
 
@@ -59,6 +63,16 @@ def safe_int_config(value: Any) -> int:
     return config_value
 
 
+def safe_datetime_config(value: Any) -> datetime | None:
+    """Convert a value to a datetime (or parse a string), else None."""
+
+    if isinstance(value, datetime):
+        return value
+    if isinstance(value, str):
+        return safe_datetime(value)
+    return None
+
+
 CONFIG_DEFAULT: dict[ARConfigKey, Any] = {
     # If set, payload sent to the router will be available
     # in the debug logs
@@ -68,8 +82,11 @@ CONFIG_DEFAULT: dict[ARConfigKey, Any] = {
     # to fit the expected range
     ARConfigKey.OPTIMISTIC_TEMPERATURE: CONFIG_DEFAULT_BOOL,
     ARConfigKey.NOTIFIED_OPTIMISTIC_TEMPERATURE: CONFIG_DEFAULT_ALREADY_NOTIFIED,  # noqa: E501
+    # If set, this boot time is used as the stabilization anchor instead
+    # of fetching it on connect
+    ARConfigKey.BOOTTIME: None,
     # If set, the boottime will be processed with 2 seconds
-    # precision to avoid +- 1 second uncertainty in the raw data.
+    # precision to avoid +- 1 second uncertainty in the raw data
     ARConfigKey.ROBUST_BOOTTIME: CONFIG_DEFAULT_BOOL,
 }
 
@@ -81,6 +98,8 @@ TYPES_DEFAULT: dict[ARConfigKey, Callable[[Any], Any]] = {
     # Optimistic temperature
     ARConfigKey.OPTIMISTIC_TEMPERATURE: safe_bool_config,
     ARConfigKey.NOTIFIED_OPTIMISTIC_TEMPERATURE: safe_bool_config,
+    # Seed boot time
+    ARConfigKey.BOOTTIME: safe_datetime_config,
     # Robust boottime
     ARConfigKey.ROBUST_BOOTTIME: safe_bool_config,
 }

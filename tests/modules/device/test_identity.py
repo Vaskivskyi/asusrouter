@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from typing import Any
 
 import pytest
@@ -352,3 +353,22 @@ class TestAimesh:
         identity.update_aimesh(topology)
 
         assert identity.aimesh is topology
+
+
+class TestBoottime:
+    """Tests for the live boot time on the identity."""
+
+    def test_default_is_none(self) -> None:
+        """A fresh identity carries no boot time."""
+
+        assert ARDeviceIdentity().boottime is None
+
+    def test_update_sets_boottime(self) -> None:
+        """update_boottime stores the value."""
+
+        identity = ARDeviceIdentity()
+        boottime = datetime(2026, 1, 1, tzinfo=UTC)
+
+        identity.update_boottime(boottime)
+
+        assert identity.boottime == boottime

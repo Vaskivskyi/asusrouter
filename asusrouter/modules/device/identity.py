@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+from datetime import datetime
 from typing import Any
 
 from asusrouter.const import DEFAULT_IDENTITY_BRAND
@@ -83,6 +84,9 @@ class ARDeviceIdentity:
         # Live AiMesh topology - the only mutable identity part, swapped
         # atomically as a whole snapshot by `update_aimesh`
         self._aimesh: ARAiMeshTopology = ARAiMeshTopology()
+        # Live boot time - the stabilization anchor; seeded or fetched and
+        # kept in sync by `update_boottime`
+        self._boottime: datetime | None = None
 
     @property
     def brand(self) -> str:
@@ -142,6 +146,17 @@ class ARDeviceIdentity:
         """Replace the AiMesh topology snapshot atomically."""
 
         self._aimesh = topology
+
+    @property
+    def boottime(self) -> datetime | None:
+        """Get the live boot time."""
+
+        return self._boottime
+
+    def update_boottime(self, boottime: datetime | None) -> None:
+        """Replace the boot time."""
+
+        self._boottime = boottime
 
     @classmethod
     def build(cls, data: IdentityData) -> ARDeviceIdentity:

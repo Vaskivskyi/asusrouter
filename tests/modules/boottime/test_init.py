@@ -12,11 +12,14 @@ import pytest
 from asusrouter.const import AR_CALL_GET_STATE, AR_CALL_TRANSLATE_STATE
 from asusrouter.modules import boottime
 from asusrouter.modules.boottime import (
+    ARBoottime,
     ARBoottimeSource,
     get_state,
     read_uptime,
+    stabilize,
     translate_state,
 )
+from asusrouter.modules.device.identity import ARDeviceIdentity
 from asusrouter.modules.endpoint_v2 import AREndpoint
 from asusrouter.modules.source import ARDataSource
 
@@ -28,10 +31,13 @@ class TestReadUptime:
     """Tests for read_uptime."""
 
     def test_parses_boot_time(self) -> None:
-        """Boot time = parsed `when` minus the uptime seconds."""
+        """Boot time = parsed `when` minus uptime, tagged as ARBoottime."""
 
         with patch.object(boottime, "safe_datetime", return_value=_WHEN):
-            assert read_uptime("Jan 1 12:00:00 2026(100 secs)") == _BOOT
+            result = read_uptime("Jan 1 12:00:00 2026(100 secs)")
+
+        assert result == _BOOT
+        assert isinstance(result, ARBoottime)
 
     @pytest.mark.parametrize(
         "uptime",
@@ -70,55 +76,86 @@ class TestSource:
 
         assert repr(ARBoottimeSource()) == "<ARBoottimeSource>"
 
-    def test_stabilize_first_sample(self) -> None:
-        """The first candidate is stored and returned."""
 
-        source = ARBoottimeSource()
+class TestStabilize:
+    """Tests for the stabilize anchor function."""
 
-        assert source.stabilize(_BOOT) == _BOOT
+    def test_first_sample(self) -> None:
+        """Without a previous value the candidate is used."""
 
-    def test_stabilize_keeps_within_jitter(self) -> None:
+        assert stabilize(_BOOT, None) == _BOOT
+
+    def test_keeps_within_jitter(self) -> None:
         """A sub-threshold change keeps the previous boot time."""
 
-        source = ARBoottimeSource()
-        source.stabilize(_BOOT)
+        assert stabilize(_BOOT + timedelta(seconds=1), _BOOT) == _BOOT
 
-        assert source.stabilize(_BOOT + timedelta(seconds=1)) == _BOOT
-
-    def test_stabilize_reboot(self) -> None:
+    def test_reboot(self) -> None:
         """A forward jump beyond the threshold is a new boot time."""
 
-        source = ARBoottimeSource()
-        source.stabilize(_BOOT)
         rebooted = _BOOT + timedelta(seconds=5)
+        assert stabilize(rebooted, _BOOT) == rebooted
 
-        assert source.stabilize(rebooted) == rebooted
+    def test_none_candidate_keeps_previous(self) -> None:
+        """A missing candidate keeps the previous boot time."""
 
-    def test_stabilize_none_keeps_previous(self) -> None:
-        """A missing candidate keeps the last known boot time."""
+        assert stabilize(None, _BOOT) == _BOOT
 
-        source = ARBoottimeSource()
-        source.stabilize(_BOOT)
+    def test_always_returns_boottime_type(self) -> None:
+        """Even when keeping a plain-datetime prev, the result is tagged."""
 
-        assert source.stabilize(None) == _BOOT
+        # prev is a plain datetime (e.g. a seed); jitter keeps it
+        result = stabilize(_BOOT + timedelta(seconds=1), _BOOT)
+
+        assert result == _BOOT
+        assert isinstance(result, ARBoottime)
+
+
+class TestARBoottime:
+    """Tests for the ARBoottime datetime tag."""
+
+    def test_from_datetime(self) -> None:
+        """from_datetime preserves the value and is a datetime subclass."""
+
+        tagged = ARBoottime.from_datetime(_BOOT)
+
+        assert tagged == _BOOT
+        assert isinstance(tagged, ARBoottime)
+        assert isinstance(tagged, datetime)
 
 
 class TestGetState:
     """Tests for get_state."""
 
     async def test_fetches_and_stabilizes(self) -> None:
-        """The uptime hook is fetched and parsed into a boot time."""
+        """Uptime is fetched and stabilized against the identity anchor."""
 
         callback = AsyncMock(return_value={"uptime": "when(100 secs)"})
-        source = ARBoottimeSource()
+        identity = ARDeviceIdentity()
+        identity._boottime = _BOOT
 
-        with patch.object(boottime, "read_uptime", return_value=_BOOT):
-            result = await get_state(callback, source)
+        # A 1s jitter is absorbed: the identity's value is kept
+        with patch.object(
+            boottime, "read_uptime", return_value=_BOOT + timedelta(seconds=1)
+        ):
+            result = await get_state(
+                callback, ARBoottimeSource(), identity=identity
+            )
 
         assert result == _BOOT
         kwargs = callback.await_args.kwargs
         assert kwargs["endpoint"] == AREndpoint.FETCH_DATA
         assert kwargs["request"] == "hook=uptime()"
+
+    async def test_without_identity(self) -> None:
+        """With no identity the parsed candidate is returned directly."""
+
+        callback = AsyncMock(return_value={"uptime": "when(100 secs)"})
+
+        with patch.object(boottime, "read_uptime", return_value=_BOOT):
+            result = await get_state(callback, ARBoottimeSource())
+
+        assert result == _BOOT
 
     @pytest.mark.parametrize(
         "raw",

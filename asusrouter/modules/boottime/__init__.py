@@ -7,6 +7,7 @@ import re
 from typing import Any
 
 from asusrouter.const import AR_CALL_GET_STATE, AR_CALL_TRANSLATE_STATE
+from asusrouter.modules.device.identity import ARDeviceIdentity
 from asusrouter.modules.endpoint_v2 import AREndpoint
 from asusrouter.modules.endpoint_v2.hooks import ARHook, hook_request
 from asusrouter.modules.source import ARDataSource
@@ -24,7 +25,35 @@ _REBOOT_DELTA_THRESHOLD = 2
 _UPTIME_MIN_PARTS = 2
 
 
-def read_uptime(uptime: str) -> datetime | None:
+class ARBoottime(datetime):
+    """Boot time - a datetime tagged so the identity sync is unambiguous."""
+
+    @classmethod
+    def from_datetime(cls, value: datetime) -> ARBoottime:
+        """Build a boot time from a plain datetime."""
+
+        return cls(
+            value.year,
+            value.month,
+            value.day,
+            value.hour,
+            value.minute,
+            value.second,
+            value.microsecond,
+            value.tzinfo,
+            fold=value.fold,
+        )
+
+
+def _as_boottime(value: datetime | None) -> ARBoottime | None:
+    """Tag a datetime as a boot time (None passes through)."""
+
+    if value is None or isinstance(value, ARBoottime):
+        return value
+    return ARBoottime.from_datetime(value)
+
+
+def read_uptime(uptime: str) -> ARBoottime | None:
     """Parse an uptime string (`<when>(<secs> ...)`) into the boot time."""
 
     parts = uptime.split("(")
@@ -37,18 +66,26 @@ def read_uptime(uptime: str) -> datetime | None:
     when = safe_datetime(parts[0])
     if when is None or seconds is None:
         return None
-    return when - timedelta(seconds=seconds)
+    return _as_boottime(when - timedelta(seconds=seconds))
+
+
+def stabilize(
+    candidate: datetime | None, prev: datetime | None
+) -> ARBoottime | None:
+    """Keep the boot time stable across jitter; update only on reboot."""
+
+    if candidate is None:
+        return _as_boottime(prev)
+    if (
+        prev is not None
+        and (candidate - prev).total_seconds() < _REBOOT_DELTA_THRESHOLD
+    ):
+        return _as_boottime(prev)
+    return _as_boottime(candidate)
 
 
 class ARBoottimeSource(ARDataSource):
     """Boot time data source for the connected router."""
-
-    def __init__(self) -> None:
-        """Initialize the boot time source."""
-
-        super().__init__()
-
-        self._boottime: datetime | None = None
 
     def __eq__(self, other: object) -> bool:
         """All boot time sources are equal (router-global)."""
@@ -67,20 +104,6 @@ class ARBoottimeSource(ARDataSource):
 
         return "<ARBoottimeSource>"
 
-    def stabilize(self, candidate: datetime | None) -> datetime | None:
-        """Keep the boot time stable across jitter; update only on reboot."""
-
-        if candidate is None:
-            return self._boottime
-        prev = self._boottime
-        if (
-            prev is not None
-            and (candidate - prev).total_seconds() < _REBOOT_DELTA_THRESHOLD
-        ):
-            return prev
-        self._boottime = candidate
-        return candidate
-
 
 # Universal instance - preferred
 ARBoottimeSourceUniversal: ARBoottimeSource = ARBoottimeSource()
@@ -89,8 +112,10 @@ ARBoottimeSourceUniversal: ARBoottimeSource = ARBoottimeSource()
 async def get_state(
     callback: ARCallbackType,
     source: ARBoottimeSource,
+    *,
+    identity: ARDeviceIdentity | None = None,
     **kwargs: Any,
-) -> datetime | None:
+) -> ARBoottime | None:
     """Fetch the uptime hook and return the (stabilized) boot time."""
 
     raw = await callback(
@@ -99,7 +124,8 @@ async def get_state(
     )
     uptime = raw.get("uptime") if isinstance(raw, dict) else None
     candidate = read_uptime(uptime) if isinstance(uptime, str) else None
-    return source.stabilize(candidate)
+    prev = identity.boottime if identity is not None else None
+    return stabilize(candidate, prev)
 
 
 def translate_state(data: Any, **kwargs: Any) -> datetime | None:

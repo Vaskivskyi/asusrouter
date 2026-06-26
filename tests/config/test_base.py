@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import concurrent.futures
+from datetime import UTC, datetime
 import random
 from typing import Any
 
@@ -16,6 +17,7 @@ from asusrouter.config import (
     ARConfigBase,
     ARConfigKey as ARConfKey,
     safe_bool_config,
+    safe_datetime_config,
     safe_int_config,
 )
 
@@ -33,6 +35,28 @@ def reset_config() -> None:
     ARConfig.set(ARConfKey.OPTIMISTIC_DATA, CONFIG_DEFAULT_BOOL)
     ARConfig.set(ARConfKey.OPTIMISTIC_TEMPERATURE, CONFIG_DEFAULT_BOOL)
     ARConfig.set(ARConfKey.ROBUST_BOOTTIME, CONFIG_DEFAULT_BOOL)
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        (datetime(2026, 1, 1, tzinfo=UTC), datetime(2026, 1, 1, tzinfo=UTC)),
+        ("not-a-date", None),
+        (5, None),
+        (None, None),
+    ],
+    ids=["datetime", "bad_str", "int", "none"],
+)
+def test_safe_datetime_config(value: Any, expected: Any) -> None:
+    """A datetime passes through; strings parse; others become None."""
+
+    assert safe_datetime_config(value) == expected
+
+
+def test_boottime_default_none() -> None:
+    """The seed boot time defaults to None (fetch on connect)."""
+
+    assert ARConfig.get(ARConfKey.BOOTTIME) is None
 
 
 class TestConfig:

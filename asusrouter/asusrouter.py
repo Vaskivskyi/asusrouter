@@ -37,6 +37,7 @@ from asusrouter.error import (
 )
 from asusrouter.modules.aimesh import ARAiMeshSourceUniversal
 from asusrouter.modules.aimesh.topology import ARAiMeshTopology
+from asusrouter.modules.boottime import ARBoottime, ARBoottimeSourceUniversal
 from asusrouter.modules.data import AsusData, AsusDataState
 from asusrouter.modules.data_finder import (
     ASUSDATA_MAP,
@@ -279,6 +280,15 @@ class AsusRouter:
             # Seed the live AiMesh topology before any user request, so it
             # is available on the identity right after connecting
             await self.async_fetch_data(ARAiMeshSourceUniversal, force=True)
+            # Boot time: use the seeded config value if given (anchors
+            # stabilization), otherwise fetch it once now
+            seeded_boottime = self._config.get(ARConfKey.BOOTTIME)
+            if seeded_boottime is not None:
+                self.description.update_boottime(seeded_boottime)
+            else:
+                await self.async_fetch_data(
+                    ARBoottimeSourceUniversal, force=True
+                )
 
         return result is not None
 
@@ -414,6 +424,9 @@ class AsusRouter:
         # Keep the identity's live AiMesh topology in sync
         if isinstance(value, ARAiMeshTopology):
             self.description.update_aimesh(value)
+        # Keep the identity's live boot time in sync
+        elif isinstance(value, ARBoottime):
+            self.description.update_boottime(value)
 
     def _translate_multidata_batch(
         self,

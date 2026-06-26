@@ -12,6 +12,7 @@ import pytest
 
 from asusrouter.asusrouter import ARCallReg, AsusRouter
 from asusrouter.modules.aimesh.topology import ARAiMeshTopology
+from asusrouter.modules.boottime import ARBoottime
 from asusrouter.modules.device import ARDeviceSourceUniversal
 from asusrouter.modules.device.identity import ARDeviceIdentity
 from asusrouter.modules.source import (
@@ -151,6 +152,43 @@ class TestCommitState:
         router._commit_data_state(make_state(source), topology)
 
         assert identity.aimesh is topology
+
+    def test_committing_boottime_syncs_identity(
+        self,
+        router: AsusRouter,
+        source: ARDataSource,
+        make_state: MakeStateFactory,
+    ) -> None:
+        """Committing an ARBoottime updates the identity boot time."""
+
+        identity = ARDeviceIdentity()
+        id_state = make_state(ARDeviceSourceUniversal)
+        cast(Any, id_state)._content = identity
+        router._data_states[ARDeviceSourceUniversal] = id_state
+
+        boottime = ARBoottime(2026, 1, 1, tzinfo=UTC)
+        router._commit_data_state(make_state(source), boottime)
+
+        assert identity.boottime == boottime
+
+    def test_committing_plain_datetime_ignores_boottime(
+        self,
+        router: AsusRouter,
+        source: ARDataSource,
+        make_state: MakeStateFactory,
+    ) -> None:
+        """A plain datetime from another source does not touch boot time."""
+
+        identity = ARDeviceIdentity()
+        id_state = make_state(ARDeviceSourceUniversal)
+        cast(Any, id_state)._content = identity
+        router._data_states[ARDeviceSourceUniversal] = id_state
+
+        router._commit_data_state(
+            make_state(source), datetime(2026, 1, 1, tzinfo=UTC)
+        )
+
+        assert identity.boottime is None
 
 
 class TestAsyncRefreshDataState:
