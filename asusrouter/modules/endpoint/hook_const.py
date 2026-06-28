@@ -23,19 +23,6 @@ class AsusDualWAN(StrEnum):
     LOAD_BALANCE = "lb"
 
 
-MAP_NETWORK: dict[str, str] = {
-    "INTERNET": "wan",
-    "INTERNET1": "usb",
-    "WIRED": "wired",
-    "BRIDGE": "bridge",
-    "WIRELESS0": "2ghz",
-    "WIRELESS1": "5ghz",
-    "WIRELESS2": "5ghz2",
-    "WIRELESS3": "6ghz",
-    "LACP1": "lacp1",
-    "LACP2": "lacp2",
-}
-
 MAP_OVPN_SERVER_388 = (
     ("vpn_server_unit", "unit", raw_to_int),
     ("vpn_serverx_dns", "response_to_dns", raw_to_bool),

@@ -28,7 +28,6 @@ _VPNC_BOOL_MAP: dict[AsusVPNC, bool] = {
     AsusVPNC.ERROR: False,
 }
 
-SENSORS_NETWORK = ["rx", "rx_speed", "tx", "tx_speed"]
 SENSORS_VPN = {
     "client": [
         "state",
@@ -59,8 +58,6 @@ def convert_to_ha_sensors(
     sensors = []
 
     match datatype:
-        case AsusData.NETWORK:
-            sensors = convert_to_ha_sensors_by_map(data, SENSORS_NETWORK)
         case AsusData.OPENVPN:
             sensors = convert_to_ha_sensors_by_map_2(data, SENSORS_VPN)
         case _:
@@ -92,30 +89,6 @@ def convert_to_ha_data(data: dict[str, Any]) -> dict[str, Any]:
         return convert_recursive(output)
 
     return {}
-
-
-def convert_to_ha_sensors_by_map(
-    data: dict[str, Any], sensor_map: list[str]
-) -> list[str]:
-    """Convert available data to the list of sensors using static map."""
-
-    _LOGGER.debug("Converting data to the list of sensors by map: %s", data)
-
-    if not isinstance(data, dict):
-        _LOGGER.warning(
-            "Invalid data format for sensors generation from a map: %s",
-            sensor_map,
-        )
-        return []
-
-    sensors = []
-
-    for sensor in data:
-        sensors.extend(
-            [f"{sensor}_{sensor_type}" for sensor_type in sensor_map]
-        )
-
-    return sensors
 
 
 def convert_to_ha_sensors_by_map_2(
