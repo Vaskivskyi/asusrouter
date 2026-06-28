@@ -31,6 +31,22 @@ class ARWiFiFrequency(FromStrMixin, StrEnum):
     FREQ_6G = "6g"
 
 
+class ARWiFiAuth(FromStrMixin, StrEnum):
+    """WiFi authentication / security method."""
+
+    UNKNOWN = UNKNOWN_MEMBER_STR
+
+    AES = "aes"
+    NONE = "none"
+    OPEN = "open"
+    TKIP = "tkip"
+    WPA2_EAP = "wpa2-eap"
+    WPA2_PSK = "wpa2-psk"
+    WPA3_SAE = "wpa3-sae"
+    WPA_EAP = "wpa-eap"
+    WPA_PSK = "wpa-psk"
+
+
 class ARWiFiGeneration(FromIntMixin, IntEnum):
     """WiFi generation types."""
 
