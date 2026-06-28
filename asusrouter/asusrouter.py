@@ -48,11 +48,7 @@ from asusrouter.modules.data_finder import (
     add_conditional_data_rule,
     remove_data_rule,
 )
-from asusrouter.modules.data_transform import (
-    transform_clients,
-    transform_network,
-    transform_wan,
-)
+from asusrouter.modules.data_transform import transform_network, transform_wan
 from asusrouter.modules.device import ARDeviceSourceUniversal
 from asusrouter.modules.device.identity import ARDeviceIdentity
 from asusrouter.modules.endpoint import process, read
@@ -792,15 +788,6 @@ class AsusRouter:
         _LOGGER.debug("Triggered method _transform_data for `%s`", datatype)
 
         description = self.description
-
-        if datatype == AsusData.CLIENTS:
-            return transform_clients(
-                data,
-                self._state.get(AsusData.CLIENTS),
-                aimesh=support_available(
-                    description.support, ARSupportType.AIMESH
-                ),
-            )
 
         if datatype == AsusData.NETWORK:
             return transform_network(

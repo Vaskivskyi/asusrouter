@@ -4,13 +4,11 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from asusrouter.modules.client import process_client
 from asusrouter.modules.data import AsusDataState
 from asusrouter.modules.support.flag import ARSupportType
 from asusrouter.modules.support.helpers import support_available_in
 from asusrouter.modules.wan import ARWANCapability
 from asusrouter.modules.wifi import ARWiFiBand
-from asusrouter.tools.readers import readable_mac
 
 if TYPE_CHECKING:
     from asusrouter.modules.device.identity import ARDeviceIdentity
@@ -68,24 +66,6 @@ def transform_network(
             network["6ghz"] = network.pop("5ghz2")
 
     return network
-
-
-def transform_clients(
-    data: dict[str, Any], history: AsusDataState | None, **kwargs: Any
-) -> dict[str, Any]:
-    """Transform clients data."""
-
-    clients = {}
-    for mac, client in data.items():
-        if readable_mac(mac):
-            # Check client history
-            client_history = (
-                history.data.get(mac) if history and history.data else None
-            )
-            # Process the client
-            clients[mac] = process_client(client, client_history, **kwargs)
-
-    return clients
 
 
 def transform_wan(

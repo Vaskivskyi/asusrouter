@@ -22,13 +22,11 @@ _LOGGER = logging.getLogger(__name__)
 
 
 _SUBMODULE_MAP: dict[str, str] = {
-    AREndpoint.FETCH_CLIENTS_UPDATE: "update_clients",
     AREndpoint.FETCH_DATA: "hook",
     AREndpoint.FETCH_FIRMWARE_UPDATE: "firmware",
     AREndpoint.FETCH_FIRMWARE_UPDATE_NOTE: "firmware_note",
     AREndpoint.FETCH_FIRMWARE_UPDATE_NOTE_AIMESH: "firmware_note",
     AREndpoint.FETCH_NETWORK: "network",
-    AREndpoint.FETCH_ONBOARDING: "onboarding",
     AREndpoint.FETCH_SYSINFO: "sysinfo",
     AREndpoint.FETCH_VPN_STATUS: "vpn",
 }

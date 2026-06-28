@@ -15,7 +15,6 @@ class AsusData(StrEnum):
     """AsusRouter data class."""
 
     AURA = "aura"
-    CLIENTS = "clients"
     DDNS = "ddns"
     DSL = "dsl"
     FIRMWARE = "firmware"

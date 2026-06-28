@@ -3,14 +3,13 @@
 from __future__ import annotations
 
 from typing import Any
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
 from asusrouter.modules.data import AsusDataState
 from asusrouter.modules.data_transform import (
     MODEL_WITH_6GHZ,
-    transform_clients,
     transform_network,
     transform_wan,
 )
@@ -146,64 +145,6 @@ class TestTransformNetwork:
         data: dict[str, Any] = {}
         result = transform_network(data, _description(_DUALWAN_SUPPORT), None)
         assert result is not data
-
-
-class TestTransformClients:
-    """Tests for transform_clients."""
-
-    def test_valid_mac_is_processed(self) -> None:
-        """Valid MAC addresses pass through process_client."""
-
-        mac = "AA:BB:CC:11:22:33"
-        client_data: dict[str, Any] = {"name": "device"}
-
-        with patch(
-            "asusrouter.modules.data_transform.process_client",
-            return_value={"processed": True},
-        ) as mock_pc:
-            result = transform_clients({mac: client_data}, None)
-
-        assert mac in result
-        assert result[mac] == {"processed": True}
-        mock_pc.assert_called_once_with(client_data, None)
-
-    def test_invalid_mac_is_skipped(self) -> None:
-        """Non-MAC keys are excluded from the result."""
-
-        result = transform_clients({"not-a-mac": {}, "also_bad": {}}, None)
-        assert result == {}
-
-    def test_empty_data_returns_empty(self) -> None:
-        """Empty input → empty output."""
-
-        assert transform_clients({}, None) == {}
-
-    def test_history_passed_to_process_client(self) -> None:
-        """Client history is looked up from history state and passed along."""
-
-        mac = "AA:BB:CC:11:22:33"
-        history_state = MagicMock(spec=AsusDataState)
-        history_state.data = {mac: {"prev_name": "old"}}
-
-        with patch(
-            "asusrouter.modules.data_transform.process_client",
-            return_value={},
-        ) as mock_pc:
-            transform_clients({mac: {}}, history_state)
-
-        mock_pc.assert_called_once_with({}, {"prev_name": "old"})
-
-    def test_no_history_passes_none_to_process_client(self) -> None:
-        """None history → None client_history passed to process_client."""
-
-        mac = "AA:BB:CC:11:22:33"
-        with patch(
-            "asusrouter.modules.data_transform.process_client",
-            return_value={},
-        ) as mock_pc:
-            transform_clients({mac: {}}, None)
-
-        mock_pc.assert_called_once_with({}, None)
 
 
 class TestTransformWan:
