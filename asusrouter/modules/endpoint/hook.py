@@ -2,13 +2,12 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
 import logging
 from typing import Any
 
 from asusrouter.modules.aura import process_aura
 from asusrouter.modules.connection import ConnectionState, ConnectionStatus
-from asusrouter.modules.data import AsusData, AsusDataState
+from asusrouter.modules.data import AsusData
 from asusrouter.modules.ddns import process_ddns
 from asusrouter.modules.endpoint import data_get
 from asusrouter.modules.endpoint.error import AccessError
@@ -32,7 +31,6 @@ from asusrouter.modules.wlan import MAP_GWLAN, MAP_WLAN
 from asusrouter.tools.converters import (
     run_method,
     safe_datetime,
-    safe_speed,
     safe_unpack_key,
     safe_unpack_keys,
 )
@@ -44,7 +42,6 @@ from asusrouter.tools.converters_v2.raw import (
 from asusrouter.tools.readers import merge_dicts
 
 from .hook_const import (
-    MAP_NETWORK,
     MAP_OVPN_SERVER_388,
     MAP_SPEEDTEST,
     MAP_VPNC_WIREGUARD,
@@ -55,7 +52,6 @@ from .hook_const import (
     MAP_WIREGUARD_SERVER,
 )
 
-REQUIRE_HISTORY = True
 REQUIRE_WLAN = True
 
 _LOGGER = logging.getLogger(__name__)
@@ -74,7 +70,6 @@ def process(data: dict[str, Any]) -> dict[AsusData, Any]:  # noqa: C901, PLR0912
     state: dict[AsusData, Any] = {}
 
     # Get the passed arguments
-    history: dict[AsusData, AsusDataState] = data_get(data, "history") or {}
     wlan = data_get(data, "wlan") or {}
 
     # Aura
@@ -104,18 +99,6 @@ def process(data: dict[str, Any]) -> dict[AsusData, Any]:  # noqa: C901, PLR0912
         state[AsusData.LED] = {
             "state": AsusLED(_led if _led is not None else -999)
         }
-
-    # Network
-    if "netdev" in data:
-        prev_network: AsusDataState | None = history.get(AsusData.NETWORK)
-        netdev = data.get("netdev")
-        state[AsusData.NETWORK] = (
-            process_network(netdev, prev_network)
-            if netdev
-            else prev_network.data
-            if isinstance(prev_network, AsusDataState)
-            else {}
-        )
 
     # OpenVPN Server
     if "vpn_serverx_clientlist" in data:
@@ -188,76 +171,6 @@ def process_gwlan(
             gwlan[f"{band.value}_{gid}"] = info
 
     return gwlan
-
-
-def process_network(
-    netdev: dict[str, Any], history: AsusDataState | None
-) -> dict[str, Any]:
-    """Process network data."""
-
-    # Calculate RX and TX from the HEX values.
-    network = process_network_usage(netdev)
-
-    # Calculate speeds if previous data is available
-    if history and history.data:
-        time_delta = (datetime.now(UTC) - history.timestamp).total_seconds()
-        network = process_network_speed(network, history.data, time_delta)
-
-    return network
-
-
-def process_network_speed(
-    network: dict[str, dict[str, float]],
-    prev_network: dict[str, dict[str, float]],
-    time_delta: float | None,
-) -> dict[str, dict[str, float]]:
-    """Calculate network speed for a set period of time."""
-
-    # Check values one by one
-    for interface, interface_data in network.items():
-        # Skip if there is no previous data
-        if interface not in prev_network:
-            continue
-
-        # Dictionary with speed values
-        interface_speed = {}
-
-        # Calculate speed for each traffic type
-        for traffic_type, traffic_value in interface_data.items():
-            prev_traffic_value = prev_network[interface].get(traffic_type)
-            # Calculate speed only if previous value is available
-            if prev_traffic_value:
-                interface_speed[f"{traffic_type}_speed"] = 8 * safe_speed(
-                    traffic_value,
-                    prev_traffic_value,
-                    time_delta,
-                )
-                continue
-            # Otherwise, set speed to 0
-            interface_speed[f"{traffic_type}_speed"] = 0.0
-
-        # Update interface with speed values
-        interface_data.update(interface_speed)
-
-    return network
-
-
-def process_network_usage(raw: dict[str, Any]) -> dict[str, Any]:
-    """Process network usage data."""
-
-    network = {}
-    for key, key_to_use in MAP_NETWORK.items():
-        data = {}
-        for traffic_type in ("rx", "tx"):
-            # Convert string with HEX value to int
-            value = raw_to_int(raw.get(f"{key}_{traffic_type}"), base=16)
-            # Check that value is integer
-            if isinstance(value, int):
-                data[traffic_type] = value
-        if len(data) > 0:
-            network[key_to_use] = data
-
-    return network
 
 
 def process_openvpn_server(data: dict[str, Any]) -> dict[int, Any]:

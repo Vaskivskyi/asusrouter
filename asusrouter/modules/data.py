@@ -21,7 +21,6 @@ class AsusData(StrEnum):
     FIRMWARE_NOTE = "firmware_note"
     GWLAN = "gwlan"
     LED = "led"
-    NETWORK = "network"
     OPENVPN = "openvpn"
     OPENVPN_CLIENT = "openvpn_client"
     OPENVPN_SERVER = "openvpn_server"

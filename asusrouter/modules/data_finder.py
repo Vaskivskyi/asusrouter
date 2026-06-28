@@ -66,9 +66,6 @@ ASUSDATA_REQUEST = {
     "devices": [
         ("get_clientlist", ""),
     ],
-    "network": [
-        ("netdev", "appobj"),
-    ],
     "speedtest": [
         ("ookla_speedtest_get_result", ""),
     ],
@@ -197,9 +194,6 @@ ASUSDATA_MAP: dict[AsusData, AsusData | AsusDataFinder] = {
     ),
     AsusData.LED: AsusDataFinder(
         AREndpoint.FETCH_DATA, nvram=ASUSDATA_NVRAM["light"]
-    ),
-    AsusData.NETWORK: AsusDataFinder(
-        AREndpoint.FETCH_DATA, request=ASUSDATA_REQUEST["network"]
     ),
     AsusData.OPENVPN: AsusDataFinder(AREndpoint.FETCH_VPN_STATUS),
     AsusData.OPENVPN_CLIENT: AsusData.OPENVPN,

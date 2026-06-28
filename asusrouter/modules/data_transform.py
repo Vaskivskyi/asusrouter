@@ -2,70 +2,10 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
-from asusrouter.modules.data import AsusDataState
 from asusrouter.modules.support.flag import ARSupportType
-from asusrouter.modules.support.helpers import support_available_in
 from asusrouter.modules.wan import ARWANCapability
-from asusrouter.modules.wifi import ARWiFiBand
-
-if TYPE_CHECKING:
-    from asusrouter.modules.device.identity import ARDeviceIdentity
-
-# List of models with 6Ghz support
-# and no 5Ghz2 support
-MODEL_WITH_6GHZ = [
-    "RT-AXE95Q",
-]
-
-
-def transform_network(
-    data: dict[str, Any],
-    description: ARDeviceIdentity,
-    history: AsusDataState | None,
-) -> dict[str, Any]:
-    """Transform network data."""
-
-    if not support_available_in(
-        description.support,
-        ARSupportType.WAN_CAPABILITIES,
-        ARWANCapability.DUALWAN,
-    ):
-        return data
-
-    network = data.copy()
-    for interface in network:
-        for speed in ("rx_speed", "tx_speed"):
-            if speed not in network[interface]:
-                network[interface][speed] = 0.0
-
-    if "usb" not in network:
-        usb_history = (
-            history.data.get("usb") if history and history.data else None
-        )
-        if usb_history:
-            network["usb"] = usb_history
-            network["usb"]["rx_speed"] = 0.0
-            network["usb"]["tx_speed"] = 0.0
-        else:
-            network["usb"] = {
-                "rx": 0,
-                "tx": 0,
-                "rx_speed": 0.0,
-                "tx_speed": 0.0,
-            }
-
-    if "5ghz2" in network:
-        wifi = description.wifi
-        support_5g2 = ARWiFiBand.BAND_5G2 in wifi
-        support_6g = ARWiFiBand.BAND_6G1 in wifi
-        if (
-            not support_5g2 and support_6g
-        ) or description.model in MODEL_WITH_6GHZ:
-            network["6ghz"] = network.pop("5ghz2")
-
-    return network
 
 
 def transform_wan(
