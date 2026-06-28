@@ -27,7 +27,6 @@ _LOGGER = logging.getLogger(__name__)
 class AsusDataMerge(StrEnum):
     """AsusRouter data merge class."""
 
-    ALL = "all"
     ANY = "any"
 
 
@@ -180,10 +179,6 @@ ASUSDATA_MAP: dict[AsusData, AsusData | AsusDataFinder] = {
     AsusData.AURA: AsusDataFinder(
         AREndpoint.FETCH_DATA,
         nvram=ASUSDATA_NVRAM["aura"],
-    ),
-    AsusData.CLIENTS: AsusDataFinder(
-        [AREndpoint.FETCH_ONBOARDING, AREndpoint.FETCH_CLIENTS_UPDATE],
-        AsusDataMerge.ALL,
     ),
     AsusData.DDNS: AsusDataFinder(
         AREndpoint.FETCH_DATA,
