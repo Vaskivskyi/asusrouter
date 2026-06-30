@@ -2,16 +2,22 @@
 
 from __future__ import annotations
 
-import importlib
 from typing import Any
-from unittest.mock import AsyncMock, Mock
+from unittest.mock import AsyncMock
 
 import pytest
 
 from asusrouter.const import AR_CALL_GET_STATE, AR_CALL_TRANSLATE_STATE
-import asusrouter.modules.nvram as nvram_module
-from asusrouter.modules.nvram import ARNvramType, get_state, translate_state
-from asusrouter.tools.identifiers import MacAddress
+from asusrouter.modules.common.connection import ARConnectionStatus
+from asusrouter.modules.nvram import (
+    ARNvramIndexSource,
+    ARNvramIndexType,
+    ARNvramType,
+    get_state,
+    translate_state,
+)
+from asusrouter.registry import ARCallableRegistry as ARCallReg
+from asusrouter.tools.identifiers import IpAddress, MacAddress
 
 
 class TestGetState:
@@ -112,18 +118,120 @@ class TestTranslateState:
         assert translate_state({}) == {}
 
 
-def test_module_registers_callables(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Module registers callables with ARCallReg on import."""
+class TestARNvramIndexSource:
+    """Tests for ARNvramIndexSource."""
 
-    mock_register = Mock()
-    monkeypatch.setattr(
-        "asusrouter.registry.ARCallableRegistry.register", mock_register
+    def test_key(self) -> None:
+        """The key resolves the template with the index."""
+
+        source = ARNvramIndexSource(ARNvramIndexType.WAN_IPADDR, 0)
+        assert source.key == "wan0_ipaddr"
+
+    def test_equality_and_hash(self) -> None:
+        """Sources are equal and hash alike by kind and index."""
+
+        a = ARNvramIndexSource(ARNvramIndexType.WAN_STATE, 1)
+        b = ARNvramIndexSource(ARNvramIndexType.WAN_STATE, 1)
+        c = ARNvramIndexSource(ARNvramIndexType.WAN_STATE, 0)
+
+        assert a == b
+        assert a != c
+        assert hash(a) == hash(b)
+
+    def test_equality_other_type(self) -> None:
+        """Comparison with a non-source returns NotImplemented / False."""
+
+        source = ARNvramIndexSource(ARNvramIndexType.WAN_STATE, 0)
+        assert source.__eq__("x") is NotImplemented
+        assert (source == "x") is False
+
+    def test_repr(self) -> None:
+        """The repr contains the resolved key."""
+
+        source = ARNvramIndexSource(ARNvramIndexType.WAN_GATEWAY, 1)
+        assert repr(source) == "<ARNvramIndexSource wan1_gateway>"
+
+
+class TestGetStateIndexed:
+    """Tests for get_state with indexed sources."""
+
+    @pytest.mark.asyncio
+    async def test_single_indexed(self) -> None:
+        """An indexed source maps its resolved key back to itself."""
+
+        source = ARNvramIndexSource(ARNvramIndexType.WAN_IPADDR, 0)
+        callback = AsyncMock(return_value={"wan0_ipaddr": "1.2.3.4"})
+        result = await get_state(callback, source)
+        assert result == {source: "1.2.3.4"}
+
+    @pytest.mark.asyncio
+    async def test_mixed_flat_and_indexed(self) -> None:
+        """Flat and indexed items are both mapped back to their requesters."""
+
+        flat = ARNvramType.MAC
+        indexed = ARNvramIndexSource(ARNvramIndexType.WAN_STATE, 1)
+        callback = AsyncMock(
+            return_value={
+                "label_mac": "00:11:22:33:44:55",
+                "wan1_state_t": "2",
+            }
+        )
+        result = await get_state(callback, [flat, indexed])
+        assert result == {flat: "00:11:22:33:44:55", indexed: "2"}
+
+    @pytest.mark.asyncio
+    async def test_unrequested_key_dropped(self) -> None:
+        """Response keys that were not requested are dropped."""
+
+        source = ARNvramIndexSource(ARNvramIndexType.WAN_IPADDR, 0)
+        callback = AsyncMock(
+            return_value={"wan0_ipaddr": "1.2.3.4", "other": "x"}
+        )
+        result = await get_state(callback, source)
+        assert result == {source: "1.2.3.4"}
+
+
+class TestTranslateStateIndexed:
+    """Tests for translate_state with indexed and WAN values."""
+
+    def test_indexed_keyed_on_template(self) -> None:
+        """Indexed values translate via their template type."""
+
+        state = ARNvramIndexSource(ARNvramIndexType.WAN_STATE, 0)
+        ipaddr = ARNvramIndexSource(ARNvramIndexType.WAN_IPADDR, 0)
+        result = translate_state({state: "2", ipaddr: "1.2.3.4"})
+
+        assert result[state] is ARConnectionStatus.CONNECTED
+        assert result[ipaddr] == IpAddress.from_value("1.2.3.4")
+
+    def test_indexed_untranslated_preserved(self) -> None:
+        """An indexed member without a translator is kept as-is."""
+
+        source = ARNvramIndexSource(ARNvramIndexType.UNKNOWN, 0)
+        assert translate_state({source: "raw"}) == {source: "raw"}
+
+    def test_flat_wan_values(self) -> None:
+        """Flat WAN members translate via the table."""
+
+        result = translate_state(
+            {
+                ARNvramType.LINK_INTERNET: "2",
+                ARNvramType.DUAL_WAN_CONFIG: "lan usb",
+            }
+        )
+        assert result[ARNvramType.LINK_INTERNET] is (
+            ARConnectionStatus.CONNECTED
+        )
+        assert result[ARNvramType.DUAL_WAN_CONFIG] == ["lan", "usb"]
+
+
+@pytest.mark.parametrize("cls", [ARNvramType, ARNvramIndexSource])
+def test_module_registers_callables(cls: type) -> None:
+    """Both source classes register the batched callables on import."""
+
+    assert ARCallReg.get_callable(cls, AR_CALL_GET_STATE) is get_state
+    assert (
+        ARCallReg.get_callable(cls, AR_CALL_TRANSLATE_STATE) is translate_state
     )
-    importlib.reload(nvram_module)
-
-    mock_register.assert_called_once()
-    args, kwargs = mock_register.call_args
-    assert args[0] is nvram_module.ARNvramType
-    assert kwargs[AR_CALL_GET_STATE] == (nvram_module.get_state, True)
-    expected_translate = (nvram_module.translate_state, True)
-    assert kwargs[AR_CALL_TRANSLATE_STATE] == expected_translate
+    assert ARCallReg.get_callable_flag(cls, AR_CALL_GET_STATE) is True
+    assert ARCallReg.get_callable_flag(cls, AR_CALL_TRANSLATE_STATE) is True

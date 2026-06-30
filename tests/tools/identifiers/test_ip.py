@@ -14,6 +14,7 @@ from asusrouter.tools.identifiers.ip import (
     ERROR_IP_INT,
     ERROR_IP_STR,
     ERROR_IP_UNSUPPORTED_TYPE,
+    read_ip_list,
 )
 
 CORRECT_IPV4 = "192.168.1.1"
@@ -285,3 +286,34 @@ def test_hash() -> None:
 
     instance = IpAddress.from_value(CORRECT_IPV4)
     assert hash(instance) == hash(IPv4Address(CORRECT_IPV4))
+
+
+class TestReadIpList:
+    """Tests for read_ip_list."""
+
+    def test_single(self) -> None:
+        """A single address is read into a one-item list."""
+
+        result = read_ip_list(CORRECT_IPV4)
+        assert result == [IpAddress.from_value(CORRECT_IPV4)]
+
+    def test_multiple(self) -> None:
+        """Whitespace-separated addresses are all read."""
+
+        result = read_ip_list(f"{CORRECT_IPV4}  {CORRECT_IPV6}")
+        assert result == [
+            IpAddress.from_value(CORRECT_IPV4),
+            IpAddress.from_value(CORRECT_IPV6),
+        ]
+
+    def test_skips_invalid(self) -> None:
+        """Invalid tokens are skipped, valid ones kept."""
+
+        result = read_ip_list(f"{CORRECT_IPV4} nope")
+        assert result == [IpAddress.from_value(CORRECT_IPV4)]
+
+    @pytest.mark.parametrize("value", ["", "   ", "nope", None, 42, []])
+    def test_empty(self, value: Any) -> None:
+        """Unparseable or non-string input returns an empty list."""
+
+        assert read_ip_list(value) == []

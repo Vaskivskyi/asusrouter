@@ -32,6 +32,9 @@ class ARHook(FromStrMixin, StrEnum):
     CLIENTLIST_DATABASE = "get_clientlist_from_json_database"
     NEWOB_ONBOARDINGLIST = "get_newob_onboardinglist"
 
+    # WAN
+    WAN_UNIT = "get_wan_unit"
+
     # WiFi
     CHANNEL_LIST_2G = "channel_list_2g"
     CHANNEL_LIST_5G = "channel_list_5g"
