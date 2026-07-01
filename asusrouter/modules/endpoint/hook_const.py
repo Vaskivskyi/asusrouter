@@ -2,26 +2,10 @@
 
 from __future__ import annotations
 
-from enum import StrEnum
-
-from asusrouter.modules.connection import ConnectionState, ConnectionStatus
-from asusrouter.modules.ip_address import (
-    read_dns_ip_address,
-    read_ip_address_type,
-)
 from asusrouter.modules.openvpn import AsusOVPNServer
 from asusrouter.modules.wireguard import AsusWireGuardServer
-from asusrouter.tools.converters import safe_list_csv, safe_list_from_string
+from asusrouter.tools.converters import safe_list_csv
 from asusrouter.tools.converters_v2.raw import raw_to_bool, raw_to_int
-
-
-class AsusDualWAN(StrEnum):
-    """Dual WAN class."""
-
-    FAILOVER = "fo"
-    FALLBACK = "fb"
-    LOAD_BALANCE = "lb"
-
 
 MAP_OVPN_SERVER_388 = (
     ("vpn_server_unit", "unit", raw_to_int),
@@ -60,36 +44,6 @@ MAP_SPEEDTEST = (
     ("ookla_speedtest_get_history", "history"),
     ("ookla_speedtest_get_servers", "servers"),
     ("ookla_speedtest_get_result", "result"),
-)
-
-MAP_WAN = (
-    ("get_wan_unit", "unit", raw_to_int),
-    ("link_internet", "link", [raw_to_int, ConnectionStatus]),
-    ("link_wan", "link_0", [raw_to_int, ConnectionState]),
-    ("link_wan1", "link_1", [raw_to_int, ConnectionState]),
-    ("wans_mode", "dualwan_mode", AsusDualWAN),
-    ("wans_dualwan", "dualwan_priority", safe_list_from_string),
-    ("bond_wan", "aggregation_state", raw_to_bool),
-    ("wanports_bond", "aggregation_ports", safe_list_from_string),
-)
-
-MAP_WAN_ITEM = (
-    ("auxstate_t", "auxstate", [raw_to_int, ConnectionStatus]),
-    ("primary", "primary", raw_to_bool),
-    ("proto", "protocol", read_ip_address_type),
-    ("realip_ip", "real_ip"),
-    ("realip_state", "real_ip_state", raw_to_bool),
-    ("state_t", "state", [raw_to_int, ConnectionStatus]),
-    ("sbstate_t", "bstate", [raw_to_int, ConnectionStatus]),
-)
-
-MAP_WAN_ITEM_X = (
-    ("dns", "dns", read_dns_ip_address),
-    ("expires", "expires", raw_to_int),
-    ("gateway", "gateway"),
-    ("ipaddr", "ip_address"),
-    ("lease", "lease", raw_to_int),
-    ("netmask", "mask"),
 )
 
 MAP_WIREGUARD_SERVER = (

@@ -35,7 +35,6 @@ class AsusData(StrEnum):
     SYSTEM = "system"
     VPNC = "vpnc"
     VPNC_CLIENTLIST = "vpnc_clientlist"
-    WAN = "wan"
     WIREGUARD = "wireguard"
     WIREGUARD_CLIENT = "wireguard_client"
     WIREGUARD_SERVER = "wireguard_server"

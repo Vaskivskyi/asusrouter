@@ -48,7 +48,6 @@ from asusrouter.modules.data_finder import (
     add_conditional_data_rule,
     remove_data_rule,
 )
-from asusrouter.modules.data_transform import transform_wan
 from asusrouter.modules.device import ARDeviceSourceUniversal
 from asusrouter.modules.device.identity import ARDeviceIdentity
 from asusrouter.modules.endpoint import process, read
@@ -782,21 +781,6 @@ class AsusRouter:
             request=str(commands),
         )
 
-    def _transform_data(self, datatype: AsusData, data: Any) -> Any:
-        """Transform data if needed."""
-
-        _LOGGER.debug("Triggered method _transform_data for `%s`", datatype)
-
-        description = self.description
-
-        if datatype == AsusData.WAN:
-            return transform_wan(
-                data,
-                description.support,
-            )
-
-        return data
-
     def _drop_data(self, datatype: AsusData, endpoint: AREndpoint) -> bool:
         """Check whether data should be dropped."""
 
@@ -899,7 +883,6 @@ class AsusRouter:
         df_merge = data_finder.merge
         description = self.description
         drop_data = self._drop_data
-        transform_data = self._transform_data
 
         kw_raw = kwargs.get("request", {})
         kw_extra = (
@@ -937,10 +920,6 @@ class AsusRouter:
                 if result and df_merge == AsusDataMerge.ANY:
                     break
 
-            result = {
-                key: transform_data(key, value)
-                for key, value in result.items()
-            }
             for key, value in result.items():
                 state = _state.get(key)
                 if state is None:

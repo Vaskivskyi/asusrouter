@@ -44,7 +44,7 @@ router = AsusRouter(                #required - both IP and URL supported
 loop.run_until_complete(router.async_connect())
 
 # Now you can use the router object to call methods
-data = loop.run_until_complete(router.async_get_data(AsusData.WAN))
+data = loop.run_until_complete(router.async_get_data(AsusData.SYSTEM))
 print(data)
 
 # Remember to disconnect and close the session when you're done
