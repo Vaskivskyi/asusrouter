@@ -26,6 +26,15 @@ class ARConnectionMethod(FromStrMixin, StrEnum):
     V6PLUS = "v6plus"
 
 
+class ARConnectionState(FromIntMixin, IntEnum):
+    """Whether a connection is up."""
+
+    UNKNOWN = UNKNOWN_MEMBER
+
+    DISCONNECTED = 0
+    CONNECTED = 1
+
+
 class ARConnectionStatus(FromIntMixin, IntEnum):
     """Connection status as reported by the router."""
 

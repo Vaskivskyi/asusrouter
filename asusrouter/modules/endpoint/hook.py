@@ -6,7 +6,7 @@ import logging
 from typing import Any
 
 from asusrouter.modules.aura import process_aura
-from asusrouter.modules.connection import ConnectionState
+from asusrouter.modules.common.connection import ARConnectionState
 from asusrouter.modules.data import AsusData
 from asusrouter.modules.ddns import process_ddns
 from asusrouter.modules.endpoint import data_get
@@ -469,7 +469,7 @@ def process_wireguard_server(  # noqa: C901
             for client in status:
                 if client.get("index") in wireguard["clients"]:
                     wireguard["clients"][client.get("index")]["state"] = (
-                        ConnectionState(client.get("status"))
+                        ARConnectionState.from_value(client.get("status"))
                     )
 
     # Remove the `status` value

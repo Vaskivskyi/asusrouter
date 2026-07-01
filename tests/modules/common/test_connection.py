@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from asusrouter.modules.common.connection import (
     ARConnectionMethod,
+    ARConnectionState,
     ARConnectionStatus,
     ARConnectionType,
 )
@@ -40,6 +41,31 @@ class TestARConnectionMethod:
         assert ARConnectionMethod.from_value("nope") is (
             ARConnectionMethod.UNKNOWN
         )
+
+
+class TestARConnectionState:
+    """Tests for ARConnectionState."""
+
+    def test_values(self) -> None:
+        """Members map to their router codes."""
+
+        assert ARConnectionState.DISCONNECTED == 0
+        assert ARConnectionState.CONNECTED == 1
+
+    def test_from_value(self) -> None:
+        """Raw int-like values resolve to the matching member."""
+
+        assert ARConnectionState.from_value("1") is (
+            ARConnectionState.CONNECTED
+        )
+        assert ARConnectionState.from_value(0) is (
+            ARConnectionState.DISCONNECTED
+        )
+
+    def test_from_value_unknown(self) -> None:
+        """Unmapped codes resolve to UNKNOWN."""
+
+        assert ARConnectionState.from_value(99) is ARConnectionState.UNKNOWN
 
 
 class TestARConnectionStatus:

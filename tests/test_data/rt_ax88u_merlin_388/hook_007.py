@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from asusrouter import AsusData
-from asusrouter.modules.connection import ConnectionState
+from asusrouter.modules.common.connection import ARConnectionState
 from asusrouter.modules.wireguard import AsusWireGuardServer
 
 expected_result = {
@@ -26,7 +26,7 @@ expected_result = {
                     "address": "10.1.0.2/32",
                     "allowed_ips": ["10.1.0.2/32"],
                     "client_allowed_ips": ["192.168.1.0/24", "10.1.0.0/24"],
-                    "state": ConnectionState.DISCONNECTED,
+                    "state": ARConnectionState.DISCONNECTED,
                 },
                 2: {
                     "enabled": True,
@@ -34,7 +34,7 @@ expected_result = {
                     "address": "10.1.0.3/32",
                     "allowed_ips": ["10.1.0.3/32"],
                     "client_allowed_ips": ["192.168.1.0/24", "10.1.0.0/24"],
-                    "state": ConnectionState.DISCONNECTED,
+                    "state": ARConnectionState.DISCONNECTED,
                 },
                 3: {
                     "enabled": True,
@@ -42,7 +42,7 @@ expected_result = {
                     "address": "10.1.0.4/32",
                     "allowed_ips": ["10.1.0.4/32"],
                     "client_allowed_ips": ["192.168.1.0/24", "10.1.0.0/24"],
-                    "state": ConnectionState.DISCONNECTED,
+                    "state": ARConnectionState.DISCONNECTED,
                 },
                 4: {
                     "enabled": True,
@@ -50,7 +50,7 @@ expected_result = {
                     "address": "10.1.0.5/32",
                     "allowed_ips": ["10.1.0.5/32"],
                     "client_allowed_ips": ["192.168.1.0/24", "10.1.0.0/24"],
-                    "state": ConnectionState.DISCONNECTED,
+                    "state": ARConnectionState.DISCONNECTED,
                 },
                 5: {
                     "enabled": True,
@@ -58,7 +58,7 @@ expected_result = {
                     "address": "10.1.0.6/32",
                     "allowed_ips": ["10.1.0.6/32"],
                     "client_allowed_ips": ["192.168.1.0/24", "10.1.0.0/24"],
-                    "state": ConnectionState.DISCONNECTED,
+                    "state": ARConnectionState.DISCONNECTED,
                 },
                 6: {
                     "enabled": True,
@@ -66,7 +66,7 @@ expected_result = {
                     "address": "10.1.0.7/32",
                     "allowed_ips": ["10.1.0.7/32"],
                     "client_allowed_ips": ["192.168.1.0/24", "10.1.0.0/24"],
-                    "state": ConnectionState.DISCONNECTED,
+                    "state": ARConnectionState.DISCONNECTED,
                 },
             },
         }
