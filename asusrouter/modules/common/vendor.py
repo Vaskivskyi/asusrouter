@@ -21,6 +21,6 @@ def format_vendor(vendor: str | None) -> str | None:
 
     for prefix, template in _VENDOR_PREFIXES.items():
         if vendor.startswith(prefix):
-            return template.format(vendor[len(prefix) :])
+            return template.format(vendor[len(prefix) :]).strip()
 
-    return _VENDOR_ALIASES.get(vendor, vendor)
+    return _VENDOR_ALIASES.get(vendor, vendor).strip()

@@ -12,7 +12,8 @@ from asusrouter.modules.common.vendor import format_vendor
     [
         # Prefix-coded values
         ("android-dhcp-13", "Android 13"),
-        ("android-dhcp-", "Android "),
+        # No version - no trailing space
+        ("android-dhcp-", "Android"),
         # Exact aliases
         ("MSFT 5.0", "Microsoft Corporation"),
         # Passthrough
