@@ -791,23 +791,6 @@ class AsusRouter:
 
         return False
 
-    async def _check_postrequisites(self, datatype: AsusData) -> None:
-        """Check postrequisites after fetching data."""
-
-        _LOGGER.debug(
-            "Triggered method _check_postrequisites for datatype `%s`",
-            datatype,
-        )
-
-        if datatype == AsusData.FIRMWARE:
-            firmware = self._state[AsusData.FIRMWARE].data
-            if firmware and firmware["state"] is True:
-                release_note = await self.async_get_data(
-                    AsusData.FIRMWARE_NOTE, force=True
-                )
-                if release_note:
-                    firmware.update(release_note)
-
     def _check_state(self, datatype: AsusData | None) -> None:
         """Make sure the state object is available."""
 
@@ -926,8 +909,6 @@ class AsusRouter:
                 state.update(value)
         except (AsusRouterConnectionError, AsusRouterDataError):
             return self._return_state(datatype, **kwargs)
-
-        await self._check_postrequisites(datatype)
 
         _LOGGER.debug(
             "Returning data for `%s` with object type `%s`",

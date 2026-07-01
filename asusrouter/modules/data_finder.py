@@ -141,13 +141,6 @@ ASUSDATA_MAP: dict[AsusData, AsusData | AsusDataFinder] = {
         AREndpoint.FETCH_DATA,
         nvram=ASUSDATA_NVRAM["ddns"],
     ),
-    AsusData.FIRMWARE: AsusDataFinder(AREndpoint.FETCH_FIRMWARE_UPDATE),
-    AsusData.FIRMWARE_NOTE: AsusDataFinder(
-        [
-            AREndpoint.FETCH_FIRMWARE_UPDATE_NOTE,
-            AREndpoint.FETCH_FIRMWARE_UPDATE_NOTE_AIMESH,
-        ]
-    ),
     AsusData.GWLAN: AsusDataFinder(
         AREndpoint.FETCH_DATA,
         method=gwlan_nvram_request,
