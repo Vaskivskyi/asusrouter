@@ -142,6 +142,7 @@ class ARNvramType(ARDataType):
     LINK_WAN1 = "link_wan1"
     WAN_AGGREGATION = "bond_wan"
     WAN_AGGREGATION_PORTS = "wanports_bond"
+    WAN_AUTODETECT = "autowan_enable"
     WAN_PROTOCOL = "wan_proto"
     WAN_UNIT = "wan_unit"
 
