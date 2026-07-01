@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from enum import StrEnum
 import logging
 
 from asusrouter.modules.data import AsusData
@@ -21,19 +20,12 @@ from asusrouter.tools import converters
 _LOGGER = logging.getLogger(__name__)
 
 
-class AsusDataMerge(StrEnum):
-    """AsusRouter data merge class."""
-
-    ANY = "any"
-
-
 class AsusDataFinder:
     """AsusRouter data finder class."""
 
-    def __init__(  # noqa: PLR0913
+    def __init__(
         self,
         endpoint: list[AREndpoint] | AREndpoint,
-        merge: AsusDataMerge = AsusDataMerge.ANY,
         request: list[tuple[str, ...]] | None = None,
         nvram: list[str] | str | None = None,
         method: Callable | None = None,
@@ -44,9 +36,6 @@ class AsusDataFinder:
         if not isinstance(endpoint, list):
             endpoint = [endpoint]
         self.endpoint = endpoint
-
-        # Set the merge
-        self.merge = merge
 
         # Set the request and append nvram hooks to the request
         self.request = request or []

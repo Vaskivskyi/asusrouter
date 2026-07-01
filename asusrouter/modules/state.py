@@ -10,7 +10,7 @@ from types import ModuleType
 from typing import Any
 
 from asusrouter.modules.aura import AsusAura
-from asusrouter.modules.connection import ConnectionState
+from asusrouter.modules.common.connection import ARConnectionState
 from asusrouter.modules.data import AsusData, AsusDataState
 from asusrouter.modules.ddns import AsusDDNS
 from asusrouter.modules.parental_control import (
@@ -49,7 +49,7 @@ class AsusState(Enum):
     NONE = AsusStateNone
     AURA = AsusAura
     BLOCK_ALL = AsusBlockAll
-    CONNECTION = ConnectionState
+    CONNECTION = ARConnectionState
     DDNS = AsusDDNS
     LED = AsusLED
     OPENVPN_CLIENT = AsusOVPNClient

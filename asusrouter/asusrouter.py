@@ -43,7 +43,6 @@ from asusrouter.modules.data_finder import (
     ASUSDATA_MAP,
     ASUSDATA_NVRAM,
     AsusDataFinder,
-    AsusDataMerge,
     add_conditional_data_alias,
     add_conditional_data_rule,
     remove_data_rule,
@@ -880,7 +879,6 @@ class AsusRouter:
 
         df_request = data_finder.request
         df_method = data_finder.method
-        df_merge = data_finder.merge
         description = self.description
         drop_data = self._drop_data
 
@@ -917,7 +915,7 @@ class AsusRouter:
 
                 result = merge_dicts(result, processed)
 
-                if result and df_merge == AsusDataMerge.ANY:
+                if result:
                     break
 
             for key, value in result.items():
