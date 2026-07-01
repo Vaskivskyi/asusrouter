@@ -6,7 +6,6 @@ import logging
 
 import pytest
 
-from asusrouter.modules.firmware.flag import ARFirmwareType
 import asusrouter.modules.firmware.translate as translate_module
 from asusrouter.modules.firmware.translate import (
     _translate_revision,
@@ -15,6 +14,7 @@ from asusrouter.modules.firmware.translate import (
     translate_string,
     translate_type,
 )
+from asusrouter.modules.firmware.types import ARFirmwareType
 
 
 class TestTranslateRevision:

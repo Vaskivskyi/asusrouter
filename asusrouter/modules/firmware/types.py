@@ -1,4 +1,4 @@
-"""Flags for the firmware module."""
+"""Firmware types."""
 
 from __future__ import annotations
 
@@ -13,9 +13,9 @@ class ARFirmwareType(FromStrMixin, StrEnum):
 
     UNKNOWN = UNKNOWN_MEMBER_STR
 
-    STOCK = "stock"
-    MERLIN = "merlin"
     GNUTON = "gnuton"
+    MERLIN = "merlin"
+    STOCK = "stock"
 
 
 AR_FW_MERLIN_LIKE: frozenset[ARFirmwareType] = frozenset(

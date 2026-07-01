@@ -1,510 +1,357 @@
-"""Tests for the ARFirmware class."""
+"""Tests for the firmware module."""
 
 from __future__ import annotations
 
+from types import SimpleNamespace
 from typing import Any
+from unittest.mock import AsyncMock
 
 import pytest
 
-from asusrouter.modules.firmware import ARFirmware, _compare_revision
-from asusrouter.modules.firmware.flag import ARFirmwareType
+from asusrouter.const import AR_CALL_GET_STATE, AR_CALL_TRANSLATE_STATE
+from asusrouter.modules.firmware import (
+    ARFirmware,
+    ARFirmwareSignature,
+    ARFirmwareSource,
+    ARFirmwareSourceUniversal,
+    ARFirmwareState,
+    ARFirmwareSync,
+    ARFirmwareWeb,
+    ARFirmwareWebError,
+    ARFirmwareWebFetch,
+    ARFirmwareWebNotify,
+    ARFirmwareWebUpgrade,
+    _available,
+    _fetch_note,
+    _is_stable_update,
+    get_state,
+    translate_state,
+)
+from asusrouter.registry import ARCallableRegistry as ARCallReg
 
-# Canonical instances reused across comparison / equality test cases
-_UNKNOWN_FW = ARFirmware()
-_STOCK_BASE = ARFirmware((3, 0, 0, 4), 388, 8, "gA")
-_STOCK_COPY = ARFirmware((3, 0, 0, 4), 388, 8, "gA")
-_STOCK_BIG_MAJOR = ARFirmware((3, 0, 0, 6), 388, 8, "gA")
-_STOCK_BIG_MINOR = ARFirmware((3, 0, 0, 4), 390, 8, "gA")
-_STOCK_BIG_BUILD = ARFirmware((3, 0, 0, 4), 388, 10, "gA")
-_STOCK_ALT_REV = ARFirmware((3, 0, 0, 4), 388, 8, "gB")
-_STOCK_NO_REV = ARFirmware((3, 0, 0, 4), 388, 8)
-_MERLIN_BASE = ARFirmware((3, 0, 0, 4), 388, 8, 2, True)
-_MERLIN_BIG_REV = ARFirmware((3, 0, 0, 4), 388, 8, 7, True)
-_MERLIN_NO_ROG = ARFirmware((3, 0, 0, 4), 388, 8, 2, False)
+# Firmware version strings reused across cases
+_OLDER = "3004_388_2_0"
+_NEWER = "3004_388_4_0"
+
+# A fully populated firmware detection payload
+_FULL_UPDATE: dict[str, Any] = {
+    "webs_state_update": "1",
+    "webs_state_upgrade": "",
+    "webs_state_error": "0",
+    "webs_state_info": _NEWER,
+    "webs_state_info_beta": "",
+    "webs_state_REQinfo": "",
+    "webs_state_flag": "1",
+    "webs_state_level": "0",
+    "sig_ver": "2.380",
+    "sig_state_update": "0",
+    "sig_state_upgrade": "1",
+    "sig_state_error": "0",
+    "sig_state_flag": "1",
+    "cfg_check": "",
+    "cfg_upgrade": "",
+}
 
 
-class TestCompareRevision:
-    """Test _compare_revision helper."""
+def _identity(fw: str | None = None) -> Any:
+    """Fake device identity exposing a firmware version."""
+
+    return SimpleNamespace(firmware=ARFirmware.from_string(fw))
+
+
+class TestWebEnums:
+    """Tests for the web-state enums."""
 
     @pytest.mark.parametrize(
-        ("a", "b", "expected"),
+        ("enum", "raw", "expected"),
         [
-            (None, "abc", True),
-            (None, 5, True),
-            ("abc", None, False),
-            (5, None, False),
-            (2, 5, True),
-            (5, 2, False),
-            (2, 2, False),
-            ("abc", "abd", True),
-            ("abd", "abc", False),
-            ("abc", "abc", False),
-            (2, "abc", True),
-            ("abc", 2, False),
+            (ARFirmwareWebError, "0", ARFirmwareWebError.NONE),
+            (ARFirmwareWebError, "3", ARFirmwareWebError.FW_ERROR),
+            (ARFirmwareWebError, "42", ARFirmwareWebError.UNKNOWN),
+            (ARFirmwareWebFetch, "0", ARFirmwareWebFetch.ACTIVE),
+            (ARFirmwareWebFetch, "1", ARFirmwareWebFetch.INACTIVE),
+            (ARFirmwareWebNotify, "2", ARFirmwareWebNotify.FORCE),
+            (ARFirmwareWebNotify, "", ARFirmwareWebNotify.UNKNOWN),
+            (ARFirmwareWebUpgrade, "-1", ARFirmwareWebUpgrade.INACTIVE),
+            (ARFirmwareWebUpgrade, "2", ARFirmwareWebUpgrade.ACTIVE),
         ],
     )
-    def test_compare_revision(
-        self, a: int | str | None, b: int | str | None, expected: bool
-    ) -> None:
-        """Test _compare_revision."""
+    def test_from_value(self, enum: Any, raw: str, expected: Any) -> None:
+        """`from_value` maps known codes and falls back to UNKNOWN."""
 
-        assert _compare_revision(a, b) == expected
+        assert enum.from_value(raw) == expected
 
 
-class TestARFirmwareInit:
-    """Test ARFirmware initialization and properties."""
+class TestDataclassDefaults:
+    """Tests for the firmware dataclass defaults."""
+
+    def test_web_defaults(self) -> None:
+        """A bare web state is all-unknown / empty."""
+
+        web = ARFirmwareWeb()
+        assert web.fetch is ARFirmwareWebFetch.UNKNOWN
+        assert web.upgrade is ARFirmwareWebUpgrade.UNKNOWN
+        assert web.error is ARFirmwareWebError.UNKNOWN
+        assert web.notify is ARFirmwareWebNotify.UNKNOWN
+        assert web.available is None
+        assert web.state is False
+        assert web.release_note is None
+
+    def test_state_defaults(self) -> None:
+        """A bare firmware state carries empty sub-structures."""
+
+        state = ARFirmwareState()
+        assert state.current is None
+        assert isinstance(state.web, ARFirmwareWeb)
+        assert isinstance(state.signature, ARFirmwareSignature)
+        assert isinstance(state.sync, ARFirmwareSync)
+
+
+class TestARFirmwareSource:
+    """Tests for ARFirmwareSource."""
+
+    def test_equality_and_hash(self) -> None:
+        """All firmware sources are equal and share a hash."""
+
+        assert ARFirmwareSource() == ARFirmwareSource()
+        assert hash(ARFirmwareSource()) == hash(ARFirmwareSourceUniversal)
+
+    def test_equality_other_type(self) -> None:
+        """Comparison with a non-source returns NotImplemented / False."""
+
+        assert ARFirmwareSource().__eq__("x") is NotImplemented
+        assert (ARFirmwareSource() == "x") is False
+
+    def test_repr(self) -> None:
+        """The repr is stable."""
+
+        assert repr(ARFirmwareSource()) == "<ARFirmwareSource>"
+
+
+class TestAvailable:
+    """Tests for _available."""
+
+    def test_valid(self) -> None:
+        """A parsable version string yields an ARFirmware."""
+
+        firmware = _available(_NEWER)
+        assert firmware is not None
+        assert firmware.major == (3, 0, 0, 4)
+
+    @pytest.mark.parametrize("raw", [None, "", "garbage"])
+    def test_none(self, raw: Any) -> None:
+        """Empty or unparsable input yields None."""
+
+        assert _available(raw) is None
+
+
+class TestIsStableUpdate:
+    """Tests for _is_stable_update."""
 
     @pytest.mark.parametrize(
-        (
-            "kwargs",
-            "expected_major",
-            "expected_minor",
-            "expected_build",
-            "expected_revision",
-            "expected_rog",
-            "expected_type",
-        ),
+        ("current", "available", "expected"),
         [
+            (None, None, False),
+            (ARFirmware.from_string(_NEWER), None, False),
+            (None, ARFirmware.from_string(_NEWER), True),
+            (ARFirmware(), ARFirmware.from_string(_NEWER), True),
             (
-                {},
-                None,
-                None,
-                None,
-                None,
-                False,
-                ARFirmwareType.UNKNOWN,
-            ),
-            (
-                {
-                    "major": (3, 0, 0, 4),
-                    "minor": 388,
-                    "build": 8,
-                    "revision": "g8178ee0",
-                },
-                (3, 0, 0, 4),
-                388,
-                8,
-                "g8178ee0",
-                False,
-                ARFirmwareType.STOCK,
-            ),
-            (
-                {
-                    "major": (3, 0, 0, 4),
-                    "minor": 388,
-                    "build": 8,
-                    "revision": 2,
-                    "rog": True,
-                },
-                (3, 0, 0, 4),
-                388,
-                8,
-                2,
+                ARFirmware.from_string(_OLDER),
+                ARFirmware.from_string(_NEWER),
                 True,
-                ARFirmwareType.MERLIN,
             ),
             (
-                {
-                    "major": (9, 0, 0, 6),
-                    "minor": 102,
-                    "build": 4856,
-                    "revision": "g8178ee0",
-                },
-                (9, 0, 0, 6),
-                102,
-                4856,
-                "g8178ee0",
+                ARFirmware.from_string(_NEWER),
+                ARFirmware.from_string(_OLDER),
                 False,
-                ARFirmwareType.STOCK,
-            ),
-            (
-                {
-                    "major": (3, 0, 0, 6),
-                    "minor": 388,
-                    "build": 8,
-                    "revision": "gnuton1",
-                },
-                (3, 0, 0, 6),
-                388,
-                8,
-                "gnuton1",
-                False,
-                ARFirmwareType.GNUTON,
             ),
         ],
     )
-    def test_init(
+    def test_is_stable_update(
         self,
-        kwargs: dict[str, Any],
-        expected_major: tuple[int, int, int, int] | None,
-        expected_minor: int | None,
-        expected_build: int | None,
-        expected_revision: int | str | None,
-        expected_rog: bool,
-        expected_type: ARFirmwareType,
-    ) -> None:
-        """Test initialization stores all fields and derives firmware_type."""
-
-        fw = ARFirmware(**kwargs)
-        assert fw.major == expected_major
-        assert fw.minor == expected_minor
-        assert fw.build == expected_build
-        assert fw.revision == expected_revision
-        assert fw.rog == expected_rog
-        assert fw.firmware_type == expected_type
-
-
-class TestARFirmwareFromNvram:
-    """Test ARFirmware.from_nvram."""
-
-    @pytest.mark.parametrize(
-        ("fw_major", "fw_minor", "fw_build", "expected_attrs"),
-        [
-            (
-                "3.0.0.4",
-                388,
-                "40456_g8178ee0",
-                {
-                    "major": (3, 0, 0, 4),
-                    "minor": 388,
-                    "build": 40456,
-                    "revision": "g8178ee0",
-                    "rog": False,
-                    "firmware_type": ARFirmwareType.STOCK,
-                },
-            ),
-            (
-                "3.0.0.4",
-                388,
-                "8_2_rog",
-                {
-                    "major": (3, 0, 0, 4),
-                    "minor": 388,
-                    "build": 8,
-                    "revision": 2,
-                    "rog": True,
-                    "firmware_type": ARFirmwareType.MERLIN,
-                },
-            ),
-            (
-                "9.0.0.6",
-                "102",
-                "4856_g8178ee0",
-                {
-                    "major": (9, 0, 0, 6),
-                    "minor": 102,
-                    "build": 4856,
-                    "revision": "g8178ee0",
-                    "rog": False,
-                    "firmware_type": ARFirmwareType.STOCK,
-                },
-            ),
-            (
-                None,
-                None,
-                None,
-                {
-                    "major": None,
-                    "minor": None,
-                    "build": None,
-                    "revision": None,
-                    "rog": False,
-                    "firmware_type": ARFirmwareType.UNKNOWN,
-                },
-            ),
-        ],
-    )
-    def test_from_nvram(
-        self,
-        fw_major: Any,
-        fw_minor: Any,
-        fw_build: Any,
-        expected_attrs: dict[str, Any],
-    ) -> None:
-        """Test from_nvram builds correct ARFirmware."""
-
-        fw = ARFirmware.from_nvram(fw_major, fw_minor, fw_build)
-        for attr, value in expected_attrs.items():
-            assert getattr(fw, attr) == value
-
-
-class TestARFirmwareFromString:
-    """Test ARFirmware.from_string."""
-
-    @pytest.mark.parametrize(
-        ("fw_string", "expected_attrs"),
-        [
-            (
-                "3.0.0.4.388.40456_g8178ee0",
-                {
-                    "major": (3, 0, 0, 4),
-                    "minor": 388,
-                    "build": 40456,
-                    "revision": "g8178ee0",
-                    "rog": False,
-                    "firmware_type": ARFirmwareType.STOCK,
-                },
-            ),
-            (
-                "3.0.0.4.388.8_2_rog",
-                {
-                    "major": (3, 0, 0, 4),
-                    "minor": 388,
-                    "build": 8,
-                    "revision": 2,
-                    "rog": True,
-                    "firmware_type": ARFirmwareType.MERLIN,
-                },
-            ),
-            (
-                "9006_102_4856-g8178ee0",
-                {
-                    "major": (9, 0, 0, 6),
-                    "minor": 102,
-                    "build": 4856,
-                    "revision": "g8178ee0",
-                    "rog": False,
-                    "firmware_type": ARFirmwareType.STOCK,
-                },
-            ),
-            (
-                None,
-                {
-                    "major": None,
-                    "minor": None,
-                    "build": None,
-                    "revision": None,
-                    "rog": False,
-                    "firmware_type": ARFirmwareType.UNKNOWN,
-                },
-            ),
-            (
-                "",
-                {
-                    "major": None,
-                    "minor": None,
-                    "build": None,
-                    "revision": None,
-                    "rog": False,
-                    "firmware_type": ARFirmwareType.UNKNOWN,
-                },
-            ),
-        ],
-    )
-    def test_from_string(
-        self,
-        fw_string: str | None,
-        expected_attrs: dict[str, Any],
-    ) -> None:
-        """Test from_string builds correct ARFirmware."""
-
-        fw = ARFirmware.from_string(fw_string)
-        for attr, value in expected_attrs.items():
-            assert getattr(fw, attr) == value
-
-
-class TestARFirmwareStr:
-    """Test ARFirmware.__str__ and __repr__."""
-
-    @pytest.mark.parametrize(
-        ("kwargs", "expected"),
-        [
-            (
-                {
-                    "major": (3, 0, 0, 4),
-                    "minor": 388,
-                    "build": 40456,
-                    "revision": "g8178ee0",
-                },
-                "3.0.0.4.388.40456_g8178ee0",
-            ),
-            (
-                {
-                    "major": (3, 0, 0, 4),
-                    "minor": 388,
-                    "build": 8,
-                    "revision": 2,
-                    "rog": True,
-                },
-                "3.0.0.4.388.8_2_rog",
-            ),
-            (
-                {"minor": 388, "build": 8, "revision": "g8178ee0"},
-                "{}.388.8_g8178ee0",
-            ),
-            (
-                {
-                    "major": (3, 0, 0, 4),
-                    "build": 8,
-                    "revision": "g8178ee0",
-                },
-                "3.0.0.4.{}.8_g8178ee0",
-            ),
-            (
-                {
-                    "major": (3, 0, 0, 4),
-                    "minor": 388,
-                    "revision": "g8178ee0",
-                },
-                "3.0.0.4.388.{}_g8178ee0",
-            ),
-            (
-                {"major": (3, 0, 0, 4), "minor": 388, "build": 8},
-                "3.0.0.4.388.8_{}",
-            ),
-            (
-                {},
-                "{}.{}.{}_{}",
-            ),
-            (
-                {
-                    "major": (3, 0, 0, 4),
-                    "minor": 388,
-                    "build": 8,
-                    "revision": 2,
-                },
-                "3.0.0.4.388.8_2",
-            ),
-        ],
-    )
-    def test_str(self, kwargs: dict[str, Any], expected: str) -> None:
-        """Test __str__."""
-
-        assert str(ARFirmware(**kwargs)) == expected
-
-    def test_repr_equals_str(self) -> None:
-        """Test __repr__ delegates to __str__."""
-
-        fw = ARFirmware((3, 0, 0, 4), 388, 8, "g8178ee0")
-        assert repr(fw) == str(fw)
-
-
-class TestARFirmwareHash:
-    """Test ARFirmware.__hash__."""
-
-    def test_equal_objects_same_hash(self) -> None:
-        """Equal objects must produce the same hash."""
-
-        assert hash(_STOCK_BASE) == hash(_STOCK_COPY)
-
-    def test_rog_flag_changes_hash(self) -> None:
-        """Different rog flag must produce a different hash."""
-
-        assert hash(_MERLIN_BASE) != hash(_MERLIN_NO_ROG)
-
-    def test_different_revision_changes_hash(self) -> None:
-        """Different revision must produce a different hash."""
-
-        assert hash(_STOCK_BASE) != hash(_STOCK_ALT_REV)
-
-    def test_hash_stability(self) -> None:
-        """Same object must hash consistently."""
-
-        assert hash(_STOCK_BASE) == hash(_STOCK_BASE)
-
-
-class TestARFirmwareEq:
-    """Test ARFirmware.__eq__."""
-
-    @pytest.mark.parametrize(
-        ("a", "b", "expected"),
-        [
-            (_STOCK_BASE, _STOCK_COPY, True),
-            (_STOCK_BASE, _STOCK_BIG_MAJOR, False),
-            (_STOCK_BASE, _STOCK_BIG_MINOR, False),
-            (_STOCK_BASE, _STOCK_BIG_BUILD, False),
-            (_STOCK_BASE, _STOCK_ALT_REV, False),
-            (_MERLIN_BASE, _MERLIN_NO_ROG, False),
-            (_UNKNOWN_FW, _UNKNOWN_FW, True),
-        ],
-    )
-    def test_eq(
-        self,
-        a: ARFirmware,
-        b: ARFirmware,
+        current: ARFirmware | None,
+        available: ARFirmware | None,
         expected: bool,
     ) -> None:
-        """Test __eq__."""
+        """Only a strictly newer available firmware is a stable update."""
 
-        assert (a == b) == expected
-
-    def test_eq_not_implemented_for_non_firmware(self) -> None:
-        """Test __eq__ returns NotImplemented for non-ARFirmware objects."""
-
-        assert _STOCK_BASE.__eq__("not_a_firmware") is NotImplemented
+        assert _is_stable_update(current, available) == expected
 
 
-class TestARFirmwareLt:
-    """Test ARFirmware.__lt__."""
+class TestFetchNote:
+    """Tests for _fetch_note."""
 
-    @pytest.mark.parametrize(
-        ("a", "b", "expected"),
-        [
-            # Different firmware types → False both ways
-            (_STOCK_BASE, _MERLIN_BASE, False),
-            (_MERLIN_BASE, _STOCK_BASE, False),
-            # Same UNKNOWN type, all equal → False
-            (_UNKNOWN_FW, _UNKNOWN_FW, False),
-            # Different major (compared by [1:])
-            (_STOCK_BASE, _STOCK_BIG_MAJOR, True),
-            (_STOCK_BIG_MAJOR, _STOCK_BASE, False),
-            # Different minor
-            (_STOCK_BIG_MINOR, _STOCK_BASE, False),
-            (_STOCK_BASE, _STOCK_BIG_MINOR, True),
-            # Different build
-            (_STOCK_BASE, _STOCK_BIG_BUILD, True),
-            (_STOCK_BIG_BUILD, _STOCK_BASE, False),
-            # Different revision (int, Merlin)
-            (_MERLIN_BASE, _MERLIN_BIG_REV, True),
-            (_MERLIN_BIG_REV, _MERLIN_BASE, False),
-            # Different revision (str, Stock)
-            (_STOCK_BASE, _STOCK_ALT_REV, True),
-            # Revision None vs non-None (None is less)
-            (_STOCK_NO_REV, _STOCK_BASE, True),
-            (_STOCK_BASE, _STOCK_NO_REV, False),
-            # Equal → False
-            (_STOCK_BASE, _STOCK_COPY, False),
-        ],
+    @pytest.mark.asyncio
+    async def test_first_endpoint(self) -> None:
+        """The first endpoint returning a note wins."""
+
+        callback = AsyncMock(return_value="Release Note\n- Fix A\n")
+        assert await _fetch_note(callback) == "- Fix A"
+        callback.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_fallback_to_second(self) -> None:
+        """An empty first endpoint falls through to the second."""
+
+        callback = AsyncMock(side_effect=["", "Release Note\n- Fix B\n"])
+        assert await _fetch_note(callback) == "- Fix B"
+        assert callback.await_count == 2
+
+    @pytest.mark.asyncio
+    async def test_none_when_all_empty(self) -> None:
+        """No content anywhere yields None."""
+
+        callback = AsyncMock(return_value="")
+        assert await _fetch_note(callback) is None
+        assert callback.await_count == 2
+
+    @pytest.mark.asyncio
+    async def test_none_when_only_headers(self) -> None:
+        """A header-only note is treated as empty."""
+
+        callback = AsyncMock(return_value="Firmware version 1\nRelease Note\n")
+        assert await _fetch_note(callback) is None
+        assert callback.await_count == 2
+
+
+class TestGetState:
+    """Tests for get_state."""
+
+    @pytest.mark.asyncio
+    async def test_stable_update_fetches_note(self) -> None:
+        """A newer available firmware triggers the release-note fetch."""
+
+        callback = AsyncMock(return_value={"webs_state_info": _NEWER})
+        raw_callback = AsyncMock(return_value="Release Note\n- Fix\n")
+        result = await get_state(
+            callback,
+            ARFirmwareSourceUniversal,
+            identity=_identity(_OLDER),
+            raw_callback=raw_callback,
+        )
+        assert result == {
+            "update": {"webs_state_info": _NEWER},
+            "note": "- Fix",
+        }
+        raw_callback.assert_awaited()
+
+    @pytest.mark.asyncio
+    async def test_no_stable_update_skips_note(self) -> None:
+        """An older available firmware skips the note fetch."""
+
+        callback = AsyncMock(return_value={"webs_state_info": _OLDER})
+        raw_callback = AsyncMock()
+        result = await get_state(
+            callback,
+            ARFirmwareSourceUniversal,
+            identity=_identity(_NEWER),
+            raw_callback=raw_callback,
+        )
+        assert result["note"] is None
+        raw_callback.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_no_raw_callback(self) -> None:
+        """Without a raw callback the note is never fetched."""
+
+        callback = AsyncMock(return_value={"webs_state_info": _NEWER})
+        result = await get_state(
+            callback,
+            ARFirmwareSourceUniversal,
+            identity=_identity(_OLDER),
+        )
+        assert result["note"] is None
+
+    @pytest.mark.asyncio
+    async def test_non_dict_update(self) -> None:
+        """A non-dict response degrades to an empty update."""
+
+        callback = AsyncMock(return_value=None)
+        result = await get_state(
+            callback,
+            ARFirmwareSourceUniversal,
+            identity=_identity(),
+            raw_callback=AsyncMock(),
+        )
+        assert result == {"update": {}, "note": None}
+
+
+class TestTranslateState:
+    """Tests for translate_state."""
+
+    def test_non_dict(self) -> None:
+        """A non-dict payload yields a default state."""
+
+        assert translate_state(None, identity=_identity()) == ARFirmwareState()
+
+    def test_full(self) -> None:
+        """A full payload maps every sub-structure."""
+
+        data = {"update": _FULL_UPDATE, "note": "- Fix"}
+        state = translate_state(data, identity=_identity(_OLDER))
+
+        assert state.current is not None
+        assert state.web.fetch is ARFirmwareWebFetch.INACTIVE
+        assert state.web.upgrade is ARFirmwareWebUpgrade.UNKNOWN
+        assert state.web.error is ARFirmwareWebError.NONE
+        assert state.web.notify is ARFirmwareWebNotify.AVAILABLE
+        assert state.web.level == 0
+        assert state.web.available is not None
+        assert state.web.required is None
+        assert state.web.state is True
+        assert state.web.state_beta is False
+        assert state.web.release_note == "- Fix"
+
+        assert state.signature.version == "2.380"
+        assert state.signature.update == 0
+        assert state.signature.upgrade == 1
+        assert state.signature.error == 0
+        assert state.signature.flag == 1
+
+        assert state.sync.check is None
+        assert state.sync.upgrade is None
+
+    def test_available_gated_out_when_not_newer(self) -> None:
+        """An older available firmware is dropped and state is False."""
+
+        data = {"update": {"webs_state_info": _OLDER}}
+        state = translate_state(data, identity=_identity(_NEWER))
+        assert state.web.available is None
+        assert state.web.state is False
+
+    def test_beta_presence(self) -> None:
+        """A reported beta is available by presence."""
+
+        data = {"update": {"webs_state_info_beta": "3004_388_5_0"}}
+        state = translate_state(data, identity=_identity())
+        assert state.web.available_beta is not None
+        assert state.web.state_beta is True
+
+    def test_empty_update(self) -> None:
+        """A missing update section yields all-unknown defaults."""
+
+        state = translate_state({}, identity=_identity())
+        assert state.web.fetch is ARFirmwareWebFetch.UNKNOWN
+        assert state.web.available is None
+        assert state.signature.version is None
+
+
+def test_module_registers_source() -> None:
+    """The firmware source resolves to the module callables."""
+
+    assert (
+        ARCallReg.get_callable(ARFirmwareSourceUniversal, AR_CALL_GET_STATE)
+        is get_state
     )
-    def test_lt(
-        self,
-        a: ARFirmware,
-        b: ARFirmware,
-        expected: bool,
-    ) -> None:
-        """Test __lt__."""
-
-        assert (a < b) == expected
-
-    def test_lt_not_implemented_for_non_firmware(self) -> None:
-        """Test __lt__ returns NotImplemented for non-ARFirmware objects."""
-
-        assert _STOCK_BASE.__lt__("not_a_firmware") is NotImplemented
-
-
-class TestARFirmwareGt:
-    """Test ARFirmware.__gt__."""
-
-    @pytest.mark.parametrize(
-        ("a", "b", "expected"),
-        [
-            (_STOCK_BIG_MAJOR, _STOCK_BASE, True),
-            (_STOCK_BASE, _STOCK_BIG_MAJOR, False),
-            (_STOCK_BASE, _STOCK_COPY, False),
-            (_STOCK_BASE, _MERLIN_BASE, False),
-        ],
+    assert (
+        ARCallReg.get_callable(
+            ARFirmwareSourceUniversal, AR_CALL_TRANSLATE_STATE
+        )
+        is translate_state
     )
-    def test_gt(
-        self,
-        a: ARFirmware,
-        b: ARFirmware,
-        expected: bool,
-    ) -> None:
-        """Test __gt__."""
-
-        assert (a > b) == expected
-
-    def test_gt_not_implemented_for_non_firmware(self) -> None:
-        """Test __gt__ returns NotImplemented for non-ARFirmware objects."""
-
-        assert _STOCK_BASE.__gt__("not_a_firmware") is NotImplemented
+    assert (
+        ARCallReg.get_callable_flag(
+            ARFirmwareSourceUniversal, AR_CALL_GET_STATE
+        )
+        is False
+    )

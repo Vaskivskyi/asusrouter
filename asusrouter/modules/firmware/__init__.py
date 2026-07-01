@@ -2,28 +2,52 @@
 
 from __future__ import annotations
 
-from typing import Any
+from dataclasses import dataclass, field
+from enum import IntEnum
+from typing import TYPE_CHECKING, Any
 
-from asusrouter.modules.firmware.flag import AR_FW_MERLIN_LIKE, ARFirmwareType
+from asusrouter.const import (
+    AR_CALL_GET_STATE,
+    AR_CALL_TRANSLATE_STATE,
+    UNKNOWN_MEMBER,
+)
+from asusrouter.modules.endpoint_v2 import AREndpoint
 from asusrouter.modules.firmware.legacy import (
     WebsError,
     WebsFlag,
     WebsUpdate,
     WebsUpgrade,
 )
-from asusrouter.modules.firmware.translate import (
-    translate_build,
-    translate_major,
-    translate_string,
-    translate_type,
+from asusrouter.modules.firmware.note import read_firmware_note
+from asusrouter.modules.firmware.types import AR_FW_MERLIN_LIKE, ARFirmwareType
+from asusrouter.modules.firmware.version import AR_FW_388, ARFirmware
+from asusrouter.modules.source import ARDataSource
+from asusrouter.registry import (
+    ARCallableEntry,
+    ARCallableRegistry as ARCallReg,
 )
-from asusrouter.tools.converters_v2.raw import raw_to_int
+from asusrouter.tools.converters_v2.raw import raw_to_int, raw_to_str
+from asusrouter.tools.enum import FromIntMixin
+from asusrouter.tools.types import ARCallbackType
+
+if TYPE_CHECKING:
+    from asusrouter.modules.device.identity import ARDeviceIdentity
 
 __all__ = [
     "AR_FW_388",
     "AR_FW_MERLIN_LIKE",
     "ARFirmware",
+    "ARFirmwareSignature",
+    "ARFirmwareSource",
+    "ARFirmwareSourceUniversal",
+    "ARFirmwareState",
+    "ARFirmwareSync",
     "ARFirmwareType",
+    "ARFirmwareWeb",
+    "ARFirmwareWebError",
+    "ARFirmwareWebFetch",
+    "ARFirmwareWebNotify",
+    "ARFirmwareWebUpgrade",
     "WebsError",
     "WebsFlag",
     "WebsUpdate",
@@ -31,174 +55,235 @@ __all__ = [
 ]
 
 
-def _compare_revision(a: int | str | None, b: int | str | None) -> bool:
-    """Return True if revision a is less than b."""
+class ARFirmwareWebError(FromIntMixin, IntEnum):
+    """Firmware update error (`webs_state_error`)."""
 
-    if a is None:
-        return True
-    if b is None:
-        return False
-    if isinstance(a, int) and isinstance(b, int):
-        return a < b
-    return str(a) < str(b)
+    UNKNOWN = UNKNOWN_MEMBER
+
+    NONE = 0
+    DOWNLOAD_ERROR = 1
+    SPACE_ERROR = 2
+    FW_ERROR = 3
 
 
-class ARFirmware:
-    """Firmware class.
+class ARFirmwareWebFetch(FromIntMixin, IntEnum):
+    """Firmware update-info fetch state (`webs_state_update`)."""
 
-    This class represents the firmware information of the device.
-    """
+    UNKNOWN = UNKNOWN_MEMBER
 
-    def __init__(
-        self,
-        major: tuple[int, int, int, int] | None = None,
-        minor: int | None = None,
-        build: int | None = None,
-        revision: int | str | None = None,
-        rog: bool = False,
-    ) -> None:
-        """Initialize the firmware."""
+    ACTIVE = 0
+    INACTIVE = 1
 
-        self._major: tuple[int, int, int, int] | None = major
-        self._minor: int | None = minor
-        self._build: int | None = build
-        self._revision: int | str | None = revision
-        self._rog: bool = rog
-        self._firmware_type: ARFirmwareType = translate_type(
-            major, minor, build, revision, rog
-        )
 
-    @property
-    def build(self) -> int | None:
-        """Get the build number."""
+class ARFirmwareWebNotify(FromIntMixin, IntEnum):
+    """Router firmware update signal (`webs_state_flag`)."""
 
-        return self._build
+    UNKNOWN = UNKNOWN_MEMBER
 
-    @property
-    def firmware_type(self) -> ARFirmwareType:
-        """Get the firmware type."""
+    DONT = 0  # No update / don't upgrade
+    AVAILABLE = 1  # New firmware available
+    FORCE = 2  # Force upgrade
 
-        return self._firmware_type
 
-    @property
-    def major(self) -> tuple[int, int, int, int] | None:
-        """Get the major version as an int tuple."""
+class ARFirmwareWebUpgrade(FromIntMixin, IntEnum):
+    """Firmware upgrade (install) state (`webs_state_upgrade`)."""
 
-        return self._major
+    UNKNOWN = UNKNOWN_MEMBER
 
-    @property
-    def minor(self) -> int | None:
-        """Get the minor version."""
+    INACTIVE = -1
+    DOWNLOADING = 0
+    FINISHED = 1
+    ACTIVE = 2
 
-        return self._minor
 
-    @property
-    def revision(self) -> int | str | None:
-        """Get the revision."""
+@dataclass
+class ARFirmwareSignature:
+    """DPI (bwdpi) signature update state (`sig_*`)."""
 
-        return self._revision
+    version: str | None = None
+    update: int | None = None
+    upgrade: int | None = None
+    error: int | None = None
+    flag: int | None = None
 
-    @property
-    def rog(self) -> bool:
-        """Get the ROG flag."""
 
-        return self._rog
+@dataclass
+class ARFirmwareSync:
+    """AiMesh config-sync firmware state (`cfg_*`)."""
 
-    @classmethod
-    def from_nvram(
-        cls,
-        fw_major: Any,
-        fw_minor: Any,
-        fw_build: Any,
-    ) -> ARFirmware:
-        """Build from nvram values (FW_MAJOR, FW_MINOR, FW_BUILD)."""
+    check: int | None = None
+    upgrade: int | None = None
 
-        major = translate_major(fw_major)
-        minor = raw_to_int(fw_minor)
-        build, revision, rog = translate_build(
-            str(fw_build) if fw_build is not None else None
-        )
-        return cls(
-            major=major, minor=minor, build=build, revision=revision, rog=rog
-        )
 
-    @classmethod
-    def from_string(cls, fw_string: str | None) -> ARFirmware:
-        """Build from a full firmware version string."""
+@dataclass
+class ARFirmwareWeb:
+    """Firmware web-update state (`webs_state_*`)."""
 
-        major, minor, build, revision, rog = translate_string(fw_string)
-        return cls(
-            major=major, minor=minor, build=build, revision=revision, rog=rog
-        )
+    fetch: ARFirmwareWebFetch = ARFirmwareWebFetch.UNKNOWN
+    upgrade: ARFirmwareWebUpgrade = ARFirmwareWebUpgrade.UNKNOWN
+    error: ARFirmwareWebError = ARFirmwareWebError.UNKNOWN
+    notify: ARFirmwareWebNotify = ARFirmwareWebNotify.UNKNOWN
+    level: int | None = None
+    available: ARFirmware | None = None
+    available_beta: ARFirmware | None = None
+    required: ARFirmware | None = None
+    state: bool = False
+    state_beta: bool = False
+    release_note: str | None = None
 
-    def __str__(self) -> str:
-        """Return firmware as version string."""
 
-        major_str = (
-            ".".join(str(x) for x in self._major) if self._major else "{}"
-        )
-        minor_str = str(self._minor) if self._minor is not None else "{}"
-        build_str = str(self._build) if self._build is not None else "{}"
-        revision_str = (
-            str(self._revision) if self._revision is not None else "{}"
-        )
-        rog_str = "_rog" if self._rog else ""
-        return f"{major_str}.{minor_str}.{build_str}_{revision_str}{rog_str}"
+@dataclass
+class ARFirmwareState:
+    """The firmware state of the router."""
 
-    def __repr__(self) -> str:
-        """Return firmware as version string."""
+    current: ARFirmware | None = None
+    web: ARFirmwareWeb = field(default_factory=ARFirmwareWeb)
+    signature: ARFirmwareSignature = field(default_factory=ARFirmwareSignature)
+    sync: ARFirmwareSync = field(default_factory=ARFirmwareSync)
 
-        return self.__str__()
 
-    def __hash__(self) -> int:
-        """Return hash of the firmware."""
-
-        return hash(
-            (self._major, self._minor, self._build, self._revision, self._rog)
-        )
+class ARFirmwareSource(ARDataSource):
+    """Firmware data source for the connected router."""
 
     def __eq__(self, other: object) -> bool:
-        """Check equality."""
+        """All firmware sources are equal (router-global)."""
 
-        if not isinstance(other, ARFirmware):
+        if not isinstance(other, ARFirmwareSource):
             return NotImplemented
-        return (
-            self._major == other._major
-            and self._minor == other._minor
-            and self._build == other._build
-            and self._revision == other._revision
-            and self._rog == other._rog
-        )
+        return True
 
-    def __lt__(self, other: object) -> bool:
-        """Compare firmware versions.
+    def __hash__(self) -> int:
+        """Hash by type."""
 
-        Comparison is only valid within the same firmware type.
-        Major is compared by platform identity (skip first segment —
-        the beta/normal prefix '3' or '9').
-        """
+        return hash(type(self))
 
-        if not isinstance(other, ARFirmware):
-            return NotImplemented
-        if self._firmware_type != other._firmware_type:
-            return False
-        if self._major != other._major:
-            return (self._major or ())[1:] < (other._major or ())[1:]
-        if (self._minor, self._build) != (other._minor, other._build):
-            return (self._minor or 0, self._build or 0) < (
-                other._minor or 0,
-                other._build or 0,
-            )
-        if self._revision != other._revision:
-            return _compare_revision(self._revision, other._revision)
+    def __repr__(self) -> str:
+        """Representation of the firmware source."""
+
+        return "<ARFirmwareSource>"
+
+
+# Universal instance - preferred
+ARFirmwareSourceUniversal: ARFirmwareSource = ARFirmwareSource()
+
+
+# Release-note endpoints, tried in order until one returns a note
+_NOTE_ENDPOINTS: tuple[AREndpoint, ...] = (
+    AREndpoint.FETCH_FIRMWARE_UPDATE_NOTE,
+    AREndpoint.FETCH_FIRMWARE_UPDATE_NOTE_AIMESH,
+)
+
+
+def _available(raw: Any) -> ARFirmware | None:
+    """Parse an available-firmware string, or None when unparsable."""
+
+    firmware = ARFirmware.from_string(raw)
+    return firmware if firmware.major is not None else None
+
+
+def _is_stable_update(
+    current: ARFirmware | None, available: ARFirmware | None
+) -> bool:
+    """Check whether a newer stable firmware is available."""
+
+    if available is None:
         return False
-
-    def __gt__(self, other: object) -> bool:
-        """Compare firmware versions."""
-
-        if not isinstance(other, ARFirmware):
-            return NotImplemented
-        return other.__lt__(self)
+    if current is not None and current.major is not None:
+        return current < available
+    return True
 
 
-AR_FW_388: ARFirmware = ARFirmware(major=(3, 0, 0, 4), minor=388, build=0)
+async def _fetch_note(raw_callback: ARCallbackType) -> str | None:
+    """Fetch the release note from the first endpoint that returns one."""
+
+    for endpoint in _NOTE_ENDPOINTS:
+        content = raw_to_str(await raw_callback(endpoint))
+        if not content:
+            continue
+        note = read_firmware_note(content)
+        if note:
+            return note
+    return None
+
+
+async def get_state(
+    callback: ARCallbackType,
+    source: ARFirmwareSource,
+    *,
+    identity: ARDeviceIdentity,
+    **kwargs: Any,
+) -> dict[str, Any]:
+    """Fetch the firmware state and release note when available."""
+
+    update = await callback(endpoint=AREndpoint.FETCH_FIRMWARE_UPDATE)
+    if not isinstance(update, dict):
+        update = {}
+
+    note: str | None = None
+    raw_callback = kwargs.get("raw_callback")
+    current = identity.firmware
+    available = _available(update.get("webs_state_info"))
+    if raw_callback is not None and _is_stable_update(current, available):
+        note = await _fetch_note(raw_callback)
+
+    return {"update": update, "note": note}
+
+
+def translate_state(
+    data: Any,
+    *,
+    identity: ARDeviceIdentity,
+    **kwargs: Any,
+) -> ARFirmwareState:
+    """Translate the fetched firmware state into an `ARFirmwareState`."""
+
+    if not isinstance(data, dict):
+        return ARFirmwareState()
+
+    update: dict[str, Any] = data.get("update") or {}
+    current = identity.firmware
+
+    available = _available(update.get("webs_state_info"))
+    available_beta = _available(update.get("webs_state_info_beta"))
+    state = _is_stable_update(current, available)
+
+    web = ARFirmwareWeb(
+        fetch=ARFirmwareWebFetch.from_value(update.get("webs_state_update")),
+        upgrade=ARFirmwareWebUpgrade.from_value(
+            update.get("webs_state_upgrade")
+        ),
+        error=ARFirmwareWebError.from_value(update.get("webs_state_error")),
+        notify=ARFirmwareWebNotify.from_value(update.get("webs_state_flag")),
+        level=raw_to_int(update.get("webs_state_level")),
+        available=available if state else None,
+        available_beta=available_beta,
+        required=_available(update.get("webs_state_REQinfo")),
+        state=state,
+        state_beta=available_beta is not None,
+        release_note=data.get("note"),
+    )
+
+    signature = ARFirmwareSignature(
+        version=raw_to_str(update.get("sig_ver")),
+        update=raw_to_int(update.get("sig_state_update")),
+        upgrade=raw_to_int(update.get("sig_state_upgrade")),
+        error=raw_to_int(update.get("sig_state_error")),
+        flag=raw_to_int(update.get("sig_state_flag")),
+    )
+
+    sync = ARFirmwareSync(
+        check=raw_to_int(update.get("cfg_check")),
+        upgrade=raw_to_int(update.get("cfg_upgrade")),
+    )
+
+    return ARFirmwareState(
+        current=current, web=web, signature=signature, sync=sync
+    )
+
+
+calls: dict[str, ARCallableEntry] = {
+    AR_CALL_GET_STATE: get_state,
+    AR_CALL_TRANSLATE_STATE: translate_state,
+}
+
+ARCallReg.register(ARFirmwareSource, **calls)
