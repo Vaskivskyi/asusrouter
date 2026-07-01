@@ -12,12 +12,6 @@ from asusrouter.const import (
     UNKNOWN_MEMBER,
 )
 from asusrouter.modules.endpoint_v2 import AREndpoint
-from asusrouter.modules.firmware.legacy import (
-    WebsError,
-    WebsFlag,
-    WebsUpdate,
-    WebsUpgrade,
-)
 from asusrouter.modules.firmware.note import read_firmware_note
 from asusrouter.modules.firmware.types import AR_FW_MERLIN_LIKE, ARFirmwareType
 from asusrouter.modules.firmware.version import AR_FW_388, ARFirmware
@@ -48,10 +42,6 @@ __all__ = [
     "ARFirmwareWebFetch",
     "ARFirmwareWebNotify",
     "ARFirmwareWebUpgrade",
-    "WebsError",
-    "WebsFlag",
-    "WebsUpdate",
-    "WebsUpgrade",
 ]
 
 

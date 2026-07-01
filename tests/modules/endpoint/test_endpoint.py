@@ -35,7 +35,7 @@ def test_get_module() -> None:
         result = _get_module(AREndpoint.FETCH_FIRMWARE_UPDATE)
         assert result is None
         mock_import.assert_called_once_with(
-            "asusrouter.modules.endpoint.firmware"
+            "asusrouter.modules.endpoint.fetch_firmware_update"
         )
 
 

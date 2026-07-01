@@ -17,8 +17,6 @@ class AsusData(StrEnum):
     AURA = "aura"
     DDNS = "ddns"
     DSL = "dsl"
-    FIRMWARE = "firmware"
-    FIRMWARE_NOTE = "firmware_note"
     GWLAN = "gwlan"
     LED = "led"
     OPENVPN = "openvpn"
