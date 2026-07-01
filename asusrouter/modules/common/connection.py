@@ -14,10 +14,16 @@ class ARConnectionMethod(FromStrMixin, StrEnum):
     UNKNOWN = UNKNOWN_MEMBER_STR
 
     DHCP = "dhcp"
+    DSLITE = "dslite"
     L2TP = "l2tp"
+    LW4O6 = "lw4o6"
+    MAP_E = "map-e"
+    OCNVC = "ocnvc"
     PPPOE = "pppoe"
     PPTP = "pptp"
     STATIC = "static"
+    V6OPT = "v6opt"
+    V6PLUS = "v6plus"
 
 
 class ARConnectionStatus(FromIntMixin, IntEnum):
