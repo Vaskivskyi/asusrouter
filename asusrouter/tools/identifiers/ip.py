@@ -154,3 +154,18 @@ class IpAddress:
         """Return the hash of the IP address."""
 
         return hash(self._addr)
+
+
+def read_ip_list(value: Any) -> list[IpAddress]:
+    """Read a whitespace-separated string into a list of IP addresses.
+
+    Returns every address that parses; an empty list when none do.
+    """
+
+    if not isinstance(value, str):
+        return []
+    return [
+        ip
+        for part in value.split()
+        if (ip := IpAddress.from_value_safe(part)) is not None
+    ]
