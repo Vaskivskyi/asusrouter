@@ -393,6 +393,7 @@ class AsusRouter:
         data_states = self._data_states
         callback = self.async_read
         get_callable = ARCallReg.get_callable
+        get_callable_flag = ARCallReg.get_callable_flag
         for item in collection:
             if item in data_states:
                 continue
@@ -404,7 +405,13 @@ class AsusRouter:
             )
             state.callback = callback
             state.state_caller = get_callable(item, name=AR_CALL_GET_STATE)
+            state.state_caller_multi = get_callable_flag(
+                item, name=AR_CALL_GET_STATE
+            )
             state.translate_caller = get_callable(
+                item, name=AR_CALL_TRANSLATE_STATE
+            )
+            state.translate_caller_multi = get_callable_flag(
                 item, name=AR_CALL_TRANSLATE_STATE
             )
             data_states[item] = state
@@ -487,7 +494,6 @@ class AsusRouter:
             translators[state.translate_caller].append(state)
 
         commit = self._commit_data_state
-        get_callable_flag = ARCallReg.get_callable_flag
         for translator, grouped_states in translators.items():
             if translator is None:
                 for state in grouped_states:
@@ -496,7 +502,7 @@ class AsusRouter:
                         commit(state, data[source])
                 continue
 
-            if get_callable_flag(translator):
+            if grouped_states[0].translate_caller_multi:
                 self._translate_multidata_batch(
                     translator, grouped_states, data, identity
                 )
@@ -505,6 +511,84 @@ class AsusRouter:
             self._translate_multidata_single(
                 translator, grouped_states, data, identity
             )
+
+    async def _async_refresh_multi(
+        self,
+        caller: ARCallableType,
+        states: list[ARDataState],
+        identity: ARDeviceIdentity,
+        **kwargs: Any,
+    ) -> None:
+        """Fetch and translate a multicaller group in one batched request."""
+
+        sources = [state.source for state in states]
+        data = await caller(
+            self.async_read,
+            sources,
+            identity=identity,
+            **kwargs,
+        )
+        self._translate_multidata(states, data, identity)
+
+    async def _async_refresh_single(
+        self,
+        caller: ARCallableType,
+        state: ARDataState,
+        identity: ARDeviceIdentity,
+        **kwargs: Any,
+    ) -> None:
+        """Fetch, translate and commit a single state."""
+
+        raw = await caller(
+            self.async_read,
+            state.source,
+            identity=identity,
+            **kwargs,
+        )
+        translate = state.translate_caller
+        self._commit_data_state(
+            state,
+            translate(raw, identity=identity) if translate else raw,
+        )
+
+    async def _async_refresh_states(
+        self,
+        refresh: list[ARDataState],
+        **kwargs: Any,
+    ) -> None:
+        """Fetch all the given states, fanning out caller groups."""
+
+        matrix = _get_call_matrix(refresh)
+        identity = self.description
+        kwargs["connection_config"] = self.connection_config
+
+        # Fan out all caller groups concurrently; real concurrency is
+        # bounded by the connection's request semaphore, device-safe
+        tasks = []
+        for caller, caller_states in matrix.items():
+            if caller_states[0].state_caller_multi:
+                tasks.append(
+                    self._async_refresh_multi(
+                        caller, caller_states, identity, **kwargs
+                    )
+                )
+            else:
+                tasks.extend(
+                    self._async_refresh_single(
+                        caller, state, identity, **kwargs
+                    )
+                    for state in caller_states
+                )
+
+        try:
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+        finally:
+            # Always wake waiters, even on errors, to avoid deadlocks
+            for state in refresh:
+                state.end_refresh()
+        for result in results:
+            if isinstance(result, BaseException):
+                raise result
 
     async def _async_refresh_data_state(
         self,
@@ -516,58 +600,30 @@ class AsusRouter:
 
         data_states = self._data_states
         threshold = self._cache_threshold_v2
-        states = [
-            s
-            for item in collection
-            if (s := data_states.get(item)) is not None
-            and (force or not s.is_fresh(threshold))
-        ]
-        if not states:
-            return
 
-        matrix = _get_call_matrix(states)
-        read = self.async_read
-        get_callable_flag = ARCallReg.get_callable_flag
-        commit = self._commit_data_state
-        identity = self.description
-        connection_config = self.connection_config
+        # Split into states to refresh here and states already being
+        # refreshed by a concurrent caller (awaited instead of refetched)
+        refresh: list[ARDataState] = []
+        pending: list[ARDataState] = []
+        for item in collection:
+            state = data_states.get(item)
+            if state is None:
+                continue
+            if state.refreshing:
+                pending.append(state)
+            elif force or not state.is_fresh(threshold):
+                state.begin_refresh()
+                refresh.append(state)
 
-        for caller, caller_states in matrix.items():
-            if get_callable_flag(caller):
-                sources = [state.source for state in caller_states]
-                data = await caller(
-                    read,
-                    sources,
-                    force=force,
-                    identity=identity,
-                    connection_config=connection_config,
-                    **kwargs,
-                )
-                self._translate_multidata(caller_states, data, identity)
-            else:
-                # Fan out concurrently; real concurrency is bounded by the
-                # connection's request semaphore, so this stays device-safe
-                raws = await asyncio.gather(
-                    *(
-                        caller(
-                            read,
-                            state.source,
-                            force=force,
-                            identity=identity,
-                            connection_config=connection_config,
-                            **kwargs,
-                        )
-                        for state in caller_states
-                    )
-                )
-                for state, raw in zip(caller_states, raws):
-                    translate = state.translate_caller
-                    commit(
-                        state,
-                        translate(raw, identity=identity)
-                        if translate
-                        else raw,
-                    )
+        if refresh:
+            await self._async_refresh_states(refresh, force=force, **kwargs)
+
+        # Wait for refreshes started by concurrent callers (after our own
+        # fetches, so two interdependent callers cannot deadlock)
+        if pending:
+            await asyncio.gather(
+                *(state.async_wait_refresh() for state in pending)
+            )
 
     async def _async_get_data_state(
         self,

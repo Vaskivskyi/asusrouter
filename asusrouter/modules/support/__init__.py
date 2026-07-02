@@ -7,7 +7,6 @@ from __future__ import annotations
 
 from typing import Any
 
-from asusrouter.const import AR_CALL_GET_STATE, AR_CALL_TRANSLATE_STATE
 from asusrouter.modules.endpoint_v2 import AREndpoint
 from asusrouter.modules.endpoint_v2.hooks import ARHook, hook_request
 from asusrouter.modules.source import ARDataSource
@@ -58,10 +57,7 @@ from asusrouter.modules.support.wifi import (
     translate_wifi_multiband,
     translate_wifi_units,
 )
-from asusrouter.registry import (
-    ARCallableEntry,
-    ARCallableRegistry as ARCallReg,
-)
+from asusrouter.registry import ARCallableRegistry as ARCallReg
 from asusrouter.tools.types import ARCallableType, ARCallbackType
 
 
@@ -125,7 +121,7 @@ async def get_state(
 def translate_state(
     data: dict[str, Any],
     **kwargs: Any,
-) -> dict[str, Any]:
+) -> dict[ARSupportType, Any]:
     """Translate the support data to a simple format."""
 
     return {
@@ -134,9 +130,6 @@ def translate_state(
     }
 
 
-calls: dict[str, ARCallableEntry] = {
-    AR_CALL_GET_STATE: get_state,
-    AR_CALL_TRANSLATE_STATE: translate_state,
-}
-
-ARCallReg.register(ARSupportSource, **calls)
+ARCallReg.register_module(
+    ARSupportSource, get_state=get_state, translate_state=translate_state
+)

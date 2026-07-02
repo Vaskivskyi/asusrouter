@@ -9,19 +9,12 @@ from __future__ import annotations
 from enum import IntEnum
 from typing import Any
 
-from asusrouter.const import (
-    AR_CALL_GET_STATE,
-    AR_CALL_TRANSLATE_STATE,
-    UNKNOWN_MEMBER,
-)
+from asusrouter.const import UNKNOWN_MEMBER
 from asusrouter.modules.device.identity import ARDeviceIdentity
 from asusrouter.modules.nvram import ARNvramType
 from asusrouter.modules.source import ARDataSource, ARDataType
 from asusrouter.modules.support import ARSupportSourceUniversal
-from asusrouter.registry import (
-    ARCallableEntry,
-    ARCallableRegistry as ARCallReg,
-)
+from asusrouter.registry import ARCallableRegistry as ARCallReg
 from asusrouter.tools.enum import FromIntMixin
 from asusrouter.tools.types import ARCallbackType
 
@@ -79,12 +72,9 @@ def translate_state(
     return ARDeviceIdentity.build(data)
 
 
-calls: dict[str, ARCallableEntry] = {
-    AR_CALL_GET_STATE: get_state,
-    AR_CALL_TRANSLATE_STATE: translate_state,
-}
-
-ARCallReg.register(ARDeviceSource, **calls)
+ARCallReg.register_module(
+    ARDeviceSource, get_state=get_state, translate_state=translate_state
+)
 
 
 # TODO: Redo this legacy class

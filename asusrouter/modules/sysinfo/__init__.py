@@ -9,19 +9,12 @@ from typing import TYPE_CHECKING, Any, TypeVar
 if TYPE_CHECKING:
     from asusrouter.modules.device.identity import ARDeviceIdentity
 
-from asusrouter.const import (
-    AR_CALL_GET_STATE,
-    AR_CALL_TRANSLATE_STATE,
-    UNKNOWN_MEMBER_STR,
-)
+from asusrouter.const import UNKNOWN_MEMBER_STR
 from asusrouter.modules.common.metrics import ARMetricType
 from asusrouter.modules.endpoint_v2 import AREndpoint
 from asusrouter.modules.source import ARDataSource
-from asusrouter.modules.wifi import ARWiFiBand
-from asusrouter.registry import (
-    ARCallableEntry,
-    ARCallableRegistry as ARCallReg,
-)
+from asusrouter.modules.wifi import AR_WIFI_UNIT_FALLBACK, ARWiFiBand
+from asusrouter.registry import ARCallableRegistry as ARCallReg
 from asusrouter.tools.converters_v2.raw import raw_to_float, raw_to_int
 from asusrouter.tools.enum import FromStrMixin
 from asusrouter.tools.types import ARCallbackType
@@ -34,14 +27,6 @@ _V = TypeVar("_V")
 _megabytes_to_bytes = DataUnitConverter.converter_factory(
     UnitOfData.MEGABYTE, UnitOfData.BYTE
 )
-
-# Fallback `wlc` index -> band; live map comes from `identity.wifi`
-_WLAN_INDEX_TO_BAND_FALLBACK: dict[int, ARWiFiBand] = {
-    0: ARWiFiBand.BAND_2G1,
-    1: ARWiFiBand.BAND_5G1,
-    2: ARWiFiBand.BAND_5G2,
-    3: ARWiFiBand.BAND_6G1,
-}
 
 # Load average windows in minutes, in `cpu_stats_arr` order
 _LOAD_AVERAGE_WINDOWS: tuple[int, ...] = (1, 5, 15)
@@ -150,8 +135,8 @@ def _wlan_index_to_band(
     """Resolve `wlc` index -> band, preferring `identity.wifi`."""
 
     if identity is not None and identity.wifi:
-        return {unit_id: band for band, unit_id in identity.wifi.items()}
-    return _WLAN_INDEX_TO_BAND_FALLBACK
+        return identity.wifi_by_unit
+    return AR_WIFI_UNIT_FALLBACK
 
 
 def _translate_wlan(
@@ -232,23 +217,6 @@ def _translate_load_average(data: dict[str, Any]) -> dict[int, float]:
 class ARSysInfoSource(ARDataSource):
     """SysInfo data source for the connected router (Merlin firmware)."""
 
-    def __eq__(self, other: object) -> bool:
-        """All sysinfo sources are equal (router-global)."""
-
-        if not isinstance(other, ARSysInfoSource):
-            return NotImplemented
-        return True
-
-    def __hash__(self) -> int:
-        """Hash by type."""
-
-        return hash(type(self))
-
-    def __repr__(self) -> str:
-        """Representation of the sysinfo source."""
-
-        return "<ARSysInfoSource>"
-
 
 # Universal instance - preferred
 ARSysInfoSourceUniversal: ARSysInfoSource = ARSysInfoSource()
@@ -298,8 +266,6 @@ def translate_state(
     return result
 
 
-calls: dict[str, ARCallableEntry] = {
-    AR_CALL_GET_STATE: get_state,
-    AR_CALL_TRANSLATE_STATE: translate_state,
-}
-ARCallReg.register(ARSysInfoSource, **calls)
+ARCallReg.register_module(
+    ARSysInfoSource, get_state=get_state, translate_state=translate_state
+)

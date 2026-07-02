@@ -3,19 +3,16 @@
 from __future__ import annotations
 
 import importlib
-from typing import Any
 from unittest.mock import AsyncMock, Mock
 
 import pytest
 
-from asusrouter.const import AR_CALL_GET_STATE, AR_CALL_TRANSLATE_STATE
 from asusrouter.modules import clients
 from asusrouter.modules.clients import (
     ARClient,
     ARClientConnection,
     ARClientsSource,
     get_state,
-    translate_state,
 )
 from asusrouter.modules.device.identity import ARDeviceIdentity
 from asusrouter.modules.endpoint_v2 import AREndpoint
@@ -124,38 +121,18 @@ class TestGetState:
         assert MacAddress(_C1) in result
 
 
-class TestTranslateState:
-    """Tests for translate_state."""
-
-    def test_passthrough(self) -> None:
-        """A dict passes through unchanged."""
-
-        data = {MacAddress(_C1): ARClient(mac=MacAddress(_C1))}
-        assert translate_state(data) == data
-
-    @pytest.mark.parametrize(
-        "data", [None, "x", 5], ids=["none", "str", "int"]
-    )
-    def test_non_dict(self, data: Any) -> None:
-        """A non-dict input yields an empty result."""
-
-        assert translate_state(data) == {}
-
-
 def test_registers_callable(monkeypatch: pytest.MonkeyPatch) -> None:
     """Importing the module registers the clients source."""
 
     mock_register = Mock()
     monkeypatch.setattr(
-        "asusrouter.registry.ARCallableRegistry.register", mock_register
+        "asusrouter.registry.ARCallableRegistry.register_module",
+        mock_register,
     )
 
     importlib.reload(clients)
 
     mock_register.assert_called_once_with(
         clients.ARClientsSource,
-        **{
-            AR_CALL_GET_STATE: clients.get_state,
-            AR_CALL_TRANSLATE_STATE: clients.translate_state,
-        },
+        get_state=clients.get_state,
     )

@@ -6,11 +6,7 @@ from enum import StrEnum
 from typing import Any
 
 from asusrouter.config import ARConfig, ARConfigKey as ARConfKey
-from asusrouter.const import (
-    AR_CALL_GET_STATE,
-    AR_CALL_TRANSLATE_STATE,
-    UNKNOWN_MEMBER_STR,
-)
+from asusrouter.const import UNKNOWN_MEMBER_STR
 from asusrouter.modules.device.identity import ARDeviceIdentity
 from asusrouter.modules.endpoint_v2 import AREndpoint
 from asusrouter.modules.source import ARDataSource
@@ -18,11 +14,8 @@ from asusrouter.modules.temperature.scale import (
     scale_temperature,
     warn_temperature_scaled,
 )
-from asusrouter.modules.wifi import ARWiFiBand
-from asusrouter.registry import (
-    ARCallableEntry,
-    ARCallableRegistry as ARCallReg,
-)
+from asusrouter.modules.wifi import AR_WIFI_UNIT_FALLBACK, ARWiFiBand
+from asusrouter.registry import ARCallableRegistry as ARCallReg
 from asusrouter.tools.converters_v2.raw import raw_to_float
 from asusrouter.tools.enum import FromStrMixin
 from asusrouter.tools.types import ARCallbackType
@@ -64,13 +57,6 @@ _FORMAT_CORE_INDEX: dict[str, ARTemperatureType] = {
     "curr_coreTmp_2_raw": ARTemperatureType.RADIO_5G2,
     "curr_coreTmp_3_raw": ARTemperatureType.RADIO_6G1,
 }
-# Fallback for the wlX format when the device WiFi bands are unknown.
-_FORMAT_WL_STATIC: dict[str, ARTemperatureType] = {
-    "curr_coreTmp_wl0_raw": ARTemperatureType.RADIO_2G1,
-    "curr_coreTmp_wl1_raw": ARTemperatureType.RADIO_5G1,
-    "curr_coreTmp_wl2_raw": ARTemperatureType.RADIO_5G2,
-    "curr_coreTmp_wl3_raw": ARTemperatureType.RADIO_6G1,
-}
 
 # WiFi band -> temperature type. Used to map the wlX format dynamically
 # from the device identity, where each `wl{N}` index is the band id
@@ -82,6 +68,12 @@ _WIFI_BAND_TO_TEMP: dict[ARWiFiBand, ARTemperatureType] = {
     ARWiFiBand.BAND_5G2: ARTemperatureType.RADIO_5G2,
     ARWiFiBand.BAND_6G1: ARTemperatureType.RADIO_6G1,
     ARWiFiBand.BAND_6G2: ARTemperatureType.RADIO_6G2,
+}
+
+# Fallback for the wlX format when the device WiFi bands are unknown.
+_FORMAT_WL_STATIC: dict[str, ARTemperatureType] = {
+    f"curr_coreTmp_wl{unit}_raw": _WIFI_BAND_TO_TEMP[band]
+    for unit, band in AR_WIFI_UNIT_FALLBACK.items()
 }
 
 # CPU temperature JS variables in priority order.
@@ -181,9 +173,6 @@ def translate_state(
     return temperature
 
 
-calls: dict[str, ARCallableEntry] = {
-    AR_CALL_GET_STATE: get_state,
-    AR_CALL_TRANSLATE_STATE: translate_state,
-}
-
-ARCallReg.register(ARTemperatureSource, **calls)
+ARCallReg.register_module(
+    ARTemperatureSource, get_state=get_state, translate_state=translate_state
+)

@@ -5,11 +5,7 @@ from __future__ import annotations
 from enum import StrEnum
 from typing import Any
 
-from asusrouter.const import (
-    AR_CALL_GET_STATE,
-    AR_CALL_TRANSLATE_STATE,
-    UNKNOWN_MEMBER_STR,
-)
+from asusrouter.const import UNKNOWN_MEMBER_STR
 from asusrouter.modules.aimesh.capability import ARAiMeshFeature
 from asusrouter.modules.aimesh.topology import (
     ARAiMeshBackhaul,
@@ -27,10 +23,7 @@ from asusrouter.modules.aimesh.topology import (
 )
 from asusrouter.modules.endpoint_v2 import AREndpoint
 from asusrouter.modules.source import ARDataSource
-from asusrouter.registry import (
-    ARCallableEntry,
-    ARCallableRegistry as ARCallReg,
-)
+from asusrouter.registry import ARCallableRegistry as ARCallReg
 from asusrouter.tools.enum import FromStrMixin
 from asusrouter.tools.readers_v2 import read_js_section
 from asusrouter.tools.types import ARCallbackType
@@ -48,23 +41,6 @@ class ARAiMeshCapability(FromStrMixin, StrEnum):
 
 class ARAiMeshSource(ARDataSource):
     """AiMesh topology data source."""
-
-    def __eq__(self, other: object) -> bool:
-        """Two AiMesh sources are equal."""
-
-        if not isinstance(other, ARAiMeshSource):
-            return NotImplemented
-        return True
-
-    def __hash__(self) -> int:
-        """Hash by type."""
-
-        return hash(type(self))
-
-    def __repr__(self) -> str:
-        """Representation of the AiMesh source."""
-
-        return "<ARAiMeshSource>"
 
 
 # Universal instance - preferred
@@ -105,12 +81,9 @@ def translate_state(
     )
 
 
-calls: dict[str, ARCallableEntry] = {
-    AR_CALL_GET_STATE: get_state,
-    AR_CALL_TRANSLATE_STATE: translate_state,
-}
-
-ARCallReg.register(ARAiMeshSource, **calls)
+ARCallReg.register_module(
+    ARAiMeshSource, get_state=get_state, translate_state=translate_state
+)
 
 
 __all__ = [

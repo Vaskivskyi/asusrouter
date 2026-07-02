@@ -229,10 +229,9 @@ class TestGetState:
             identity=_identity(_OLDER),
             raw_callback=raw_callback,
         )
-        assert result == {
-            "update": {"webs_state_info": _NEWER},
-            "note": "- Fix",
-        }
+        assert result["update"] == {"webs_state_info": _NEWER}
+        assert result["note"] == "- Fix"
+        assert result["available"] is not None
         raw_callback.assert_awaited()
 
     @pytest.mark.asyncio
@@ -273,7 +272,7 @@ class TestGetState:
             identity=_identity(),
             raw_callback=AsyncMock(),
         )
-        assert result == {"update": {}, "note": None}
+        assert result == {"update": {}, "note": None, "available": None}
 
 
 class TestTranslateState:

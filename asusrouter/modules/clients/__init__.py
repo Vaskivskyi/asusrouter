@@ -5,7 +5,6 @@ from __future__ import annotations
 from dataclasses import replace
 from typing import Any
 
-from asusrouter.const import AR_CALL_GET_STATE, AR_CALL_TRANSLATE_STATE
 from asusrouter.modules.clients.model import (
     ARClient,
     ARClientConnection,
@@ -16,10 +15,7 @@ from asusrouter.modules.device.identity import ARDeviceIdentity
 from asusrouter.modules.endpoint_v2 import AREndpoint
 from asusrouter.modules.endpoint_v2.hooks import ARHook, hook_request
 from asusrouter.modules.source import ARDataSource
-from asusrouter.registry import (
-    ARCallableEntry,
-    ARCallableRegistry as ARCallReg,
-)
+from asusrouter.registry import ARCallableRegistry as ARCallReg
 from asusrouter.tools.identifiers import MacAddress
 from asusrouter.tools.types import ARCallbackType
 
@@ -41,23 +37,6 @@ class ARClientsSource(ARDataSource):
         super().__init__()
 
         self._prev: dict[MacAddress, ARClient] = {}
-
-    def __eq__(self, other: object) -> bool:
-        """All clients sources are equal (router-global)."""
-
-        if not isinstance(other, ARClientsSource):
-            return NotImplemented
-        return True
-
-    def __hash__(self) -> int:
-        """Hash by type."""
-
-        return hash(type(self))
-
-    def __repr__(self) -> str:
-        """Representation of the clients source."""
-
-        return "<ARClientsSource>"
 
     def merge_history(
         self, current: dict[MacAddress, ARClient]
@@ -92,17 +71,4 @@ async def get_state(
     return source.merge_history(build_clients(raw, identity))
 
 
-def translate_state(
-    data: Any,
-    **kwargs: Any,
-) -> dict[MacAddress, ARClient]:
-    """Pass the built clients through."""
-
-    return data if isinstance(data, dict) else {}
-
-
-calls: dict[str, ARCallableEntry] = {
-    AR_CALL_GET_STATE: get_state,
-    AR_CALL_TRANSLATE_STATE: translate_state,
-}
-ARCallReg.register(ARClientsSource, **calls)
+ARCallReg.register_module(ARClientsSource, get_state=get_state)

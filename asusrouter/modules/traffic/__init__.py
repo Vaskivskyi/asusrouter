@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from asusrouter.const import AR_CALL_GET_STATE, AR_CALL_TRANSLATE_STATE
 from asusrouter.modules.device.identity import ARDeviceIdentity
+from asusrouter.modules.source import ARDataSource
 from asusrouter.modules.traffic.aimesh import ARTrafficAiMeshSource
 from asusrouter.modules.traffic.base import (
     ARTrafficLink,
@@ -13,10 +13,7 @@ from asusrouter.modules.traffic.base import (
     ARTrafficType,
 )
 from asusrouter.modules.traffic.interface import ARTrafficInterfaceSource
-from asusrouter.registry import (
-    ARCallableEntry,
-    ARCallableRegistry as ARCallReg,
-)
+from asusrouter.registry import ARCallableRegistry as ARCallReg
 from asusrouter.tools.types import ARCallbackType
 
 __all__ = [
@@ -40,13 +37,10 @@ _INTERFACE_ONLY: frozenset[ARTrafficType] = frozenset(
 )
 
 
-def _content(results: Any) -> dict[ARTrafficLink, Any]:
-    """Unwrap a single source's content from a fetch result."""
+def _content(value: Any) -> dict[ARTrafficLink, Any]:
+    """Coerce a fetched source content to a dict."""
 
-    if not isinstance(results, dict):
-        return {}
-    content: Any = next(iter(results.values()), {})
-    return content if isinstance(content, dict) else {}
+    return value if isinstance(value, dict) else {}
 
 
 async def get_state(
@@ -69,22 +63,30 @@ async def get_state(
     )
 
     # AiMesh serves bands / WIRED / BACKHAUL; interface serves the rest.
-    # Skip AiMesh entirely for interface-only links to save a fetch
-    aimesh: dict[ARTrafficLink, Any] = {}
+    # Both go into one pipeline request, so they are fetched concurrently
+    aimesh_source: ARTrafficAiMeshSource | None = None
+    interface_source: ARTrafficInterfaceSource | None = None
+    request: list[ARDataSource] = []
     if link not in _INTERFACE_ONLY:
-        aimesh = _content(
-            await get_data_callback(ARTrafficAiMeshSource(link, target))
-        )
-
+        aimesh_source = ARTrafficAiMeshSource(link, target)
+        request.append(aimesh_source)
     # Interface (counters + speeds) only for the connected router, and not
     # for the backhaul link which it cannot report
-    interface: dict[ARTrafficLink, Any] = {}
     if is_self and link is not ARTrafficType.BACKHAUL:
-        interface = _content(
-            await get_data_callback(ARTrafficInterfaceSource(target))
-        )
-        if link is not None:
-            interface = {link: interface[link]} if link in interface else {}
+        interface_source = ARTrafficInterfaceSource(target)
+        request.append(interface_source)
+
+    if not request:
+        return {}
+
+    results = await get_data_callback(request)
+    if not isinstance(results, dict):
+        results = {}
+
+    aimesh = _content(results.get(aimesh_source))
+    interface = _content(results.get(interface_source))
+    if link is not None:
+        interface = {link: interface[link]} if link in interface else {}
 
     # Interface is the base (byte counters); AiMesh overlays it and wins on
     # shared keys (its measured speeds are more precise than netdev deltas)
@@ -96,17 +98,4 @@ async def get_state(
     return merged
 
 
-def translate_state(
-    data: Any,
-    **kwargs: Any,
-) -> dict[ARTrafficLink, Any]:
-    """Pass through the already-merged traffic state."""
-
-    return data if isinstance(data, dict) else {}
-
-
-calls: dict[str, ARCallableEntry] = {
-    AR_CALL_GET_STATE: get_state,
-    AR_CALL_TRANSLATE_STATE: translate_state,
-}
-ARCallReg.register(ARTrafficSource, **calls)
+ARCallReg.register_module(ARTrafficSource, get_state=get_state)

@@ -7,7 +7,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from asusrouter.const import AR_CALL_GET_STATE, AR_CALL_TRANSLATE_STATE
 from asusrouter.modules.endpoint_v2 import AREndpoint
 from asusrouter.modules.ports.base import (
     ARPortCablePair,
@@ -27,10 +26,7 @@ from asusrouter.modules.ports.legacy import translate_ethernet_ports
 from asusrouter.modules.ports.status import translate_port_status
 from asusrouter.modules.source import ARDataSource
 from asusrouter.modules.usb import ARUSBDevice, ARUSBDeviceType
-from asusrouter.registry import (
-    ARCallableEntry,
-    ARCallableRegistry as ARCallReg,
-)
+from asusrouter.registry import ARCallableRegistry as ARCallReg
 from asusrouter.tools.identifiers import MacAddress
 from asusrouter.tools.types import ARCallbackType
 
@@ -87,12 +83,9 @@ def translate_state(
     return {}
 
 
-calls: dict[str, ARCallableEntry] = {
-    AR_CALL_GET_STATE: get_state,
-    AR_CALL_TRANSLATE_STATE: translate_state,
-}
-
-ARCallReg.register(ARPortsSource, **calls)
+ARCallReg.register_module(
+    ARPortsSource, get_state=get_state, translate_state=translate_state
+)
 
 
 __all__ = [

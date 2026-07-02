@@ -5,7 +5,6 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from asusrouter.const import AR_CALL_GET_STATE, AR_CALL_TRANSLATE_STATE
 from asusrouter.modules.aimesh.topology import ARAiMeshMedium
 from asusrouter.modules.common.metrics import ARMetricType
 from asusrouter.modules.device.identity import ARDeviceIdentity
@@ -19,10 +18,7 @@ from asusrouter.modules.traffic.base import (
     ARTrafficType,
 )
 from asusrouter.modules.wifi import ARWiFiBand
-from asusrouter.registry import (
-    ARCallableEntry,
-    ARCallableRegistry as ARCallReg,
-)
+from asusrouter.registry import ARCallableRegistry as ARCallReg
 from asusrouter.tools.converters import flatten_dict
 from asusrouter.tools.converters_v2.raw import raw_to_int
 from asusrouter.tools.identifiers import MacAddress
@@ -222,8 +218,8 @@ def translate_state(
     }
 
 
-calls: dict[str, ARCallableEntry] = {
-    AR_CALL_GET_STATE: get_state,
-    AR_CALL_TRANSLATE_STATE: translate_state,
-}
-ARCallReg.register(ARTrafficAiMeshSource, **calls)
+ARCallReg.register_module(
+    ARTrafficAiMeshSource,
+    get_state=get_state,
+    translate_state=translate_state,
+)

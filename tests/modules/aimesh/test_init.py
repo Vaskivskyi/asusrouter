@@ -8,7 +8,6 @@ from unittest.mock import AsyncMock, Mock
 
 import pytest
 
-from asusrouter.const import AR_CALL_GET_STATE, AR_CALL_TRANSLATE_STATE
 from asusrouter.modules import aimesh
 from asusrouter.modules.aimesh import (
     ARAiMeshSource,
@@ -132,7 +131,8 @@ def test_registers_callables(monkeypatch: pytest.MonkeyPatch) -> None:
 
     mock_register = Mock()
     monkeypatch.setattr(
-        "asusrouter.registry.ARCallableRegistry.register", mock_register
+        "asusrouter.registry.ARCallableRegistry.register_module",
+        mock_register,
     )
 
     importlib.reload(aimesh)
@@ -141,6 +141,6 @@ def test_registers_callables(monkeypatch: pytest.MonkeyPatch) -> None:
     args, kwargs = mock_register.call_args
     assert args[0] is aimesh.ARAiMeshSource
     assert kwargs == {
-        AR_CALL_GET_STATE: aimesh.get_state,
-        AR_CALL_TRANSLATE_STATE: aimesh.translate_state,
+        "get_state": aimesh.get_state,
+        "translate_state": aimesh.translate_state,
     }

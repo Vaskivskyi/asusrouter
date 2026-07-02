@@ -5,7 +5,6 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from typing import Any
 
-from asusrouter.const import AR_CALL_GET_STATE, AR_CALL_TRANSLATE_STATE
 from asusrouter.error import AsusRouter404Error
 from asusrouter.modules.common.metrics import ARMetricType
 from asusrouter.modules.device.identity import ARDeviceIdentity
@@ -20,10 +19,7 @@ from asusrouter.modules.traffic.base import (
     ARTrafficType,
 )
 from asusrouter.modules.wifi import ARWiFiBand
-from asusrouter.registry import (
-    ARCallableEntry,
-    ARCallableRegistry as ARCallReg,
-)
+from asusrouter.registry import ARCallableRegistry as ARCallReg
 from asusrouter.tools.converters_v2.raw import raw_to_int
 from asusrouter.tools.readers_v2 import read_netdev
 from asusrouter.tools.types import ARCallbackType
@@ -132,14 +128,6 @@ async def get_state(
     return {"now": now, "prev": prev, "delta_time": delta_time}
 
 
-def _invert_wifi(identity: ARDeviceIdentity | None) -> dict[int, ARWiFiBand]:
-    """Map a wireless unit index to its band via the identity."""
-
-    if identity is None:
-        return {}
-    return {unit: band for band, unit in identity.wifi.items()}
-
-
 def _map_iface(
     iface: str, wifi: dict[int, ARWiFiBand]
 ) -> ARTrafficLink | None:
@@ -223,7 +211,7 @@ def translate_state(
     now: _Counters = data.get("now") or {}
     prev: _Counters | None = data.get("prev")
     delta_time: float | None = data.get("delta_time")
-    wifi = _invert_wifi(identity)
+    wifi = identity.wifi_by_unit if identity is not None else {}
 
     result: dict[ARTrafficLink, Any] = {}
     for iface, counters in now.items():
@@ -243,8 +231,8 @@ def translate_state(
     return result
 
 
-calls: dict[str, ARCallableEntry] = {
-    AR_CALL_GET_STATE: get_state,
-    AR_CALL_TRANSLATE_STATE: translate_state,
-}
-ARCallReg.register(ARTrafficInterfaceSource, **calls)
+ARCallReg.register_module(
+    ARTrafficInterfaceSource,
+    get_state=get_state,
+    translate_state=translate_state,
+)

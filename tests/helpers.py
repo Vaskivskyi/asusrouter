@@ -23,6 +23,8 @@ class MakeStateFactory(Protocol):
         callback: Any = None,
         caller: Any = None,
         translator: Any = None,
+        caller_multi: bool = False,
+        translator_multi: bool = False,
     ) -> ARDataStateDynamic:
         """Create a state object with mocked update behavior."""
         ...
@@ -37,6 +39,8 @@ class BindStateFactory(Protocol):
         callback: Any = None,
         caller: Any = None,
         translator: Any = None,
+        caller_multi: bool = False,
+        translator_multi: bool = False,
     ) -> ARDataStateDynamic:
         """Create a state and bind it to the router."""
         ...

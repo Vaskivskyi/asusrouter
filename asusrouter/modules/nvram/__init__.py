@@ -9,21 +9,14 @@ from collections.abc import Iterable
 from enum import StrEnum
 from typing import Any
 
-from asusrouter.const import (
-    AR_CALL_GET_STATE,
-    AR_CALL_TRANSLATE_STATE,
-    UNKNOWN_MEMBER_STR,
-)
+from asusrouter.const import UNKNOWN_MEMBER_STR
 from asusrouter.modules.common.connection import (
     ARConnectionMethod,
     ARConnectionStatus,
 )
 from asusrouter.modules.endpoint_v2 import AREndpoint
 from asusrouter.modules.source import ARDataSource, ARDataType
-from asusrouter.registry import (
-    ARCallableEntry,
-    ARCallableRegistry as ARCallReg,
-)
+from asusrouter.registry import ARCallableRegistry as ARCallReg
 from asusrouter.tools.converters import safe_list_from_string
 from asusrouter.tools.converters_v2.raw import raw_to_bool, raw_to_int
 from asusrouter.tools.enum import FromStrMixin
@@ -465,10 +458,15 @@ def translate_state(
     return result
 
 
-calls: dict[str, ARCallableEntry] = {
-    AR_CALL_GET_STATE: (get_state, True),
-    AR_CALL_TRANSLATE_STATE: (translate_state, True),
-}
-
-ARCallReg.register(ARNvramType, **calls)
-ARCallReg.register(ARNvramIndexSource, **calls)
+ARCallReg.register_module(
+    ARNvramType,
+    get_state=get_state,
+    translate_state=translate_state,
+    multi=True,
+)
+ARCallReg.register_module(
+    ARNvramIndexSource,
+    get_state=get_state,
+    translate_state=translate_state,
+    multi=True,
+)
