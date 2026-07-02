@@ -20,6 +20,16 @@ class ARMetricType(FromStrMixin, StrEnum):
     USAGE = "usage"
     USED = "used"
 
+    # Latency
+    LATENCY_AVG = "latency_avg"
+    LATENCY_MAX = "latency_max"
+    LATENCY_MIN = "latency_min"
+
+    # Packets
+    PACKET_LOSS = "packet_loss"
+    PACKETS_RECEIVED = "packets_received"
+    PACKETS_SENT = "packets_sent"
+
     # Traffic and rates
     PHY_RX_SPEED = "phy_rx_speed"
     PHY_TX_SPEED = "phy_tx_speed"
