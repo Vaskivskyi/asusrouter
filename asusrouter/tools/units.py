@@ -62,6 +62,21 @@ class UnitOfDataRate(StrEnum):
     TEBIBYTE_PER_SECOND = "TiBps"
 
 
+class UnitOfTime(StrEnum):
+    """Units of time."""
+
+    # Base unit
+    SECOND = "s"
+
+    NANOSECOND = "ns"
+    MICROSECOND = "us"
+    MILLISECOND = "ms"
+    MINUTE = "min"
+    HOUR = "h"
+    DAY = "d"
+    WEEK = "w"
+
+
 class UnitConverterBase:
     """AsusRouter Unit Converter."""
 
@@ -178,4 +193,21 @@ class DataRateUnitConverter(UnitConverterBase):
         UnitOfDataRate.MEBIBYTE_PER_SECOND: 2**23,
         UnitOfDataRate.GIBIBYTE_PER_SECOND: 2**33,
         UnitOfDataRate.TEBIBYTE_PER_SECOND: 2**43,
+    }
+
+
+class TimeUnitConverter(UnitConverterBase):
+    """Time Unit Converter."""
+
+    UNIT_CLASS = "time"
+
+    _UNIT_RATIO = {
+        UnitOfTime.SECOND: 1,
+        UnitOfTime.NANOSECOND: 1e-9,
+        UnitOfTime.MICROSECOND: 1e-6,
+        UnitOfTime.MILLISECOND: 1e-3,
+        UnitOfTime.MINUTE: 60,
+        UnitOfTime.HOUR: 3600,
+        UnitOfTime.DAY: 86400,
+        UnitOfTime.WEEK: 604800,
     }
