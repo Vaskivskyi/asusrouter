@@ -29,7 +29,6 @@ class AsusData(StrEnum):
     # SPEEDTEST_HISTORY = "speedtest_history"
     SPEEDTEST_RESULT = "speedtest_result"
     # SPEEDTEST_SERVERS = "speedtest_servers"
-    SYSINFO = "sysinfo"
     SYSTEM = "system"
     VPNC = "vpnc"
     VPNC_CLIENTLIST = "vpnc_clientlist"

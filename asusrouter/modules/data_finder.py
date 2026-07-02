@@ -170,7 +170,6 @@ ASUSDATA_MAP: dict[AsusData, AsusData | AsusDataFinder] = {
     # AsusData.SPEEDTEST_SERVERS: AsusDataFinder(
     #     AREndpoint.FETCH_DATA, request=ASUSDATA_REQUEST["speedtest_servers"]
     # ),
-    AsusData.SYSINFO: AsusDataFinder(AREndpoint.FETCH_SYSINFO),
     AsusData.VPNC: AsusDataFinder(
         AREndpoint.FETCH_DATA,
         nvram=ASUSDATA_NVRAM["vpnc"],
