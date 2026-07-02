@@ -9,7 +9,6 @@ from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
-from asusrouter.const import AR_CALL_GET_STATE, AR_CALL_TRANSLATE_STATE
 from asusrouter.modules import boottime
 from asusrouter.modules.boottime import (
     ARBoottime,
@@ -17,7 +16,6 @@ from asusrouter.modules.boottime import (
     get_state,
     read_uptime,
     stabilize,
-    translate_state,
 )
 from asusrouter.modules.device.identity import ARDeviceIdentity
 from asusrouter.modules.endpoint_v2 import AREndpoint
@@ -170,37 +168,18 @@ class TestGetState:
         assert await get_state(callback, ARBoottimeSource()) is None
 
 
-class TestTranslateState:
-    """Tests for translate_state."""
-
-    def test_passthrough(self) -> None:
-        """A datetime passes through."""
-
-        assert translate_state(_BOOT) == _BOOT
-
-    @pytest.mark.parametrize(
-        "data", [None, "x", 5], ids=["none", "str", "int"]
-    )
-    def test_non_datetime(self, data: Any) -> None:
-        """A non-datetime yields None."""
-
-        assert translate_state(data) is None
-
-
 def test_registers_callable(monkeypatch: pytest.MonkeyPatch) -> None:
     """Importing the module registers the boot time source."""
 
     mock_register = Mock()
     monkeypatch.setattr(
-        "asusrouter.registry.ARCallableRegistry.register", mock_register
+        "asusrouter.registry.ARCallableRegistry.register_module",
+        mock_register,
     )
 
     importlib.reload(boottime)
 
     mock_register.assert_called_once_with(
         boottime.ARBoottimeSource,
-        **{
-            AR_CALL_GET_STATE: boottime.get_state,
-            AR_CALL_TRANSLATE_STATE: boottime.translate_state,
-        },
+        get_state=boottime.get_state,
     )

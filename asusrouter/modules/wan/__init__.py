@@ -6,11 +6,7 @@ from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Any
 
-from asusrouter.const import (
-    AR_CALL_GET_STATE,
-    AR_CALL_TRANSLATE_STATE,
-    UNKNOWN_MEMBER_STR,
-)
+from asusrouter.const import UNKNOWN_MEMBER_STR
 from asusrouter.modules.common.connection import (
     ARConnectionMethod,
     ARConnectionStatus,
@@ -22,10 +18,7 @@ from asusrouter.modules.nvram import (
     ARNvramType,
 )
 from asusrouter.modules.source import ARDataSource
-from asusrouter.registry import (
-    ARCallableEntry,
-    ARCallableRegistry as ARCallReg,
-)
+from asusrouter.registry import ARCallableRegistry as ARCallReg
 from asusrouter.tools.converters_v2.raw import raw_to_int, raw_to_str
 from asusrouter.tools.enum import FromStrMixin
 from asusrouter.tools.identifiers import MacAddress
@@ -325,23 +318,6 @@ _WAN_REQUEST: tuple[ARNvramItem, ...] = (
 
 class ARWanSource(ARDataSource):
     """WAN data source for the connected router."""
-
-    def __eq__(self, other: object) -> bool:
-        """All WAN sources are equal (router-global)."""
-
-        if not isinstance(other, ARWanSource):
-            return NotImplemented
-        return True
-
-    def __hash__(self) -> int:
-        """Hash by type."""
-
-        return hash(type(self))
-
-    def __repr__(self) -> str:
-        """Representation of the WAN source."""
-
-        return "<ARWanSource>"
 
 
 # Universal instance - preferred
@@ -652,9 +628,6 @@ def translate_state(data: Any, **kwargs: Any) -> ARWan:
     )
 
 
-calls: dict[str, ARCallableEntry] = {
-    AR_CALL_GET_STATE: get_state,
-    AR_CALL_TRANSLATE_STATE: translate_state,
-}
-
-ARCallReg.register(ARWanSource, **calls)
+ARCallReg.register_module(
+    ARWanSource, get_state=get_state, translate_state=translate_state
+)

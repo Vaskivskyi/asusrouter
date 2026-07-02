@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
+import asyncio
 from datetime import UTC, datetime, timedelta
 import logging
 from types import SimpleNamespace
 from typing import Any
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 
 import pytest
 
@@ -23,6 +24,10 @@ from asusrouter.modules.source import (
 datetime_value = datetime(2025, 8, 1, 12, 1, 5)
 
 
+class _AltSource(ARDataSource):
+    """A distinct source type (sources are equal by exact type)."""
+
+
 class TestARDataCollection:
     """Class for testing ARDataCollection."""
 
@@ -31,7 +36,7 @@ class TestARDataCollection:
         [
             (ARDataSource(), 1),
             ([ARDataSource(), ARDataTypeGeneric.UNKNOWN], 2),
-            ({ARDataSource(), ARDataTypeGeneric.UNKNOWN, ARDataSource()}, 3),
+            ({ARDataSource(), ARDataTypeGeneric.UNKNOWN, _AltSource()}, 3),
             (list(ARDataTypeGeneric), 1),
         ],
     )
@@ -310,6 +315,47 @@ class TestARDataState:
         assert instance.translate_caller == mock_async_translate
 
 
+class TestARDataStateRefresh:
+    """Class for testing the ARDataState in-flight refresh marker."""
+
+    def test_refresh_cycle(self) -> None:
+        """begin/end toggle the refreshing flag; end is idempotent."""
+
+        state = ARDataState(ARDataSource())
+        assert state.refreshing is False
+
+        state.begin_refresh()
+        assert state.refreshing is True
+
+        state.end_refresh()
+        assert state.refreshing is False
+
+        # Ending an idle state is a no-op
+        state.end_refresh()
+        assert state.refreshing is False
+
+    @pytest.mark.asyncio
+    async def test_wait_refresh_noop_when_idle(self) -> None:
+        """Waiting on an idle state returns immediately."""
+
+        state = ARDataState(ARDataSource())
+        await state.async_wait_refresh()
+
+    @pytest.mark.asyncio
+    async def test_wait_refresh_wakes_on_end(self) -> None:
+        """A waiter is woken when the refresh ends."""
+
+        state = ARDataState(ARDataSource())
+        state.begin_refresh()
+
+        waiter = asyncio.ensure_future(state.async_wait_refresh())
+        await asyncio.sleep(0)
+        assert not waiter.done()
+
+        state.end_refresh()
+        await waiter
+
+
 class TestARDataStateStatic:
     """Class for testing ARDataStateStatic."""
 
@@ -332,13 +378,13 @@ class TestARDataStateStatic:
         inst_source = ARDataTypeGeneric.UNKNOWN
         instance = ARDataStateStatic(inst_source)
 
-        with patch(
-            "asusrouter.modules.source.ARDataType.from_value",
-            return_value=inst_source,
-        ) as mock_from_value:
-            result = instance.source
-            mock_from_value.assert_called_once_with(instance._source)
-            assert result == inst_source
+        assert instance.source is inst_source
+
+    def test_init_wrong_type(self) -> None:
+        """A non-ARDataType source is rejected."""
+
+        with pytest.raises(TypeError):
+            ARDataStateStatic(ARDataSource())  # type: ignore[arg-type]
 
 
 class TestARDataStateDynamic:
@@ -362,11 +408,11 @@ class TestARDataStateDynamic:
 
         inst_source = ARDataSource()
         instance = ARDataStateDynamic(inst_source)
-        result = instance.source
-        assert result == inst_source
 
-        inst_source_wrong = ARDataTypeGeneric.UNKNOWN
-        instance = ARDataStateDynamic(inst_source_wrong)  # type: ignore[arg-type]
-        result = instance.source
-        # It should return a new instance of ARDataSource
-        assert isinstance(result, ARDataSource)
+        assert instance.source is inst_source
+
+    def test_init_wrong_type(self) -> None:
+        """A non-ARDataSource source is rejected."""
+
+        with pytest.raises(TypeError):
+            ARDataStateDynamic(ARDataTypeGeneric.UNKNOWN)  # type: ignore[arg-type]

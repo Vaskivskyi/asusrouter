@@ -6,20 +6,13 @@ from dataclasses import dataclass, field
 from enum import IntEnum
 from typing import TYPE_CHECKING, Any
 
-from asusrouter.const import (
-    AR_CALL_GET_STATE,
-    AR_CALL_TRANSLATE_STATE,
-    UNKNOWN_MEMBER,
-)
+from asusrouter.const import UNKNOWN_MEMBER
 from asusrouter.modules.endpoint_v2 import AREndpoint
 from asusrouter.modules.firmware.note import read_firmware_note
 from asusrouter.modules.firmware.types import AR_FW_MERLIN_LIKE, ARFirmwareType
 from asusrouter.modules.firmware.version import AR_FW_388, ARFirmware
 from asusrouter.modules.source import ARDataSource
-from asusrouter.registry import (
-    ARCallableEntry,
-    ARCallableRegistry as ARCallReg,
-)
+from asusrouter.registry import ARCallableRegistry as ARCallReg
 from asusrouter.tools.converters_v2.raw import raw_to_int, raw_to_str
 from asusrouter.tools.enum import FromIntMixin
 from asusrouter.tools.types import ARCallbackType
@@ -135,23 +128,6 @@ class ARFirmwareState:
 class ARFirmwareSource(ARDataSource):
     """Firmware data source for the connected router."""
 
-    def __eq__(self, other: object) -> bool:
-        """All firmware sources are equal (router-global)."""
-
-        if not isinstance(other, ARFirmwareSource):
-            return NotImplemented
-        return True
-
-    def __hash__(self) -> int:
-        """Hash by type."""
-
-        return hash(type(self))
-
-    def __repr__(self) -> str:
-        """Representation of the firmware source."""
-
-        return "<ARFirmwareSource>"
-
 
 # Universal instance - preferred
 ARFirmwareSourceUniversal: ARFirmwareSource = ARFirmwareSource()
@@ -216,7 +192,7 @@ async def get_state(
     if raw_callback is not None and _is_stable_update(current, available):
         note = await _fetch_note(raw_callback)
 
-    return {"update": update, "note": note}
+    return {"update": update, "note": note, "available": available}
 
 
 def translate_state(
@@ -233,7 +209,10 @@ def translate_state(
     update: dict[str, Any] = data.get("update") or {}
     current = identity.firmware
 
-    available = _available(update.get("webs_state_info"))
+    # Reuse the available firmware parsed by `get_state` when present
+    available = data.get("available")
+    if available is None:
+        available = _available(update.get("webs_state_info"))
     available_beta = _available(update.get("webs_state_info_beta"))
     state = _is_stable_update(current, available)
 
@@ -271,9 +250,6 @@ def translate_state(
     )
 
 
-calls: dict[str, ARCallableEntry] = {
-    AR_CALL_GET_STATE: get_state,
-    AR_CALL_TRANSLATE_STATE: translate_state,
-}
-
-ARCallReg.register(ARFirmwareSource, **calls)
+ARCallReg.register_module(
+    ARFirmwareSource, get_state=get_state, translate_state=translate_state
+)

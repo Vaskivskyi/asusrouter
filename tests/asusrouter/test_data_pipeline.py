@@ -10,7 +10,7 @@ from unittest.mock import ANY, AsyncMock, Mock
 
 import pytest
 
-from asusrouter.asusrouter import ARCallReg, AsusRouter
+from asusrouter.asusrouter import AsusRouter
 from asusrouter.modules.aimesh.topology import ARAiMeshTopology
 from asusrouter.modules.boottime import ARBoottime
 from asusrouter.modules.device import ARDeviceSourceUniversal
@@ -26,10 +26,13 @@ from asusrouter.modules.source import (
 from tests.helpers import (
     BindStateFactory,
     MakeStateFactory,
-    UniversalMockPatcher,
     assert_state_not_updated,
     assert_state_updated,
 )
+
+
+class _AltSource(ARDataSource):
+    """A distinct source type (sources are equal by exact type)."""
 
 
 @pytest.fixture
@@ -82,7 +85,7 @@ class TestCreateDataState:
         """Existing items are preserved; new items are created in same call."""
 
         existing = ARDataSource()
-        new_source = ARDataSource()
+        new_source = _AltSource()
         sentinel = Mock(spec=ARDataState)
         router._data_states[existing] = sentinel
 
@@ -216,7 +219,6 @@ class TestAsyncRefreshDataState:
         router: AsusRouter,
         source: ARDataSource,
         bind_state: BindStateFactory,
-        universal_mock: UniversalMockPatcher,
     ) -> None:
         """A state fresh within the V2 window is not refetched."""
 
@@ -224,9 +226,6 @@ class TestAsyncRefreshDataState:
         state = bind_state(source, caller=state_caller)
         cast(Any, state)._last_update = datetime.now(UTC)
 
-        universal_mock.patch(
-            ARCallReg, "get_callable_flag", return_value=False, mock_type=Mock
-        )
         collection = ARDataCollection.from_value(source)
         assert collection is not None
 
@@ -240,16 +239,12 @@ class TestAsyncRefreshDataState:
         router: AsusRouter,
         source: ARDataSource,
         bind_state: BindStateFactory,
-        universal_mock: UniversalMockPatcher,
     ) -> None:
         """A never-fetched (stale) state is refetched without force."""
 
         state_caller = AsyncMock(return_value={"a": 1})
         bind_state(source, caller=state_caller)
 
-        universal_mock.patch(
-            ARCallReg, "get_callable_flag", return_value=False, mock_type=Mock
-        )
         collection = ARDataCollection.from_value(source)
         assert collection is not None
 
@@ -263,7 +258,6 @@ class TestAsyncRefreshDataState:
         router: AsusRouter,
         source: ARDataSource,
         bind_state: BindStateFactory,
-        universal_mock: UniversalMockPatcher,
     ) -> None:
         """force=True refetches even a fresh state."""
 
@@ -271,9 +265,6 @@ class TestAsyncRefreshDataState:
         state = bind_state(source, caller=state_caller)
         cast(Any, state)._last_update = datetime.now(UTC)
 
-        universal_mock.patch(
-            ARCallReg, "get_callable_flag", return_value=False, mock_type=Mock
-        )
         collection = ARDataCollection.from_value(source)
         assert collection is not None
 
@@ -287,16 +278,11 @@ class TestAsyncRefreshDataState:
         router: AsusRouter,
         source: ARDataSource,
         bind_state: BindStateFactory,
-        universal_mock: UniversalMockPatcher,
     ) -> None:
         """Batch caller receives source list; result translated."""
 
         state_caller = AsyncMock(return_value={source: {"a": 1}})
-        state = bind_state(source, caller=state_caller)
-
-        universal_mock.patch(
-            ARCallReg, "get_callable_flag", return_value=True, mock_type=Mock
-        )
+        state = bind_state(source, caller=state_caller, caller_multi=True)
 
         collection = ARDataCollection.from_value(source)
         assert collection is not None
@@ -319,7 +305,6 @@ class TestAsyncRefreshDataState:
         self,
         router: AsusRouter,
         bind_state: BindStateFactory,
-        universal_mock: UniversalMockPatcher,
     ) -> None:
         """Same-caller sources are fetched concurrently, not serialized."""
 
@@ -334,18 +319,74 @@ class TestAsyncRefreshDataState:
             active -= 1
             return {"src": source}
 
-        source_a, source_b = ARDataSource(), ARDataSource()
+        source_a, source_b = ARDataSource(), _AltSource()
         bind_state(source_a, caller=caller)
         bind_state(source_b, caller=caller)
 
-        universal_mock.patch(
-            ARCallReg, "get_callable_flag", return_value=False, mock_type=Mock
-        )
         collection = ARDataCollection([source_a, source_b])
 
         await router._async_refresh_data_state(collection, force=True)
 
         assert peak == 2
+
+    @pytest.mark.asyncio
+    async def test_concurrent_refresh_deduplicates(
+        self,
+        router: AsusRouter,
+        source: ARDataSource,
+        bind_state: BindStateFactory,
+    ) -> None:
+        """A concurrent refresh awaits the in-flight fetch, not refetches."""
+
+        started = asyncio.Event()
+        release = asyncio.Event()
+        calls = 0
+
+        async def caller(_read: Any, _source: Any, **_kw: Any) -> Any:
+            nonlocal calls
+            calls += 1
+            started.set()
+            await release.wait()
+            return {"a": 1}
+
+        bind_state(source, caller=caller)
+        collection = ARDataCollection.from_value(source)
+        assert collection is not None
+
+        first = asyncio.ensure_future(
+            router._async_refresh_data_state(collection, force=True)
+        )
+        await started.wait()
+        second = asyncio.ensure_future(
+            router._async_refresh_data_state(collection, force=True)
+        )
+        # Let the second caller reach the in-flight wait, then release
+        await asyncio.sleep(0)
+        release.set()
+        await asyncio.gather(first, second)
+
+        assert calls == 1
+
+    @pytest.mark.asyncio
+    async def test_refresh_error_propagates_and_releases(
+        self,
+        router: AsusRouter,
+        source: ARDataSource,
+        bind_state: BindStateFactory,
+    ) -> None:
+        """A caller error propagates and the in-flight marker is cleared."""
+
+        async def caller(_read: Any, _source: Any, **_kw: Any) -> Any:
+            raise RuntimeError("fetch failed")
+
+        state = bind_state(source, caller=caller)
+        collection = ARDataCollection.from_value(source)
+        assert collection is not None
+
+        with pytest.raises(RuntimeError, match="fetch failed"):
+            await router._async_refresh_data_state(collection, force=True)
+
+        assert state.refreshing is False
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
@@ -361,7 +402,6 @@ class TestAsyncRefreshDataState:
         router: AsusRouter,
         source: ARDataSource,
         bind_state: BindStateFactory,
-        universal_mock: UniversalMockPatcher,
         has_translate: bool,
         expected_value: Any,
     ) -> None:
@@ -372,10 +412,6 @@ class TestAsyncRefreshDataState:
         )
         state_caller = AsyncMock(return_value={"a": 1})
         state = bind_state(source, caller=state_caller, translator=translator)
-
-        universal_mock.patch(
-            ARCallReg, "get_callable_flag", return_value=False, mock_type=Mock
-        )
 
         collection = ARDataCollection.from_value(source)
         assert collection is not None
@@ -720,7 +756,6 @@ class TestTranslateMultidata:
         router: AsusRouter,
         source: ARDataSource,
         bind_state: BindStateFactory,
-        universal_mock: UniversalMockPatcher,
         is_batch: bool,
         identity: ARDeviceIdentity,
     ) -> None:
@@ -728,13 +763,8 @@ class TestTranslateMultidata:
 
         translator_result = {source: {"x": 1}} if is_batch else {"x": 1}
         translator = Mock(return_value=translator_result)
-        state = bind_state(source, translator=translator)
-
-        universal_mock.patch(
-            ARCallReg,
-            "get_callable_flag",
-            return_value=is_batch,
-            mock_type=Mock,
+        state = bind_state(
+            source, translator=translator, translator_multi=is_batch
         )
 
         router._translate_multidata([state], {source: {"a": 1}}, identity)

@@ -8,13 +8,11 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from asusrouter.const import AR_CALL_GET_STATE, AR_CALL_TRANSLATE_STATE
 from asusrouter.modules.source import ARDataSource
 import asusrouter.modules.support as support_mod
 from asusrouter.modules.support import (
     ARSupportSource,
     ARSupportSourceUniversal,
-    calls,
     get_state,
     translate_state,
 )
@@ -84,26 +82,18 @@ def test_translate_state_returns_all_translation_table_keys() -> None:
         assert key in result
 
 
-def test_calls_contains_correct_entries() -> None:
-    """Calls dict maps AR_CALL constants to callables."""
-
-    assert AR_CALL_GET_STATE in calls
-    assert AR_CALL_TRANSLATE_STATE in calls
-    assert callable(calls[AR_CALL_GET_STATE])
-    assert callable(calls[AR_CALL_TRANSLATE_STATE])
-
-
 def test_module_registers_callables(monkeypatch: pytest.MonkeyPatch) -> None:
     """Module registers callables with ARCallReg on import."""
 
     mock_register = MagicMock()
     monkeypatch.setattr(
-        "asusrouter.registry.ARCallableRegistry.register", mock_register
+        "asusrouter.registry.ARCallableRegistry.register_module",
+        mock_register,
     )
     importlib.reload(support_mod)
 
     mock_register.assert_called_once()
     args, kwargs = mock_register.call_args
     assert args[0] is support_mod.ARSupportSource
-    assert kwargs[AR_CALL_GET_STATE] is support_mod.get_state
-    assert kwargs[AR_CALL_TRANSLATE_STATE] is support_mod.translate_state
+    assert kwargs["get_state"] is support_mod.get_state
+    assert kwargs["translate_state"] is support_mod.translate_state

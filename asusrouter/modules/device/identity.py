@@ -140,6 +140,12 @@ class ARDeviceIdentity:
         return self._wifi
 
     @property
+    def wifi_by_unit(self) -> dict[int, ARWiFiBand]:
+        """Map a wireless unit index to its band."""
+
+        return {unit: band for band, unit in self._wifi.items()}
+
+    @property
     def aimesh(self) -> ARAiMeshTopology:
         """Get the live AiMesh topology."""
 

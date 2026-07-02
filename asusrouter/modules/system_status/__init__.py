@@ -7,11 +7,7 @@ import time
 from typing import Any, NamedTuple
 
 from asusrouter.config.connection import ARConnectionConfigKey as ARCCKey
-from asusrouter.const import (
-    AR_CALL_GET_STATE,
-    AR_CALL_TRANSLATE_STATE,
-    UNKNOWN_MEMBER_STR,
-)
+from asusrouter.const import UNKNOWN_MEMBER_STR
 from asusrouter.modules.common.metrics import ARMetricType
 from asusrouter.modules.device.identity import ARDeviceIdentity
 from asusrouter.modules.endpoint_v2 import (
@@ -21,10 +17,7 @@ from asusrouter.modules.endpoint_v2 import (
 from asusrouter.modules.source import ARDataSource
 from asusrouter.modules.system_status import legacy
 from asusrouter.modules.system_status.legacy import CpuCounters
-from asusrouter.registry import (
-    ARCallableEntry,
-    ARCallableRegistry as ARCallReg,
-)
+from asusrouter.registry import ARCallableRegistry as ARCallReg
 from asusrouter.tools.converters_v2.raw import raw_to_int
 from asusrouter.tools.enum import FromStrMixin
 from asusrouter.tools.identifiers import MacAddress
@@ -304,12 +297,9 @@ def translate_state(
     return result
 
 
-calls: dict[str, ARCallableEntry] = {
-    AR_CALL_GET_STATE: get_state,
-    AR_CALL_TRANSLATE_STATE: translate_state,
-}
-
-ARCallReg.register(ARSystemStatusSource, **calls)
+ARCallReg.register_module(
+    ARSystemStatusSource, get_state=get_state, translate_state=translate_state
+)
 
 
 __all__ = [

@@ -21,6 +21,16 @@ class ARWiFiBand(FromStrMixin, StrEnum):
     BAND_6G2 = "6g2"
 
 
+# Fallback wireless unit index -> band, for devices with unknown bands
+# (`identity.wifi_by_unit` gives the live device-specific map)
+AR_WIFI_UNIT_FALLBACK: dict[int, ARWiFiBand] = {
+    0: ARWiFiBand.BAND_2G1,
+    1: ARWiFiBand.BAND_5G1,
+    2: ARWiFiBand.BAND_5G2,
+    3: ARWiFiBand.BAND_6G1,
+}
+
+
 class ARWiFiFrequency(FromStrMixin, StrEnum):
     """WiFi frequency types."""
 

@@ -231,12 +231,16 @@ def make_state() -> MakeStateFactory:
         callback: Any = None,
         caller: Any = None,
         translator: Any = None,
+        caller_multi: bool = False,
+        translator_multi: bool = False,
     ) -> ARDataStateDynamic:
         state = ARDataStateDynamic(source)
         cast(Any, state).update = Mock()
         state.callback = callback
         state.state_caller = caller
+        state.state_caller_multi = caller_multi
         state.translate_caller = translator
+        state.translate_caller_multi = translator_multi
         return state
 
     return _make_state
@@ -254,12 +258,16 @@ def bind_state(
         callback: Any = None,
         caller: Any = None,
         translator: Any = None,
+        caller_multi: bool = False,
+        translator_multi: bool = False,
     ) -> ARDataStateDynamic:
         state = make_state(
             source,
             callback=callback,
             caller=caller,
             translator=translator,
+            caller_multi=caller_multi,
+            translator_multi=translator_multi,
         )
         router._data_states[source] = state
         return state

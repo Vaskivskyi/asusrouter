@@ -8,11 +8,10 @@ from unittest.mock import AsyncMock, Mock
 
 import pytest
 
-from asusrouter.const import AR_CALL_GET_STATE, AR_CALL_TRANSLATE_STATE
 from asusrouter.modules import traffic
 from asusrouter.modules.common.metrics import ARMetricType as M
 from asusrouter.modules.device.identity import ARDeviceIdentity
-from asusrouter.modules.traffic import get_state, translate_state
+from asusrouter.modules.traffic import get_state
 from asusrouter.modules.traffic.aimesh import ARTrafficAiMeshSource
 from asusrouter.modules.traffic.base import ARTrafficSource, ARTrafficType as T
 from asusrouter.modules.traffic.interface import ARTrafficInterfaceSource
@@ -39,13 +38,15 @@ def _callback(
 
     requested: list[Any] = []
 
-    async def callback(source: Any) -> dict[Any, Any]:
-        requested.append(source)
-        if isinstance(source, ARTrafficInterfaceSource):
-            return {source: interface if interface is not None else {}}
-        if isinstance(source, ARTrafficAiMeshSource):
-            return {source: aimesh if aimesh is not None else {}}
-        return {}
+    async def callback(sources: Any) -> dict[Any, Any]:
+        requested.extend(sources)
+        results: dict[Any, Any] = {}
+        for source in sources:
+            if isinstance(source, ARTrafficInterfaceSource):
+                results[source] = interface if interface is not None else {}
+            elif isinstance(source, ARTrafficAiMeshSource):
+                results[source] = aimesh if aimesh is not None else {}
+        return results
 
     return callback, requested
 
@@ -228,7 +229,7 @@ class TestGetState:
     async def test_bad_fetch_results(self, value: Any) -> None:
         """Non-dict fetch results collapse to an empty state."""
 
-        async def callback(source: Any) -> Any:
+        async def callback(sources: Any) -> Any:
             return value
 
         result = await get_state(
@@ -241,38 +242,18 @@ class TestGetState:
         assert result == {}
 
 
-class TestTranslateState:
-    """Tests for the dispatcher translate_state."""
-
-    def test_passthrough(self) -> None:
-        """A dict is passed through unchanged."""
-
-        data = {T.WIRED: {M.RX: 1}}
-        assert translate_state(data) == data
-
-    @pytest.mark.parametrize(
-        "data", [None, "x", 5], ids=["none", "str", "int"]
-    )
-    def test_bad_input(self, data: Any) -> None:
-        """A non-dict input yields an empty result."""
-
-        assert translate_state(data) == {}
-
-
 def test_registers_dispatcher(monkeypatch: pytest.MonkeyPatch) -> None:
     """Importing the module registers the public source."""
 
     mock_register = Mock()
     monkeypatch.setattr(
-        "asusrouter.registry.ARCallableRegistry.register", mock_register
+        "asusrouter.registry.ARCallableRegistry.register_module",
+        mock_register,
     )
 
     importlib.reload(traffic)
 
     mock_register.assert_called_once_with(
         traffic.ARTrafficSource,
-        **{
-            AR_CALL_GET_STATE: traffic.get_state,
-            AR_CALL_TRANSLATE_STATE: traffic.translate_state,
-        },
+        get_state=traffic.get_state,
     )

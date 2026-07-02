@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Iterable, Iterator
 from datetime import UTC, datetime, timedelta
 from enum import StrEnum
 import logging
-from typing import Any
+from typing import Any, cast
 
 from asusrouter.const import UNKNOWN_MEMBER_STR
 from asusrouter.tools.enum import FromStrMixin
@@ -20,10 +21,30 @@ class ARDataSource:
 
     This is a universal class representing a data source
     within the AsusRouter ecosystem.
+
+    Sources are equal by exact type (router-global) by default;
+    subclasses with defining properties override equality and hash.
     """
 
     def __init__(self) -> None:
         """Initialize the data source."""
+
+    def __eq__(self, other: object) -> bool:
+        """Equal by exact type (router-global by default)."""
+
+        if not isinstance(other, ARDataSource):
+            return NotImplemented
+        return type(self) is type(other)
+
+    def __hash__(self) -> int:
+        """Hash by type."""
+
+        return hash(type(self))
+
+    def __repr__(self) -> str:
+        """Representation of the data source."""
+
+        return f"<{type(self).__name__}>"
 
 
 class ARDataType(FromStrMixin, StrEnum):
@@ -136,7 +157,11 @@ class ARDataState:
         self._last_update: datetime | None = None
         self._callback: ARCallbackType | None = None
         self._state_caller: ARCallableType | None = None
+        self._state_caller_multi: bool = False
         self._translate_caller: ARCallableType | None = None
+        self._translate_caller_multi: bool = False
+        # In-flight refresh marker - waiters await it instead of refetching
+        self._refresh_event: asyncio.Event | None = None
 
     def update(self, content: Any) -> None:
         """Update the last update timestamp to the current time."""
@@ -157,6 +182,32 @@ class ARDataState:
             return False
 
         return self._last_update + threshold > datetime.now(UTC)
+
+    @property
+    def refreshing(self) -> bool:
+        """Whether a refresh is currently in flight."""
+
+        return self._refresh_event is not None
+
+    def begin_refresh(self) -> None:
+        """Mark the state as being refreshed."""
+
+        self._refresh_event = asyncio.Event()
+
+    def end_refresh(self) -> None:
+        """Mark the refresh as finished and wake any waiters."""
+
+        event = self._refresh_event
+        self._refresh_event = None
+        if event is not None:
+            event.set()
+
+    async def async_wait_refresh(self) -> None:
+        """Wait for an in-flight refresh to finish (no-op when idle)."""
+
+        event = self._refresh_event
+        if event is not None:
+            await event.wait()
 
     @property
     def source(self) -> ARDataSource | ARDataType:
@@ -201,6 +252,18 @@ class ARDataState:
         self._state_caller = value
 
     @property
+    def state_caller_multi(self) -> bool:
+        """Whether the state getter is a multicaller."""
+
+        return self._state_caller_multi
+
+    @state_caller_multi.setter
+    def state_caller_multi(self, value: bool) -> None:
+        """Set the state getter multicaller flag."""
+
+        self._state_caller_multi = bool(value)
+
+    @property
     def translate_caller(self) -> ARCallableType | None:
         """Get the state translator callable."""
 
@@ -211,6 +274,18 @@ class ARDataState:
         """Set the state translator callable."""
 
         self._translate_caller = value
+
+    @property
+    def translate_caller_multi(self) -> bool:
+        """Whether the state translator is a batch translator."""
+
+        return self._translate_caller_multi
+
+    @translate_caller_multi.setter
+    def translate_caller_multi(self, value: bool) -> None:
+        """Set the state translator batch flag."""
+
+        self._translate_caller_multi = bool(value)
 
 
 class ARDataStateStatic(ARDataState):
@@ -223,13 +298,19 @@ class ARDataStateStatic(ARDataState):
     def __init__(self, source: ARDataType) -> None:
         """Initialize the static data state."""
 
+        if not isinstance(source, ARDataType):
+            raise TypeError(
+                "A valid `ARDataType` is required to initialize an "
+                f"<ARDataStateStatic>. Received: {type(source)}."
+            )
+
         super().__init__(source)
 
     @property
     def source(self) -> ARDataType:
         """Get the static data source."""
 
-        return ARDataType.from_value(self._source)
+        return cast(ARDataType, self._source)
 
 
 class ARDataStateDynamic(ARDataState):
@@ -242,14 +323,16 @@ class ARDataStateDynamic(ARDataState):
     def __init__(self, source: ARDataSource) -> None:
         """Initialize the dynamic data state."""
 
+        if not isinstance(source, ARDataSource):
+            raise TypeError(
+                "A valid `ARDataSource` is required to initialize an "
+                f"<ARDataStateDynamic>. Received: {type(source)}."
+            )
+
         super().__init__(source)
 
     @property
     def source(self) -> ARDataSource:
         """Get the dynamic data source."""
 
-        return (
-            self._source
-            if isinstance(self._source, ARDataSource)
-            else ARDataSource()
-        )
+        return cast(ARDataSource, self._source)

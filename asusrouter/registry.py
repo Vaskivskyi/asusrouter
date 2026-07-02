@@ -5,6 +5,7 @@ from __future__ import annotations
 import threading
 from typing import Any
 
+from asusrouter.const import AR_CALL_GET_STATE, AR_CALL_TRANSLATE_STATE
 from asusrouter.tools.types import ARCallableType
 
 ARCallableEntry = ARCallableType | tuple[ARCallableType, bool]
@@ -34,7 +35,28 @@ class ARCallableRegistryBase:
                 if isinstance(value, tuple):
                     self._flags[value[0]] = bool(value[1])
                 elif callable(value):
-                    self._flags[value] = False
+                    # Plain callables carry no flag; drop any stale one
+                    self._flags.pop(value, None)
+
+    def register_module(
+        self,
+        source_cls: type,
+        *,
+        get_state: ARCallableType | None = None,
+        translate_state: ARCallableType | None = None,
+        multi: bool = False,
+    ) -> None:
+        """Register a module's standard callables for `source_cls`."""
+
+        callables: dict[str, ARCallableEntry] = {
+            name: (func, True) if multi else func
+            for name, func in (
+                (AR_CALL_GET_STATE, get_state),
+                (AR_CALL_TRANSLATE_STATE, translate_state),
+            )
+            if func is not None
+        }
+        self.register(source_cls, **callables)
 
     def unregister(self, source_cls: type) -> None:
         """Remove all registrations for a source class."""
