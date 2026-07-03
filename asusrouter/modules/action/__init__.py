@@ -2,6 +2,21 @@
 
 from __future__ import annotations
 
+from enum import StrEnum
+
+from asusrouter.const import UNKNOWN_MEMBER_STR
+from asusrouter.tools.enum import FromStrMixin
+
+
+class ARActionType(FromStrMixin, StrEnum):
+    """A modification applied to a device list, reusable across modules."""
+
+    UNKNOWN = UNKNOWN_MEMBER_STR
+
+    ADD = "add"
+    CLEAN = "clean"
+    REMOVE = "remove"
+
 
 class ARAction:
     """AsusRouter action.
@@ -31,3 +46,9 @@ class ARAction:
         """Representation of the action."""
 
         return f"<{type(self).__name__}>"
+
+
+__all__ = [
+    "ARAction",
+    "ARActionType",
+]

@@ -18,6 +18,12 @@ from asusrouter.modules.endpoint_v2 import (
     get_endpoint_request_type,
 )
 from asusrouter.modules.nvram import ARNvramType
+from asusrouter.modules.ping.targets import (
+    ARPingTarget,
+    ARPingTargetsAction,
+    ARPingTargetsSource,
+    ARPingTargetsSourceUniversal,
+)
 from asusrouter.modules.source import ARDataSource
 from asusrouter.registry import ARCallableRegistry as ARCallReg
 from asusrouter.tools.converters_v2.raw import (
@@ -260,6 +266,10 @@ __all__ = [
     "ARPingSource",
     "ARPingSourceUniversal",
     "ARPingStatus",
+    "ARPingTarget",
+    "ARPingTargetsAction",
+    "ARPingTargetsSource",
+    "ARPingTargetsSourceUniversal",
     "get_state",
     "run_action",
     "translate_state",

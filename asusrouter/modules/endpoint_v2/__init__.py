@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from enum import StrEnum
+import json
 from typing import Any
 
 from asusrouter.const import UNKNOWN_MEMBER_STR, RequestType
@@ -104,6 +105,26 @@ def get_endpoint_sensitive(endpoint: AREndpoint) -> bool:
     """Check if the given endpoint is sensitive."""
 
     return get_endpoint_meta(endpoint).sensitive
+
+
+# PUSH_DATA (applyapp.cgi) request body
+ACTION_MODE_KEY = "action_mode"
+ACTION_MODE_APPLY = "apply"
+
+
+def build_push_request(
+    action_mode: str, payload: Mapping[str, Any] | None = None
+) -> str:
+    """Build a PUSH_DATA (applyapp.cgi) request body.
+
+    The endpoint expects a compact JSON object with an `action_mode` and
+    optional command fields; the connection URL-encodes it on the wire.
+    """
+
+    commands: dict[str, Any] = {ACTION_MODE_KEY: action_mode}
+    if payload:
+        commands.update(payload)
+    return json.dumps(commands, separators=(",", ":"))
 
 
 _ENDPOINT_READER: dict[AREndpoint, Callable[[str], dict[str, Any]]] = {
