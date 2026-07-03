@@ -121,6 +121,41 @@ def test_register_plain_callable_resets_flag_to_false() -> None:
     assert ARCallReg.get_callable(A(), "get_state") is get_state
 
 
+def test_register_action_registers_both_callables() -> None:
+    """register_action wires run_action and translate_action by class."""
+
+    class A:
+        pass
+
+    def run_action(callback: Any, action: Any) -> str:
+        return "run"
+
+    def translate_action(result: Any) -> str:
+        return "translated"
+
+    ARCallReg.register_action(
+        A, run_action=run_action, translate_action=translate_action
+    )
+
+    assert ARCallReg.get_callable(A(), "run_action") is run_action
+    assert ARCallReg.get_callable(A(), "translate_action") is translate_action
+
+
+def test_register_action_skips_missing_callables() -> None:
+    """register_action registers only the callables that are provided."""
+
+    class A:
+        pass
+
+    def run_action(callback: Any, action: Any) -> str:
+        return "run"
+
+    ARCallReg.register_action(A, run_action=run_action)
+
+    assert ARCallReg.get_callable(A(), "run_action") is run_action
+    assert ARCallReg.get_callable(A(), "translate_action") is None
+
+
 def test_get_callable_flag_returns_false_when_source_is_not_callable() -> None:
     """Test get_callable_flag returns False for non-callables."""
 

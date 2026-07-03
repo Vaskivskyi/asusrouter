@@ -11,6 +11,8 @@ from unittest.mock import ANY, AsyncMock, Mock
 import pytest
 
 from asusrouter.asusrouter import AsusRouter
+from asusrouter.const import AR_CALL_RUN_ACTION
+from asusrouter.modules.action import ARAction
 from asusrouter.modules.aimesh.topology import ARAiMeshTopology
 from asusrouter.modules.boottime import ARBoottime
 from asusrouter.modules.device import ARDeviceSourceUniversal
@@ -23,6 +25,7 @@ from asusrouter.modules.source import (
     ARDataStateStatic,
     ARDataTypeGeneric,
 )
+from asusrouter.registry import ARCallableRegistry as ARCallReg
 from tests.helpers import (
     BindStateFactory,
     MakeStateFactory,
@@ -273,6 +276,27 @@ class TestAsyncRefreshDataState:
         state_caller.assert_awaited_once()
 
     @pytest.mark.asyncio
+    async def test_refresh_kwarg_passes_through(
+        self,
+        router: AsusRouter,
+        source: ARDataSource,
+        bind_state: BindStateFactory,
+    ) -> None:
+        """A `refresh` kwarg reaches the caller without colliding."""
+
+        state_caller = AsyncMock(return_value={"a": 1})
+        bind_state(source, caller=state_caller)
+
+        collection = ARDataCollection.from_value(source)
+        assert collection is not None
+        await router._async_refresh_data_state(
+            collection, force=True, refresh=True
+        )
+
+        state_caller.assert_awaited_once()
+        assert state_caller.await_args.kwargs["refresh"] is True
+
+    @pytest.mark.asyncio
     async def test_batch_caller(
         self,
         router: AsusRouter,
@@ -512,6 +536,8 @@ class TestAsyncFetchData:
         assert callback.keywords == {"force": True}
         # Raw fetch is injected for readers that need unparsed content
         assert call.kwargs["raw_callback"] == router.async_fetch
+        # Action trigger is injected so a fetch module can run an action
+        assert call.kwargs["run_action_callback"] == router.async_run_action
         assert result is None
 
     @pytest.mark.asyncio
@@ -598,6 +624,70 @@ class TestAsyncFetchData:
         await router._async_handle_reboot()
 
         assert identity.rebooted is False
+
+
+class TestAsyncRunAction:
+    """Tests for AsusRouter.async_run_action."""
+
+    @pytest.mark.asyncio
+    async def test_no_caller_returns_none(
+        self, router: AsusRouter, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Returns None when no run_action is registered for the action."""
+
+        monkeypatch.setattr(ARCallReg, "get_callable", Mock(return_value=None))
+        assert await router.async_run_action(ARAction()) is None
+
+    @pytest.mark.asyncio
+    async def test_runs_and_returns_raw(
+        self, router: AsusRouter, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Runs the action with fetch-style callbacks; result not cached."""
+
+        run = AsyncMock(return_value="raw")
+
+        def get_callable(action: Any, name: str) -> Any:
+            return run if name == AR_CALL_RUN_ACTION else None
+
+        monkeypatch.setattr(ARCallReg, "get_callable", get_callable)
+
+        action = ARAction()
+        result = await router.async_run_action(action, extra_kw="x")
+
+        assert result == "raw"
+        run.assert_awaited_once()
+        call = run.await_args
+        assert call.args == (router.async_read, action)
+        kw = call.kwargs
+        assert isinstance(kw["identity"], ARDeviceIdentity)
+        assert kw["raw_callback"] == router.async_fetch
+        assert kw["run_action_callback"] == router.async_run_action
+        assert kw["extra_kw"] == "x"
+        callback = kw["get_data_callback"]
+        assert isinstance(callback, partial)
+        assert callback.func == router.async_fetch_data
+        assert callback.keywords == {"force": True}
+        # Action results are never stored
+        assert router._data_states == {}
+
+    @pytest.mark.asyncio
+    async def test_translate_applied(
+        self, router: AsusRouter, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A registered translate_action transforms the raw result."""
+
+        run = AsyncMock(return_value="raw")
+        translate = Mock(return_value="translated")
+
+        def get_callable(action: Any, name: str) -> Any:
+            return run if name == AR_CALL_RUN_ACTION else translate
+
+        monkeypatch.setattr(ARCallReg, "get_callable", get_callable)
+
+        result = await router.async_run_action(ARAction())
+
+        assert result == "translated"
+        assert translate.call_args.args == ("raw",)
 
 
 class TestTranslateMultidataBatch:

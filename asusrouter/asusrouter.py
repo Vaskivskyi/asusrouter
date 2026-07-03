@@ -24,6 +24,8 @@ from asusrouter.config.connection import (
 from asusrouter.connection import Connection
 from asusrouter.const import (
     AR_CALL_GET_STATE,
+    AR_CALL_RUN_ACTION,
+    AR_CALL_TRANSLATE_ACTION,
     AR_CALL_TRANSLATE_STATE,
     DEFAULT_CACHE_TIME,
     DEFAULT_CACHE_TIME_V2,
@@ -35,6 +37,7 @@ from asusrouter.error import (
     AsusRouterConnectionError,
     AsusRouterDataError,
 )
+from asusrouter.modules.action import ARAction
 from asusrouter.modules.aimesh import ARAiMeshSourceUniversal
 from asusrouter.modules.aimesh.topology import ARAiMeshTopology
 from asusrouter.modules.boottime import ARBoottime, ARBoottimeSourceUniversal
@@ -553,12 +556,12 @@ class AsusRouter:
 
     async def _async_refresh_states(
         self,
-        refresh: list[ARDataState],
+        states: list[ARDataState],
         **kwargs: Any,
     ) -> None:
         """Fetch all the given states, fanning out caller groups."""
 
-        matrix = _get_call_matrix(refresh)
+        matrix = _get_call_matrix(states)
         identity = self.description
         kwargs["connection_config"] = self.connection_config
 
@@ -584,7 +587,7 @@ class AsusRouter:
             results = await asyncio.gather(*tasks, return_exceptions=True)
         finally:
             # Always wake waiters, even on errors, to avoid deadlocks
-            for state in refresh:
+            for state in states:
                 state.end_refresh()
         for result in results:
             if isinstance(result, BaseException):
@@ -603,7 +606,7 @@ class AsusRouter:
 
         # Split into states to refresh here and states already being
         # refreshed by a concurrent caller (awaited instead of refetched)
-        refresh: list[ARDataState] = []
+        states: list[ARDataState] = []
         pending: list[ARDataState] = []
         for item in collection:
             state = data_states.get(item)
@@ -613,10 +616,10 @@ class AsusRouter:
                 pending.append(state)
             elif force or not state.is_fresh(threshold):
                 state.begin_refresh()
-                refresh.append(state)
+                states.append(state)
 
-        if refresh:
-            await self._async_refresh_states(refresh, force=force, **kwargs)
+        if states:
+            await self._async_refresh_states(states, force=force, **kwargs)
 
         # Wait for refreshes started by concurrent callers (after our own
         # fetches, so two interdependent callers cannot deadlock)
@@ -663,6 +666,8 @@ class AsusRouter:
         )
         # Raw fetch for readers that must see unparsed content
         kwargs["raw_callback"] = self.async_fetch
+        # Let a fetch module trigger an action while resolving its data
+        kwargs["run_action_callback"] = self.async_run_action
 
         data_state = await self._async_get_data_state(
             source, force=force, **kwargs
@@ -682,6 +687,32 @@ class AsusRouter:
             if state.is_fresh(threshold)
         }
         return result or None
+
+    async def async_run_action(self, action: ARAction, **kwargs: Any) -> Any:
+        """Run an action or push data to the device."""
+
+        _LOGGER.debug("Triggered method async_run_action: %s", action)
+
+        run_caller = ARCallReg.get_callable(action, AR_CALL_RUN_ACTION)
+        if run_caller is None:
+            return None
+
+        kwargs["get_data_callback"] = partial(
+            self.async_fetch_data, force=True
+        )
+        kwargs["raw_callback"] = self.async_fetch
+        kwargs["run_action_callback"] = self.async_run_action
+
+        raw = await run_caller(
+            self.async_read, action, identity=self.description, **kwargs
+        )
+
+        translate_caller = ARCallReg.get_callable(
+            action, AR_CALL_TRANSLATE_ACTION
+        )
+        if translate_caller is None:
+            return raw
+        return translate_caller(raw, identity=self.description, **kwargs)
 
     async def _async_handle_reboot(self) -> None:
         """Handle a detected device reboot (V2)."""
