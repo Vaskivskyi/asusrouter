@@ -783,10 +783,6 @@ class AsusRouter:
         if not support_available(support, ARSupportType.DSL):
             remove_data_rule(AsusData.DSL)
 
-        if not support_available(support, ARSupportType.SPEEDTEST):
-            remove_data_rule(AsusData.SPEEDTEST)
-            remove_data_rule(AsusData.SPEEDTEST_RESULT)
-
     async def async_api_query(
         self, endpoint: AREndpoint, payload: str | None = None
     ) -> tuple[int, dict[str, str], str]:

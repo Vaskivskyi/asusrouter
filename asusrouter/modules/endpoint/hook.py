@@ -30,7 +30,6 @@ from asusrouter.modules.wifi import ARWiFiBand
 from asusrouter.modules.wlan import MAP_GWLAN, MAP_WLAN
 from asusrouter.tools.converters import (
     run_method,
-    safe_datetime,
     safe_unpack_key,
     safe_unpack_keys,
 )
@@ -43,7 +42,6 @@ from asusrouter.tools.readers import merge_dicts
 
 from .hook_const import (
     MAP_OVPN_SERVER_388,
-    MAP_SPEEDTEST,
     MAP_VPNC_WIREGUARD,
     MAP_WIREGUARD_CLIENT,
     MAP_WIREGUARD_SERVER,
@@ -53,7 +51,6 @@ REQUIRE_WLAN = True
 
 _LOGGER = logging.getLogger(__name__)
 
-_SPEEDTEST_MIN_STEPS = 2
 _VPNC_PART_MIN_FIELDS = 7
 
 
@@ -108,12 +105,6 @@ def process(data: dict[str, Any]) -> dict[AsusData, Any]:  # noqa: C901, PLR0912
     # Port forwarding
     if KEY_PORT_FORWARDING_STATE in data:
         state[AsusData.PORT_FORWARDING] = process_port_forwarding(data)
-
-    # Speedtest
-    if "ookla_state" in data:
-        speedtest = process_speedtest(data)
-        state[AsusData.SPEEDTEST_RESULT] = speedtest.get("result")
-        state[AsusData.SPEEDTEST] = speedtest.get("data")
 
     # VPNC
     if "vpnc_clientlist" in data:
@@ -243,74 +234,6 @@ def process_port_forwarding(data: dict[str, Any]) -> dict[str, Any]:
         port_forwarding["rules"] = rules.copy()
 
     return port_forwarding
-
-
-def process_speedtest(data: dict[str, Any]) -> dict[str, Any]:
-    """Process Speedtest data."""
-
-    speedtest: dict[str, Any] = {}
-
-    # Convert the data
-    for keys in MAP_SPEEDTEST:
-        key, key_to_use, method = safe_unpack_keys(keys)
-        state_value = data.get(key)
-        if state_value:
-            speedtest[key_to_use] = run_method(state_value, method)
-
-    # Get detailed result
-    test_result = speedtest.pop("result", None)
-
-    # Get the last speedtest step
-    last_run_step: dict[str, Any] = process_speedtest_last_step(test_result)
-
-    # Save the last tested data directly in the speedtest dict
-    speedtest.update(dict(last_run_step.items()))
-
-    # Convert the timestamp to UTC
-    speedtest["timestamp"] = safe_datetime(speedtest.get("timestamp"))
-
-    # Rename servers list
-    if "download" in speedtest:
-        speedtest["download"]["server_list"] = speedtest["download"].pop(
-            "servers", None
-        )
-
-    # convert bandwidth from Bps to bps
-    for speed in ("download", "upload"):
-        if speed in speedtest:
-            speedtest[speed]["bandwidth"] = 8 * speedtest[speed].get(
-                "bandwidth", 0
-            )
-
-    # Remove extra values
-    speedtest.pop("type", None)
-
-    return {
-        "data": speedtest,
-        "result": test_result,
-    }
-
-
-def process_speedtest_last_step(
-    data: list[dict[str, Any]] | None,
-) -> dict[str, Any]:
-    """Process Speedtest progress data."""
-
-    last_step: dict[str, Any] = {}
-
-    # Check the length of the data
-    if not data or len(data) < _SPEEDTEST_MIN_STEPS:
-        return last_step
-
-    # Check the last step
-    last_step = data[-2]
-
-    # If the last step is a result, then the test is finished
-    # and we already have all the data
-    if last_step.get("type") != "result":
-        return {}
-
-    return last_step
 
 
 def process_vpnc(  # noqa: C901

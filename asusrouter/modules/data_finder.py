@@ -52,15 +52,6 @@ ASUSDATA_REQUEST = {
     "devices": [
         ("get_clientlist", ""),
     ],
-    "speedtest": [
-        ("ookla_speedtest_get_result", ""),
-    ],
-    # "speedtest_history": [
-    #     ("ookla_speedtest_get_history", ""),
-    # ],
-    # "speedtest_servers": [
-    #     ("ookla_speedtest_get_servers", ""),
-    # ],
     "vpnc": [
         ("get_vpnc_status", ""),
     ],
@@ -98,7 +89,6 @@ ASUSDATA_NVRAM = {
         "vts_rulelist",
         "vts_enable_x",
     ],
-    "speedtest": ["ookla_state"],
     "vpnc": [
         "vpnc_clientlist",
     ],
@@ -157,18 +147,6 @@ ASUSDATA_MAP: dict[AsusData, AsusData | AsusDataFinder] = {
     AsusData.PORT_FORWARDING: AsusDataFinder(
         AREndpoint.FETCH_DATA, nvram=ASUSDATA_NVRAM["port_forwarding"]
     ),
-    AsusData.SPEEDTEST: AsusDataFinder(
-        AREndpoint.FETCH_DATA,
-        nvram=ASUSDATA_NVRAM["speedtest"],
-        request=ASUSDATA_REQUEST["speedtest"],
-    ),
-    # AsusData.SPEEDTEST_HISTORY: AsusDataFinder(
-    #     AREndpoint.FETCH_DATA, request=ASUSDATA_REQUEST["speedtest_history"]
-    # ),
-    AsusData.SPEEDTEST_RESULT: AsusData.SPEEDTEST,
-    # AsusData.SPEEDTEST_SERVERS: AsusDataFinder(
-    #     AREndpoint.FETCH_DATA, request=ASUSDATA_REQUEST["speedtest_servers"]
-    # ),
     AsusData.VPNC: AsusDataFinder(
         AREndpoint.FETCH_DATA,
         nvram=ASUSDATA_NVRAM["vpnc"],
