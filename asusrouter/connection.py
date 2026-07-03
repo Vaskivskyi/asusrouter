@@ -50,7 +50,11 @@ from asusrouter.error import (
     AsusRouterTimeoutError,
 )
 from asusrouter.modules.endpoint.error import handle_access_error
-from asusrouter.modules.endpoint_v2 import AREndpoint, get_endpoint_sensitive
+from asusrouter.modules.endpoint_v2 import (
+    AREndpoint,
+    get_endpoint_raw_payload,
+    get_endpoint_sensitive,
+)
 from asusrouter.tools.connection import get_cookie_jar
 from asusrouter.tools.converters_v2.raw import raw_to_str
 from asusrouter.tools.security import ARSecurityLevel
@@ -701,8 +705,14 @@ class Connection:  # pylint: disable=too-many-instance-attributes
         if request_type == RequestType.GET and payload:
             url = f"{url}?{payload.replace(';', '&')}"
 
-        if request_type == RequestType.POST:
-            payload_to_send = quote(payload) if payload else None
+        if request_type == RequestType.POST and payload:
+            # Some CGIs use a standard form parser and need the body verbatim;
+            # re-quoting would corrupt the `=`/`&` separators
+            payload_to_send = (
+                payload
+                if get_endpoint_raw_payload(endpoint)
+                else quote(payload)
+            )
         else:
             payload_to_send = None
 

@@ -561,6 +561,27 @@ class TestMakeRequest:
             ssl=conn.config.get(ARCCKey.VERIFY_SSL),
         )
 
+    async def test_raw_payload_endpoint_not_quoted(
+        self,
+        connection_factory: ConnectionFactory,
+    ) -> None:
+        """A raw-payload POST endpoint sends the body verbatim."""
+
+        conn = connection_factory()
+        mock_session = self._setup_conn(conn)
+        mock_session.request = MagicMock(
+            return_value=self._make_response_cm(200, {}, "ok")
+        )
+
+        await conn._make_request(
+            AREndpoint.RUN_SPEEDTEST,
+            payload="type=&id=",
+            request_type=RequestType.POST,
+        )
+
+        # The form-encoded body must survive without re-quoting
+        assert mock_session.request.call_args.kwargs["data"] == "type=&id="
+
     async def test_semaphore_bounds_concurrent_requests(
         self,
         connection_factory: ConnectionFactory,

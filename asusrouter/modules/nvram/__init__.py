@@ -130,6 +130,10 @@ class ARNvramType(ARDataType):
     SAMBA_MODE = "st_samba_mode"
     SAMBA_STATE = "enable_samba"
 
+    # SpeedTest
+    OOKLA_START_TIME = "ookla_start_time"
+    OOKLA_STATE = "ookla_state"
+
     # WAN
     LINK_INTERNET = "link_internet"
     LINK_WAN0 = "link_wan"

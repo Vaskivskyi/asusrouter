@@ -23,6 +23,11 @@ class ARHook(FromStrMixin, StrEnum):
     UI_SUPPORT = "get_ui_support"
     UPTIME = "uptime"
 
+    # SpeedTest
+    OOKLA_SPEEDTEST_HISTORY = "ookla_speedtest_get_history"
+    OOKLA_SPEEDTEST_RESULT = "ookla_speedtest_get_result"
+    OOKLA_SPEEDTEST_SERVERS = "ookla_speedtest_get_servers"
+
     # Traffic
     NETDEV = "netdev"
 

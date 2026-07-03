@@ -46,7 +46,10 @@ class AREndpoint(FromStrMixin, StrEnum):
     # Write endpoints
     PUSH_DATA = "applyapp.cgi"
     RUN_PING = "dns_ping.cgi"
+    RUN_SPEEDTEST = "ookla_speedtest_exe.cgi"
     SET_AURA = "set_ledg.cgi"
+    SET_SPEEDTEST_START_TIME = "set_ookla_speedtest_start_time.cgi"
+    WRITE_SPEEDTEST_HISTORY = "ookla_speedtest_write_history.cgi"
 
     # Service endpoints
     LOGIN = "login.cgi"
@@ -71,10 +74,12 @@ class AREndpointMeta:
 
     request_type: RequestType = RequestType.POST
     sensitive: bool = False
+    raw_payload: bool = False
 
 
 _DEFAULT_META = AREndpointMeta()
 _GET_META = AREndpointMeta(request_type=RequestType.GET)
+_RAW_POST_META = AREndpointMeta(raw_payload=True)
 
 _ENDPOINT_META: dict[AREndpoint, AREndpointMeta] = {
     AREndpoint.FETCH_DIAGNOSTICS_DATA: _GET_META,
@@ -85,6 +90,9 @@ _ENDPOINT_META: dict[AREndpoint, AREndpointMeta] = {
     AREndpoint.FETCH_TRAFFIC_WIFI: _GET_META,
     AREndpoint.FETCH_UPDATE: _GET_META,
     AREndpoint.RUN_PING: _GET_META,
+    AREndpoint.RUN_SPEEDTEST: _RAW_POST_META,
+    AREndpoint.SET_SPEEDTEST_START_TIME: _RAW_POST_META,
+    AREndpoint.WRITE_SPEEDTEST_HISTORY: _RAW_POST_META,
     AREndpoint.LOGIN: AREndpointMeta(sensitive=True),
 }
 
@@ -105,6 +113,12 @@ def get_endpoint_sensitive(endpoint: AREndpoint) -> bool:
     """Check if the given endpoint is sensitive."""
 
     return get_endpoint_meta(endpoint).sensitive
+
+
+def get_endpoint_raw_payload(endpoint: AREndpoint) -> bool:
+    """Check if the endpoint's POST body must be sent verbatim."""
+
+    return get_endpoint_meta(endpoint).raw_payload
 
 
 # PUSH_DATA (applyapp.cgi) request body
