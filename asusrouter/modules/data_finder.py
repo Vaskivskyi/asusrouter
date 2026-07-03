@@ -154,7 +154,6 @@ ASUSDATA_MAP: dict[AsusData, AsusData | AsusDataFinder] = {
     AsusData.PARENTAL_CONTROL: AsusDataFinder(
         AREndpoint.FETCH_DATA, nvram=ASUSDATA_NVRAM["parental_control"]
     ),
-    AsusData.PING: AsusDataFinder(AREndpoint.FETCH_NETWORK),
     AsusData.PORT_FORWARDING: AsusDataFinder(
         AREndpoint.FETCH_DATA, nvram=ASUSDATA_NVRAM["port_forwarding"]
     ),

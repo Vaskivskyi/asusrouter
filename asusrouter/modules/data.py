@@ -23,7 +23,6 @@ class AsusData(StrEnum):
     OPENVPN_CLIENT = "openvpn_client"
     OPENVPN_SERVER = "openvpn_server"
     PARENTAL_CONTROL = "parental_control"
-    PING = "ping"
     PORT_FORWARDING = "port_forwarding"
     SPEEDTEST = "speedtest"
     # SPEEDTEST_HISTORY = "speedtest_history"
