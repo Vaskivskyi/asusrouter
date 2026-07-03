@@ -39,13 +39,6 @@ MAP_OVPN_SERVER_388 = (
     ("VPNServer_enable", "state", [raw_to_int, AsusOVPNServer]),
 )
 
-MAP_SPEEDTEST = (
-    ("ookla_state", "state", raw_to_int),
-    ("ookla_speedtest_get_history", "history"),
-    ("ookla_speedtest_get_servers", "servers"),
-    ("ookla_speedtest_get_result", "result"),
-)
-
 MAP_WIREGUARD_SERVER = (
     ("wgs_enable", "state", [raw_to_int, AsusWireGuardServer]),
     ("wgs_lanaccess", "lan_access", raw_to_bool),
