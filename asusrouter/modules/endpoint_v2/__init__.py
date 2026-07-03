@@ -44,6 +44,7 @@ class AREndpoint(FromStrMixin, StrEnum):
 
     # Write endpoints
     PUSH_DATA = "applyapp.cgi"
+    RUN_PING = "dns_ping.cgi"
     SET_AURA = "set_ledg.cgi"
 
     # Service endpoints
@@ -82,6 +83,7 @@ _ENDPOINT_META: dict[AREndpoint, AREndpointMeta] = {
     AREndpoint.FETCH_TRAFFIC_ETHERNET: _GET_META,
     AREndpoint.FETCH_TRAFFIC_WIFI: _GET_META,
     AREndpoint.FETCH_UPDATE: _GET_META,
+    AREndpoint.RUN_PING: _GET_META,
     AREndpoint.LOGIN: AREndpointMeta(sensitive=True),
 }
 

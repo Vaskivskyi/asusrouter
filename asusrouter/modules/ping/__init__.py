@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import StrEnum
@@ -9,7 +10,9 @@ import logging
 from typing import Any
 
 from asusrouter.const import UNKNOWN_MEMBER_STR
+from asusrouter.modules.action import ARAction
 from asusrouter.modules.common.metrics import ARMetricType
+from asusrouter.modules.common.status import STATUS_CODE_KEY, ARStatusCode
 from asusrouter.modules.endpoint_v2 import (
     AREndpoint,
     get_endpoint_request_type,
@@ -31,16 +34,8 @@ from asusrouter.tools.writers import dict_to_request
 
 _LOGGER = logging.getLogger(__name__)
 
-# Diagnostics db holding the last ping run results
-_DIAG_DB = "dns_ping"
-_DIAG_REQUEST_TYPE = get_endpoint_request_type(
-    AREndpoint.FETCH_DIAGNOSTICS_DATA
-)
 
-# Poll dns_ping_state until the run finishes before reading results,
-# otherwise the router may return empty or partial rows
-_POLL_INTERVAL = 1.0
-_POLL_ATTEMPTS = 5
+# Data model
 
 
 class ARPingStatus(FromStrMixin, StrEnum):
@@ -60,6 +55,38 @@ class ARPingResult:
     timestamp: int | None = None
     metrics: dict[ARMetricType, float | int] = field(default_factory=dict)
 
+
+# Sources and actions
+
+
+class ARPingSource(ARDataSource):
+    """AsusRouter ping data source."""
+
+
+# Universal instance - preferred
+ARPingSourceUniversal: ARPingSource = ARPingSource()
+
+
+class ARPingAction(ARAction):
+    """Run a DNS ping against the configured targets."""
+
+
+# Fetch
+
+# Diagnostics db holding the last ping run results
+_DIAG_DB = "dns_ping"
+_DIAG_REQUEST_TYPE = get_endpoint_request_type(
+    AREndpoint.FETCH_DIAGNOSTICS_DATA
+)
+
+# Poll dns_ping_state until the run finishes before reading results,
+# otherwise the router may return empty or partial rows
+_POLL_INTERVAL = 1.0
+_POLL_ATTEMPTS = 15
+
+# The router needs a moment to spin up the run after the trigger returns;
+# polling sooner still sees the previous run and reads stale/absent results
+_RUN_START_DELAY = 1.0
 
 # Diagnostics content columns, in request/response order
 _CONTENT_COLUMNS = (
@@ -89,14 +116,6 @@ _METRIC_COLUMNS: tuple[tuple[str, ARMetricType, Any], ...] = (
     ("pkt_recv", ARMetricType.PACKETS_RECEIVED, raw_to_int),
     ("pkt_loss_rate", ARMetricType.PACKET_LOSS, raw_to_float),
 )
-
-
-class ARPingSource(ARDataSource):
-    """AsusRouter ping data source."""
-
-
-# Universal instance - preferred
-ARPingSourceUniversal: ARPingSource = ARPingSource()
 
 
 def _build_request() -> str:
@@ -136,13 +155,27 @@ async def get_state(
     source: ARPingSource,
     *,
     get_data_callback: ARCallbackType | None = None,
+    run_action_callback: ARCallbackType | None = None,
+    refresh: bool = False,
     **kwargs: Any,
 ) -> Any:
-    """Fetch ping results, gated on the run finishing."""
+    """Fetch ping results; with `refresh`, run a fresh ping first."""
 
     if get_data_callback is None:
         return None
 
+    # Optionally trigger a fresh run
+    if refresh:
+        if run_action_callback is None:
+            return None
+        if not await run_action_callback(ARPingAction()):
+            _LOGGER.debug("Ping run did not start; dropping results")
+            return None
+        # Give the router time to start the run before polling status
+        await asyncio.sleep(_RUN_START_DELAY)
+
+    # A run may be in progress (ours or an unrelated trigger); wait it out
+    # before reading, or drop stale/partial data
     if not await _async_wait_finished(get_data_callback):
         _LOGGER.debug("Ping run did not finish; dropping results")
         return None
@@ -200,16 +233,34 @@ def translate_state(data: Any, **kwargs: Any) -> dict[IpAddress, ARPingResult]:
     return result
 
 
+# Action
+
+
+async def run_action(
+    callback: ARCallbackType, action: ARPingAction, **kwargs: Any
+) -> bool:
+    """Run a DNS ping against the configured targets."""
+
+    data = await callback(endpoint=AREndpoint.RUN_PING, request=None)
+    code = data.get(STATUS_CODE_KEY) if isinstance(data, dict) else None
+    return ARStatusCode.from_value(code) is ARStatusCode.SUCCESS
+
+
+# Registration
+
 ARCallReg.register_module(
     ARPingSource, get_state=get_state, translate_state=translate_state
 )
+ARCallReg.register_action(ARPingAction, run_action=run_action)
 
 
 __all__ = [
+    "ARPingAction",
     "ARPingResult",
     "ARPingSource",
     "ARPingSourceUniversal",
     "ARPingStatus",
     "get_state",
+    "run_action",
     "translate_state",
 ]

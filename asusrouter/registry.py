@@ -5,7 +5,12 @@ from __future__ import annotations
 import threading
 from typing import Any
 
-from asusrouter.const import AR_CALL_GET_STATE, AR_CALL_TRANSLATE_STATE
+from asusrouter.const import (
+    AR_CALL_GET_STATE,
+    AR_CALL_RUN_ACTION,
+    AR_CALL_TRANSLATE_ACTION,
+    AR_CALL_TRANSLATE_STATE,
+)
 from asusrouter.tools.types import ARCallableType
 
 ARCallableEntry = ARCallableType | tuple[ARCallableType, bool]
@@ -57,6 +62,25 @@ class ARCallableRegistryBase:
             if func is not None
         }
         self.register(source_cls, **callables)
+
+    def register_action(
+        self,
+        action_cls: type,
+        *,
+        run_action: ARCallableType | None = None,
+        translate_action: ARCallableType | None = None,
+    ) -> None:
+        """Register a module's action callables for `action_cls`."""
+
+        callables: dict[str, ARCallableEntry] = {
+            name: func
+            for name, func in (
+                (AR_CALL_RUN_ACTION, run_action),
+                (AR_CALL_TRANSLATE_ACTION, translate_action),
+            )
+            if func is not None
+        }
+        self.register(action_cls, **callables)
 
     def unregister(self, source_cls: type) -> None:
         """Remove all registrations for a source class."""
