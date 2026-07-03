@@ -12,6 +12,7 @@ from asusrouter.modules.endpoint_v2 import (
     AREndpointMeta,
     build_push_request,
     get_endpoint_meta,
+    get_endpoint_raw_payload,
     get_endpoint_reader,
     get_endpoint_request_type,
     get_endpoint_sensitive,
@@ -127,6 +128,22 @@ def test_get_endpoint_sensitive_others(endpoint: AREndpoint) -> None:
     """Non-login endpoints are not sensitive."""
 
     assert get_endpoint_sensitive(endpoint) is False
+
+
+@pytest.mark.parametrize(
+    "endpoint",
+    [AREndpoint.RUN_SPEEDTEST, AREndpoint.SET_SPEEDTEST_START_TIME],
+)
+def test_get_endpoint_raw_payload_true(endpoint: AREndpoint) -> None:
+    """The speedtest form endpoints send their body verbatim."""
+
+    assert get_endpoint_raw_payload(endpoint) is True
+
+
+def test_get_endpoint_raw_payload_default() -> None:
+    """Other endpoints have their body quoted by default."""
+
+    assert get_endpoint_raw_payload(AREndpoint.LOGIN) is False
 
 
 _CUSTOM_READERS = {
