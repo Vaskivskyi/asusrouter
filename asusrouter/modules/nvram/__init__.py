@@ -75,6 +75,7 @@ class ARNvramType(ARDataType):
     DDNS_RETURN_CODE_CHK = "ddns_return_code_chk"
 
     # DNS
+    DNS_PING_LIST = "dns_ping_list"
     DNS_PING_STATUS = "dns_ping_state"
 
     # Dual WAN

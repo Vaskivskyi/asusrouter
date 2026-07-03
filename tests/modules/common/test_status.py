@@ -6,7 +6,11 @@ from typing import Any
 
 import pytest
 
-from asusrouter.modules.common.status import STATUS_CODE_KEY, ARStatusCode
+from asusrouter.modules.common.status import (
+    MODIFY_KEY,
+    STATUS_CODE_KEY,
+    ARStatusCode,
+)
 
 
 class TestARStatusCode:
@@ -16,6 +20,11 @@ class TestARStatusCode:
         """The status code key matches the device response field."""
 
         assert STATUS_CODE_KEY == "statusCode"
+
+    def test_modify_key(self) -> None:
+        """The modify key matches the applyapp response field."""
+
+        assert MODIFY_KEY == "modify"
 
     def test_success_value(self) -> None:
         """SUCCESS maps to its string value."""
