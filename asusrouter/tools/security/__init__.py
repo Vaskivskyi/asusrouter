@@ -12,6 +12,7 @@ from asusrouter.tools.security.sensitive import (
     REDACTED,
     REDACTED_STR,
     ARSensitive,
+    Sensitive,
     render,
 )
 
@@ -20,6 +21,7 @@ __all__ = [
     "REDACTED_STR",
     "ARSecurityLevel",
     "ARSensitive",
+    "Sensitive",
     "configure_key",
     "get_key_hex",
     "hmac_digest",

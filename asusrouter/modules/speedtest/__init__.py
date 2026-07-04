@@ -163,7 +163,11 @@ def _log_stream(events: Any) -> None:
         return
 
     if not isinstance(events, list):
-        _LOGGER.debug("Speedtest stream: not a list (%r)", events)
+        # Do not dump the payload - its contents are unknown and may be
+        # sensitive; the type alone is enough to diagnose
+        _LOGGER.debug(
+            "Speedtest stream: not a list (type=%s)", type(events).__name__
+        )
         return
 
     last_type: Any = None

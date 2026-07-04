@@ -12,14 +12,15 @@ from asusrouter.modules.endpoint_v2 import (
     AREndpointMeta,
     build_push_request,
     get_endpoint_meta,
+    get_endpoint_payload_sensitivity,
     get_endpoint_raw_payload,
     get_endpoint_reader,
     get_endpoint_request_type,
-    get_endpoint_sensitive,
 )
 from asusrouter.modules.endpoint_v2.translate import read_wan_lan_status
 from asusrouter.tools.readers import read_js_variables, read_json_content
 from asusrouter.tools.readers_v2 import read_netdev
+from asusrouter.tools.security import ARSecurityLevel
 
 GET_ENDPOINTS = (
     AREndpoint.FETCH_DIAGNOSTICS_DATA,
@@ -44,11 +45,11 @@ POST_ENDPOINTS = (
 
 
 def test_ar_endpoint_meta_defaults() -> None:
-    """Default meta has POST request_type and sensitive=False."""
+    """Default meta has POST request_type and DEFAULT payload sensitivity."""
 
     meta = AREndpointMeta()
     assert meta.request_type == RequestType.POST
-    assert meta.sensitive is False
+    assert meta.payload_sensitivity is ARSecurityLevel.DEFAULT
 
 
 def test_ar_endpoint_meta_custom_request_type() -> None:
@@ -58,11 +59,11 @@ def test_ar_endpoint_meta_custom_request_type() -> None:
     assert meta.request_type == RequestType.GET
 
 
-def test_ar_endpoint_meta_custom_sensitive() -> None:
-    """Custom sensitive flag is stored correctly."""
+def test_ar_endpoint_meta_custom_sensitivity() -> None:
+    """Custom payload sensitivity is stored correctly."""
 
-    meta = AREndpointMeta(sensitive=True)
-    assert meta.sensitive is True
+    meta = AREndpointMeta(payload_sensitivity=ARSecurityLevel.UNSAFE)
+    assert meta.payload_sensitivity is ARSecurityLevel.UNSAFE
 
 
 @pytest.mark.parametrize("endpoint", GET_ENDPOINTS)
@@ -82,25 +83,26 @@ def test_get_endpoint_meta_post_endpoints(endpoint: AREndpoint) -> None:
 
 
 def test_get_endpoint_meta_login_sensitive() -> None:
-    """LOGIN endpoint is marked as sensitive."""
+    """LOGIN endpoint payload is sensitive (UNSAFE)."""
 
     meta = get_endpoint_meta(AREndpoint.LOGIN)
-    assert meta.sensitive is True
+    assert meta.payload_sensitivity is ARSecurityLevel.UNSAFE
 
 
+_SENSITIVE = (AREndpoint.LOGIN, AREndpoint.WRITE_SPEEDTEST_HISTORY)
 _NON_SENSITIVE = [
     e
     for e in AREndpoint
-    if e is not AREndpoint.LOGIN and e is not AREndpoint.UNKNOWN
+    if e not in _SENSITIVE and e is not AREndpoint.UNKNOWN
 ]
 
 
 @pytest.mark.parametrize("endpoint", _NON_SENSITIVE)
 def test_get_endpoint_meta_not_sensitive(endpoint: AREndpoint) -> None:
-    """Non-login endpoints are not sensitive."""
+    """Non-sensitive endpoints keep the DEFAULT payload sensitivity."""
 
     meta = get_endpoint_meta(endpoint)
-    assert meta.sensitive is False
+    assert meta.payload_sensitivity is ARSecurityLevel.DEFAULT
 
 
 @pytest.mark.parametrize("endpoint", GET_ENDPOINTS)
@@ -117,17 +119,24 @@ def test_get_endpoint_request_type_post(endpoint: AREndpoint) -> None:
     assert get_endpoint_request_type(endpoint) == RequestType.POST
 
 
-def test_get_endpoint_sensitive_login() -> None:
-    """LOGIN endpoint is sensitive."""
+@pytest.mark.parametrize("endpoint", _SENSITIVE)
+def test_get_endpoint_payload_sensitivity_sensitive(
+    endpoint: AREndpoint,
+) -> None:
+    """Sensitive endpoints require UNSAFE to log their payload."""
 
-    assert get_endpoint_sensitive(AREndpoint.LOGIN) is True
+    assert get_endpoint_payload_sensitivity(endpoint) is ARSecurityLevel.UNSAFE
 
 
 @pytest.mark.parametrize("endpoint", _NON_SENSITIVE)
-def test_get_endpoint_sensitive_others(endpoint: AREndpoint) -> None:
-    """Non-login endpoints are not sensitive."""
+def test_get_endpoint_payload_sensitivity_others(
+    endpoint: AREndpoint,
+) -> None:
+    """Non-sensitive endpoints log their payload from DEFAULT."""
 
-    assert get_endpoint_sensitive(endpoint) is False
+    assert (
+        get_endpoint_payload_sensitivity(endpoint) is ARSecurityLevel.DEFAULT
+    )
 
 
 @pytest.mark.parametrize(

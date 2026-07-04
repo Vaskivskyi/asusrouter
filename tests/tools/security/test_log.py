@@ -21,6 +21,7 @@ from asusrouter.tools.security.log import (
     effective_log_level,
     install_log_masking,
     register_log_config,
+    render_for_log,
     unregister_log_config,
 )
 
@@ -233,6 +234,35 @@ class TestEffectiveLogLevel:
         del strict
         gc.collect()
         assert effective_log_level() is ARSecurityLevel.REASONABLE
+
+
+class TestRenderForLog:
+    """Tests for rendering a value at the current log level."""
+
+    def test_masks_at_current_level(self) -> None:
+        """A MAC is rendered against the effective log level."""
+
+        ARConfig.set(ARConfKey.SECURITY_LEVEL_LOG, ARSecurityLevel.SANITIZED)
+        mac = MacAddress.from_value(_MAC)
+
+        result = render_for_log(mac)
+
+        assert isinstance(result, MacAddress)
+        assert result == mac.mask()
+        assert result != mac
+
+    def test_reveals_at_high_level(self) -> None:
+        """A MAC is revealed raw at REASONABLE."""
+
+        ARConfig.set(ARConfKey.SECURITY_LEVEL_LOG, ARSecurityLevel.REASONABLE)
+        mac = MacAddress.from_value(_MAC)
+
+        assert render_for_log(mac) is mac
+
+    def test_non_sensitive_passthrough(self) -> None:
+        """A plain value passes through unchanged."""
+
+        assert render_for_log("plain") == "plain"
 
 
 class TestInstall:

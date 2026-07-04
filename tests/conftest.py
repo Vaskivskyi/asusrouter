@@ -151,27 +151,6 @@ def mock_new_session(
     return _patch
 
 
-@pytest.fixture(name="payload_for_logging")
-def mock_payload_for_logging(
-    universal_mock: UniversalMockPatcher,
-) -> SyncPatch:
-    """Fixture to patch the module-level `_payload_for_logging` function."""
-
-    def _patch(
-        connection: Any, side_effect: Any = None, return_value: Any = None
-    ) -> Mock:
-        patcher = patch("asusrouter.connection._payload_for_logging")
-        mock = patcher.start()
-        universal_mock.patches.append(patcher)
-        if side_effect is not None:
-            mock.side_effect = side_effect
-        elif return_value is not None:
-            mock.return_value = return_value
-        return mock
-
-    return _patch
-
-
 @pytest.fixture(name="reset_auth")
 def mock_reset_auth(
     universal_mock: UniversalMockPatcher,

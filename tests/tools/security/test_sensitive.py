@@ -9,9 +9,10 @@ from asusrouter.tools.security import (
     REDACTED,
     REDACTED_STR,
     ARSecurityLevel,
+    Sensitive,
     render,
 )
-from asusrouter.tools.security.sensitive import ARSensitive, _Redacted
+from asusrouter.tools.security.sensitive import ARSensitive
 
 _MAC = "aa:bb:cc:11:22:33"
 _IP = "192.168.1.10"
@@ -21,11 +22,6 @@ _PASSWORD = "s3cr3t"
 
 class TestRedacted:
     """Tests for the redaction marker."""
-
-    def test_singleton(self) -> None:
-        """Test that the marker is a singleton."""
-
-        assert _Redacted() is REDACTED
 
     def test_str_and_repr(self) -> None:
         """Test the string and repr forms."""
@@ -48,6 +44,52 @@ class TestARSensitiveBase:
         """Test that the base mask returns the redaction marker."""
 
         assert ARSensitive().mask() is REDACTED
+
+
+class TestSensitiveWrapper:
+    """Tests for the generic Sensitive wrapper."""
+
+    def test_default_reveal_level(self) -> None:
+        """The default reveal level is UNSAFE."""
+
+        wrapped = Sensitive("payload")
+        assert wrapped.reveal_level is ARSecurityLevel.UNSAFE
+        assert wrapped.maskable is False
+
+    def test_value_and_str(self) -> None:
+        """Value is stored and str returns the raw form."""
+
+        wrapped = Sensitive("payload", ARSecurityLevel.DEFAULT)
+        assert wrapped.value == "payload"
+        assert wrapped.reveal_level is ARSecurityLevel.DEFAULT
+        assert str(wrapped) == "payload"
+        assert (
+            repr(wrapped)
+            == "Sensitive('payload', <ARSecurityLevel.DEFAULT: 1>)"
+        )
+
+    @pytest.mark.parametrize(
+        ("reveal", "level", "raw"),
+        [
+            (ARSecurityLevel.DEFAULT, ARSecurityLevel.SANITIZED, True),
+            (ARSecurityLevel.UNSAFE, ARSecurityLevel.SANITIZED, False),
+            (ARSecurityLevel.UNSAFE, ARSecurityLevel.UNSAFE, True),
+        ],
+    )
+    def test_render(
+        self,
+        reveal: ARSecurityLevel,
+        level: ARSecurityLevel,
+        raw: bool,
+    ) -> None:
+        """Renders raw at or above reveal level, redacted otherwise."""
+
+        wrapped = Sensitive("payload", reveal)
+        result = render(wrapped, level)
+        if raw:
+            assert result is wrapped
+        else:
+            assert result is REDACTED
 
 
 class TestRenderPassthrough:

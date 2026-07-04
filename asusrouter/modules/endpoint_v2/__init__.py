@@ -13,6 +13,7 @@ from asusrouter.modules.endpoint_v2.translate import read_wan_lan_status
 from asusrouter.tools.enum import FromStrMixin
 from asusrouter.tools.readers import read_js_variables, read_json_content
 from asusrouter.tools.readers_v2 import read_netdev
+from asusrouter.tools.security import ARSecurityLevel
 
 
 class AREndpoint(FromStrMixin, StrEnum):
@@ -73,13 +74,19 @@ class AREndpointMeta:
     """Metadata for an AREndpoint."""
 
     request_type: RequestType = RequestType.POST
-    sensitive: bool = False
+    # Minimum log security level at which the request payload may be logged
+    # raw; below it the payload is redacted
+    payload_sensitivity: ARSecurityLevel = ARSecurityLevel.DEFAULT
     raw_payload: bool = False
 
 
 _DEFAULT_META = AREndpointMeta()
 _GET_META = AREndpointMeta(request_type=RequestType.GET)
 _RAW_POST_META = AREndpointMeta(raw_payload=True)
+# Raw POST whose body carries user data (e.g. real IPs) - never log by default
+_RAW_POST_SENSITIVE_META = AREndpointMeta(
+    raw_payload=True, payload_sensitivity=ARSecurityLevel.UNSAFE
+)
 
 _ENDPOINT_META: dict[AREndpoint, AREndpointMeta] = {
     AREndpoint.FETCH_DIAGNOSTICS_DATA: _GET_META,
@@ -92,8 +99,10 @@ _ENDPOINT_META: dict[AREndpoint, AREndpointMeta] = {
     AREndpoint.RUN_PING: _GET_META,
     AREndpoint.RUN_SPEEDTEST: _RAW_POST_META,
     AREndpoint.SET_SPEEDTEST_START_TIME: _RAW_POST_META,
-    AREndpoint.WRITE_SPEEDTEST_HISTORY: _RAW_POST_META,
-    AREndpoint.LOGIN: AREndpointMeta(sensitive=True),
+    AREndpoint.WRITE_SPEEDTEST_HISTORY: _RAW_POST_SENSITIVE_META,
+    AREndpoint.LOGIN: AREndpointMeta(
+        payload_sensitivity=ARSecurityLevel.UNSAFE
+    ),
 }
 
 
@@ -109,10 +118,10 @@ def get_endpoint_request_type(endpoint: AREndpoint) -> RequestType:
     return get_endpoint_meta(endpoint).request_type
 
 
-def get_endpoint_sensitive(endpoint: AREndpoint) -> bool:
-    """Check if the given endpoint is sensitive."""
+def get_endpoint_payload_sensitivity(endpoint: AREndpoint) -> ARSecurityLevel:
+    """Get the payload log sensitivity for the given endpoint."""
 
-    return get_endpoint_meta(endpoint).sensitive
+    return get_endpoint_meta(endpoint).payload_sensitivity
 
 
 def get_endpoint_raw_payload(endpoint: AREndpoint) -> bool:

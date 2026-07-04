@@ -6,141 +6,64 @@ from unittest.mock import patch
 
 import pytest
 
-from asusrouter.config import ARConfig, ARConfigKey as ARConfKey
-from asusrouter.connection import (
-    _check_response,
-    _log_request,
-    _payload_for_logging,
-)
+from asusrouter.connection import _check_response, _log_request
 from asusrouter.error import AsusRouter404Error, AsusRouterAccessError
 from asusrouter.modules.endpoint_v2 import AREndpoint
-from asusrouter.tools.security import ARSecurityLevel
-
-
-class TestPayloadForLogging:
-    """Tests for _payload_for_logging."""
-
-    _SAFE = AREndpoint.LOGOUT
-    _LOGIN = AREndpoint.LOGIN
-
-    @pytest.mark.parametrize(
-        ("level", "endpoint", "payload", "expected"),
-        [
-            (ARSecurityLevel.STRICT, _SAFE, "data", None),
-            (ARSecurityLevel.UNSAFE, _LOGIN, "secret", None),
-            (ARSecurityLevel.DEFAULT, _SAFE, "", None),
-            (ARSecurityLevel.DEFAULT, _SAFE, None, None),
-            (ARSecurityLevel.DEFAULT, _SAFE, "data", "data"),
-            (ARSecurityLevel.SANITIZED, _SAFE, "data", "data"),
-            (ARSecurityLevel.UNSAFE, _SAFE, "data", "data"),
-        ],
-        ids=[
-            "strict_returns_none",
-            "login_always_none",
-            "empty_payload_none",
-            "none_payload_none",
-            "default_non_sensitive",
-            "sanitized_non_sensitive",
-            "unsafe_non_sensitive",
-        ],
-    )
-    def test_non_sensitive_endpoint(
-        self,
-        level: ARSecurityLevel,
-        endpoint: AREndpoint,
-        payload: str | None,
-        expected: str | None,
-    ) -> None:
-        """Returns payload or None based on level and endpoint."""
-
-        with patch(
-            "asusrouter.connection.get_endpoint_sensitive", return_value=False
-        ):
-            result = _payload_for_logging(level, endpoint, payload)
-
-        assert result == expected
-
-    @pytest.mark.parametrize(
-        ("level", "expected"),
-        [
-            (ARSecurityLevel.DEFAULT, None),
-            (ARSecurityLevel.SANITIZED, "[SANITIZED PLACEHOLDER]"),
-            (ARSecurityLevel.UNSAFE, "secret"),
-        ],
-        ids=["default_blocks", "sanitized_sanitizes", "unsafe_raw"],
-    )
-    def test_sensitive_endpoint(
-        self,
-        level: ARSecurityLevel,
-        expected: str | None,
-    ) -> None:
-        """Sensitive endpoints: blocked, sanitized, or raw per level."""
-
-        with patch(
-            "asusrouter.connection.get_endpoint_sensitive", return_value=True
-        ):
-            result = _payload_for_logging(level, AREndpoint.LOGOUT, "secret")
-
-        assert result == expected
+from asusrouter.tools.security import ARSecurityLevel, Sensitive
 
 
 class TestLogRequest:
     """Tests for _log_request."""
 
     @pytest.mark.parametrize(
-        ("payload_to_log", "expected_call"),
-        [
-            (
-                None,
-                ("Sending request to `%s`", AREndpoint.LOGIN),
-            ),
-            (
-                "body",
-                (
-                    "Sending request to `%s` with payload: %s",
-                    AREndpoint.LOGIN,
-                    "body",
-                ),
-            ),
-        ],
-        ids=["no_payload", "with_payload"],
+        "payload",
+        [None, ""],
+        ids=["none_payload", "empty_payload"],
     )
-    def test_log_format(
-        self,
-        payload_to_log: str | None,
-        expected_call: tuple[object, ...],
-    ) -> None:
-        """Logs with or without payload string from _payload_for_logging."""
+    def test_no_payload_logs_endpoint_only(self, payload: str | None) -> None:
+        """A missing or empty payload logs only the endpoint."""
 
-        ARConfig.set(ARConfKey.DEBUG_PAYLOAD, ARSecurityLevel.DEFAULT)
+        with patch("asusrouter.connection._LOGGER") as mock_logger:
+            mock_logger.isEnabledFor.return_value = True
+            _log_request(AREndpoint.LOGIN, payload)
 
-        with (
-            patch(
-                "asusrouter.connection._payload_for_logging",
-                return_value=payload_to_log,
-            ) as mock_plf,
-            patch("asusrouter.connection._LOGGER") as mock_logger,
-        ):
-            _log_request(AREndpoint.LOGIN, "raw")
-
-            mock_logger.debug.assert_called_once_with(*expected_call)
-            mock_plf.assert_called_once_with(
-                ARSecurityLevel.DEFAULT, AREndpoint.LOGIN, "raw"
+            mock_logger.debug.assert_called_once_with(
+                "Sending request to `%s`", AREndpoint.LOGIN
             )
 
-    def test_skips_work_when_debug_disabled(self) -> None:
-        """Resolves no payload and emits nothing when DEBUG is off."""
+    def test_payload_wrapped_sensitive(self) -> None:
+        """The payload is wrapped as Sensitive with the endpoint level."""
 
-        with (
-            patch(
-                "asusrouter.connection._payload_for_logging",
-            ) as mock_plf,
-            patch("asusrouter.connection._LOGGER") as mock_logger,
-        ):
+        with patch("asusrouter.connection._LOGGER") as mock_logger:
+            mock_logger.isEnabledFor.return_value = True
+            _log_request(AREndpoint.LOGIN, "raw")
+
+            args = mock_logger.debug.call_args.args
+            assert args[0] == "Sending request to `%s` with payload: %s"
+            assert args[1] == AREndpoint.LOGIN
+            wrapped = args[2]
+            assert isinstance(wrapped, Sensitive)
+            assert wrapped.value == "raw"
+            # LOGIN payload is sensitive - only revealed at UNSAFE
+            assert wrapped.reveal_level is ARSecurityLevel.UNSAFE
+
+    def test_non_sensitive_endpoint_reveals_at_default(self) -> None:
+        """A non-sensitive endpoint payload reveals from DEFAULT."""
+
+        with patch("asusrouter.connection._LOGGER") as mock_logger:
+            mock_logger.isEnabledFor.return_value = True
+            _log_request(AREndpoint.LOGOUT, "raw")
+
+            wrapped = mock_logger.debug.call_args.args[2]
+            assert wrapped.reveal_level is ARSecurityLevel.DEFAULT
+
+    def test_skips_work_when_debug_disabled(self) -> None:
+        """Emits nothing when DEBUG is off."""
+
+        with patch("asusrouter.connection._LOGGER") as mock_logger:
             mock_logger.isEnabledFor.return_value = False
             _log_request(AREndpoint.LOGIN, "raw")
 
-            mock_plf.assert_not_called()
             mock_logger.debug.assert_not_called()
 
 

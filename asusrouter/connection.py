@@ -19,11 +19,7 @@ from urllib.parse import quote
 
 import aiohttp
 
-from asusrouter.config import (
-    ARConfig,
-    ARConfigKey as ARConfKey,
-    safe_int_config,
-)
+from asusrouter.config import safe_int_config
 from asusrouter.config.connection import (
     ARConnectionConfig,
     ARConnectionConfigKey as ARCCKey,
@@ -52,12 +48,14 @@ from asusrouter.error import (
 from asusrouter.modules.endpoint.error import handle_access_error
 from asusrouter.modules.endpoint_v2 import (
     AREndpoint,
+    get_endpoint_payload_sensitivity,
     get_endpoint_raw_payload,
-    get_endpoint_sensitive,
 )
 from asusrouter.tools.connection import get_cookie_jar
 from asusrouter.tools.converters_v2.raw import raw_to_str
-from asusrouter.tools.security import ARSecurityLevel
+from asusrouter.tools.identifiers import Hostname
+from asusrouter.tools.security import Sensitive
+from asusrouter.tools.security.log import render_for_log
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -84,66 +82,27 @@ def generate_credentials(
     return payload, headers
 
 
-def sanitize_data(
-    value: str | None,
-) -> str:
-    """Sanitize data placeholder."""
+def _log_request(endpoint: AREndpoint, payload: str | None) -> None:
+    """Log the request details.
 
-    return "[SANITIZED PLACEHOLDER]"
-
-
-def _payload_for_logging(
-    security_level: Any, endpoint: AREndpoint, payload: str | None
-) -> str | None:
-    """Return the payload to log if any.
-
-    Rules:
-    - STRICT: never log payload
-    - DEFAULT: log only non-sensitive endpoints
-    - SANITIZED: log sensitive endpoints with automatic sanitization
-    - UNSAFE: log sensitive endpoints verbatim
+    The payload is wrapped as a `Sensitive` value carrying the endpoint's
+    payload sensitivity; the log masking filter redacts it below that level.
     """
 
-    level = ARSecurityLevel.from_value(security_level)
-
-    # Login payload is never logged regardless of security level.
-    if level == ARSecurityLevel.STRICT or endpoint == AREndpoint.LOGIN:
-        return None
-
-    payload = raw_to_str(payload)
-    if payload is None:
-        return None
-
-    if get_endpoint_sensitive(endpoint):
-        if ARSecurityLevel.at_least_sanitized(level):
-            if level == ARSecurityLevel.SANITIZED:
-                return sanitize_data(payload)
-            return payload
-        return None
-
-    return payload
-
-
-def _log_request(endpoint: AREndpoint, payload: str | None) -> None:
-    """Log the request details."""
-
-    # Skip all payload resolution work when debug logging is disabled.
-    # _payload_for_logging converts the payload and resolves security
-    # levels — wasted effort if the result is never emitted.
+    # Skip payload work when debug logging is disabled
     if not _LOGGER.isEnabledFor(logging.DEBUG):
         return
 
-    security_level = ARConfig.get(ARConfKey.DEBUG_PAYLOAD)
-    payload_to_log = _payload_for_logging(security_level, endpoint, payload)
-
-    if payload_to_log is None:
+    payload = raw_to_str(payload)
+    if payload is None:
         _LOGGER.debug("Sending request to `%s`", endpoint)
-    else:
-        _LOGGER.debug(
-            "Sending request to `%s` with payload: %s",
-            endpoint,
-            payload_to_log,
-        )
+        return
+
+    _LOGGER.debug(
+        "Sending request to `%s` with payload: %s",
+        endpoint,
+        Sensitive(payload, get_endpoint_payload_sensitivity(endpoint)),
+    )
 
 
 def _check_response(
@@ -185,7 +144,11 @@ class Connection:  # pylint: disable=too-many-instance-attributes
     ):
         """Initialize connection."""
 
-        _LOGGER.debug("Initializing a new connection to `%s`", hostname)
+        # Sensitive wrapper used only for logging; requests use the raw str
+        self._log_hostname = Hostname(hostname)
+        _LOGGER.debug(
+            "Initializing a new connection to `%s`", self._log_hostname
+        )
 
         self._config = ARConnectionConfig()
         self._used_fallbacks: set[ConnectionFallback] = set()
@@ -361,7 +324,7 @@ class Connection:  # pylint: disable=too-many-instance-attributes
             )
         except TimeoutError:
             if not block_error:
-                _LOGGER.error("Connection to %s timed out", self._hostname)
+                _LOGGER.error("Connection to %s timed out", self._log_hostname)
             # do not cancel the underlying task here; let it finish
             # and satisfy future callers
             return False
@@ -417,9 +380,9 @@ class Connection:  # pylint: disable=too-many-instance-attributes
         """
         async with self._connection_lock:
             if self._connected:
-                _LOGGER.debug("Already connected to %s", self._hostname)
+                _LOGGER.debug("Already connected to %s", self._log_hostname)
                 return True
-            _LOGGER.debug("Initializing connection to %s", self._hostname)
+            _LOGGER.debug("Initializing connection to %s", self._log_hostname)
 
         payload, headers = self._auth_payload, self._auth_headers
 
@@ -436,13 +399,15 @@ class Connection:  # pylint: disable=too-many-instance-attributes
             ) from ex
         except AsusRouterError as ex:
             _LOGGER.debug(
-                "Connection to %s failed with error: %s", self._hostname, ex
+                "Connection to %s failed with error: %s",
+                self._log_hostname,
+                ex,
             )
             raise
         except Exception as ex:  # pylint: disable=broad-except
             _LOGGER.debug(
                 "Unexpected error while connecting to %s: %s",
-                self._hostname,
+                self._log_hostname,
                 ex,
             )
             raise
@@ -450,7 +415,7 @@ class Connection:  # pylint: disable=too-many-instance-attributes
         try:
             token = json.loads(resp_content).get("asus_token")
         except (json.JSONDecodeError, AttributeError):
-            _LOGGER.error("Invalid login response from %s", self._hostname)
+            _LOGGER.error("Invalid login response from %s", self._log_hostname)
             return False
         if not token:
             _LOGGER.error("No token received")
@@ -464,7 +429,7 @@ class Connection:  # pylint: disable=too-many-instance-attributes
                     "cookie": f"asus_token={token}",
                 }
                 self._connected = True
-                _LOGGER.debug("Connected to %s", self._hostname)
+                _LOGGER.debug("Connected to %s", self._log_hostname)
 
         return True
 
@@ -472,10 +437,10 @@ class Connection:  # pylint: disable=too-many-instance-attributes
         """Disconnect from the device."""
 
         if not self._connected:
-            _LOGGER.debug("Not connected to %s", self._hostname)
+            _LOGGER.debug("Not connected to %s", self._log_hostname)
             return True
 
-        _LOGGER.debug("Initializing disconnection from %s", self._hostname)
+        _LOGGER.debug("Initializing disconnection from %s", self._log_hostname)
 
         # Cancel any in-flight connect task so it can't re-establish
         # connection state after we tear it down.
@@ -498,17 +463,19 @@ class Connection:  # pylint: disable=too-many-instance-attributes
         except AsusRouterLogoutError:
             # Router signals successful logout with an error response
             self.reset_auth()
-            _LOGGER.debug("Disconnected from %s", self._hostname)
+            _LOGGER.debug("Disconnected from %s", self._log_hostname)
             return True
         except AsusRouterError as ex:
             _LOGGER.debug(
-                "Error while disconnecting from %s: %s", self._hostname, ex
+                "Error while disconnecting from %s: %s",
+                self._log_hostname,
+                ex,
             )
             return False
 
         # Router returned a non-error response — unexpected but auth is gone.
         self.reset_auth()
-        _LOGGER.debug("Disconnected from %s", self._hostname)
+        _LOGGER.debug("Disconnected from %s", self._log_hostname)
         return True
 
     def reset_auth(self) -> None:
@@ -517,7 +484,7 @@ class Connection:  # pylint: disable=too-many-instance-attributes
         if not self._connected:
             return
 
-        _LOGGER.debug("Resetting connection to %s", self._hostname)
+        _LOGGER.debug("Resetting connection to %s", self._log_hostname)
 
         self._connected = False
         self._token = None
@@ -566,7 +533,9 @@ class Connection:  # pylint: disable=too-many-instance-attributes
         """Send a request to the device."""
 
         if not self._connected:
-            _LOGGER.debug("Not connected to %s. Connecting...", self._hostname)
+            _LOGGER.debug(
+                "Not connected to %s. Connecting...", self._log_hostname
+            )
             await self.async_connect()
 
         if not self._connected:
@@ -575,7 +544,7 @@ class Connection:  # pylint: disable=too-many-instance-attributes
             )
 
         _LOGGER.debug(
-            "Sending `%s` request to `%s`", request_type, self._hostname
+            "Sending `%s` request to `%s`", request_type, self._log_hostname
         )
         return await self._send_request(
             endpoint, payload, headers, request_type
@@ -617,8 +586,9 @@ class Connection:  # pylint: disable=too-many-instance-attributes
 
         except (aiohttp.ClientConnectionError, aiohttp.ClientOSError) as ex:
             raise AsusRouterConnectionError(
-                f"Cannot connect to `{self._hostname}` on port "
-                f"`{self.port}`. Failed in `_send_request` with error: `{ex}`"
+                f"Cannot connect to `{render_for_log(self._log_hostname)}` "
+                f"on port `{self.port}`. Failed in `_send_request` with "
+                f"error: `{ex}`"
             ) from ex
 
         except TimeoutError as ex:
@@ -633,7 +603,7 @@ class Connection:  # pylint: disable=too-many-instance-attributes
         except Exception as ex:  # pylint: disable=broad-except
             _LOGGER.debug(
                 "Unexpected error sending request to %s: %s",
-                self._hostname,
+                self._log_hostname,
                 ex,
             )
             raise
@@ -684,8 +654,9 @@ class Connection:  # pylint: disable=too-many-instance-attributes
             )
         self.reset_auth()
         raise AsusRouterConnectionError(
-            f"Cannot connect to `{self._hostname}` on port "
-            f"`{self.port}`. Failed in `_send_request` with error: `{ex}`"
+            f"Cannot connect to `{render_for_log(self._log_hostname)}` "
+            f"on port `{self.port}`. Failed in `_send_request` with "
+            f"error: `{ex}`"
         ) from ex
 
     async def _make_request(
@@ -906,7 +877,8 @@ class Connection:  # pylint: disable=too-many-instance-attributes
             t_overwrite=DEFAULT_TIMEOUT_FALLBACK, block_error=True
         ):
             raise AsusRouterConnectionError(
-                f"Fallback reconnect to `{self._hostname}` failed"
+                f"Fallback reconnect to "
+                f"`{render_for_log(self._log_hostname)}` failed"
             )
 
     async def _handle_fallback(

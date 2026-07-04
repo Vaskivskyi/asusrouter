@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import threading
+from typing import Any
 import weakref
 
 from asusrouter.config import (
@@ -55,6 +56,17 @@ def effective_log_level() -> ARSecurityLevel:
         level = min(level, instance_level)
 
     return level
+
+
+def render_for_log(value: Any) -> Any:
+    """Render a value against the current effective log level.
+
+    Use when a sensitive value must be embedded into a string (e.g. an
+    exception message) that will later be logged: the log filter cannot
+    reach values already formatted into text, so mask them beforehand.
+    """
+
+    return render(value, effective_log_level())
 
 
 class SensitiveFilter(logging.Filter):

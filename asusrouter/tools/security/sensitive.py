@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Final, Self
+from typing import Any, Final
 
 from asusrouter.tools.security.level import ARSecurityLevel
 
@@ -11,17 +11,12 @@ REDACTED_STR: Final[str] = "-=REDACTED=-"
 
 
 class _Redacted:
-    """Singleton marker for a fully redacted sensitive value."""
+    """Marker for a fully redacted sensitive value.
+
+    A single shared instance (`REDACTED`) is used everywhere.
+    """
 
     __slots__ = ()
-    _instance: _Redacted | None = None
-
-    def __new__(cls) -> Self:
-        """Return the shared singleton instance."""
-
-        if cls._instance is None:
-            cls._instance = super().__new__(cls)
-        return cls._instance
 
     def __str__(self) -> str:
         """Return the redacted string representation."""
@@ -60,6 +55,49 @@ class ARSensitive:
         """
 
         return REDACTED
+
+
+class Sensitive(ARSensitive):
+    """Generic sensitive value with a per-instance reveal level.
+
+    Wraps an arbitrary value (e.g. a request payload) that cannot be
+    deterministically sanitized: it is shown raw at or above its reveal
+    level and redacted otherwise.
+    """
+
+    __slots__ = ("_reveal_level", "_value")
+
+    def __init__(
+        self,
+        value: Any,
+        reveal_level: ARSecurityLevel = ARSecurityLevel.UNSAFE,
+    ) -> None:
+        """Initialize the sensitive value."""
+
+        self._value = value
+        self._reveal_level = reveal_level
+
+    @property
+    def reveal_level(self) -> ARSecurityLevel:  # type: ignore[override]
+        """Return the per-instance reveal level."""
+
+        return self._reveal_level
+
+    @property
+    def value(self) -> Any:
+        """Return the raw wrapped value."""
+
+        return self._value
+
+    def __str__(self) -> str:
+        """Return the raw value as a string."""
+
+        return str(self._value)
+
+    def __repr__(self) -> str:
+        """Return the sensitive value representation."""
+
+        return f"Sensitive({self._value!r}, {self._reveal_level!r})"
 
 
 def render(value: Any, level: ARSecurityLevel) -> Any:
