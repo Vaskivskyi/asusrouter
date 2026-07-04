@@ -5,11 +5,13 @@ from __future__ import annotations
 from asusrouter.modules.wifi.enums import (
     AR_WIFI_UNIT_FALLBACK,
     ARWiFiAuth,
+    ARWiFiAuthMode,
     ARWiFiBand,
     ARWiFiBandwidth,
     ARWiFiField,
     ARWiFiFrequency,
     ARWiFiGeneration,
+    ARWiFiMacFilterMode,
     ARWiFiMultiBand,
 )
 from asusrouter.modules.wifi.source import (
@@ -22,11 +24,13 @@ from asusrouter.modules.wifi.source import (
 __all__ = [
     "AR_WIFI_UNIT_FALLBACK",
     "ARWiFiAuth",
+    "ARWiFiAuthMode",
     "ARWiFiBand",
     "ARWiFiBandwidth",
     "ARWiFiField",
     "ARWiFiFrequency",
     "ARWiFiGeneration",
+    "ARWiFiMacFilterMode",
     "ARWiFiMultiBand",
     "ARWiFiSource",
     "ARWiFiSourceUniversal",

@@ -24,6 +24,29 @@ class ARWiFiAuth(FromStrMixin, StrEnum):
     WPA_PSK = "wpa-psk"
 
 
+class ARWiFiAuthMode(FromStrMixin, StrEnum):
+    """WiFi security mode as reported by nvram `auth_mode_x` / SDN security."""
+
+    UNKNOWN = UNKNOWN_MEMBER_STR
+
+    OPEN = "open"
+    OPENOWE = "openowe"
+    OWE = "owe"
+    PSK = "psk"
+    PSK2 = "psk2"
+    PSK2SAE = "psk2sae"
+    PSKPSK2 = "pskpsk2"
+    RADIUS = "radius"
+    SAE = "sae"
+    SHARED = "shared"
+    SUITE_B = "suite-b"
+    WPA = "wpa"
+    WPA2 = "wpa2"
+    WPA2WPA3 = "wpa2wpa3"
+    WPA3 = "wpa3"
+    WPAWPA2 = "wpawpa2"
+
+
 class ARWiFiBand(FromStrMixin, StrEnum):
     """WiFi band types."""
 
@@ -91,6 +114,16 @@ class ARWiFiGeneration(FromIntMixin, IntEnum):
     WIFI_5 = 5
     WIFI_6 = 6
     WIFI_7 = 7
+
+
+class ARWiFiMacFilterMode(FromStrMixin, StrEnum):
+    """WiFi MAC address filter mode (`macmode`)."""
+
+    UNKNOWN = UNKNOWN_MEMBER_STR
+
+    ALLOW = "allow"
+    DENY = "deny"
+    DISABLED = "disabled"
 
 
 class ARWiFiMultiBand(FromIntMixin, IntEnum):

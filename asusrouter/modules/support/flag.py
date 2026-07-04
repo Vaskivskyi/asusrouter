@@ -43,6 +43,13 @@ class ARSupportType(FromStrMixin, StrEnum):
     # Platform
     PLATFORM = "platform"
 
+    # SDN
+    SDN_AWV = "sdn_awv"
+    SDN_MAINFH = "sdn_mainfh"
+    SDN_MAX_RULES = "sdn_max_rules"
+    SDN_MWL = "sdn_mwl"
+    SDN_PRIORITY = "sdn_priority"
+
     # SpeedTest
     SPEEDTEST = "speedtest"
     SPEEDTEST_CAPABILITIES = "speedtest_capabilities"
@@ -107,6 +114,13 @@ class ARSupportValue(FromStrMixin, StrEnum):
     PLATFORM_LANTIQ = "lantiq"
     PLATFORM_MEDIATEK = "rawifi"
     PLATFORM_QUALCOMM = "qcawifi"
+
+    # SDN
+    SDN_AWV = "AWV_SDN"
+    SDN_MAINFH = "sdn_mainfh"
+    SDN_MAX_RULES = "MaxRule_SDN"
+    SDN_MWL = "sdn_mwl"
+    SDN_PRIORITY = "SDN_PRIORITY"
 
     # SpeedTest
     SPEEDTEST = "ookla"
