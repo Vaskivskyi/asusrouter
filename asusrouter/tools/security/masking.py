@@ -1,13 +1,12 @@
-"""Masking tools.
+"""Deterministic masking engine.
 
-This module provides functions for masking sensitive data
-(e.g. MAC addresses) using a deterministic masking approach.
+Keyed HMAC-SHA256 backend used by identifier types to derive stable
+pseudo-values from real ones. Operates on raw bytes only - the identifier
+types own the conversion to and from their own representations.
 
-This module exists to avoid leaking sensitive information in logs
-and during debugging. At the same time, it does not guarantee
-that the masked values are unique or non-reversible.
-
-This module does not provide any security guarantees.
+This engine exists to avoid leaking sensitive information in logs and
+during debugging. It does not guarantee that masked values are unique or
+non-reversible and provides no security guarantees.
 """
 
 from __future__ import annotations
@@ -16,8 +15,6 @@ import hashlib
 import hmac
 import os
 import threading
-
-from asusrouter.tools.identifiers import MacAddress
 
 # Environment variable name for the mask key
 _ENV_KEY_NAME = "ASUSROUTER_MASK_KEY"
@@ -65,8 +62,8 @@ def configure_key(key: bytes | str | None) -> None:
         return
 
 
-def _hmac_digest(data: bytes, key: bytes | None = None) -> bytes:
-    """Compute HMAC-SHA256 digest."""
+def hmac_digest(data: bytes, key: bytes | None = None) -> bytes:
+    """Compute an HMAC-SHA256 digest of the data."""
 
     # Use the provided key or the loaded mask key
     if key is not None:
@@ -77,34 +74,6 @@ def _hmac_digest(data: bytes, key: bytes | None = None) -> bytes:
             k = _key
 
     return hmac.new(k, data, hashlib.sha256).digest()
-
-
-def mask_mac(
-    real_mac: MacAddress | str | bytes | bytearray | int,
-    key: bytes | None = None,
-) -> MacAddress:
-    """Deterministically map real MAC -> pseudo-MAC.
-
-    - Uses HMAC-SHA256(key, real_mac) and takes the first 6 bytes.
-    - Creates a new MacAddress instance from the masked bytes.
-    - Sets it to a locally-administered MAC address.
-    - Returns the masked MacAddress instance.
-    """
-
-    # Make sure we have a MacAddress. If we get a wrong input,
-    # it will automatically raise a ValueError
-    mac_obj = MacAddress.from_value(real_mac)
-
-    # Compute the HMAC digest
-    digest = _hmac_digest(mac_obj.to_bytes(), key)
-
-    # Use first 6 bytes to create masked MAC
-    masked_mac = MacAddress(digest[:6])
-
-    # Set masked MAC as locally-administered
-    masked_mac.set_locally_administered()
-
-    return masked_mac
 
 
 def get_key_hex() -> str:

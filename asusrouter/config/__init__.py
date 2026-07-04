@@ -34,6 +34,10 @@ class ARConfigKey(ARConfigKeyBase):
     BOOTTIME = "boottime"
     # Robust boottime
     ROBUST_BOOTTIME = "robust_boottime"
+    # Security level applied to logged data
+    SECURITY_LEVEL_LOG = "security_level_log"
+    # Security level applied to data exposed to consumers
+    SECURITY_LEVEL_DATA = "security_level_data"
 
 
 CONFIG_DEFAULT_BOOL: bool = False
@@ -88,6 +92,10 @@ CONFIG_DEFAULT: dict[ARConfigKey, Any] = {
     # If set, the boottime will be processed with 2 seconds
     # precision to avoid +- 1 second uncertainty in the raw data
     ARConfigKey.ROBUST_BOOTTIME: CONFIG_DEFAULT_BOOL,
+    # Logs sanitize sensitive data by default
+    ARConfigKey.SECURITY_LEVEL_LOG: ARSecurityLevel.SANITIZED,
+    # Data exposes reasonably-sensitive values (MAC, IP) but not secrets
+    ARConfigKey.SECURITY_LEVEL_DATA: ARSecurityLevel.REASONABLE,
 }
 
 TYPES_DEFAULT: dict[ARConfigKey, Callable[[Any], Any]] = {
@@ -102,6 +110,9 @@ TYPES_DEFAULT: dict[ARConfigKey, Callable[[Any], Any]] = {
     ARConfigKey.BOOTTIME: safe_datetime_config,
     # Robust boottime
     ARConfigKey.ROBUST_BOOTTIME: safe_bool_config,
+    # Security levels
+    ARConfigKey.SECURITY_LEVEL_LOG: ARSecurityLevel.from_value,
+    ARConfigKey.SECURITY_LEVEL_DATA: ARSecurityLevel.from_value,
 }
 
 

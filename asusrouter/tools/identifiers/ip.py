@@ -5,6 +5,12 @@ from __future__ import annotations
 from ipaddress import IPv4Address, IPv6Address, ip_address
 from typing import Any, Final
 
+from asusrouter.tools.security import ARSecurityLevel, ARSensitive, hmac_digest
+
+IP_VERSION_V4: Final[int] = 4
+IP_LENGTH_BYTES_V4: Final[int] = 4
+IP_LENGTH_BYTES_V6: Final[int] = 16
+
 ERROR_IP_BYTES: Final[str] = (
     "IP address must be 4 bytes (IPv4) or 16 bytes (IPv6)"
 )
@@ -13,10 +19,13 @@ ERROR_IP_STR: Final[str] = "Invalid IP address string"
 ERROR_IP_UNSUPPORTED_TYPE: Final[str] = "Unsupported IP address type"
 
 
-class IpAddress:
+class IpAddress(ARSensitive):
     """IP address representation supporting IPv4 and IPv6."""
 
     __slots__ = ("_addr",)
+
+    reveal_level = ARSecurityLevel.REASONABLE
+    maskable = True
 
     def __init__(self, ip: Any) -> None:
         """Initialize IpAddress.
@@ -128,6 +137,16 @@ class IpAddress:
         """Return the integer representation of the IP address."""
 
         return int(self._addr)
+
+    def mask(self) -> IpAddress:
+        """Return a deterministic pseudo-address of the same version."""
+
+        size = (
+            IP_LENGTH_BYTES_V4
+            if self._addr.version == IP_VERSION_V4
+            else IP_LENGTH_BYTES_V6
+        )
+        return IpAddress(hmac_digest(self._addr.packed)[:size])
 
     def __str__(self) -> str:
         """Return the string representation of the IP address."""
