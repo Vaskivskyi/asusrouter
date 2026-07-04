@@ -7,6 +7,10 @@ from .error import AsusRouterError
 from .modules.data import AsusData
 from .modules.endpoint_v2 import AREndpoint
 from .tools.dump import AsusRouterDump
+from .tools.security.log import install_log_masking
+
+# Mask sensitive values in log records emitted by this package
+install_log_masking()
 
 __all__ = [
     "AsusRouter",
