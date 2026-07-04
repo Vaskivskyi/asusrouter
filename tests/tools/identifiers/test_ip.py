@@ -16,6 +16,7 @@ from asusrouter.tools.identifiers.ip import (
     ERROR_IP_UNSUPPORTED_TYPE,
     read_ip_list,
 )
+from asusrouter.tools.security import configure_key
 
 CORRECT_IPV4 = "192.168.1.1"
 CORRECT_IPV4_BYTES = IPv4Address(CORRECT_IPV4).packed
@@ -317,3 +318,44 @@ class TestReadIpList:
         """Unparseable or non-string input returns an empty list."""
 
         assert read_ip_list(value) == []
+
+
+class TestIpMask:
+    """Tests for deterministic IP masking."""
+
+    def test_mask_ipv4(self) -> None:
+        """Masked IPv4 is deterministic and same-version."""
+
+        configure_key(b"A" * 32)
+
+        ip = IpAddress.from_value(CORRECT_IPV4)
+        masked = ip.mask()
+
+        assert masked.version == 4
+        assert masked != ip
+        assert masked == ip.mask()
+
+    def test_mask_ipv6(self) -> None:
+        """Masked IPv6 is deterministic and same-version."""
+
+        configure_key(b"A" * 32)
+
+        ip = IpAddress.from_value(CORRECT_IPV6)
+        masked = ip.mask()
+
+        assert masked.version == 6
+        assert masked != ip
+        assert masked == ip.mask()
+
+    def test_mask_depends_on_key(self) -> None:
+        """Masked IP changes with the masking key."""
+
+        ip = IpAddress.from_value(CORRECT_IPV4)
+
+        configure_key(b"A" * 32)
+        m1 = ip.mask()
+
+        configure_key(b"B" * 32)
+        m2 = ip.mask()
+
+        assert m1 != m2

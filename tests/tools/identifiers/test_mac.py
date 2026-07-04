@@ -13,6 +13,7 @@ from asusrouter.tools.identifiers.mac import (
     ERROR_MAC_STR,
     ERROR_MAC_UNSUPPORTED_TYPE,
 )
+from asusrouter.tools.security import configure_key
 
 CORRECT_MAC = "aa:bb:cc:dd:ee:ff"
 CORRECT_MAC_HEX = CORRECT_MAC.replace(":", "")
@@ -238,3 +239,37 @@ def test_hash() -> None:
 
     instance = MacAddress.from_value(CORRECT_MAC)
     assert hash(instance) == hash(CORRECT_MAC_BYTES)
+
+
+def test_mask_deterministic_and_local() -> None:
+    """Masked MAC is deterministic and locally-administered."""
+
+    configure_key(b"A" * 32)
+
+    mac = MacAddress.from_value(CORRECT_MAC)
+    masked = mac.mask()
+
+    # Masked value differs from the original
+    assert masked != mac
+
+    # Deterministic for the same key
+    assert masked == mac.mask()
+
+    # Locally-administered bit set, multicast bit cleared
+    b0 = masked.to_bytes()[0]
+    assert (b0 & 0x02) != 0
+    assert (b0 & 0x01) == 0
+
+
+def test_mask_depends_on_key() -> None:
+    """Masked MAC changes with the masking key."""
+
+    mac = MacAddress.from_value(CORRECT_MAC)
+
+    configure_key(b"A" * 32)
+    m1 = mac.mask()
+
+    configure_key(b"B" * 32)
+    m2 = mac.mask()
+
+    assert m1 != m2

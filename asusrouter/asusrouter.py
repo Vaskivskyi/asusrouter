@@ -83,7 +83,9 @@ from asusrouter.registry import ARCallableRegistry as ARCallReg
 from asusrouter.tools import legacy
 from asusrouter.tools.converters import get_enum_key_by_value, safe_list
 from asusrouter.tools.converters_v2.raw import raw_to_str
+from asusrouter.tools.identifiers import Hostname
 from asusrouter.tools.readers import merge_dicts
+from asusrouter.tools.security.log import register_log_config
 from asusrouter.tools.types import ARCallableType
 
 _LOGGER = logging.getLogger(__name__)
@@ -144,11 +146,15 @@ class AsusRouter:
     ):
         """Initialize the interface."""
 
-        _LOGGER.debug("Initializing a new interface to `%s`", hostname)
+        _LOGGER.debug(
+            "Initializing a new interface to `%s`", Hostname(hostname)
+        )
 
         # Initialize configs
         _LOGGER.debug("Setting up AR instance config: %s", config)
         self._config = ARInstanceConfig(defaults=config)
+        # Constrain shared log masking by this instance's log level
+        register_log_config(self._config)
 
         self._cache_threshold = timedelta(
             seconds=cache_time or DEFAULT_CACHE_TIME

@@ -6,6 +6,7 @@ import re
 from typing import Any, Final
 
 from asusrouter.tools.converters_v2.raw import raw_to_int
+from asusrouter.tools.security import ARSecurityLevel, ARSensitive, hmac_digest
 
 MAC_CLEAN_RE: Final[re.Pattern[str]] = re.compile(r"[^0-9a-fA-F]")
 MAC_LENGTH_BYTES: Final[int] = 6
@@ -17,10 +18,13 @@ ERROR_MAC_STR: Final[str] = "Invalid MAC address string"
 ERROR_MAC_UNSUPPORTED_TYPE: Final[str] = "Unsupported MAC address type"
 
 
-class MacAddress:
+class MacAddress(ARSensitive):
     """MAC address representation."""
 
     __slots__ = ("_bytes",)
+
+    reveal_level = ARSecurityLevel.REASONABLE
+    maskable = True
 
     def __init__(self, mac: Any) -> None:
         """Initialize MacAddress.
@@ -132,6 +136,13 @@ class MacAddress:
         _bytes = bytearray(self._bytes)
         _bytes[0] = (_bytes[0] & ~0x01) | 0x02
         self._bytes = bytes(_bytes)
+
+    def mask(self) -> MacAddress:
+        """Return a deterministic locally-administered pseudo-MAC."""
+
+        masked = MacAddress(hmac_digest(self._bytes)[:MAC_LENGTH_BYTES])
+        masked.set_locally_administered()
+        return masked
 
     def __str__(self) -> str:
         """Return the string representation of the MAC address."""

@@ -23,8 +23,6 @@ class ARConfigKeyBase(StrEnum):
 class ARConfigKey(ARConfigKeyBase):
     """Configuration keys for AsusRouter."""
 
-    # Debug payload
-    DEBUG_PAYLOAD = "debug_payload"
     # Optimistic data
     OPTIMISTIC_DATA = "optimistic_data"
     # Optimistic temperature
@@ -34,6 +32,10 @@ class ARConfigKey(ARConfigKeyBase):
     BOOTTIME = "boottime"
     # Robust boottime
     ROBUST_BOOTTIME = "robust_boottime"
+    # Security level applied to logged data
+    SECURITY_LEVEL_LOG = "security_level_log"
+    # Security level applied to data exposed to consumers
+    SECURITY_LEVEL_DATA = "security_level_data"
 
 
 CONFIG_DEFAULT_BOOL: bool = False
@@ -74,9 +76,6 @@ def safe_datetime_config(value: Any) -> datetime | None:
 
 
 CONFIG_DEFAULT: dict[ARConfigKey, Any] = {
-    # If set, payload sent to the router will be available
-    # in the debug logs
-    ARConfigKey.DEBUG_PAYLOAD: ARSecurityLevel.DEFAULT,
     ARConfigKey.OPTIMISTIC_DATA: CONFIG_DEFAULT_BOOL,
     # If set, the temperature will be automatically adjusted
     # to fit the expected range
@@ -88,11 +87,13 @@ CONFIG_DEFAULT: dict[ARConfigKey, Any] = {
     # If set, the boottime will be processed with 2 seconds
     # precision to avoid +- 1 second uncertainty in the raw data
     ARConfigKey.ROBUST_BOOTTIME: CONFIG_DEFAULT_BOOL,
+    # Logs sanitize sensitive data by default
+    ARConfigKey.SECURITY_LEVEL_LOG: ARSecurityLevel.SANITIZED,
+    # Data exposes reasonably-sensitive values (MAC, IP) but not secrets
+    ARConfigKey.SECURITY_LEVEL_DATA: ARSecurityLevel.REASONABLE,
 }
 
 TYPES_DEFAULT: dict[ARConfigKey, Callable[[Any], Any]] = {
-    # Debug payload
-    ARConfigKey.DEBUG_PAYLOAD: ARSecurityLevel.from_value,
     # Optimistic data
     ARConfigKey.OPTIMISTIC_DATA: safe_bool_config,
     # Optimistic temperature
@@ -102,6 +103,9 @@ TYPES_DEFAULT: dict[ARConfigKey, Callable[[Any], Any]] = {
     ARConfigKey.BOOTTIME: safe_datetime_config,
     # Robust boottime
     ARConfigKey.ROBUST_BOOTTIME: safe_bool_config,
+    # Security levels
+    ARConfigKey.SECURITY_LEVEL_LOG: ARSecurityLevel.from_value,
+    ARConfigKey.SECURITY_LEVEL_DATA: ARSecurityLevel.from_value,
 }
 
 

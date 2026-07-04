@@ -15,7 +15,6 @@ from asusrouter.connection import (
     Connection,
     ConnectionFallback,
     generate_credentials,
-    sanitize_data,
 )
 from asusrouter.const import (
     DEFAULT_PORT_HTTP,
@@ -67,20 +66,6 @@ class TestGenerateCredentials:
 
         _, headers = generate_credentials(TCONST_USER, TCONST_PASS)
         assert headers == {"user-agent": USER_AGENT}
-
-
-class TestSanitizeData:
-    """Tests for sanitize_data."""
-
-    @pytest.mark.parametrize(
-        "value",
-        [None, "", "some sensitive payload"],
-        ids=["none", "empty", "non_empty"],
-    )
-    def test_always_returns_placeholder(self, value: str | None) -> None:
-        """Returns the fixed placeholder string regardless of input."""
-
-        assert sanitize_data(value) == "[SANITIZED PLACEHOLDER]"
 
 
 class TestConnectionInit:
