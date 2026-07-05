@@ -124,6 +124,25 @@ class TestTranslate:
         assert ARNetworkField.EXPIRE_REMAINING not in main
         assert ARNetworkField.BANDWIDTH_LIMIT_DOWNLOAD not in main
 
+    def test_main_enabled_if_any_band_on(self) -> None:
+        """A shared main stays enabled while any band radio is on."""
+
+        data = dict(_DATA)
+        data["wl0_radio"] = "0"  # 2.4G off, 5G still on
+        net = legacy.translate(data, _WIFI)[ARNetworkType.MAINFH][0]
+
+        assert net[ARNetworkField.ENABLED] is True
+
+    def test_main_disabled_if_all_bands_off(self) -> None:
+        """A shared main is disabled only when every band radio is off."""
+
+        data = dict(_DATA)
+        data["wl0_radio"] = "0"
+        data["wl1_radio"] = "0"
+        net = legacy.translate(data, _WIFI)[ARNetworkType.MAINFH][0]
+
+        assert net[ARNetworkField.ENABLED] is False
+
     def test_split_ssid(self) -> None:
         """Different per-band SSIDs become separate networks."""
 
