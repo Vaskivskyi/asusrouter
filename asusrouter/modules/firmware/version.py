@@ -7,11 +7,11 @@ from typing import Any
 from asusrouter.modules.firmware.translate import (
     translate_build,
     translate_major,
+    translate_minor,
     translate_string,
     translate_type,
 )
 from asusrouter.modules.firmware.types import ARFirmwareType
-from asusrouter.tools.converters_v2.raw import raw_to_int
 
 
 def _compare_revision(a: int | str | None, b: int | str | None) -> bool:
@@ -97,10 +97,14 @@ class ARFirmware:
         """Build from nvram values (FW_MAJOR, FW_MINOR, FW_BUILD)."""
 
         major = translate_major(fw_major)
-        minor = raw_to_int(fw_minor)
+        minor, minor_build = translate_minor(fw_minor)
         build, revision, rog = translate_build(
             str(fw_build) if fw_build is not None else None
         )
+        # Older firmware carries the build in a dotted `buildno` and leaves
+        # `extendno` empty - prefer it when present
+        if minor_build is not None:
+            build, revision = minor_build, None
         return cls(
             major=major, minor=minor, build=build, revision=revision, rog=rog
         )

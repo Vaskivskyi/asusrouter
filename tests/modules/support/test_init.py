@@ -74,6 +74,22 @@ async def test_get_state_returns_empty(response: Any) -> None:
     assert result == {}
 
 
+@pytest.mark.asyncio
+async def test_get_state_rc_support_fallback() -> None:
+    """Empty ui_support falls back to the rc_support token list."""
+
+    callback = AsyncMock(
+        side_effect=[
+            {"get_ui_support": {}},
+            {"rc_support": "2.4G 5G usbX"},
+        ]
+    )
+    result = await get_state(callback, MagicMock())
+
+    assert result == {"2.4G": True, "5G": True, "usbX": True}
+    assert callback.await_count == 2
+
+
 def test_translate_state_returns_all_translation_table_keys() -> None:
     """translate_state output has all _TRANSLATION_TABLE keys."""
 
