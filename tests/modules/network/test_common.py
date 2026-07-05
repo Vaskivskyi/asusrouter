@@ -7,10 +7,12 @@ from typing import Any
 import pytest
 
 from asusrouter.modules.network.common import (
+    bandwidth_limit,
     decode,
     mac_filter_mode,
     read_mac_list,
 )
+from asusrouter.modules.network.enums import ARNetworkField
 from asusrouter.modules.wifi import ARWiFiMacFilterMode
 from asusrouter.tools.identifiers import MacAddress
 
@@ -69,3 +71,26 @@ class TestMacFilterMode:
         """Unknown values yield None."""
 
         assert mac_filter_mode(raw) is None
+
+
+class TestBandwidthLimit:
+    """Tests for bandwidth_limit."""
+
+    def test_enabled(self) -> None:
+        """Enabled limiter yields both rates in bits/s (from Kib/s)."""
+
+        assert bandwidth_limit("1", "5120", "2048") == {
+            ARNetworkField.BANDWIDTH_LIMIT_DOWNLOAD: 5120 * 1024,
+            ARNetworkField.BANDWIDTH_LIMIT_UPLOAD: 2048 * 1024,
+        }
+
+    @pytest.mark.parametrize("enabled", ["0", None, ""])
+    def test_disabled(self, enabled: Any) -> None:
+        """A disabled or missing limiter yields no fields."""
+
+        assert bandwidth_limit(enabled, "5120", "2048") == {}
+
+    def test_missing_rates(self) -> None:
+        """Enabled with unparsable rates yields no rate fields."""
+
+        assert bandwidth_limit("1", None, None) == {}

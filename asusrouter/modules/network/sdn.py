@@ -10,6 +10,7 @@ from typing import Any
 
 from asusrouter.modules.endpoint_v2 import AREndpoint
 from asusrouter.modules.network.common import (
+    bandwidth_limit,
     decode,
     mac_filter_mode,
     read_mac_list,
@@ -42,6 +43,11 @@ _MAIN_NAMES = ("MAINFH", "MAINBH")
 _SECURITY_COLS = 4
 _DUT_COLS = 2
 
+# `bw_limit` row columns (`<enabled>up>down`)
+_BW_ENABLED_COL = 0
+_BW_UPLOAD_COL = 1
+_BW_DOWNLOAD_COL = 2
+
 # Per-profile AP-group keys we read and parse
 _AP_KEYS = (
     "enable",
@@ -57,6 +63,7 @@ _AP_KEYS = (
     "timesched",
     "sched",
     "expiretime",
+    "bw_limit",
 )
 
 # WiFi band bitmask -> band (`wifi_band_options_cb`): a band matches any of
@@ -137,6 +144,20 @@ def _dut_bands(raw: Any, bands: list[ARWiFiBand]) -> list[ARWiFiBand]:
             union |= raw_to_int(cols[1]) or 0
 
     return [band for band in bands if _BAND_BITS.get(band, 0) & union]
+
+
+def _bandwidth(raw: Any) -> dict[ARNetworkField, Any]:
+    """Decode `bw_limit` (`<enabled>up>down`, Kib/s) into rate fields."""
+
+    rows = _split_rules(decode(raw))
+    if not rows:
+        return {}
+
+    row = rows[0]
+    enabled = row[_BW_ENABLED_COL] if len(row) > _BW_ENABLED_COL else None
+    upload = row[_BW_UPLOAD_COL] if len(row) > _BW_UPLOAD_COL else None
+    download = row[_BW_DOWNLOAD_COL] if len(row) > _BW_DOWNLOAD_COL else None
+    return bandwidth_limit(enabled, download, upload)
 
 
 def _schedule(
@@ -220,6 +241,7 @@ def _build_network(
     fields.update(
         _schedule(_get("timesched"), _get("sched"), _get("expiretime"))
     )
+    fields.update(_bandwidth(_get("bw_limit")))
 
     mode = mac_filter_mode(_get("macmode"))
     if mode is not None:

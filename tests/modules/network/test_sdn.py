@@ -51,6 +51,7 @@ _AP_DATA = {
     "apg4_ssid": "Guest",
     "apg4_security": _enc("<3>psk2>aes>guestpass>0"),
     "apg4_dut_list": _enc("<*>1>"),
+    "apg4_bw_limit": _enc("<1>2048>5120"),
 }
 
 
@@ -161,6 +162,24 @@ class TestSchedule:
         assert ARNetworkField.SCHEDULE not in result
 
 
+class TestBandwidth:
+    """Tests for _bandwidth."""
+
+    def test_enabled(self) -> None:
+        """An enabled limiter yields both rates in bits/s."""
+
+        assert sdn._bandwidth(_enc("<1>2048>5120")) == {
+            ARNetworkField.BANDWIDTH_LIMIT_DOWNLOAD: 5120 * 1024,
+            ARNetworkField.BANDWIDTH_LIMIT_UPLOAD: 2048 * 1024,
+        }
+
+    @pytest.mark.parametrize("raw", [_enc("<0>>"), "", None])
+    def test_disabled(self, raw: Any) -> None:
+        """A disabled or empty limiter yields no fields."""
+
+        assert sdn._bandwidth(raw) == {}
+
+
 class TestFetch:
     """Tests for the two-step SDN fetch."""
 
@@ -227,6 +246,7 @@ class TestTranslate:
         assert main[ARNetworkField.MAC_FILTER_LIST] == [MacAddress(_MAC)]
         assert main[ARNetworkField.BANDS] == _BANDS
         assert main[ARNetworkField.PASSWORD] == Password("secret")
+        assert ARNetworkField.BANDWIDTH_LIMIT_DOWNLOAD not in main
         security = main[ARNetworkField.SECURITY]
         assert (
             security[ARWiFiBand.BAND_6G1][ARNetworkField.AUTH]
@@ -241,6 +261,8 @@ class TestTranslate:
         assert guest[ARNetworkField.BANDS] == [ARWiFiBand.BAND_2G1]
         assert set(guest[ARNetworkField.SECURITY]) == {ARWiFiBand.BAND_2G1}
         assert ARNetworkField.SCHEDULE_MODE not in guest
+        assert guest[ARNetworkField.BANDWIDTH_LIMIT_DOWNLOAD] == 5120 * 1024
+        assert guest[ARNetworkField.BANDWIDTH_LIMIT_UPLOAD] == 2048 * 1024
 
     def test_enabled_requires_sdn_enable(self) -> None:
         """A network off at the SDN level is not enabled."""

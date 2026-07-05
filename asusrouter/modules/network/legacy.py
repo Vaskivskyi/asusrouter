@@ -14,7 +14,11 @@ from __future__ import annotations
 from typing import Any
 
 from asusrouter.modules.endpoint_v2 import AREndpoint
-from asusrouter.modules.network.common import mac_filter_mode, read_mac_list
+from asusrouter.modules.network.common import (
+    bandwidth_limit,
+    mac_filter_mode,
+    read_mac_list,
+)
 from asusrouter.modules.network.enums import ARNetworkField, ARNetworkType
 from asusrouter.modules.wifi import ARWiFiAuthMode, ARWiFiBand
 from asusrouter.tools.converters_v2.raw import (
@@ -53,6 +57,9 @@ _GUEST_KEYS = (
     "lanaccess",
     "expire",
     "expire_tmp",
+    "bw_enabled",
+    "bw_dl",
+    "bw_ul",
 )
 _GUEST_SLOTS = (1, 2, 3)
 
@@ -109,6 +116,10 @@ def _new_network(
     remaining = raw_to_int(_get("expire_tmp"))
     if remaining is not None:
         fields[ARNetworkField.EXPIRE_REMAINING] = remaining
+
+    fields.update(
+        bandwidth_limit(_get("bw_enabled"), _get("bw_dl"), _get("bw_ul"))
+    )
 
     mode = mac_filter_mode(_get("macmode"))
     if mode is not None:

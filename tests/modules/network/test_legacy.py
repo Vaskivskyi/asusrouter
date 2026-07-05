@@ -37,6 +37,9 @@ _DATA = {
     "wl0.1_lanaccess": "off",
     "wl0.1_expire": "3600",
     "wl0.1_expire_tmp": "1200",
+    "wl0.1_bw_enabled": "1",
+    "wl0.1_bw_dl": "5120",
+    "wl0.1_bw_ul": "2048",
 }
 
 
@@ -102,6 +105,8 @@ class TestTranslate:
         assert guest[ARNetworkField.LAN_ACCESS] is False
         assert guest[ARNetworkField.EXPIRE] == 3600
         assert guest[ARNetworkField.EXPIRE_REMAINING] == 1200
+        assert guest[ARNetworkField.BANDWIDTH_LIMIT_DOWNLOAD] == 5120 * 1024
+        assert guest[ARNetworkField.BANDWIDTH_LIMIT_UPLOAD] == 2048 * 1024
         assert (
             guest[ARNetworkField.SECURITY][ARWiFiBand.BAND_2G1][
                 ARNetworkField.AUTH
@@ -117,6 +122,7 @@ class TestTranslate:
         assert ARNetworkField.LAN_ACCESS not in main
         assert ARNetworkField.EXPIRE not in main
         assert ARNetworkField.EXPIRE_REMAINING not in main
+        assert ARNetworkField.BANDWIDTH_LIMIT_DOWNLOAD not in main
 
     def test_split_ssid(self) -> None:
         """Different per-band SSIDs become separate networks."""

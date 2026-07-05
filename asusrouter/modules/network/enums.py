@@ -16,6 +16,8 @@ class ARNetworkField(FromStrMixin, StrEnum):
     # Network
     AP_ISOLATE = "ap_isolate"
     BANDS = "bands"
+    BANDWIDTH_LIMIT_DOWNLOAD = "bandwidth_limit_download"
+    BANDWIDTH_LIMIT_UPLOAD = "bandwidth_limit_upload"
     ENABLED = "enabled"
     EXPIRE = "expire"
     EXPIRE_REMAINING = "expire_remaining"
