@@ -199,6 +199,19 @@ class TestARFirmwareFromNvram:
                     "firmware_type": ARFirmwareType.STOCK,
                 },
             ),
+            # Old firmware: build in dotted buildno, empty extendno
+            (
+                "3.0.0.4",
+                "380.70",
+                "0",
+                {
+                    "major": (3, 0, 0, 4),
+                    "minor": 380,
+                    "build": 70,
+                    "revision": None,
+                    "rog": False,
+                },
+            ),
             (
                 None,
                 None,
