@@ -85,7 +85,6 @@ def _new_network(
     data: dict[str, Any],
     prefix: str,
     ssid: Ssid,
-    enable_key: str,
     maclist: str,
 ) -> dict[ARNetworkField, Any]:
     """Build the network-level fields for a new SSID group."""
@@ -95,7 +94,9 @@ def _new_network(
 
     fields: dict[ARNetworkField, Any] = {
         ARNetworkField.SSID: ssid,
-        ARNetworkField.ENABLED: raw_to_bool(_get(enable_key)) or False,
+        # Aggregated from every band in the group by `_group`; a multi-band
+        # network is on if any of its bands is on
+        ARNetworkField.ENABLED: False,
         ARNetworkField.HIDDEN: raw_to_bool(_get("closed")) or False,
         ARNetworkField.AP_ISOLATE: raw_to_bool(_get("ap_isolate")) or False,
         ARNetworkField.BANDS: [],
@@ -153,9 +154,14 @@ def _group(
         if network is None:
             # Network-level fields come from the first band of the group;
             # bands sharing an SSID share these settings
-            network = _new_network(data, prefix, ssid, enable_key, maclist)
+            network = _new_network(data, prefix, ssid, maclist)
             groups[key] = network
             order.append(key)
+
+        # Enable is per-band (main uses the radio state); the network is on
+        # when any of its bands is on, so a single disabled band never hides it
+        if raw_to_bool(data.get(f"{prefix}_{enable_key}")):
+            network[ARNetworkField.ENABLED] = True
 
         network[ARNetworkField.BANDS].append(band)
         band_security: dict[ARNetworkField, Any] = {
