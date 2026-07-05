@@ -39,6 +39,13 @@ from asusrouter.modules.support.helpers import (
 )
 from asusrouter.modules.support.lan import translate_lan_capabilities
 from asusrouter.modules.support.platform import translate_platform
+from asusrouter.modules.support.sdn import (
+    translate_sdn_awv,
+    translate_sdn_mainfh,
+    translate_sdn_max_rules,
+    translate_sdn_mwl,
+    translate_sdn_priority,
+)
 from asusrouter.modules.support.speedtest import (
     translate_speedtest,
     translate_speedtest_capabilities,
@@ -86,6 +93,11 @@ _TRANSLATION_TABLE: dict[ARSupportType, ARCallableType] = {
     ARSupportType.FTP_CAPABILITIES: translate_ftp_capabilities,
     ARSupportType.LAN_CAPABILITIES: translate_lan_capabilities,
     ARSupportType.PLATFORM: translate_platform,
+    ARSupportType.SDN_AWV: translate_sdn_awv,
+    ARSupportType.SDN_MAINFH: translate_sdn_mainfh,
+    ARSupportType.SDN_MAX_RULES: translate_sdn_max_rules,
+    ARSupportType.SDN_MWL: translate_sdn_mwl,
+    ARSupportType.SDN_PRIORITY: translate_sdn_priority,
     ARSupportType.SPEEDTEST: translate_speedtest,
     ARSupportType.SPEEDTEST_CAPABILITIES: translate_speedtest_capabilities,
     ARSupportType.USB_GENERATION: translate_usb_generation,
