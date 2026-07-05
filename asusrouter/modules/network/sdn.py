@@ -77,9 +77,10 @@ _BAND_BITS: dict[ARWiFiBand, int] = {
 }
 
 
-def _split_rules(decoded: str) -> list[list[str]]:
-    """Split a decoded rule-list into rows of `>`-separated columns."""
+def _rows(raw: Any) -> list[list[str]]:
+    """Decode a char-encoded rule-list into rows of `>`-separated columns."""
 
+    decoded = decode(raw)
     return [chunk.split(">") for chunk in decoded.split("<") if chunk != ""]
 
 
@@ -87,7 +88,7 @@ def _parse_sdn_rl(raw: Any) -> list[tuple[str, str, int, bool]]:
     """Parse `sdn_rl` into `(name, prefix, apg_idx, enabled)` per profile."""
 
     profiles: list[tuple[str, str, int, bool]] = []
-    for cols in _split_rules(decode(raw)):
+    for cols in _rows(raw):
         if len(cols) <= _COL_APG_IDX or cols[_COL_IDX] == "0":
             continue
         name = cols[_COL_NAME]
@@ -111,7 +112,7 @@ def _parse_security(
 
     entries = [
         (raw_to_int(cols[0]) or 0, cols[1], cols[2], cols[3])
-        for cols in _split_rules(decode(raw))
+        for cols in _rows(raw)
         if len(cols) >= _SECURITY_COLS
     ]
 
@@ -139,7 +140,7 @@ def _dut_bands(raw: Any, bands: list[ARWiFiBand]) -> list[ARWiFiBand]:
     """Decode `dut_list` into the device bands the profile is bound to."""
 
     union = 0
-    for cols in _split_rules(decode(raw)):
+    for cols in _rows(raw):
         if len(cols) >= _DUT_COLS:
             union |= raw_to_int(cols[1]) or 0
 
@@ -149,7 +150,7 @@ def _dut_bands(raw: Any, bands: list[ARWiFiBand]) -> list[ARWiFiBand]:
 def _bandwidth(raw: Any) -> dict[ARNetworkField, Any]:
     """Decode `bw_limit` (`<enabled>up>down`, Kib/s) into rate fields."""
 
-    rows = _split_rules(decode(raw))
+    rows = _rows(raw)
     if not rows:
         return {}
 

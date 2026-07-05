@@ -151,6 +151,8 @@ def _group(
         key = str(raw_ssid)
         network = groups.get(key)
         if network is None:
+            # Network-level fields come from the first band of the group;
+            # bands sharing an SSID share these settings
             network = _new_network(data, prefix, ssid, enable_key, maclist)
             groups[key] = network
             order.append(key)

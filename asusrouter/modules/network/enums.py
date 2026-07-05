@@ -19,9 +19,9 @@ class ARNetworkField(FromStrMixin, StrEnum):
     BANDWIDTH_LIMIT_DOWNLOAD = "bandwidth_limit_download"
     BANDWIDTH_LIMIT_UPLOAD = "bandwidth_limit_upload"
     ENABLED = "enabled"
-    EXPIRE = "expire"
-    EXPIRE_REMAINING = "expire_remaining"
-    EXPIRY = "expiry"
+    EXPIRE = "expire"  # legacy guest time-limit duration in seconds
+    EXPIRE_REMAINING = "expire_remaining"  # legacy guest seconds left
+    EXPIRY = "expiry"  # SDN one-time schedule `start,end` timestamps
     HIDDEN = "hidden"
     LAN_ACCESS = "lan_access"
     MAC_FILTER_LIST = "mac_filter_list"
