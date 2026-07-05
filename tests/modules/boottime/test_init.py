@@ -13,6 +13,7 @@ from asusrouter.modules import boottime
 from asusrouter.modules.boottime import (
     ARBoottime,
     ARBoottimeSource,
+    _extract_uptime,
     get_state,
     read_uptime,
     stabilize,
@@ -122,8 +123,53 @@ class TestARBoottime:
         assert isinstance(tagged, datetime)
 
 
+class TestExtractUptime:
+    """Tests for _extract_uptime (old-firmware raw fallback)."""
+
+    def test_from_invalid_json(self) -> None:
+        """The uptime value is pulled from the non-JSON old-FW response."""
+
+        content = (
+            '{\n"uptime":Sat, 01 Aug 2015 03:09:22 +0200'
+            "(4162 secs since boot)\n}"
+        )
+        assert (
+            _extract_uptime(content)
+            == "Sat, 01 Aug 2015 03:09:22 +0200(4162 secs since boot)"
+        )
+
+    def test_quoted_value(self) -> None:
+        """A quoted value is unquoted."""
+
+        assert _extract_uptime('{"uptime":"when(1 secs)"}') == "when(1 secs)"
+
+    @pytest.mark.parametrize("content", [None, 42, "{}", '{"other":1}'])
+    def test_no_uptime(self, content: Any) -> None:
+        """No usable uptime yields None."""
+
+        assert _extract_uptime(content) is None
+
+
 class TestGetState:
     """Tests for get_state."""
+
+    async def test_raw_fallback(self) -> None:
+        """When the JSON has no uptime, the raw content is parsed."""
+
+        callback = AsyncMock(return_value={})
+        raw_callback = AsyncMock(
+            return_value='{\n"uptime":when(100 secs since boot)\n}'
+        )
+
+        with patch.object(boottime, "read_uptime", return_value=_BOOT):
+            result = await get_state(
+                callback,
+                ARBoottimeSource(),
+                raw_callback=raw_callback,
+            )
+
+        assert result == _BOOT
+        raw_callback.assert_awaited_once()
 
     async def test_fetches_and_stabilizes(self) -> None:
         """Uptime is fetched and stabilized against the identity anchor."""

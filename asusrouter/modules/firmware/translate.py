@@ -6,7 +6,7 @@ import logging
 import re
 
 from asusrouter.modules.firmware.types import ARFirmwareType
-from asusrouter.tools.converters_v2.raw import raw_to_str
+from asusrouter.tools.converters_v2.raw import raw_to_int, raw_to_str
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -16,7 +16,7 @@ _WARNED_FW_STRINGS: set[str] = set()
 FW_MAJOR_PATTERN = re.compile(r"^([39]).?([0-9]).?([0-9]).?([0-9])$")
 FW_BUILD_PATTERN = re.compile(
     r"^(?P<build>[0-9]+)[_.-]?"
-    r"(?P<revision>[a-zA-Z0-9-_]+?)(?=_rog|$)?"
+    r"(?P<revision>[a-zA-Z0-9-_]*?)(?=_rog|$)?"
     r"(?P<rog>_rog)?$"
 )
 FW_PATTERN = re.compile(
@@ -47,6 +47,19 @@ def translate_major(raw: str | None) -> tuple[int, int, int, int] | None:
         return None
     a, b, c, d = match.groups()
     return int(a), int(b), int(c), int(d)
+
+
+def translate_minor(raw: str | None) -> tuple[int | None, int | None]:
+    """Translate the minor version into `(minor, build)`.
+
+    New firmware reports just the branch (`388`); older firmware packs the
+    build into a dotted `buildno` (`380.70` -> minor 380, build 70).
+    """
+
+    if raw is None or raw == "":
+        return None, None
+    branch, _, build = str(raw).partition(".")
+    return raw_to_int(branch), raw_to_int(build) if build else None
 
 
 def translate_build(

@@ -9,6 +9,7 @@ from typing import Any
 
 from asusrouter.modules.endpoint_v2 import AREndpoint
 from asusrouter.modules.endpoint_v2.hooks import ARHook, hook_request
+from asusrouter.modules.nvram import ARNvramType
 from asusrouter.modules.source import ARDataSource
 from asusrouter.modules.support.ai import (
     translate_ai,
@@ -66,6 +67,7 @@ from asusrouter.modules.support.wifi import (
 )
 from asusrouter.registry import ARCallableRegistry as ARCallReg
 from asusrouter.tools.types import ARCallableType, ARCallbackType
+from asusrouter.tools.writers import nvram
 
 
 class ARSupportSource(ARDataSource):
@@ -110,6 +112,20 @@ _TRANSLATION_TABLE: dict[ARSupportType, ARCallableType] = {
 }
 
 
+async def _fetch_rc_support(callback: ARCallbackType) -> dict[str, Any]:
+    """Fetch `rc_support` nvram as a {token: True} map (old-firmware path)."""
+
+    key = ARNvramType.RC_SUPPORT.value
+    response = await callback(
+        endpoint=AREndpoint.FETCH_DATA, request=f"hook={nvram([key]) or ''}"
+    )
+    tokens = response.get(key) if isinstance(response, dict) else None
+    if isinstance(tokens, str) and tokens:
+        return dict.fromkeys(tokens.split(), True)
+
+    return {}
+
+
 async def get_state(
     callback: ARCallbackType,
     source: ARSupportSource,
@@ -117,17 +133,17 @@ async def get_state(
 ) -> dict[str, Any]:
     """Fetch the support data state."""
 
-    endpoint = AREndpoint.FETCH_DATA
-    request = hook_request(ARHook.UI_SUPPORT)
-
-    response = await callback(endpoint=endpoint, request=request)
-
+    response = await callback(
+        endpoint=AREndpoint.FETCH_DATA,
+        request=hook_request(ARHook.UI_SUPPORT),
+    )
     if isinstance(response, dict):
         ui_support = response.get("get_ui_support")
-        if isinstance(ui_support, dict):
+        if isinstance(ui_support, dict) and ui_support:
             return ui_support
 
-    return {}
+    # Old firmware returns an empty `get_ui_support` - fall back to rc_support
+    return await _fetch_rc_support(callback)
 
 
 def translate_state(

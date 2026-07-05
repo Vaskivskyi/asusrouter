@@ -16,7 +16,11 @@ from asusrouter.modules.device.identity import (
     _translate_wifi,
 )
 from asusrouter.modules.firmware import ARFirmware
-from asusrouter.modules.nvram import ARNvramType
+from asusrouter.modules.nvram import (
+    ARNvramIndexSource,
+    ARNvramIndexType,
+    ARNvramType,
+)
 from asusrouter.modules.support import ARSupportSourceUniversal
 from asusrouter.modules.support.flag import ARSupportType
 from asusrouter.modules.wifi import ARWiFiBand
@@ -135,6 +139,47 @@ class TestTranslateWifi:
         """Parses bands string and WIFI_UNITS into ARWiFiBand dict."""
 
         assert _translate_wifi(data, support) == expected
+
+    def _nband(self, **units: str) -> dict[Any, Any]:
+        """Build a payload with `wl{}_nband` values keyed by unit."""
+
+        return {
+            ARNvramIndexSource(ARNvramIndexType.WL_NBAND, int(unit)): value
+            for unit, value in units.items()
+        }
+
+    def test_nband_fallback(self) -> None:
+        """With no WIRELESS_BANDS, bands come from per-radio nband."""
+
+        # RT-AC66U: 2.4GHz (nband 2) + 5GHz (nband 1)
+        data = self._nband(**{"0": "2", "1": "1"})
+        assert _translate_wifi(data, {}) == {
+            ARWiFiBand.BAND_2G1: 0,
+            ARWiFiBand.BAND_5G1: 1,
+        }
+
+    def test_nband_first_unit_wins(self) -> None:
+        """A repeated band keeps the first unit."""
+
+        data = self._nband(**{"0": "1", "1": "1"})
+        assert _translate_wifi(data, {}) == {ARWiFiBand.BAND_5G1: 0}
+
+    def test_nband_unknown_skipped(self) -> None:
+        """An unknown nband code is skipped."""
+
+        data = self._nband(**{"0": "99"})
+        assert _translate_wifi(data, {}) == {}
+
+    def test_bands_preferred_over_nband(self) -> None:
+        """WIRELESS_BANDS wins when present, ignoring nband."""
+
+        data = {
+            ARNvramType.WIRELESS_BANDS: "2g1",
+            **self._nband(**{"0": "1"}),
+        }
+        assert _translate_wifi(data, {ARSupportType.WIFI_UNITS: (0,)}) == {
+            ARWiFiBand.BAND_2G1: 0,
+        }
 
 
 class TestTranslateIdentityBase:
@@ -269,6 +314,16 @@ class TestARDeviceIdentityProperties:
 
         identity = ARDeviceIdentity()
         assert identity.wifi == {}
+
+    def test_wifi_by_unit(self) -> None:
+        """wifi_by_unit inverts the band -> unit map."""
+
+        identity = ARDeviceIdentity()
+        identity._wifi = {ARWiFiBand.BAND_2G1: 0, ARWiFiBand.BAND_5G1: 1}
+        assert identity.wifi_by_unit == {
+            0: ARWiFiBand.BAND_2G1,
+            1: ARWiFiBand.BAND_5G1,
+        }
 
 
 class TestARDeviceIdentityBuild:

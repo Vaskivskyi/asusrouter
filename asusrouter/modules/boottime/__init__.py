@@ -20,6 +20,21 @@ from asusrouter.tools.types import ARCallbackType
 _REBOOT_DELTA_THRESHOLD = 2
 _UPTIME_MIN_PARTS = 2
 
+# Old firmware returns the uptime hook as invalid JSON (the value is not
+# quoted), so the JSON reader drops it - pull it out of the raw content
+_UPTIME_RE = re.compile(r'"uptime"\s*:\s*([^}\n]+)')
+
+
+def _extract_uptime(content: Any) -> str | None:
+    """Extract the uptime value from a raw (possibly non-JSON) response."""
+
+    if not isinstance(content, str):
+        return None
+    match = _UPTIME_RE.search(content)
+    if match is None:
+        return None
+    return match.group(1).strip().strip('"') or None
+
 
 class ARBoottime(datetime):
     """Boot time - a datetime tagged so the identity sync is unambiguous."""
@@ -93,16 +108,28 @@ async def get_state(
     source: ARBoottimeSource,
     *,
     identity: ARDeviceIdentity | None = None,
+    raw_callback: ARCallbackType | None = None,
     **kwargs: Any,
 ) -> ARBoottime | None:
     """Fetch the uptime hook and return the (stabilized) boot time."""
 
-    raw = await callback(
-        endpoint=AREndpoint.FETCH_DATA,
-        request=hook_request(ARHook.UPTIME),
-    )
-    uptime = raw.get("uptime") if isinstance(raw, dict) else None
-    candidate = read_uptime(uptime) if isinstance(uptime, str) else None
+    request = hook_request(ARHook.UPTIME)
+
+    # Prefer the raw content: the uptime value is not valid JSON on old
+    # firmware, so the JSON reader would log a spurious decode error
+    uptime: str | None = None
+    if raw_callback is not None:
+        content = await raw_callback(
+            endpoint=AREndpoint.FETCH_DATA, request=request
+        )
+        uptime = _extract_uptime(content)
+
+    if uptime is None:
+        raw = await callback(endpoint=AREndpoint.FETCH_DATA, request=request)
+        value = raw.get("uptime") if isinstance(raw, dict) else None
+        uptime = value if isinstance(value, str) else None
+
+    candidate = read_uptime(uptime) if uptime is not None else None
     prev = identity.boottime if identity is not None else None
     return stabilize(candidate, prev)
 

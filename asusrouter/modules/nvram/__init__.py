@@ -58,6 +58,9 @@ class ARNvramType(ARDataType):
     # Software information (configurable by user)
     SW_MODE = "sw_mode"
 
+    # Supported features (raw, fallback for on old firmware)
+    RC_SUPPORT = "rc_support"
+
     # Everything further is grouped by category
     # Categories go in alphabetical order, same for items in item
 
@@ -284,6 +287,9 @@ class ARNvramIndexType(FromStrMixin, StrEnum):
     WAN_S46_PREFIX6LEN = "wan{}_s46_prefix6len_x"
     WAN_S46_PSID = "wan{}_s46_psid_x"
     WAN_S46_PSIDLEN = "wan{}_s46_psidlen_x"
+
+    # WiFi (per-unit)
+    WL_NBAND = "wl{}_nband"
 
 
 class ARNvramIndexSource(ARDataSource):

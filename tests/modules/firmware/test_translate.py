@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from typing import Any
 
 import pytest
 
@@ -11,6 +12,7 @@ from asusrouter.modules.firmware.translate import (
     _translate_revision,
     translate_build,
     translate_major,
+    translate_minor,
     translate_string,
     translate_type,
 )
@@ -80,6 +82,9 @@ class TestTranslateBuild:
             ("", (None, None, False)),
             ("   ", (None, None, False)),
             ("not_a_build", (None, None, False)),
+            # Bare build (old firmware extendno), no revision
+            ("70", (70, None, False)),
+            ("0", (0, None, False)),
             # Merlin: numeric revision
             ("8_2", (8, 2, False)),
             ("7_120", (7, 120, False)),
@@ -101,6 +106,29 @@ class TestTranslateBuild:
         """Test translate_build."""
 
         assert translate_build(raw) == expected
+
+
+class TestTranslateMinor:
+    """Test translate_minor."""
+
+    @pytest.mark.parametrize(
+        ("raw", "expected"),
+        [
+            (None, (None, None)),
+            ("", (None, None)),
+            (388, (388, None)),
+            ("388", (388, None)),
+            # Old firmware packs the build into a dotted buildno
+            ("380.70", (380, 70)),
+            ("384.20", (384, 20)),
+        ],
+    )
+    def test_translate_minor(
+        self, raw: Any, expected: tuple[int | None, int | None]
+    ) -> None:
+        """Test translate_minor splits the build from a dotted buildno."""
+
+        assert translate_minor(raw) == expected
 
 
 class TestTranslateType:

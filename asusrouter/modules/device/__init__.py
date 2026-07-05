@@ -11,7 +11,11 @@ from typing import Any
 
 from asusrouter.const import UNKNOWN_MEMBER
 from asusrouter.modules.device.identity import ARDeviceIdentity
-from asusrouter.modules.nvram import ARNvramType
+from asusrouter.modules.nvram import (
+    ARNvramIndexSource,
+    ARNvramIndexType,
+    ARNvramType,
+)
 from asusrouter.modules.source import ARDataSource, ARDataType
 from asusrouter.modules.support import ARSupportSourceUniversal
 from asusrouter.registry import ARCallableRegistry as ARCallReg
@@ -38,6 +42,8 @@ DEVICE_REQUEST: tuple[ARDataType | ARDataSource, ...] = (
     ARNvramType.SECRET_CODE,
     ARNvramType.SERIAL,
     ARNvramType.WIRELESS_BANDS,
+    # Per-radio band type, for the wifi fallback when WIRELESS_BANDS is empty
+    *(ARNvramIndexSource(ARNvramIndexType.WL_NBAND, i) for i in range(4)),
     # Firmware information
     ARNvramType.FW_MAJOR,
     ARNvramType.FW_MINOR,
