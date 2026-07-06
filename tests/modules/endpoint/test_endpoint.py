@@ -83,19 +83,17 @@ def test_read_module_return_fail() -> None:
 
 
 @pytest.mark.parametrize(
-    ("require_history", "require_firmware", "require_wlan", "call_count"),
+    ("require_history", "require_firmware", "call_count"),
     [
-        (True, False, False, 1),
-        (False, True, False, 1),
-        (False, False, True, 1),
-        (False, False, False, 0),
-        (True, True, True, 3),
+        (True, False, 1),
+        (False, True, 1),
+        (False, False, 0),
+        (True, True, 2),
     ],
 )
 def test_process(
     require_history: bool,
     require_firmware: bool,
-    require_wlan: bool,
     call_count: int,
 ) -> None:
     """Test process method."""
@@ -117,8 +115,6 @@ def test_process(
             return require_history
         if attr == "REQUIRE_FIRMWARE":
             return require_firmware
-        if attr == "REQUIRE_WLAN":
-            return require_wlan
         return bool(default) if default is not None else None
 
     # Test valid endpoint

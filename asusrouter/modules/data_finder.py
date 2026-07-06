@@ -14,7 +14,6 @@ from asusrouter.modules.endpoint.hook_const import (
 )
 from asusrouter.modules.endpoint_v2 import AREndpoint
 from asusrouter.modules.parental_control import HOOK_PC
-from asusrouter.modules.wlan import gwlan_nvram_request, wlan_nvram_request
 from asusrouter.tools import converters
 
 _LOGGER = logging.getLogger(__name__)
@@ -131,10 +130,6 @@ ASUSDATA_MAP: dict[AsusData, AsusData | AsusDataFinder] = {
         AREndpoint.FETCH_DATA,
         nvram=ASUSDATA_NVRAM["ddns"],
     ),
-    AsusData.GWLAN: AsusDataFinder(
-        AREndpoint.FETCH_DATA,
-        method=gwlan_nvram_request,
-    ),
     AsusData.LED: AsusDataFinder(
         AREndpoint.FETCH_DATA, nvram=ASUSDATA_NVRAM["light"]
     ),
@@ -159,10 +154,6 @@ ASUSDATA_MAP: dict[AsusData, AsusData | AsusDataFinder] = {
         AREndpoint.FETCH_DATA,
         nvram=ASUSDATA_NVRAM["wireguard_server"],
         request=ASUSDATA_REQUEST["wireguard_server"],
-    ),
-    AsusData.WLAN: AsusDataFinder(
-        AREndpoint.FETCH_DATA,
-        method=wlan_nvram_request,
     ),
     AsusData.DSL: AsusDataFinder(
         AREndpoint.FETCH_DATA,

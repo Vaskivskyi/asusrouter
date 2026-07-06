@@ -17,7 +17,6 @@ class AsusData(StrEnum):
     AURA = "aura"
     DDNS = "ddns"
     DSL = "dsl"
-    GWLAN = "gwlan"
     LED = "led"
     OPENVPN = "openvpn"
     OPENVPN_CLIENT = "openvpn_client"
@@ -30,7 +29,6 @@ class AsusData(StrEnum):
     WIREGUARD = "wireguard"
     WIREGUARD_CLIENT = "wireguard_client"
     WIREGUARD_SERVER = "wireguard_server"
-    WLAN = "wlan"
 
 
 @dataclass

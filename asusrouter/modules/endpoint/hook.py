@@ -9,7 +9,6 @@ from asusrouter.modules.aura import process_aura
 from asusrouter.modules.common.connection import ARConnectionState
 from asusrouter.modules.data import AsusData
 from asusrouter.modules.ddns import process_ddns
-from asusrouter.modules.endpoint import data_get
 from asusrouter.modules.endpoint.error import AccessError
 from asusrouter.modules.led import AsusLED
 from asusrouter.modules.parental_control import (
@@ -26,13 +25,7 @@ from asusrouter.modules.port_forwarding import (
     PortForwardingRule,
 )
 from asusrouter.modules.vpnc import AsusVPNC, AsusVPNType
-from asusrouter.modules.wifi import ARWiFiBand
-from asusrouter.modules.wlan import MAP_GWLAN, MAP_WLAN
-from asusrouter.tools.converters import (
-    run_method,
-    safe_unpack_key,
-    safe_unpack_keys,
-)
+from asusrouter.tools.converters import run_method, safe_unpack_keys
 from asusrouter.tools.converters_v2.raw import (
     raw_to_bool,
     raw_to_int,
@@ -46,8 +39,6 @@ from .hook_const import (
     MAP_WIREGUARD_CLIENT,
     MAP_WIREGUARD_SERVER,
 )
-
-REQUIRE_WLAN = True
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -63,9 +54,6 @@ def process(data: dict[str, Any]) -> dict[AsusData, Any]:  # noqa: C901, PLR0912
 
     state: dict[AsusData, Any] = {}
 
-    # Get the passed arguments
-    wlan = data_get(data, "wlan") or {}
-
     # Aura
     if "ledg_scheme" in data:
         state[AsusData.AURA] = process_aura(data)
@@ -77,15 +65,6 @@ def process(data: dict[str, Any]) -> dict[AsusData, Any]:  # noqa: C901, PLR0912
         or "ddns_hostname_x" in data
     ):
         state[AsusData.DDNS] = process_ddns(data)
-
-    # GWLAN
-    if (
-        "wl0.1_wpa_psk" in data
-        or "wl1.1_wpa_psk" in data
-        or "wl2.1_wpa_psk" in data
-        or "wl3.1_wpa_psk" in data
-    ):
-        state[AsusData.GWLAN] = process_gwlan(data, wlan)
 
     # LED
     if "led_val" in data:
@@ -118,43 +97,11 @@ def process(data: dict[str, Any]) -> dict[AsusData, Any]:  # noqa: C901, PLR0912
     if "get_wgsc_status" in data:
         state[AsusData.WIREGUARD_SERVER] = process_wireguard_server(data)
 
-    # WLAN
-    if (
-        "wl0_wpa_psk" in data
-        or "wl1_wpa_psk" in data
-        or "wl2_wpa_psk" in data
-        or "wl3_wpa_psk" in data
-    ):
-        state[AsusData.WLAN] = process_wlan(data, wlan)
-
     # DSL
     if "dsllog_dataratedown" in data or "dsllog_datarateup" in data:
         state[AsusData.DSL] = process_dsl(data)
 
     return state
-
-
-def process_gwlan(
-    data: dict[str, Any],
-    wlan_list: dict[ARWiFiBand, int],
-) -> dict[str, Any]:
-    """Process GWLAN data."""
-
-    gwlan = {}
-
-    for band, index in wlan_list.items():
-        for gid in range(1, 4):
-            info = {}
-            for pair in MAP_GWLAN:
-                key, method = safe_unpack_key(pair)
-                info[key.format(f"{index}.{gid}")[6:]] = (
-                    method(data.get(key.format(f"{index}.{gid}")))
-                    if method
-                    else data.get(key.format(f"{index}.{gid}"))
-                )
-            gwlan[f"{band.value}_{gid}"] = info
-
-    return gwlan
 
 
 def process_openvpn_server(data: dict[str, Any]) -> dict[int, Any]:
@@ -399,28 +346,6 @@ def process_wireguard_server(  # noqa: C901
     wireguard.pop("status", None)
 
     return {1: wireguard}
-
-
-def process_wlan(
-    data: dict[str, Any],
-    wlan_list: dict[ARWiFiBand, int],
-) -> dict[str, Any]:
-    """Process WLAN data."""
-
-    wlan = {}
-
-    for band, index in wlan_list.items():
-        info = {}
-        for pair in MAP_WLAN:
-            key, method = safe_unpack_key(pair)
-            info[key.format(index)[4:]] = (
-                method(data.get(key.format(index)))
-                if method
-                else data.get(key.format(index))
-            )
-        wlan[band.value] = info
-
-    return wlan
 
 
 def process_dsl(dsl_info: dict[str, Any]) -> dict[str, Any]:

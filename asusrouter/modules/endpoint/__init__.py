@@ -89,10 +89,6 @@ def process(
                 data,
                 firmware=description.firmware if description else None,
             )
-        require_wlan = getattr(submodule, "REQUIRE_WLAN", False)
-        if require_wlan:
-            data_set(data, wlan=description.wifi if description else {})
-
         try:
             result = submodule.process(data)
             if isinstance(result, dict):
