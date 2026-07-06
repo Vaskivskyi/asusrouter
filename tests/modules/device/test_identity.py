@@ -459,3 +459,12 @@ class TestBoottime:
 
         identity.clear_rebooted()
         assert identity.rebooted is False
+
+    def test_mark_reboot_flags_reboot(self) -> None:
+        """mark_reboot flags a reboot without a boot time move."""
+
+        identity = ARDeviceIdentity()
+
+        identity.mark_reboot()
+
+        assert identity.rebooted is True

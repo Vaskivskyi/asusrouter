@@ -219,6 +219,11 @@ class ARDeviceIdentity:
 
         return self._rebooted
 
+    def mark_reboot(self) -> None:
+        """Flag a reboot triggered by an action, before the boot time moves."""
+
+        self._rebooted = True
+
     def clear_rebooted(self) -> None:
         """Clear the reboot flag after it has been acted upon."""
 

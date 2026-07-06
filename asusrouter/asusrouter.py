@@ -36,6 +36,7 @@ from asusrouter.error import (
     AsusRouterAccessError,
     AsusRouterConnectionError,
     AsusRouterDataError,
+    AsusRouterError,
 )
 from asusrouter.modules.action import ARAction
 from asusrouter.modules.aimesh import ARAiMeshSourceUniversal
@@ -91,6 +92,11 @@ from asusrouter.tools.types import ARCallableType
 _LOGGER = logging.getLogger(__name__)
 
 _AUTH_RETRY_DELAY: int = 1
+
+# Reboot recovery: grace before the first probe
+_REBOOT_RECOVERY_INITIAL_DELAY: int = 30
+_REBOOT_RECOVERY_TIMEOUT: int = 300
+_REBOOT_RECOVERY_INTERVAL: int = 10
 
 ARDataRequest = ARDataSource | ARDataType | Iterable[ARDataSource | ARDataType]
 
@@ -166,6 +172,9 @@ class AsusRouter:
 
         # Endpoints that returned 404
         self._unavailable_endpoints: set[AREndpoint] = set()
+
+        # In-flight reboot recovery; holds all requests until it finishes
+        self._reboot_recovery: asyncio.Task[None] | None = None
 
         # Time for change to take effect before available to fetch
         self._needed_time: int | None = None
@@ -339,6 +348,11 @@ class AsusRouter:
         """Fetch raw string content from a V2 API endpoint."""
 
         _LOGGER.debug("Triggered method async_fetch: %s", endpoint)
+
+        # Hold every request while recovering from a reboot
+        recovery = self._reboot_recovery
+        if recovery is not None:
+            await recovery
 
         # Skip endpoints already known absent on this firmware
         if endpoint in self._unavailable_endpoints:
@@ -713,6 +727,14 @@ class AsusRouter:
             self.async_read, action, identity=self.description, **kwargs
         )
 
+        # An action may have triggered a reboot
+        if self.description.rebooted:
+            self._async_drop_connection()
+            if self._reboot_recovery is None:
+                self._reboot_recovery = asyncio.create_task(
+                    self._async_recover_after_reboot()
+                )
+
         translate_caller = ARCallReg.get_callable(
             action, AR_CALL_TRANSLATE_ACTION
         )
@@ -728,6 +750,42 @@ class AsusRouter:
         # TODO: Add LED recovery for v2
 
         self.description.clear_rebooted()
+
+    async def _async_recover_after_reboot(self) -> None:
+        """Hold requests while the device reboots, until it is back online."""
+
+        _LOGGER.warning(
+            "Device is rebooting; data fetching is on hold until it is back"
+        )
+
+        # Login attempts against a rebooting device are expected to fail
+        self._connection.set_error_suppression(True)
+        try:
+            # Let the device actually go down before the first probe
+            await asyncio.sleep(_REBOOT_RECOVERY_INITIAL_DELAY)
+
+            loop = asyncio.get_running_loop()
+            deadline = loop.time() + _REBOOT_RECOVERY_TIMEOUT
+            while loop.time() < deadline:
+                try:
+                    reconnected = await self._connection.async_connect(
+                        block_error=True
+                    )
+                except AsusRouterError:
+                    reconnected = False
+                if reconnected:
+                    _LOGGER.debug("Device is back online after the reboot")
+                    self.description.clear_rebooted()
+                    return
+                await asyncio.sleep(_REBOOT_RECOVERY_INTERVAL)
+
+            _LOGGER.error(
+                "Device did not come back within %ss after the reboot",
+                _REBOOT_RECOVERY_TIMEOUT,
+            )
+        finally:
+            self._connection.set_error_suppression(False)
+            self._reboot_recovery = None
 
     # ---------------------------
     # <-- Data pipeline

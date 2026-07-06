@@ -9,6 +9,7 @@ import json
 from typing import Any
 
 from asusrouter.const import UNKNOWN_MEMBER_STR, RequestType
+from asusrouter.modules.common.command import ACTION_MODE_KEY, ARActionMode
 from asusrouter.modules.endpoint_v2.translate import read_wan_lan_status
 from asusrouter.tools.enum import FromStrMixin
 from asusrouter.tools.readers import read_js_variables, read_json_content
@@ -130,13 +131,9 @@ def get_endpoint_raw_payload(endpoint: AREndpoint) -> bool:
     return get_endpoint_meta(endpoint).raw_payload
 
 
-# PUSH_DATA (applyapp.cgi) request body
-ACTION_MODE_KEY = "action_mode"
-ACTION_MODE_APPLY = "apply"
-
-
 def build_push_request(
-    action_mode: str, payload: Mapping[str, Any] | None = None
+    action_mode: ARActionMode | str = ARActionMode.APPLY,
+    payload: Mapping[str, Any] | None = None,
 ) -> str:
     """Build a PUSH_DATA (applyapp.cgi) request body.
 
@@ -144,7 +141,7 @@ def build_push_request(
     optional command fields; the connection URL-encodes it on the wire.
     """
 
-    commands: dict[str, Any] = {ACTION_MODE_KEY: action_mode}
+    commands: dict[str, Any] = {ACTION_MODE_KEY: str(action_mode)}
     if payload:
         commands.update(payload)
     return json.dumps(commands, separators=(",", ":"))

@@ -2,14 +2,55 @@
 
 from __future__ import annotations
 
+import asyncio
+import contextlib
 from unittest.mock import patch
 
 import pytest
 
-from asusrouter.connection import _check_response, _log_request
+from asusrouter.connection import (
+    _check_response,
+    _consume_task_exception,
+    _log_request,
+)
 from asusrouter.error import AsusRouter404Error, AsusRouterAccessError
 from asusrouter.modules.endpoint_v2 import AREndpoint
 from asusrouter.tools.security import ARSecurityLevel, Sensitive
+
+
+class TestConsumeTaskException:
+    """Tests for _consume_task_exception."""
+
+    @pytest.mark.asyncio
+    async def test_retrieves_exception(self) -> None:
+        """A failed task's exception is retrieved, not left dangling."""
+
+        async def boom() -> bool:
+            raise RuntimeError("down")
+
+        task: asyncio.Task[bool] = asyncio.create_task(boom())
+        with pytest.raises(RuntimeError):
+            await task
+
+        # Task is done with an exception; consuming it must not raise
+        _consume_task_exception(task)
+        assert task.exception() is not None
+
+    @pytest.mark.asyncio
+    async def test_ignores_cancelled(self) -> None:
+        """A cancelled task is handled without raising."""
+
+        async def forever() -> bool:
+            await asyncio.Event().wait()
+            return True
+
+        task: asyncio.Task[bool] = asyncio.create_task(forever())
+        await asyncio.sleep(0)
+        task.cancel()
+        with contextlib.suppress(asyncio.CancelledError):
+            await task
+
+        _consume_task_exception(task)
 
 
 class TestLogRequest:

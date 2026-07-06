@@ -5,9 +5,8 @@ from __future__ import annotations
 import pytest
 
 from asusrouter.const import RequestType
+from asusrouter.modules.common.command import ACTION_MODE_KEY, ARActionMode
 from asusrouter.modules.endpoint_v2 import (
-    ACTION_MODE_APPLY,
-    ACTION_MODE_KEY,
     AREndpoint,
     AREndpointMeta,
     build_push_request,
@@ -191,13 +190,19 @@ def test_get_endpoint_reader_default(endpoint: AREndpoint) -> None:
 def test_build_push_request_action_mode_only() -> None:
     """A bare action mode yields a compact JSON body."""
 
-    assert build_push_request(ACTION_MODE_APPLY) == '{"action_mode":"apply"}'
+    assert build_push_request(ARActionMode.APPLY) == '{"action_mode":"apply"}'
+
+
+def test_build_push_request_default_action_mode() -> None:
+    """The action mode defaults to apply."""
+
+    assert build_push_request() == '{"action_mode":"apply"}'
 
 
 def test_build_push_request_with_payload() -> None:
     """The payload is merged after the action mode, compactly encoded."""
 
-    request = build_push_request(ACTION_MODE_APPLY, {"dns_ping_list": "<A>1"})
+    request = build_push_request(ARActionMode.APPLY, {"dns_ping_list": "<A>1"})
     assert request == '{"action_mode":"apply","dns_ping_list":"<A>1"}'
 
 
@@ -205,4 +210,4 @@ def test_action_mode_constants() -> None:
     """The applyapp payload keys match the device fields."""
 
     assert ACTION_MODE_KEY == "action_mode"
-    assert ACTION_MODE_APPLY == "apply"
+    assert ARActionMode.APPLY == "apply"

@@ -10,13 +10,15 @@ from unittest.mock import ANY, AsyncMock, Mock
 
 import pytest
 
-from asusrouter.asusrouter import AsusRouter
+from asusrouter.asusrouter import _REBOOT_RECOVERY_INITIAL_DELAY, AsusRouter
 from asusrouter.const import AR_CALL_RUN_ACTION
+from asusrouter.error import AsusRouterError
 from asusrouter.modules.action import ARAction
 from asusrouter.modules.aimesh.topology import ARAiMeshTopology
 from asusrouter.modules.boottime import ARBoottime
 from asusrouter.modules.device import ARDeviceSourceUniversal
 from asusrouter.modules.device.identity import ARDeviceIdentity
+from asusrouter.modules.endpoint_v2 import AREndpoint
 from asusrouter.modules.source import (
     ARDataCollection,
     ARDataSource,
@@ -688,6 +690,192 @@ class TestAsyncRunAction:
 
         assert result == "translated"
         assert translate.call_args.args == ("raw",)
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("rebooted", [True, False], ids=["reboot", "none"])
+    async def test_drops_connection_on_reboot(
+        self,
+        router: AsusRouter,
+        make_state: MakeStateFactory,
+        monkeypatch: pytest.MonkeyPatch,
+        rebooted: bool,
+    ) -> None:
+        """A reboot flagged during the run drops the connection."""
+
+        identity = ARDeviceIdentity()
+        id_state = make_state(ARDeviceSourceUniversal)
+        cast(Any, id_state)._content = identity
+        router._data_states[ARDeviceSourceUniversal] = id_state
+
+        async def run(*_args: Any, **_kwargs: Any) -> str:
+            if rebooted:
+                identity.mark_reboot()
+            return "raw"
+
+        def get_callable(action: Any, name: str) -> Any:
+            return run if name == AR_CALL_RUN_ACTION else None
+
+        monkeypatch.setattr(ARCallReg, "get_callable", get_callable)
+        drop = Mock()
+        monkeypatch.setattr(router, "_async_drop_connection", drop)
+        recover = AsyncMock()
+        monkeypatch.setattr(router, "_async_recover_after_reboot", recover)
+
+        await router.async_run_action(ARAction())
+
+        assert drop.call_count == (1 if rebooted else 0)
+        # A reboot also spawns the recovery task
+        assert (router._reboot_recovery is not None) is rebooted
+        if router._reboot_recovery is not None:
+            await router._reboot_recovery
+
+
+class TestRebootRecovery:
+    """Tests for the reboot recovery gate."""
+
+    def _seed_identity(
+        self, router: AsusRouter, make_state: MakeStateFactory
+    ) -> ARDeviceIdentity:
+        """Seed a persistent, reboot-flagged identity."""
+
+        identity = ARDeviceIdentity()
+        identity.mark_reboot()
+        id_state = make_state(ARDeviceSourceUniversal)
+        cast(Any, id_state)._content = identity
+        router._data_states[ARDeviceSourceUniversal] = id_state
+        return identity
+
+    @pytest.mark.asyncio
+    async def test_fetch_waits_for_recovery(
+        self, router: AsusRouter, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A held request runs only after recovery completes."""
+
+        order: list[str] = []
+
+        async def recovery() -> None:
+            order.append("recovery")
+
+        router._reboot_recovery = asyncio.create_task(recovery())
+
+        async def query(*_args: Any, **_kwargs: Any) -> tuple[int, Any, str]:
+            order.append("query")
+            return (200, {}, "ok")
+
+        monkeypatch.setattr(router._connection, "async_query", query)
+
+        result = await router.async_fetch(AREndpoint.FETCH_DATA)
+
+        assert result == "ok"
+        assert order == ["recovery", "query"]
+
+    @pytest.mark.asyncio
+    async def test_recovery_waits_before_first_probe(
+        self,
+        router: AsusRouter,
+        make_state: MakeStateFactory,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """The grace delay elapses before the first reconnect probe."""
+
+        self._seed_identity(router, make_state)
+        connect = AsyncMock(return_value=True)
+        monkeypatch.setattr(router._connection, "async_connect", connect)
+        sleep = AsyncMock()
+        monkeypatch.setattr(asyncio, "sleep", sleep)
+
+        await router._async_recover_after_reboot()
+
+        # The very first wait is the grace delay, before any probe
+        assert sleep.await_args_list[0].args == (
+            _REBOOT_RECOVERY_INITIAL_DELAY,
+        )
+        connect.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_recovery_success_clears_flag(
+        self,
+        router: AsusRouter,
+        make_state: MakeStateFactory,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """A reconnect clears the flag and the recovery handle."""
+
+        identity = self._seed_identity(router, make_state)
+        connect = AsyncMock(side_effect=[False, True])
+        monkeypatch.setattr(router._connection, "async_connect", connect)
+        monkeypatch.setattr(asyncio, "sleep", AsyncMock())
+
+        await router._async_recover_after_reboot()
+
+        assert identity.rebooted is False
+        assert router._reboot_recovery is None
+        assert connect.await_count == 2
+
+    @pytest.mark.asyncio
+    async def test_recovery_toggles_error_suppression(
+        self,
+        router: AsusRouter,
+        make_state: MakeStateFactory,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Errors are suppressed for the recovery and restored after."""
+
+        self._seed_identity(router, make_state)
+        monkeypatch.setattr(
+            router._connection, "async_connect", AsyncMock(return_value=True)
+        )
+        monkeypatch.setattr(asyncio, "sleep", AsyncMock())
+        suppress = Mock()
+        monkeypatch.setattr(
+            router._connection, "set_error_suppression", suppress
+        )
+
+        await router._async_recover_after_reboot()
+
+        assert [c.args for c in suppress.call_args_list] == [(True,), (False,)]
+
+    @pytest.mark.asyncio
+    async def test_recovery_survives_connection_error(
+        self,
+        router: AsusRouter,
+        make_state: MakeStateFactory,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """A connection error during a probe is retried, not raised."""
+
+        identity = self._seed_identity(router, make_state)
+        connect = AsyncMock(side_effect=[AsusRouterError("down"), True])
+        monkeypatch.setattr(router._connection, "async_connect", connect)
+        monkeypatch.setattr(asyncio, "sleep", AsyncMock())
+
+        await router._async_recover_after_reboot()
+
+        assert identity.rebooted is False
+        assert connect.await_count == 2
+
+    @pytest.mark.asyncio
+    async def test_recovery_timeout_keeps_flag(
+        self,
+        router: AsusRouter,
+        make_state: MakeStateFactory,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """A timeout leaves the flag set and clears the handle."""
+
+        identity = self._seed_identity(router, make_state)
+        connect = AsyncMock(return_value=False)
+        monkeypatch.setattr(router._connection, "async_connect", connect)
+        monkeypatch.setattr(asyncio, "sleep", AsyncMock())
+        monkeypatch.setattr(
+            "asusrouter.asusrouter._REBOOT_RECOVERY_TIMEOUT", 0
+        )
+
+        await router._async_recover_after_reboot()
+
+        assert identity.rebooted is True
+        assert router._reboot_recovery is None
+        connect.assert_not_awaited()
 
 
 class TestTranslateMultidataBatch:
