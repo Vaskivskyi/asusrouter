@@ -21,12 +21,10 @@ from asusrouter.modules.state import (
 )
 from asusrouter.modules.system import AsusSystem
 from asusrouter.modules.vpnc import AsusVPNC
-from asusrouter.modules.wlan import AsusWLAN
 
 mock_state_map = {
     AsusState.SYSTEM: AsusData.SYSTEM,
     AsusState.VPNC: AsusData.VPNC,
-    AsusState.WLAN: AsusData.WLAN,
     AsusState.NONE: None,
 }
 
@@ -95,7 +93,6 @@ def test_add_conditional_state(
         # Existing values of AsusState
         (AsusSystem.REBOOT, AsusData.SYSTEM),
         (AsusVPNC.ON, AsusData.VPNC),
-        (AsusWLAN.OFF, AsusData.WLAN),
         # None
         (None, None),
         # Wrong types
@@ -122,7 +119,6 @@ def test_get_datatype(
         # Existing values of AsusState
         (AsusState.SYSTEM, AsusData.SYSTEM.value),
         (AsusState.VPNC, AsusData.VPNC.value),
-        (AsusState.WLAN, AsusData.WLAN.value),
         # None
         (None, None),
         # Wrong types
@@ -172,14 +168,6 @@ def test_get_module_name(
             AsusState.VPNC,
             "vpnc",
             "vpnc",
-            mock.MagicMock(),
-            None,
-            "mock_module",
-        ),
-        (
-            AsusState.WLAN,
-            "wlan",
-            "wlan",
             mock.MagicMock(),
             None,
             "mock_module",

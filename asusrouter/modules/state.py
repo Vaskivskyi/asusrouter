@@ -25,7 +25,6 @@ from asusrouter.modules.wireguard import (
     AsusWireGuardClient,
     AsusWireGuardServer,
 )
-from asusrouter.modules.wlan import AsusWLAN
 from asusrouter.tools.converters import get_enum_key_by_value
 
 from .led import AsusLED
@@ -61,7 +60,6 @@ class AsusState(Enum):
     VPNC = AsusVPNC
     WIREGUARD_CLIENT = AsusWireGuardClient
     WIREGUARD_SERVER = AsusWireGuardServer
-    WLAN = AsusWLAN
 
 
 AsusStateMap: dict[AsusState, AsusData | None] = {
@@ -80,7 +78,6 @@ AsusStateMap: dict[AsusState, AsusData | None] = {
     AsusState.VPNC: AsusData.VPNC,
     AsusState.WIREGUARD_CLIENT: AsusData.WIREGUARD_CLIENT,
     AsusState.WIREGUARD_SERVER: AsusData.WIREGUARD_SERVER,
-    AsusState.WLAN: AsusData.WLAN,
 }
 
 
