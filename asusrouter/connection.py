@@ -82,6 +82,14 @@ def generate_credentials(
     return payload, headers
 
 
+def _consume_task_exception(task: asyncio.Task[bool]) -> None:
+    """Retrieve a finished task's exception so asyncio does not log it."""
+
+    if not task.cancelled():
+        with contextlib.suppress(Exception):
+            task.exception()
+
+
 def _log_request(endpoint: AREndpoint, payload: str | None) -> None:
     """Log the request details.
 
@@ -156,6 +164,8 @@ class Connection:  # pylint: disable=too-many-instance-attributes
         self._token: str | None = None
         self._header: dict[str, str] | None = None
         self._connected: bool = False
+        # Downgrade expected connection errors to debug
+        self._suppress_errors: bool = False
         self._connection_lock: asyncio.Lock = asyncio.Lock()
         self._timeout: int = timeout or DEFAULT_TIMEOUT
 
@@ -243,6 +253,20 @@ class Connection:  # pylint: disable=too-many-instance-attributes
 
         return self._connected
 
+    def set_error_suppression(self, suppress: bool) -> None:
+        """Downgrade expected connection errors to debug while set."""
+
+        self._suppress_errors = suppress
+
+    def _log_error(self, msg: str, *args: Any) -> None:
+        """Log at error level, or debug while errors are suppressed."""
+
+        _LOGGER.log(
+            logging.DEBUG if self._suppress_errors else logging.ERROR,
+            msg,
+            *args,
+        )
+
     @property
     def http(self) -> str:
         """Return HTTP scheme."""
@@ -316,27 +340,26 @@ class Connection:  # pylint: disable=too-many-instance-attributes
             return True
 
         try:
-            # Await the in-flight connect but don't cancel it on
-            # outer timeout: use shield so that callers timing out
-            # won't cancel the actual attempt.
-            return await asyncio.wait_for(
-                asyncio.shield(task), timeout=timeout
-            )
-        except TimeoutError:
-            if not block_error:
-                _LOGGER.error("Connection to %s timed out", self._log_hostname)
-            # do not cancel the underlying task here; let it finish
-            # and satisfy future callers
-            return False
-        except asyncio.CancelledError:
-            # Propagate outer cancellations (e.g. app shutdown).
-            # Only swallow if the inner task itself was cancelled.
-            current = asyncio.current_task()
-            if current is not None and current.cancelling() > 0:
-                raise
-            if not block_error:
-                _LOGGER.debug("Connection attempt was cancelled")
-            return False
+            # Wait for the in-flight connect via asyncio.wait: unlike
+            # wait_for + shield it never cancels the task on timeout and
+            # never makes asyncio log the task's exception, so callers
+            # timing out won't abort or noise up the actual attempt.
+            # Outer cancellations (e.g. app shutdown) propagate from here.
+            done, _ = await asyncio.wait({task}, timeout=timeout)
+            if not done:
+                if not block_error:
+                    _LOGGER.error(
+                        "Connection to %s timed out", self._log_hostname
+                    )
+                # do not cancel the underlying task here; let it finish
+                # and satisfy future callers
+                return False
+            if task.cancelled():
+                if not block_error:
+                    _LOGGER.debug("Connection attempt was cancelled")
+                return False
+            # Re-raises the login exception to the caller if any
+            return task.result()
         finally:
             self._clear_connect_task(task)
 
@@ -355,9 +378,13 @@ class Connection:  # pylint: disable=too-many-instance-attributes
                 self._connect_task = None
             if self._connect_task is None:
                 self._connect_task = asyncio.create_task(self._login())
+                # Always retrieve the result: on an outer timeout the
+                # task finishes unawaited, and its exception would otherwise be
+                # logged by asyncio as "never retrieved"
+                self._connect_task.add_done_callback(_consume_task_exception)
             # Capture before releasing the lock: another coroutine's
             # _clear_connect_task could set self._connect_task = None
-            # between the lock exit and asyncio.shield() in async_connect.
+            # between the lock exit and asyncio.wait() in async_connect.
             return self._connect_task
 
     def _clear_connect_task(self, task: asyncio.Task[bool]) -> None:
@@ -415,10 +442,12 @@ class Connection:  # pylint: disable=too-many-instance-attributes
         try:
             token = json.loads(resp_content).get("asus_token")
         except (json.JSONDecodeError, AttributeError):
-            _LOGGER.error("Invalid login response from %s", self._log_hostname)
+            self._log_error(
+                "Invalid login response from %s", self._log_hostname
+            )
             return False
         if not token:
-            _LOGGER.error("No token received")
+            self._log_error("No token received")
             return False
 
         async with self._connection_lock:

@@ -8,11 +8,7 @@ from typing import Any
 
 from asusrouter.modules.action import ARAction, ARActionType
 from asusrouter.modules.common.status import MODIFY_KEY
-from asusrouter.modules.endpoint_v2 import (
-    ACTION_MODE_APPLY,
-    AREndpoint,
-    build_push_request,
-)
+from asusrouter.modules.endpoint_v2 import AREndpoint, build_push_request
 from asusrouter.modules.nvram import ARNvramType
 from asusrouter.modules.source import ARDataSource
 from asusrouter.registry import ARCallableRegistry as ARCallReg
@@ -229,8 +225,7 @@ async def run_action(
         return False
 
     request = build_push_request(
-        ACTION_MODE_APPLY,
-        {ARNvramType.DNS_PING_LIST.value: _encode_targets(targets)},
+        payload={ARNvramType.DNS_PING_LIST.value: _encode_targets(targets)},
     )
     data = await callback(endpoint=AREndpoint.PUSH_DATA, request=request)
     if not isinstance(data, dict):

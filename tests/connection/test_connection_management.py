@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import logging
 from typing import Any
 from unittest.mock import AsyncMock, Mock, patch
 
@@ -169,6 +170,57 @@ class TestAsyncConnect:
             outer.cancel()
             with pytest.raises(asyncio.CancelledError):
                 await outer
+
+    async def test_login_error_propagates(
+        self,
+        connection_factory: ConnectionFactory,
+        login: AsyncPatch,
+    ) -> None:
+        """Re-raises the login exception to the caller."""
+
+        conn = connection_factory()
+        login(conn, side_effect=AsusRouterError("login failed"))
+
+        with pytest.raises(AsusRouterError):
+            await conn.async_connect()
+
+    async def test_late_login_error_not_logged_by_asyncio(
+        self,
+        connection_factory: ConnectionFactory,
+    ) -> None:
+        """A login failing after the awaiter timed out stays silent.
+
+        Regression test: with wait_for + shield, asyncio logged the late
+        exception on error level as "exception in shielded future".
+        """
+
+        conn = connection_factory()
+        release = asyncio.Event()
+
+        async def late_failing_login() -> bool:
+            await release.wait()
+            raise AsusRouterError("late failure")
+
+        loop = asyncio.get_running_loop()
+        handler = Mock()
+        loop.set_exception_handler(handler)
+        try:
+            with patch.object(conn, "_login", side_effect=late_failing_login):
+                result = await conn.async_connect(
+                    t_overwrite=0.001, block_error=True
+                )
+                assert result is False
+                # Let the still-running connect task fail now
+                release.set()
+                task = conn._connect_task
+                assert task is not None
+                with contextlib.suppress(AsusRouterError):
+                    await task
+            # Flush pending done callbacks
+            await asyncio.sleep(0)
+            handler.assert_not_called()
+        finally:
+            loop.set_exception_handler(None)
 
     async def test_login_returns_false_propagates(
         self,
@@ -500,6 +552,50 @@ class TestLogin:
         result = await conn._login()
 
         assert result is expected_result
+
+    async def test_invalid_login_logs_error(
+        self,
+        connection_factory: ConnectionFactory,
+        send_request: AsyncPatch,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        """An invalid login response logs at error level by default."""
+
+        conn = connection_factory()
+        send_request(conn).return_value = (200, {}, "not-json")
+
+        with caplog.at_level(logging.DEBUG, logger="asusrouter.connection"):
+            await conn._login()
+
+        assert any(
+            record.levelno == logging.ERROR
+            and "Invalid login response" in record.getMessage()
+            for record in caplog.records
+        )
+
+    async def test_invalid_login_suppressed_to_debug(
+        self,
+        connection_factory: ConnectionFactory,
+        send_request: AsyncPatch,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        """With suppression on, the login error drops to debug."""
+
+        conn = connection_factory()
+        conn.set_error_suppression(True)
+        send_request(conn).return_value = (200, {}, "not-json")
+
+        with caplog.at_level(logging.DEBUG, logger="asusrouter.connection"):
+            await conn._login()
+
+        assert not any(
+            record.levelno == logging.ERROR for record in caplog.records
+        )
+        assert any(
+            record.levelno == logging.DEBUG
+            and "Invalid login response" in record.getMessage()
+            for record in caplog.records
+        )
 
     async def test_success_sets_auth_state(
         self,
