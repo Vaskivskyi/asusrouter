@@ -6,7 +6,12 @@ from unittest.mock import AsyncMock
 
 from asusrouter.modules.endpoint_v2 import AREndpoint
 from asusrouter.modules.network import legacy
-from asusrouter.modules.network.enums import ARNetworkField, ARNetworkType
+from asusrouter.modules.network.enums import (
+    ARNetworkBackend,
+    ARNetworkField,
+    ARNetworkType,
+)
+from asusrouter.modules.network.handle import ARNetworkHandle
 from asusrouter.modules.wifi import ARWiFiAuthMode, ARWiFiBand
 from asusrouter.tools.identifiers import MacAddress, Password, Ssid
 
@@ -163,3 +168,58 @@ class TestTranslate:
         """No configured SSIDs yield an empty result."""
 
         assert legacy.translate({}, _WIFI) == {}
+
+    def test_main_handle(self) -> None:
+        """The main network carries a legacy handle with per-band units."""
+
+        main = legacy.translate(_DATA, _WIFI)[ARNetworkType.MAINFH][0]
+        assert main[ARNetworkField.HANDLE] == ARNetworkHandle(
+            backend=ARNetworkBackend.LEGACY, units=((0, None), (1, None))
+        )
+
+    def test_guest_handle(self) -> None:
+        """The guest network carries a legacy handle with its unit and slot."""
+
+        guest = legacy.translate(_DATA, _WIFI)[ARNetworkType.GUEST][0]
+        assert guest[ARNetworkField.HANDLE] == ARNetworkHandle(
+            backend=ARNetworkBackend.LEGACY, units=((0, 1),)
+        )
+
+
+class TestBuildTogglePayload:
+    """Tests for build_toggle_payload."""
+
+    def test_main_toggles_radio(self) -> None:
+        """A main handle toggles the per-band radio via restart_wireless."""
+
+        handle = ARNetworkHandle(
+            backend=ARNetworkBackend.LEGACY, units=((0, None), (1, None))
+        )
+        rc_service, arguments = legacy.build_toggle_payload(handle, False)
+
+        assert rc_service == "restart_wireless"
+        assert arguments == {"wl0_radio": 0, "wl1_radio": 0}
+
+    def test_guest_enable_clears_expire(self) -> None:
+        """Enabling a guest sets bss_enabled and clears the time limit."""
+
+        handle = ARNetworkHandle(
+            backend=ARNetworkBackend.LEGACY, units=((0, 1),)
+        )
+        rc_service, arguments = legacy.build_toggle_payload(handle, True)
+
+        assert rc_service == "restart_wireless;restart_firewall"
+        assert arguments == {
+            "wl0.1_bss_enabled": 1,
+            "wl0.1_expire": 0,
+        }
+
+    def test_guest_disable_keeps_expire_untouched(self) -> None:
+        """Disabling a guest clears bss_enabled without touching expire."""
+
+        handle = ARNetworkHandle(
+            backend=ARNetworkBackend.LEGACY, units=((0, 1),)
+        )
+        _, arguments = legacy.build_toggle_payload(handle, False)
+
+        assert arguments == {"wl0.1_bss_enabled": 0}

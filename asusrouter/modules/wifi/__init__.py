@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from asusrouter.modules.wifi.action import ARWiFiAction, run_action
 from asusrouter.modules.wifi.enums import (
     AR_WIFI_UNIT_FALLBACK,
     ARWiFiAuth,
@@ -23,6 +24,7 @@ from asusrouter.modules.wifi.source import (
 
 __all__ = [
     "AR_WIFI_UNIT_FALLBACK",
+    "ARWiFiAction",
     "ARWiFiAuth",
     "ARWiFiAuthMode",
     "ARWiFiBand",
@@ -35,5 +37,6 @@ __all__ = [
     "ARWiFiSource",
     "ARWiFiSourceUniversal",
     "get_state",
+    "run_action",
     "translate_state",
 ]

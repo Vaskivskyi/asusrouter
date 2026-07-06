@@ -1,13 +1,4 @@
-"""Legacy backend for the network module.
-
-Builds network profiles from per-band nvram on firmware without SDN: the
-main network from `wl{unit}_*` and guests from `wl{unit}.{slot}_*`. Per-band
-configs are grouped by SSID into one network each (handles smart-connect and
-split-SSID setups alike).
-
-Best-effort - the key set follows the v1 WLAN maps; not yet validated against
-a real legacy-firmware device.
-"""
+"""Legacy backend for the network module."""
 
 from __future__ import annotations
 
@@ -19,7 +10,12 @@ from asusrouter.modules.network.common import (
     mac_filter_mode,
     read_mac_list,
 )
-from asusrouter.modules.network.enums import ARNetworkField, ARNetworkType
+from asusrouter.modules.network.enums import (
+    ARNetworkBackend,
+    ARNetworkField,
+    ARNetworkType,
+)
+from asusrouter.modules.network.handle import ARNetworkHandle
 from asusrouter.modules.wifi import ARWiFiAuthMode, ARWiFiBand
 from asusrouter.tools.converters_v2.raw import (
     raw_to_bool,
@@ -134,7 +130,7 @@ def _new_network(
 
 def _group(
     data: dict[str, Any],
-    band_prefixes: list[tuple[ARWiFiBand, str]],
+    band_specs: list[tuple[ARWiFiBand, int, int | None]],
     enable_key: str,
     maclist: str,
 ) -> list[dict[ARNetworkField, Any]]:
@@ -142,8 +138,10 @@ def _group(
 
     groups: dict[str, dict[ARNetworkField, Any]] = {}
     order: list[str] = []
+    units: dict[str, list[tuple[int, int | None]]] = {}
 
-    for band, prefix in band_prefixes:
+    for band, unit, slot in band_specs:
+        prefix = f"wl{unit}" if slot is None else f"wl{unit}.{slot}"
         raw_ssid = data.get(f"{prefix}_ssid")
         ssid = Ssid.from_value_safe(raw_ssid)
         if ssid is None:
@@ -157,6 +155,9 @@ def _group(
             network = _new_network(data, prefix, ssid, maclist)
             groups[key] = network
             order.append(key)
+            units[key] = []
+
+        units[key].append((unit, slot))
 
         # Enable is per-band (main uses the radio state); the network is on
         # when any of its bands is on, so a single disabled band never hides it
@@ -173,6 +174,11 @@ def _group(
             band_security[ARNetworkField.CIPHER] = cipher
         network[ARNetworkField.SECURITY][band] = band_security
 
+    for key in order:
+        groups[key][ARNetworkField.HANDLE] = ARNetworkHandle(
+            backend=ARNetworkBackend.LEGACY, units=tuple(units[key])
+        )
+
     return [groups[key] for key in order]
 
 
@@ -185,7 +191,7 @@ def translate(
 
     main = _group(
         data,
-        [(band, f"wl{unit}") for band, unit in wifi.items()],
+        [(band, unit, None) for band, unit in wifi.items()],
         "radio",
         "maclist_x",
     )
@@ -195,7 +201,7 @@ def translate(
     guests = _group(
         data,
         [
-            (band, f"wl{unit}.{slot}")
+            (band, unit, slot)
             for slot in _GUEST_SLOTS
             for band, unit in wifi.items()
         ],
@@ -206,3 +212,27 @@ def translate(
         result[ARNetworkType.GUEST] = guests
 
     return result
+
+
+def build_toggle_payload(
+    handle: ARNetworkHandle, state: bool
+) -> tuple[str, dict[str, Any]]:
+    """Build the `(rc_service, arguments)` to enable/disable a network."""
+
+    arguments: dict[str, Any] = {}
+    has_guest = False
+    for unit, slot in handle.units:
+        if slot is None:
+            arguments[f"wl{unit}_radio"] = int(state)
+            continue
+        has_guest = True
+        arguments[f"wl{unit}.{slot}_bss_enabled"] = int(state)
+        if state:
+            arguments[f"wl{unit}.{slot}_expire"] = 0
+
+    rc_service = (
+        "restart_wireless;restart_firewall"
+        if has_guest
+        else "restart_wireless"
+    )
+    return rc_service, arguments

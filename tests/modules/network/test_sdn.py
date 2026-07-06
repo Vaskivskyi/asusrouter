@@ -10,10 +10,12 @@ import pytest
 from asusrouter.modules.endpoint_v2 import AREndpoint
 from asusrouter.modules.network import sdn
 from asusrouter.modules.network.enums import (
+    ARNetworkBackend,
     ARNetworkField,
     ARNetworkSchedule,
     ARNetworkType,
 )
+from asusrouter.modules.network.handle import ARNetworkHandle
 from asusrouter.modules.wifi import ARWiFiAuthMode, ARWiFiBand
 from asusrouter.tools.identifiers import MacAddress, Password, Ssid
 
@@ -62,8 +64,8 @@ class TestParseSdnRl:
         """Profiles parse with prefix and enable; idx 0 is skipped."""
 
         assert sdn._parse_sdn_rl(_SDN_RL) == [
-            ("MAINFH", "apm", 2, True),
-            ("Customized", "apg", 4, True),
+            ("MAINFH", "apm", 2, 1, True),
+            ("Customized", "apg", 4, 3, True),
         ]
 
     @pytest.mark.parametrize("raw", [None, "", _enc("<1>X>1")])
@@ -216,6 +218,76 @@ class TestFetch:
         assert callback.call_count == 1
 
 
+class TestFetchSdnRl:
+    """Tests for fetch_sdn_rl."""
+
+    async def test_returns_raw(self) -> None:
+        """The raw sdn_rl is returned from the response dict."""
+
+        callback = AsyncMock(return_value={"sdn_rl": _SDN_RL})
+        assert await sdn.fetch_sdn_rl(callback) == _SDN_RL
+
+    @pytest.mark.parametrize("response", [{}, "not-a-dict", None])
+    async def test_missing(self, response: Any) -> None:
+        """A missing sdn_rl or non-dict response yields None."""
+
+        callback = AsyncMock(return_value=response)
+        assert await sdn.fetch_sdn_rl(callback) is None
+
+
+class TestBuildTogglePayload:
+    """Tests for build_toggle_payload."""
+
+    def test_disable_flips_enable_column(self) -> None:
+        """Disabling flips the target profile's sdn_enable and apg enable."""
+
+        handle = ARNetworkHandle(
+            backend=ARNetworkBackend.SDN,
+            sdn_idx=1,
+            ap_prefix="apm",
+            ap_idx=2,
+        )
+        rc_service, arguments = sdn.build_toggle_payload(
+            _SDN_RL, handle, False
+        )
+
+        assert rc_service == "restart_wireless;restart_sdn 1;"
+        assert arguments["apm2_enable"] == 0
+        assert arguments["sdn_rl"] == (
+            "<0>DEFAULT>1>0>0>0<1>MAINFH>0>0>0>2<3>Customized>1>0>0>4"
+        )
+
+    def test_enable_sets_columns(self) -> None:
+        """Enabling sets the target columns to 1."""
+
+        handle = ARNetworkHandle(
+            backend=ARNetworkBackend.SDN,
+            sdn_idx=3,
+            ap_prefix="apg",
+            ap_idx=4,
+        )
+        rc_service, arguments = sdn.build_toggle_payload(_SDN_RL, handle, True)
+
+        assert rc_service == "restart_wireless;restart_sdn 3;"
+        assert arguments["apg4_enable"] == 1
+        assert "<3>Customized>1>0>0>4" in arguments["sdn_rl"]
+
+    def test_unknown_idx_leaves_list_unchanged(self) -> None:
+        """An idx with no matching row leaves sdn_rl untouched."""
+
+        handle = ARNetworkHandle(
+            backend=ARNetworkBackend.SDN,
+            sdn_idx=99,
+            ap_prefix="apg",
+            ap_idx=4,
+        )
+        _, arguments = sdn.build_toggle_payload(_SDN_RL, handle, True)
+
+        assert arguments["sdn_rl"] == (
+            "<0>DEFAULT>1>0>0>0<1>MAINFH>1>0>0>2<3>Customized>1>0>0>4"
+        )
+
+
 class TestTranslate:
     """Tests for sdn.translate."""
 
@@ -246,6 +318,12 @@ class TestTranslate:
         assert main[ARNetworkField.MAC_FILTER_LIST] == [MacAddress(_MAC)]
         assert main[ARNetworkField.BANDS] == _BANDS
         assert main[ARNetworkField.PASSWORD] == Password("secret")
+        assert main[ARNetworkField.HANDLE] == ARNetworkHandle(
+            backend=ARNetworkBackend.SDN,
+            sdn_idx=1,
+            ap_prefix="apm",
+            ap_idx=2,
+        )
         assert ARNetworkField.BANDWIDTH_LIMIT_DOWNLOAD not in main
         security = main[ARNetworkField.SECURITY]
         assert (

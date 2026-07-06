@@ -16,10 +16,12 @@ from asusrouter.modules.network.common import (
     read_mac_list,
 )
 from asusrouter.modules.network.enums import (
+    ARNetworkBackend,
     ARNetworkField,
     ARNetworkSchedule,
     ARNetworkType,
 )
+from asusrouter.modules.network.handle import ARNetworkHandle
 from asusrouter.modules.wifi import ARWiFiAuthMode, ARWiFiBand
 from asusrouter.tools.converters_v2.raw import (
     raw_to_bool,
@@ -84,20 +86,21 @@ def _rows(raw: Any) -> list[list[str]]:
     return [chunk.split(">") for chunk in decoded.split("<") if chunk != ""]
 
 
-def _parse_sdn_rl(raw: Any) -> list[tuple[str, str, int, bool]]:
-    """Parse `sdn_rl` into `(name, prefix, apg_idx, enabled)` per profile."""
+def _parse_sdn_rl(raw: Any) -> list[tuple[str, str, int, int, bool]]:
+    """Parse `sdn_rl` into `(name, prefix, apg_idx, sdn_idx, enabled)`."""
 
-    profiles: list[tuple[str, str, int, bool]] = []
+    profiles: list[tuple[str, str, int, int, bool]] = []
     for cols in _rows(raw):
         if len(cols) <= _COL_APG_IDX or cols[_COL_IDX] == "0":
             continue
         name = cols[_COL_NAME]
         apg_idx = raw_to_int(cols[_COL_APG_IDX])
-        if apg_idx is None:
+        sdn_idx = raw_to_int(cols[_COL_IDX])
+        if apg_idx is None or sdn_idx is None:
             continue
         prefix = "apm" if name in _MAIN_NAMES else "apg"
         enabled = raw_to_bool(cols[_COL_ENABLE]) or False
-        profiles.append((name, prefix, apg_idx, enabled))
+        profiles.append((name, prefix, apg_idx, sdn_idx, enabled))
     return profiles
 
 
@@ -178,23 +181,29 @@ def _schedule(
     return fields
 
 
-def _ap_request(profiles: list[tuple[str, str, int, bool]]) -> str:
+def _ap_request(profiles: list[tuple[str, str, int, int, bool]]) -> str:
     """Build the appGet request for the referenced AP groups."""
 
     keys = [
         f"{prefix}{apg_idx}_{key}"
-        for _, prefix, apg_idx, _ in profiles
+        for _, prefix, apg_idx, _, _ in profiles
         for key in _AP_KEYS
     ]
     return f"hook={nvram(keys) or ''}"
 
 
+async def fetch_sdn_rl(callback: ARCallbackType) -> Any:
+    """Fetch the raw `sdn_rl` rule list, or None if unavailable."""
+
+    request = f"hook={nvram(['sdn_rl']) or ''}"
+    data = await callback(endpoint=AREndpoint.FETCH_DATA, request=request)
+    return data.get("sdn_rl") if isinstance(data, dict) else None
+
+
 async def fetch(callback: ARCallbackType) -> Any:
     """Fetch `sdn_rl`, then the AP groups it references."""
 
-    request = f"hook={nvram(['sdn_rl']) or ''}"
-    first = await callback(endpoint=AREndpoint.FETCH_DATA, request=request)
-    sdn_rl = first.get("sdn_rl") if isinstance(first, dict) else None
+    sdn_rl = await fetch_sdn_rl(callback)
     if sdn_rl is None:
         return None
 
@@ -211,21 +220,21 @@ async def fetch(callback: ARCallbackType) -> Any:
 
 def _build_network(
     data: dict[str, Any],
-    prefix: str,
-    apg_idx: int,
+    handle: ARNetworkHandle,
     bands: list[ARWiFiBand],
     sdn_enabled: bool,
 ) -> dict[ARNetworkField, Any]:
     """Build the network profile dict for one AP group."""
 
     def _get(key: str) -> Any:
-        return data.get(f"{prefix}{apg_idx}_{key}")
+        return data.get(f"{handle.ap_prefix}{handle.ap_idx}_{key}")
 
     # A network is on only when both the SDN profile and its AP group are on
     enabled = sdn_enabled and (raw_to_bool(_get("enable")) or False)
 
     fields: dict[ARNetworkField, Any] = {
         ARNetworkField.ENABLED: enabled,
+        ARNetworkField.HANDLE: handle,
         ARNetworkField.HIDDEN: raw_to_bool(_get("hide_ssid")) or False,
         ARNetworkField.WIFI7: raw_to_bool(_get("11be")) or False,
         ARNetworkField.AP_ISOLATE: raw_to_bool(_get("ap_isolate")) or False,
@@ -271,11 +280,39 @@ def translate(
     """Translate raw SDN data into networks grouped by type."""
 
     result: dict[ARNetworkType, list[dict[ARNetworkField, Any]]] = {}
-    for name, prefix, apg_idx, sdn_enabled in _parse_sdn_rl(
+    for name, prefix, apg_idx, sdn_idx, sdn_enabled in _parse_sdn_rl(
         data.get("sdn_rl")
     ):
-        network = _build_network(data, prefix, apg_idx, bands, sdn_enabled)
+        handle = ARNetworkHandle(
+            backend=ARNetworkBackend.SDN,
+            sdn_idx=sdn_idx,
+            ap_prefix=prefix,
+            ap_idx=apg_idx,
+        )
+        network = _build_network(data, handle, bands, sdn_enabled)
         net_type = ARNetworkType.from_value(name)
         result.setdefault(net_type, []).append(network)
 
     return result
+
+
+def build_toggle_payload(
+    raw_sdn_rl: Any, handle: ARNetworkHandle, state: bool
+) -> tuple[str, dict[str, Any]]:
+    """Build the `(rc_service, arguments)` to enable/disable an SDN profile."""
+
+    rows = _rows(raw_sdn_rl)
+    for cols in rows:
+        if len(cols) > _COL_ENABLE and raw_to_int(cols[_COL_IDX]) == (
+            handle.sdn_idx
+        ):
+            cols[_COL_ENABLE] = "1" if state else "0"
+            break
+
+    new_sdn_rl = "".join("<" + ">".join(cols) for cols in rows)
+    rc_service = f"restart_wireless;restart_sdn {handle.sdn_idx};"
+    arguments: dict[str, Any] = {
+        "sdn_rl": new_sdn_rl,
+        f"{handle.ap_prefix}{handle.ap_idx}_enable": int(state),
+    }
+    return rc_service, arguments

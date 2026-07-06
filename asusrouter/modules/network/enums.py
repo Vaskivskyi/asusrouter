@@ -8,6 +8,13 @@ from asusrouter.const import UNKNOWN_MEMBER, UNKNOWN_MEMBER_STR
 from asusrouter.tools.enum import FromIntMixin, FromStrMixin
 
 
+class ARNetworkBackend(StrEnum):
+    """Backend that produced a network profile (write dispatch target)."""
+
+    LEGACY = "legacy"
+    SDN = "sdn"
+
+
 class ARNetworkField(FromStrMixin, StrEnum):
     """Keys of a network profile dict."""
 
@@ -22,6 +29,7 @@ class ARNetworkField(FromStrMixin, StrEnum):
     EXPIRE = "expire"  # legacy guest time-limit duration in seconds
     EXPIRE_REMAINING = "expire_remaining"  # legacy guest seconds left
     EXPIRY = "expiry"  # SDN one-time schedule `start,end` timestamps
+    HANDLE = "handle"  # opaque round-trip target for enable/disable
     HIDDEN = "hidden"
     LAN_ACCESS = "lan_access"
     MAC_FILTER_LIST = "mac_filter_list"
