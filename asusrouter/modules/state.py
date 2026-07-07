@@ -19,7 +19,6 @@ from asusrouter.modules.parental_control import (
     ParentalControlRule,
 )
 from asusrouter.modules.port_forwarding import AsusPortForwarding
-from asusrouter.modules.system import AsusSystem
 from asusrouter.modules.vpnc import AsusVPNC
 from asusrouter.modules.wireguard import (
     AsusWireGuardClient,
@@ -56,7 +55,6 @@ class AsusState(Enum):
     PARENTAL_CONTROL = AsusParentalControl
     PC_RULE = ParentalControlRule
     PORT_FORWARDING = AsusPortForwarding
-    SYSTEM = AsusSystem
     VPNC = AsusVPNC
     WIREGUARD_CLIENT = AsusWireGuardClient
     WIREGUARD_SERVER = AsusWireGuardServer
@@ -74,7 +72,6 @@ AsusStateMap: dict[AsusState, AsusData | None] = {
     AsusState.PARENTAL_CONTROL: AsusData.PARENTAL_CONTROL,
     AsusState.PC_RULE: AsusData.PARENTAL_CONTROL,
     AsusState.PORT_FORWARDING: AsusData.PORT_FORWARDING,
-    AsusState.SYSTEM: AsusData.SYSTEM,
     AsusState.VPNC: AsusData.VPNC,
     AsusState.WIREGUARD_CLIENT: AsusData.WIREGUARD_CLIENT,
     AsusState.WIREGUARD_SERVER: AsusData.WIREGUARD_SERVER,
