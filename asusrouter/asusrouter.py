@@ -79,7 +79,6 @@ from asusrouter.modules.state import (
     set_state,
 )
 from asusrouter.modules.support.flag import ARSupportType
-from asusrouter.modules.support.helpers import support_available
 from asusrouter.registry import ARCallableRegistry as ARCallReg
 from asusrouter.tools import legacy
 from asusrouter.tools.converters import get_enum_key_by_value, safe_list
@@ -803,7 +802,6 @@ class AsusRouter:
         description = self.description
         firmware = description.firmware
         merlin = firmware.firmware_type in AR_FW_MERLIN_LIKE
-        support = description.support
 
         if firmware > AR_FW_388:
             # Stock
@@ -843,9 +841,6 @@ class AsusRouter:
             remove_data_rule(AsusData.WIREGUARD)
             remove_data_rule(AsusData.WIREGUARD_CLIENT)
             remove_data_rule(AsusData.WIREGUARD_SERVER)
-
-        if not support_available(support, ARSupportType.DSL):
-            remove_data_rule(AsusData.DSL)
 
     async def async_api_query(
         self, endpoint: AREndpoint, payload: str | None = None

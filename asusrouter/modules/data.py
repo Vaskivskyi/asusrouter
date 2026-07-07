@@ -16,7 +16,6 @@ class AsusData(StrEnum):
 
     AURA = "aura"
     DDNS = "ddns"
-    DSL = "dsl"
     LED = "led"
     OPENVPN = "openvpn"
     OPENVPN_CLIENT = "openvpn_client"

@@ -97,10 +97,6 @@ def process(data: dict[str, Any]) -> dict[AsusData, Any]:  # noqa: C901, PLR0912
     if "get_wgsc_status" in data:
         state[AsusData.WIREGUARD_SERVER] = process_wireguard_server(data)
 
-    # DSL
-    if "dsllog_dataratedown" in data or "dsllog_datarateup" in data:
-        state[AsusData.DSL] = process_dsl(data)
-
     return state
 
 
@@ -346,27 +342,3 @@ def process_wireguard_server(  # noqa: C901
     wireguard.pop("status", None)
 
     return {1: wireguard}
-
-
-def process_dsl(dsl_info: dict[str, Any]) -> dict[str, Any]:
-    """Process DSL data."""
-
-    def remove_units(value: str | None) -> str | None:
-        """Remove units from the value."""
-
-        if value is None:
-            return None
-        return value.split(" ")[0]
-
-    dsl: dict[str, Any] = {}
-
-    # Data preprocessing
-    _dataratedown = remove_units(dsl_info.get("dsllog_dataratedown"))
-    _datarateup = remove_units(dsl_info.get("dsllog_datarateup"))
-
-    dsl["datarate"] = {
-        "down": raw_to_int(_dataratedown) or 0,
-        "up": raw_to_int(_datarateup) or 0,
-    }
-
-    return dsl

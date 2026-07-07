@@ -97,10 +97,6 @@ ASUSDATA_NVRAM = {
         for key, _, _ in [converters.safe_unpack_keys(element)]
         if key != "get_wgsc_status"
     ],
-    "dsl": [
-        "dsllog_dataratedown",
-        "dsllog_datarateup",
-    ],
 }
 ASUSDATA_NVRAM["aura"].extend([f"ledg_rgb{num}" for num in range(8)])
 ASUSDATA_NVRAM["vpnc"].extend(
@@ -154,10 +150,6 @@ ASUSDATA_MAP: dict[AsusData, AsusData | AsusDataFinder] = {
         AREndpoint.FETCH_DATA,
         nvram=ASUSDATA_NVRAM["wireguard_server"],
         request=ASUSDATA_REQUEST["wireguard_server"],
-    ),
-    AsusData.DSL: AsusDataFinder(
-        AREndpoint.FETCH_DATA,
-        nvram=ASUSDATA_NVRAM["dsl"],
     ),
 }
 
