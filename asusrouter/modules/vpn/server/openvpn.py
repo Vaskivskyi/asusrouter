@@ -12,7 +12,7 @@ from asusrouter.modules.firmware import (
     ARFirmwareType,
 )
 from asusrouter.modules.vpn.enums import (
-    ARVpnClientField,
+    ARVpnPeerField,
     ARVpnServerField,
     ARVpnState,
 )
@@ -145,7 +145,7 @@ def _settings(data: dict[str, Any]) -> dict[ARVpnServerField, Any]:
     return fields
 
 
-def _clients(raw: Any) -> list[dict[ARVpnClientField, Any]]:
+def _clients(raw: Any) -> list[dict[ARVpnPeerField, Any]]:
     """Parse the `<username>password` account list of the active unit."""
 
     text = raw_to_str(raw)
@@ -154,17 +154,17 @@ def _clients(raw: Any) -> list[dict[ARVpnClientField, Any]]:
     # nvram may HTML-encode the `<` / `>` delimiters
     text = text.replace("&#60", "<").replace("&#62", ">")
 
-    clients: list[dict[ARVpnClientField, Any]] = []
+    clients: list[dict[ARVpnPeerField, Any]] = []
     for entry in text.split("<"):
         parts = entry.split(">")
         name = raw_to_str(parts[0])
         if name is None:
             continue
-        client: dict[ARVpnClientField, Any] = {ARVpnClientField.NAME: name}
+        client: dict[ARVpnPeerField, Any] = {ARVpnPeerField.NAME: name}
         raw_password = parts[1] if len(parts) > 1 else None
         password = Password.from_value_safe(raw_password)
         if password is not None:
-            client[ARVpnClientField.PASSWORD] = password
+            client[ARVpnPeerField.PASSWORD] = password
         clients.append(client)
 
     return clients
@@ -185,45 +185,45 @@ def _connected(data: dict[str, Any]) -> dict[str, dict[str, Any]]:
     return result
 
 
-def _live_fields(entry: dict[str, Any]) -> dict[ARVpnClientField, Any]:
+def _live_fields(entry: dict[str, Any]) -> dict[ARVpnPeerField, Any]:
     """Build the live fields (state, address, remote) of a connected client."""
 
-    fields: dict[ARVpnClientField, Any] = {
-        ARVpnClientField.STATE: ARVpnState.CONNECTED
+    fields: dict[ARVpnPeerField, Any] = {
+        ARVpnPeerField.STATE: ARVpnState.CONNECTED
     }
 
     address = IpInterface.from_value_safe(entry.get("vpn_ip"))
     if address is not None:
-        fields[ARVpnClientField.ADDRESS] = [address]
+        fields[ARVpnPeerField.ADDRESS] = [address]
 
     remote = raw_to_str(entry.get("remote"))
     if remote is not None:
         host, sep, port = remote.rpartition(":")
         remote_ip = IpAddress.from_value_safe(host if sep else remote)
         if remote_ip is not None:
-            fields[ARVpnClientField.REMOTE_ADDRESS] = remote_ip
+            fields[ARVpnPeerField.REMOTE_ADDRESS] = remote_ip
         remote_port = raw_to_int(port) if sep else None
         if remote_port is not None:
-            fields[ARVpnClientField.REMOTE_PORT] = remote_port
+            fields[ARVpnPeerField.REMOTE_PORT] = remote_port
 
     return fields
 
 
 def _apply_status(
-    clients: list[dict[ARVpnClientField, Any]],
+    clients: list[dict[ARVpnPeerField, Any]],
     connected: dict[str, dict[str, Any]],
-) -> list[dict[ARVpnClientField, Any]]:
+) -> list[dict[ARVpnPeerField, Any]]:
     """Enrich connected accounts, and add connected clients not in the list."""
 
     for client in clients:
-        name = client.get(ARVpnClientField.NAME)
+        name = client.get(ARVpnPeerField.NAME)
         entry = connected.get(name) if isinstance(name, str) else None
         if entry is not None:
             client.update(_live_fields(entry))
 
-    listed = {client.get(ARVpnClientField.NAME) for client in clients}
+    listed = {client.get(ARVpnPeerField.NAME) for client in clients}
     clients.extend(
-        {ARVpnClientField.NAME: name, **_live_fields(entry)}
+        {ARVpnPeerField.NAME: name, **_live_fields(entry)}
         for name, entry in sorted(connected.items())
         if name not in listed
     )

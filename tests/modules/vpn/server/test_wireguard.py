@@ -8,7 +8,7 @@ import pytest
 
 from asusrouter.modules.common.command import ARService
 from asusrouter.modules.vpn.enums import (
-    ARVpnClientField,
+    ARVpnPeerField,
     ARVpnServerField,
     ARVpnState,
 )
@@ -133,13 +133,13 @@ class TestPeer:
 
         peer = wg._peer(_DATA, 1, {})
         assert peer is not None
-        assert ARVpnClientField.STATE not in peer
+        assert ARVpnPeerField.STATE not in peer
 
     def test_populated_with_status(self) -> None:
         """A peer with live status carries STATE."""
 
         peer = wg._peer(_DATA, 1, {1: ARVpnState.CONNECTED})
-        assert peer[ARVpnClientField.STATE] is ARVpnState.CONNECTED
+        assert peer[ARVpnPeerField.STATE] is ARVpnState.CONNECTED
 
 
 class TestTranslate:
@@ -165,12 +165,12 @@ class TestTranslate:
         assert isinstance(server[ARVpnServerField.PRIVATE_KEY], Password)
 
         peer = server[ARVpnServerField.CLIENTS][0]
-        assert peer[ARVpnClientField.NAME] == "My/Peer"
-        assert peer[ARVpnClientField.ADDRESS] == [IpInterface("10.55.0.24/32")]
-        assert peer[ARVpnClientField.CLIENT_ALLOWED_IPS] == [
+        assert peer[ARVpnPeerField.NAME] == "My/Peer"
+        assert peer[ARVpnPeerField.ADDRESS] == [IpInterface("10.55.0.24/32")]
+        assert peer[ARVpnPeerField.CLIENT_ALLOWED_IPS] == [
             IpInterface("0.0.0.0/0")
         ]
-        assert peer[ARVpnClientField.STATE] is ARVpnState.CONNECTED
+        assert peer[ARVpnPeerField.STATE] is ARVpnState.CONNECTED
 
     def test_no_peers(self) -> None:
         """Server without peers omits the CLIENTS key."""

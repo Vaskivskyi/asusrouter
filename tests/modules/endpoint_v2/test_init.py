@@ -166,6 +166,7 @@ _CUSTOM_READERS = {
     AREndpoint.FETCH_PORTS_ETHERNET: read_wan_lan_status,
     AREndpoint.FETCH_UPDATE: read_netdev,
     AREndpoint.FETCH_VPN_OPENVPN_STATUS: read_openvpn_client_status,
+    AREndpoint.FETCH_VPN_STATUS: read_js_variables,
 }
 
 
