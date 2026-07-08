@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 import re
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from asusrouter.modules.vpn.client.fusion import _WG, _convert
 from asusrouter.modules.vpn.enums import (
@@ -14,6 +14,9 @@ from asusrouter.modules.vpn.enums import (
 )
 from asusrouter.tools.converters_v2.raw import raw_to_int, raw_to_str
 from asusrouter.tools.identifiers import IpAddress
+
+if TYPE_CHECKING:
+    from asusrouter.modules.service.action import ARServiceInput
 
 # Client units exposed by the firmware
 UNITS = (1, 2, 3, 4, 5)
@@ -204,3 +207,30 @@ def translate(
             result.setdefault(ARVpnProtocol.WIREGUARD, {})[unit] = wg
 
     return result
+
+
+def build_toggle_payload(
+    protocol: ARVpnProtocol, unit: int, state: bool
+) -> tuple[list[ARServiceInput], dict[str, Any]] | None:
+    """Build the `(services, arguments)` to toggle a classic client, or None.
+
+    OpenVPN clients use the per-unit `start/stop_vpnclient{unit}` service;
+    WireGuard clients use `start/stop_wgc {unit}` with the enable flag.
+    """
+
+    if protocol is ARVpnProtocol.OPENVPN:
+        service = (
+            f"start_vpnclient{unit}" if state else f"stop_vpnclient{unit}"
+        )
+        return [service], {"id": unit}
+
+    if protocol is ARVpnProtocol.WIREGUARD:
+        service = f"start_wgc {unit}" if state else f"stop_wgc {unit}"
+        arguments: dict[str, Any] = {
+            "wgc_enable": int(state),
+            "wgc_unit": unit,
+            "id": unit,
+        }
+        return [service], arguments
+
+    return None

@@ -197,3 +197,27 @@ class TestTranslate:
         data = dict(_DATA)
         data["vpnc_clientlist"] = ">OpenVPN>3>u>p>1>6>>>0>0>Web"
         assert fusion.translate(data) == {}
+
+
+class TestBuildTogglePayload:
+    """Tests for build_toggle_payload."""
+
+    def test_skips_leading_empty_row(self) -> None:
+        """A leading empty clientlist row is skipped when locating the unit."""
+
+        clientlist = "<Prtn>OpenVPN>4>u>p>0>6>>>0>0>Web"
+        services, arguments = fusion.build_toggle_payload(
+            clientlist, ARVpnProtocol.OPENVPN, 4, True
+        )
+        assert arguments["vpnc_unit"] == 0
+        assert ">1>6>" in arguments["vpnc_clientlist"]
+
+    def test_missing_unit(self) -> None:
+        """A protocol/unit not in the clientlist yields None."""
+
+        assert (
+            fusion.build_toggle_payload(
+                "A>OpenVPN>1>>>0>2>", ARVpnProtocol.WIREGUARD, 1, True
+            )
+            is None
+        )

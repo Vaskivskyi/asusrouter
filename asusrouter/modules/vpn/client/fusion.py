@@ -4,8 +4,9 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
+from asusrouter.modules.common.command import ARService
 from asusrouter.modules.endpoint_v2.hooks import ARHook
 from asusrouter.modules.vpn.enums import (
     ARVpnClientField,
@@ -19,6 +20,9 @@ from asusrouter.tools.converters_v2.raw import (
 )
 from asusrouter.tools.identifiers import IpAddress, IpInterface, Password
 from asusrouter.tools.identifiers.ip import read_ip_interface_list
+
+if TYPE_CHECKING:
+    from asusrouter.modules.service.action import ARServiceInput
 
 STATUS_HOOK = ARHook.VPNC_STATUS
 NONDEF_WAN_HOOK = ARHook.VPNC_NONDEF_WAN_PROFILES
@@ -278,3 +282,45 @@ def translate(
         result.setdefault(protocol, {})[vpnc_idx] = fields
 
     return result
+
+
+def build_toggle_payload(
+    clientlist_raw: Any,
+    protocol: ARVpnProtocol,
+    unit: int,
+    state: bool,
+) -> tuple[list[ARServiceInput], dict[str, Any]] | None:
+    """Build the `(services, arguments)` to toggle a Fusion client, or None.
+
+    Locates the profile of `protocol` with server unit `unit`, flips its
+    activate flag in a rewritten `vpnc_clientlist`, and targets it by position
+    (`vpnc_unit`), mirroring the web UI's `restart_vpnc` / `stop_vpnc` toggle.
+    """
+
+    rows = _split_rows(clientlist_raw)
+    position = 0
+    target: int | None = None
+    for index, row in enumerate(rows):
+        if row == "":
+            continue
+        parts = row.split(">")
+        if (
+            ARVpnProtocol.from_value(_get(parts, _F_PROTO)) is protocol
+            and raw_to_int(_get(parts, _F_SERVER)) == unit
+            and len(parts) > _F_ACTIVATE
+        ):
+            parts[_F_ACTIVATE] = "1" if state else "0"
+            rows[index] = ">".join(parts)
+            target = position
+            break
+        position += 1
+
+    if target is None:
+        return None
+
+    service = ARService.VPNC_RESTART if state else ARService.VPNC_STOP
+    arguments: dict[str, Any] = {
+        "vpnc_unit": target,
+        "vpnc_clientlist": "<".join(rows),
+    }
+    return [service], arguments
