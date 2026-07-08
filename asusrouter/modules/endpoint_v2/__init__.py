@@ -103,6 +103,7 @@ _ENDPOINT_META: dict[AREndpoint, AREndpointMeta] = {
     AREndpoint.FETCH_TRAFFIC_WIFI: _GET_META,
     AREndpoint.FETCH_UPDATE: _GET_META,
     AREndpoint.FETCH_VPN_OPENVPN_STATUS: _GET_META,
+    AREndpoint.FETCH_VPN_STATUS: _GET_META,
     AREndpoint.RUN_PING: _GET_META,
     AREndpoint.RUN_SPEEDTEST: _RAW_POST_META,
     AREndpoint.SET_SPEEDTEST_START_TIME: _RAW_POST_META,
@@ -161,6 +162,7 @@ _ENDPOINT_READER: dict[AREndpoint, Callable[[str], dict[str, Any]]] = {
     AREndpoint.FETCH_PORTS_ETHERNET: read_wan_lan_status,
     AREndpoint.FETCH_UPDATE: read_netdev,
     AREndpoint.FETCH_VPN_OPENVPN_STATUS: read_openvpn_client_status,
+    AREndpoint.FETCH_VPN_STATUS: read_js_variables,
 }
 
 

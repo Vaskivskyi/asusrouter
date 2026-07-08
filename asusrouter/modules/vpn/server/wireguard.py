@@ -9,7 +9,7 @@ from urllib.parse import unquote
 from asusrouter.modules.common.command import ARService
 from asusrouter.modules.endpoint_v2.hooks import ARHook
 from asusrouter.modules.vpn.enums import (
-    ARVpnClientField,
+    ARVpnPeerField,
     ARVpnServerField,
     ARVpnState,
 )
@@ -61,12 +61,12 @@ _SETTINGS: tuple[tuple[str, ARVpnServerField, Callable[[Any], Any]], ...] = (
 )
 
 # Per-peer nvram suffix -> field, converter (`wgs{unit}_c{n}_{suffix}`)
-_PEER: tuple[tuple[str, ARVpnClientField, Callable[[Any], Any]], ...] = (
-    ("enable", ARVpnClientField.ENABLED, raw_to_bool),
-    ("name", ARVpnClientField.NAME, _decode),
-    ("addr", ARVpnClientField.ADDRESS, _decode_interfaces),
-    ("aips", ARVpnClientField.ALLOWED_IPS, _decode_interfaces),
-    ("caips", ARVpnClientField.CLIENT_ALLOWED_IPS, _decode_interfaces),
+_PEER: tuple[tuple[str, ARVpnPeerField, Callable[[Any], Any]], ...] = (
+    ("enable", ARVpnPeerField.ENABLED, raw_to_bool),
+    ("name", ARVpnPeerField.NAME, _decode),
+    ("addr", ARVpnPeerField.ADDRESS, _decode_interfaces),
+    ("aips", ARVpnPeerField.ALLOWED_IPS, _decode_interfaces),
+    ("caips", ARVpnPeerField.CLIENT_ALLOWED_IPS, _decode_interfaces),
 )
 
 
@@ -133,10 +133,10 @@ def _peer_status(data: dict[str, Any]) -> dict[int, ARVpnState]:
 
 def _peer(
     data: dict[str, Any], index: int, status: dict[int, ARVpnState]
-) -> dict[ARVpnClientField, Any] | None:
+) -> dict[ARVpnPeerField, Any] | None:
     """Build a single peer entry, or None when the slot is empty."""
 
-    fields: dict[ARVpnClientField, Any] = {}
+    fields: dict[ARVpnPeerField, Any] = {}
     for suffix, field, converter in _PEER:
         value = _convert(data.get(_peer_key(index, suffix)), converter)
         if value is not None:
@@ -146,7 +146,7 @@ def _peer(
         return None
 
     if index in status:
-        fields[ARVpnClientField.STATE] = status[index]
+        fields[ARVpnPeerField.STATE] = status[index]
 
     return fields
 

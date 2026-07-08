@@ -2,8 +2,13 @@
 
 from __future__ import annotations
 
+from asusrouter.modules.vpn.client import (
+    ARVpnClientSource,
+    ARVpnClientSourceUniversal,
+)
 from asusrouter.modules.vpn.enums import (
     ARVpnClientField,
+    ARVpnPeerField,
     ARVpnProtocol,
     ARVpnRole,
     ARVpnServerField,
@@ -17,6 +22,9 @@ from asusrouter.modules.vpn.server import (
 
 __all__ = [
     "ARVpnClientField",
+    "ARVpnClientSource",
+    "ARVpnClientSourceUniversal",
+    "ARVpnPeerField",
     "ARVpnProtocol",
     "ARVpnRole",
     "ARVpnServerAction",

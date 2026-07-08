@@ -10,7 +10,7 @@ from asusrouter.modules.common.command import ARService
 from asusrouter.modules.device.identity import ARDeviceIdentity
 from asusrouter.modules.firmware import ARFirmware
 from asusrouter.modules.vpn.enums import (
-    ARVpnClientField,
+    ARVpnPeerField,
     ARVpnServerField,
     ARVpnState,
 )
@@ -83,10 +83,10 @@ class TestClients:
         """An encoded `<user>pass` list parses to name + password."""
 
         result = ovpn._clients("&#60alice&#62secret&#60bob&#62")
-        assert result[0][ARVpnClientField.NAME] == "alice"
-        assert isinstance(result[0][ARVpnClientField.PASSWORD], Password)
-        assert result[1][ARVpnClientField.NAME] == "bob"
-        assert ARVpnClientField.PASSWORD not in result[1]
+        assert result[0][ARVpnPeerField.NAME] == "alice"
+        assert isinstance(result[0][ARVpnPeerField.PASSWORD], Password)
+        assert result[1][ARVpnPeerField.NAME] == "bob"
+        assert ARVpnPeerField.PASSWORD not in result[1]
 
     def test_empty(self) -> None:
         """An empty list yields nothing."""
@@ -126,27 +126,27 @@ class TestLiveFields:
         fields = ovpn._live_fields(
             {"vpn_ip": "10.8.0.2", "remote": "192.168.55.23:15620"}
         )
-        assert fields[ARVpnClientField.STATE] is ARVpnState.CONNECTED
-        assert fields[ARVpnClientField.ADDRESS] == [IpInterface("10.8.0.2/32")]
-        assert fields[ARVpnClientField.REMOTE_ADDRESS] == IpAddress(
+        assert fields[ARVpnPeerField.STATE] is ARVpnState.CONNECTED
+        assert fields[ARVpnPeerField.ADDRESS] == [IpInterface("10.8.0.2/32")]
+        assert fields[ARVpnPeerField.REMOTE_ADDRESS] == IpAddress(
             "192.168.55.23"
         )
-        assert fields[ARVpnClientField.REMOTE_PORT] == 15620
+        assert fields[ARVpnPeerField.REMOTE_PORT] == 15620
 
     def test_remote_without_port(self) -> None:
         """A remote with no port maps only the address."""
 
         fields = ovpn._live_fields({"remote": "192.168.55.23"})
-        assert fields[ARVpnClientField.REMOTE_ADDRESS] == IpAddress(
+        assert fields[ARVpnPeerField.REMOTE_ADDRESS] == IpAddress(
             "192.168.55.23"
         )
-        assert ARVpnClientField.REMOTE_PORT not in fields
+        assert ARVpnPeerField.REMOTE_PORT not in fields
 
     def test_no_live_data(self) -> None:
         """Missing address/remote leaves only STATE."""
 
         assert ovpn._live_fields({}) == {
-            ARVpnClientField.STATE: ARVpnState.CONNECTED
+            ARVpnPeerField.STATE: ARVpnState.CONNECTED
         }
 
 
@@ -156,16 +156,16 @@ class TestApplyStatus:
     def test_marks_and_appends(self) -> None:
         """Listed accounts are enriched; unlisted connected are appended."""
 
-        clients = [{ARVpnClientField.NAME: "alice"}]
+        clients = [{ARVpnPeerField.NAME: "alice"}]
         connected = {
             "alice": {"name": "alice"},
             "carol": {"name": "carol", "vpn_ip": "10.8.0.5"},
         }
         result = ovpn._apply_status(clients, connected)
 
-        assert result[0][ARVpnClientField.STATE] is ARVpnState.CONNECTED
-        assert result[1][ARVpnClientField.NAME] == "carol"
-        assert result[1][ARVpnClientField.ADDRESS] == [
+        assert result[0][ARVpnPeerField.STATE] is ARVpnState.CONNECTED
+        assert result[1][ARVpnPeerField.NAME] == "carol"
+        assert result[1][ARVpnPeerField.ADDRESS] == [
             IpInterface("10.8.0.5/32")
         ]
 
@@ -188,7 +188,7 @@ class TestTranslate:
         assert server[ARVpnServerField.DHCP] is True
         assert server[ARVpnServerField.POOL_START] == IpAddress("192.168.1.50")
         assert server[ARVpnServerField.LOCAL_ADDRESS] == IpAddress("10.8.0.1")
-        assert server[ARVpnServerField.CLIENTS][0][ARVpnClientField.NAME] == (
+        assert server[ARVpnServerField.CLIENTS][0][ARVpnPeerField.NAME] == (
             "Surfie"
         )
 
@@ -219,7 +219,7 @@ class TestTranslate:
             "connected": [{"name": "Surfie", "vpn_ip": "10.8.0.2"}]
         }
         client = ovpn.translate(data)[1][ARVpnServerField.CLIENTS][0]
-        assert client[ARVpnClientField.STATE] is ARVpnState.CONNECTED
+        assert client[ARVpnPeerField.STATE] is ARVpnState.CONNECTED
 
 
 class TestIsLegacy:

@@ -39,6 +39,8 @@ class ARHook(FromStrMixin, StrEnum):
 
     # VPN
     IPSEC_CONNECTIONS = "get_ipsec_conn"
+    VPNC_NONDEF_WAN_PROFILES = "get_vpnc_nondef_wan_prof_list"
+    VPNC_STATUS = "get_vpnc_status"
     WIREGUARD_SERVER_STATUS = "get_wgsc_status"
 
     # WAN

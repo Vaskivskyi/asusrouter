@@ -13,9 +13,13 @@ class ARVpnProtocol(FromStrMixin, StrEnum):
 
     UNKNOWN = UNKNOWN_MEMBER_STR
 
+    CYBERGHOST = "cyberghost"  # OpenVPN-based provider
     IPSEC = "ipsec"
+    L2TP = "l2tp"
+    NORDVPN = "nordvpn"  # WireGuard-based provider
     OPENVPN = "openvpn"
     PPTP = "pptp"
+    SURFSHARK = "surfshark"  # WireGuard-based provider
     WIREGUARD = "wireguard"
 
 
@@ -86,8 +90,8 @@ class ARVpnServerField(FromStrMixin, StrEnum):
     PUBLIC_KEY = "public_key"  # server public key (clients need it)
 
 
-class ARVpnClientField(FromStrMixin, StrEnum):
-    """Keys of a VPN server client entry (a WireGuard peer or a user)."""
+class ARVpnPeerField(FromStrMixin, StrEnum):
+    """Keys of a VPN server peer entry (a WireGuard peer or an account)."""
 
     UNKNOWN = UNKNOWN_MEMBER_STR
 
@@ -105,3 +109,64 @@ class ARVpnClientField(FromStrMixin, StrEnum):
     # WireGuard peer
     ALLOWED_IPS = "allowed_ips"  # peer's allowed IPs on the server side
     CLIENT_ALLOWED_IPS = "client_allowed_ips"  # allowed IPs pushed to the peer
+
+
+class ARVpnClientField(FromStrMixin, StrEnum):
+    """Keys of a VPN client profile (the router acting as a VPN client)."""
+
+    UNKNOWN = UNKNOWN_MEMBER_STR
+
+    # Common
+    ENABLED = "enabled"  # profile activated
+    NAME = "name"  # display description
+    PROTOCOL = "protocol"
+    STATE = "state"
+    STATE_REASON = "state_reason"  # failure reason when not connected
+
+    # Authentication
+    PASSWORD = "password"
+    USERNAME = "username"
+
+    # Connection (live, non-Fusion clients)
+    CONNECTED_SINCE = "connected_since"
+    REMOTE_ADDRESS = "remote_address"  # server endpoint the client reached
+    REMOTE_PORT = "remote_port"
+
+    # Identity
+    SERVER = "server"  # per-protocol unit (WG/OVPN) or host (PPTP/L2TP)
+    UNIT = "unit"  # 0-based position, the control target (vpnc_unit)
+    VPNC_INDEX = "vpnc_index"  # VPN Fusion connection id, keys the live status
+
+    # Provider
+    REGION = "region"
+
+    # Routing
+    DEFAULT_WAN = "default_wan"  # profile serves as the default-WAN route
+    DEFAULT_WAN_SUPPORT = "default_wan_support"
+
+    # PPTP
+    PPTP_OPTIONS = "pptp_options"
+
+    # Statistics (live, non-Fusion clients)
+    AUTH_RX_BYTES = "auth_rx_bytes"
+    POST_COMPRESS_BYTES = "post_compress_bytes"
+    POST_DECOMPRESS_BYTES = "post_decompress_bytes"
+    PRE_COMPRESS_BYTES = "pre_compress_bytes"
+    PRE_DECOMPRESS_BYTES = "pre_decompress_bytes"
+    RX_BYTES = "rx_bytes"  # tunnel transport (TCP/UDP) bytes received
+    TUN_TAP_RX_BYTES = "tun_tap_rx_bytes"
+    TUN_TAP_TX_BYTES = "tun_tap_tx_bytes"
+    TX_BYTES = "tx_bytes"  # tunnel transport (TCP/UDP) bytes sent
+
+    # WireGuard peer
+    ADDRESS = "address"  # tunnel address (may carry a prefix)
+    ALLOWED_IPS = "allowed_ips"
+    DNS = "dns"
+    ENDPOINT_ADDRESS = "endpoint_address"  # peer public endpoint
+    ENDPOINT_PORT = "endpoint_port"
+    KEEPALIVE = "keepalive"  # persistent keepalive, seconds
+    MTU = "mtu"
+    NAT = "nat"
+    PRIVATE_KEY = "private_key"
+    PSK = "psk"  # pre-shared key (secret)
+    PUBLIC_KEY = "public_key"  # peer public key
