@@ -2,18 +2,19 @@
 
 from __future__ import annotations
 
-from ipaddress import IPv4Address, IPv6Address
+from ipaddress import IPv4Address, IPv4Interface, IPv6Address
 import re
 from typing import Any
 
 import pytest
 
-from asusrouter.tools.identifiers import IpAddress
+from asusrouter.tools.identifiers import IpAddress, IpInterface
 from asusrouter.tools.identifiers.ip import (
     ERROR_IP_BYTES,
     ERROR_IP_INT,
     ERROR_IP_STR,
     ERROR_IP_UNSUPPORTED_TYPE,
+    read_ip_interface_list,
     read_ip_list,
 )
 from asusrouter.tools.security import configure_key
@@ -359,3 +360,123 @@ class TestIpMask:
         m2 = ip.mask()
 
         assert m1 != m2
+
+
+class TestIpInterface:
+    """Tests for IpInterface."""
+
+    def test_from_stdlib_interface(self) -> None:
+        """A stdlib interface is used directly."""
+
+        iface = IPv4Interface("10.0.0.1/24")
+        assert IpInterface(iface).prefixlen == 24
+        # from_value routes through _to_iface's stdlib branch
+        assert IpInterface.from_value(iface).prefixlen == 24
+
+    def test_from_instance(self) -> None:
+        """from_value returns the same IpInterface instance."""
+
+        instance = IpInterface.from_value("10.0.0.1/24")
+        assert IpInterface(instance).prefixlen == 24
+        assert IpInterface.from_value(instance) is instance
+
+    def test_from_str_with_prefix(self) -> None:
+        """A CIDR string keeps its prefix."""
+
+        iface = IpInterface.from_value("10.55.0.1/24")
+        assert str(iface) == "10.55.0.1/24"
+        assert iface.prefixlen == 24
+        assert iface.version == 4
+        assert iface.ip == IpAddress("10.55.0.1")
+
+    def test_from_str_without_prefix(self) -> None:
+        """A bare address becomes a host interface."""
+
+        assert IpInterface.from_value("10.55.0.1").prefixlen == 32
+
+    def test_from_address_types(self) -> None:
+        """IpAddress and stdlib address types collapse to host interfaces."""
+
+        assert IpInterface.from_value(IpAddress("10.0.0.9")).prefixlen == 32
+        assert IpInterface.from_value(IPv4Address("10.0.0.9")).prefixlen == 32
+
+    def test_ipv6(self) -> None:
+        """IPv6 interfaces are supported."""
+
+        iface = IpInterface.from_value("2001:db8::1/64")
+        assert iface.version == 6
+        assert iface.prefixlen == 64
+
+    def test_from_value_invalid_raises(self) -> None:
+        """An invalid value raises ValueError."""
+
+        with pytest.raises(ValueError, match=ERROR_IP_STR):
+            IpInterface.from_value("nonsense")
+
+    def test_unsupported_type_raises(self) -> None:
+        """An unsupported type raises ValueError."""
+
+        with pytest.raises(ValueError, match=ERROR_IP_UNSUPPORTED_TYPE):
+            IpInterface.from_value(object())
+
+    def test_from_value_safe(self) -> None:
+        """from_value_safe returns None for invalid input."""
+
+        assert IpInterface.from_value_safe("10.0.0.1/24") is not None
+        assert IpInterface.from_value_safe("nope") is None
+
+    def test_repr(self) -> None:
+        """Repr matches the address/prefix string."""
+
+        assert repr(IpInterface("10.0.0.1/24")) == "10.0.0.1/24"
+
+    def test_equality(self) -> None:
+        """Interfaces compare by address and prefix."""
+
+        iface = IpInterface("10.0.0.1/24")
+        assert iface == IpInterface("10.0.0.1/24")
+        assert iface == "10.0.0.1/24"
+        assert iface != IpInterface("10.0.0.1/25")
+        assert (iface == 123) is False
+        assert (iface == "not-an-ip") is False
+
+    def test_hashable(self) -> None:
+        """Interfaces are hashable by value."""
+
+        assert hash(IpInterface("10.0.0.1/24")) == hash(
+            IpInterface("10.0.0.1/24")
+        )
+
+    def test_mask(self) -> None:
+        """Masking hides the address but keeps the prefix."""
+
+        configure_key(b"A" * 32)
+
+        iface = IpInterface("10.55.0.1/24")
+        masked = iface.mask()
+
+        assert masked.prefixlen == 24
+        assert masked.ip != iface.ip
+        assert masked == iface.mask()
+
+
+class TestReadIpInterfaceList:
+    """Tests for read_ip_interface_list."""
+
+    @pytest.mark.parametrize(
+        ("value", "expected"),
+        [
+            ("10.0.0.1/32, 192.168.0.0/24", ["10.0.0.1/32", "192.168.0.0/24"]),
+            ("10.0.0.1/32 192.168.0.0/24", ["10.0.0.1/32", "192.168.0.0/24"]),
+            ("10.0.0.1/32,192.168.0.0/24", ["10.0.0.1/32", "192.168.0.0/24"]),
+            ("10.0.0.1/32, nonsense", ["10.0.0.1/32"]),
+            ("", []),
+            ("   ", []),
+            (None, []),
+            (123, []),
+        ],
+    )
+    def test_parse(self, value: Any, expected: list[str]) -> None:
+        """Comma/whitespace lists parse to valid interfaces only."""
+
+        assert [str(i) for i in read_ip_interface_list(value)] == expected

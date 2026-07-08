@@ -137,6 +137,10 @@ class ARNvramType(ARDataType):
     OOKLA_START_TIME = "ookla_start_time"
     OOKLA_STATE = "ookla_state"
 
+    # VPN
+    VPN_SERVER1_STATUS = "vpn_server1_status"
+    VPN_SERVER2_STATUS = "vpn_server2_status"
+
     # WAN
     LINK_INTERNET = "link_internet"
     LINK_WAN0 = "link_wan"

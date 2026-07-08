@@ -2,7 +2,14 @@
 
 from __future__ import annotations
 
-from ipaddress import IPv4Address, IPv6Address, ip_address
+from ipaddress import (
+    IPv4Address,
+    IPv4Interface,
+    IPv6Address,
+    IPv6Interface,
+    ip_address,
+    ip_interface,
+)
 from typing import Any, Final
 
 from asusrouter.tools.security import ARSecurityLevel, ARSensitive, hmac_digest
@@ -175,6 +182,129 @@ class IpAddress(ARSensitive):
         return hash(self._addr)
 
 
+class IpInterface(ARSensitive):
+    """IP interface (address with a network prefix, e.g. `10.55.0.1/24`)."""
+
+    __slots__ = ("_iface",)
+
+    reveal_level = ARSecurityLevel.REASONABLE
+    maskable = True
+
+    def __init__(self, iface: Any) -> None:
+        """Initialize IpInterface.
+
+        If an IPv4Interface or IPv6Interface is passed, it is used directly;
+        otherwise the universal conversion is performed.
+        """
+
+        # Fast-path for stdlib interface types
+        if isinstance(iface, IPv4Interface | IPv6Interface):
+            self._iface = iface
+            return
+
+        self._iface = type(self)._to_iface(iface)
+
+    @classmethod
+    def _to_iface(cls, value: Any) -> IPv4Interface | IPv6Interface:
+        """Convert supported values to an IPv4Interface or IPv6Interface.
+
+        Supported inputs:
+        - IpInterface -> returns underlying interface
+        - IPv4Interface / IPv6Interface -> used directly
+        - IpAddress / IPv4Address / IPv6Address -> host address (`/32`, `/128`)
+        - str: `address` or `address/prefix` notation
+        """
+
+        # Already an IpInterface instance
+        if isinstance(value, cls):
+            return value._iface
+
+        # Stdlib interface types
+        if isinstance(value, IPv4Interface | IPv6Interface):
+            return value
+
+        # Address types collapse to a host interface
+        if isinstance(value, IpAddress):
+            value = str(value)
+        if isinstance(value, IPv4Address | IPv6Address):
+            value = str(value)
+
+        if isinstance(value, str):
+            try:
+                return ip_interface(value.strip())
+            except ValueError:
+                raise ValueError(ERROR_IP_STR)
+
+        raise ValueError(f"{ERROR_IP_UNSUPPORTED_TYPE}: {type(value)!r}")
+
+    @classmethod
+    def from_value(cls, value: Any) -> IpInterface:
+        """Create an IpInterface from various representations."""
+
+        if isinstance(value, cls):
+            return value
+
+        return cls(cls._to_iface(value))
+
+    @classmethod
+    def from_value_safe(cls, value: Any) -> IpInterface | None:
+        """Create an IpInterface, or None if the value cannot be parsed."""
+
+        try:
+            return cls.from_value(value)
+        except ValueError:
+            return None
+
+    @property
+    def version(self) -> int:
+        """Return the IP version (4 or 6)."""
+
+        return self._iface.version
+
+    @property
+    def ip(self) -> IpAddress:
+        """Return the host address without the prefix."""
+
+        return IpAddress(self._iface.ip)
+
+    @property
+    def prefixlen(self) -> int:
+        """Return the network prefix length."""
+
+        return self._iface.network.prefixlen
+
+    def mask(self) -> IpInterface:
+        """Return a pseudo-interface: masked address, original prefix."""
+
+        return IpInterface(f"{self.ip.mask()}/{self.prefixlen}")
+
+    def __str__(self) -> str:
+        """Return the `address/prefix` representation."""
+
+        return str(self._iface)
+
+    def __repr__(self) -> str:
+        """Return the `address/prefix` representation."""
+
+        return str(self._iface)
+
+    def __eq__(self, other: object) -> bool:
+        """Return whether two IP interfaces are equal."""
+
+        if isinstance(other, IpInterface):
+            return self._iface == other._iface
+        try:
+            other_obj = type(self).from_value(other)
+        except ValueError:
+            return NotImplemented
+        return self._iface == other_obj._iface
+
+    def __hash__(self) -> int:
+        """Return the hash of the IP interface."""
+
+        return hash(self._iface)
+
+
 def read_ip_list(value: Any) -> list[IpAddress]:
     """Read a whitespace-separated string into a list of IP addresses.
 
@@ -187,4 +317,19 @@ def read_ip_list(value: Any) -> list[IpAddress]:
         ip
         for part in value.split()
         if (ip := IpAddress.from_value_safe(part)) is not None
+    ]
+
+
+def read_ip_interface_list(value: Any) -> list[IpInterface]:
+    """Read a comma/whitespace-separated string into a list of IP interfaces.
+
+    Returns every interface that parses; an empty list when none do.
+    """
+
+    if not isinstance(value, str):
+        return []
+    return [
+        iface
+        for part in value.replace(",", " ").split()
+        if (iface := IpInterface.from_value_safe(part)) is not None
     ]
