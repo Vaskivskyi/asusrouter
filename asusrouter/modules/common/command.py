@@ -101,6 +101,9 @@ class ARService(FromStrMixin, StrEnum):
     OPENVPN_RESTART = "restart_openvpnd"
     OPENVPN_STOP = "stop_openvpnd"
 
+    # Password
+    CHPASS_RESTART = "restart_chpass"  # account password daemon
+
     # QoS
     QOS_RESTART = "restart_qos"
 
@@ -156,7 +159,6 @@ class ARService(FromStrMixin, StrEnum):
     # DISK_SCAN_START = "start_diskscan"
     # LOGGER_STOP = "stop_logger"
     # OAM_RESTART = "restart_oam"
-    # PASSWORD_RESTART = "restart_chpass"  # also used with vpnserver
     # PRINTER_LPD_RESTART = "restart_lpd"
     # PRINTER_U2EC_RESTART = "restart_u2ec"
     # QOS_ROUTERBOOST_RESTART = "restart_routerboost"

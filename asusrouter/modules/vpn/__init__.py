@@ -10,6 +10,7 @@ from asusrouter.modules.vpn.enums import (
     ARVpnState,
 )
 from asusrouter.modules.vpn.server import (
+    ARVpnServerAction,
     ARVpnServerSource,
     ARVpnServerSourceUniversal,
 )
@@ -18,6 +19,7 @@ __all__ = [
     "ARVpnClientField",
     "ARVpnProtocol",
     "ARVpnRole",
+    "ARVpnServerAction",
     "ARVpnServerField",
     "ARVpnServerSource",
     "ARVpnServerSourceUniversal",

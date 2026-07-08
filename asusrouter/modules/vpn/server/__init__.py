@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from asusrouter.modules.vpn.server.action import ARVpnServerAction
 from asusrouter.modules.vpn.server.source import (
     ARVpnServerSource,
     ARVpnServerSourceUniversal,
@@ -10,6 +11,7 @@ from asusrouter.modules.vpn.server.source import (
 )
 
 __all__ = [
+    "ARVpnServerAction",
     "ARVpnServerSource",
     "ARVpnServerSourceUniversal",
     "get_state",

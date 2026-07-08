@@ -6,6 +6,7 @@ from typing import Any
 
 import pytest
 
+from asusrouter.modules.common.command import ARService
 from asusrouter.modules.vpn.enums import (
     ARVpnClientField,
     ARVpnServerField,
@@ -176,3 +177,27 @@ class TestTranslate:
 
         server = wg.translate({"wgs_enable": "1"})[wg.UNIT]
         assert ARVpnServerField.CLIENTS not in server
+
+
+class TestBuildTogglePayload:
+    """Tests for build_toggle_payload."""
+
+    def test_enable(self) -> None:
+        """Enabling restarts the server and dnsmasq, flags nvram on."""
+
+        services, arguments = wg.build_toggle_payload(1, True)
+        assert services == [
+            ARService.WIREGUARD_SERVER_RESTART,
+            ARService.DNS_RESTART,
+        ]
+        assert arguments == {"wgs_enable": 1, "wgs_unit": 1, "id": 1}
+
+    def test_disable(self) -> None:
+        """Disabling uses the same services and flags nvram off."""
+
+        services, arguments = wg.build_toggle_payload(2, False)
+        assert services == [
+            ARService.WIREGUARD_SERVER_RESTART,
+            ARService.DNS_RESTART,
+        ]
+        assert arguments == {"wgs_enable": 0, "wgs_unit": 2, "id": 2}
