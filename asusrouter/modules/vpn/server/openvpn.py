@@ -3,8 +3,14 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
+from asusrouter.modules.common.command import ARService
+from asusrouter.modules.firmware import (
+    AR_FW_388,
+    AR_FW_MERLIN_LIKE,
+    ARFirmwareType,
+)
 from asusrouter.modules.vpn.enums import (
     ARVpnClientField,
     ARVpnServerField,
@@ -16,6 +22,10 @@ from asusrouter.tools.converters_v2.raw import (
     raw_to_str,
 )
 from asusrouter.tools.identifiers import IpAddress, IpInterface, Password
+
+if TYPE_CHECKING:
+    from asusrouter.modules.device.identity import ARDeviceIdentity
+    from asusrouter.modules.service.action import ARServiceInput
 
 # OpenVPN server units exposed by the firmware
 UNITS = (1, 2)
@@ -61,6 +71,48 @@ def server_enabled(data: dict[str, Any]) -> bool:
     """Whether the OpenVPN server is enabled (worth fetching live status)."""
 
     return raw_to_bool(data.get("VPNServer_enable")) is True
+
+
+def _is_legacy(identity: ARDeviceIdentity | None) -> bool:
+    """Whether the firmware uses the legacy per-unit start/stop services."""
+
+    if identity is None:
+        return True
+    firmware = identity.firmware
+    return (
+        firmware.firmware_type in AR_FW_MERLIN_LIKE
+        or firmware.firmware_type != ARFirmwareType.STOCK
+        or firmware < AR_FW_388
+    )
+
+
+def build_toggle_payload(
+    unit: int, state: bool, identity: ARDeviceIdentity | None
+) -> tuple[list[ARServiceInput], dict[str, Any]]:
+    """Build `(services, arguments)` to enable/disable the OpenVPN server."""
+
+    if _is_legacy(identity):
+        service = (
+            f"start_vpnserver{unit}" if state else f"stop_vpnserver{unit}"
+        )
+        return [service], {"id": unit}
+
+    services: list[ARServiceInput] = (
+        [
+            ARService.OPENVPN_RESTART,
+            ARService.CHPASS_RESTART,
+            ARService.SAMBA_RESTART,
+            ARService.DNS_RESTART,
+        ]
+        if state
+        else [
+            ARService.OPENVPN_STOP,
+            ARService.SAMBA_RESTART,
+            ARService.DNS_RESTART,
+        ]
+    )
+    arguments: dict[str, Any] = {"VPNServer_enable": int(state), "id": unit}
+    return services, arguments
 
 
 def nvram_keys() -> list[str]:

@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from urllib.parse import unquote
 
+from asusrouter.modules.common.command import ARService
 from asusrouter.modules.endpoint_v2.hooks import ARHook
 from asusrouter.modules.vpn.enums import (
     ARVpnClientField,
@@ -19,6 +20,9 @@ from asusrouter.tools.converters_v2.raw import (
 )
 from asusrouter.tools.identifiers import IpInterface, Password
 from asusrouter.tools.identifiers.ip import read_ip_interface_list
+
+if TYPE_CHECKING:
+    from asusrouter.modules.service.action import ARServiceInput
 
 # Single WireGuard server unit on current firmware
 UNIT = 1
@@ -70,6 +74,23 @@ def _peer_key(index: int, suffix: str) -> str:
     """Build a per-peer nvram key."""
 
     return f"wgs{UNIT}_c{index}_{suffix}"
+
+
+def build_toggle_payload(
+    unit: int, state: bool
+) -> tuple[list[ARServiceInput], dict[str, Any]]:
+    """Build the `(services, arguments)` to enable/disable the WG server."""
+
+    services: list[ARServiceInput] = [
+        ARService.WIREGUARD_SERVER_RESTART,
+        ARService.DNS_RESTART,
+    ]
+    arguments: dict[str, Any] = {
+        "wgs_enable": int(state),
+        "wgs_unit": unit,
+        "id": unit,
+    }
+    return services, arguments
 
 
 def nvram_keys() -> list[str]:

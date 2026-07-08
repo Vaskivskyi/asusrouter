@@ -6,6 +6,9 @@ from typing import Any
 
 import pytest
 
+from asusrouter.modules.common.command import ARService
+from asusrouter.modules.device.identity import ARDeviceIdentity
+from asusrouter.modules.firmware import ARFirmware
 from asusrouter.modules.vpn.enums import (
     ARVpnClientField,
     ARVpnServerField,
@@ -13,6 +16,15 @@ from asusrouter.modules.vpn.enums import (
 )
 from asusrouter.modules.vpn.server import openvpn as ovpn
 from asusrouter.tools.identifiers import IpAddress, IpInterface, Password
+
+
+def _identity(firmware: ARFirmware) -> ARDeviceIdentity:
+    """Build an identity carrying the given firmware."""
+
+    identity = ARDeviceIdentity()
+    identity._firmware = firmware
+    return identity
+
 
 # Server settings + one account, mirroring the real nvram shape
 _DATA: dict[str, Any] = {
@@ -208,3 +220,80 @@ class TestTranslate:
         }
         client = ovpn.translate(data)[1][ARVpnServerField.CLIENTS][0]
         assert client[ARVpnClientField.STATE] is ARVpnState.CONNECTED
+
+
+class TestIsLegacy:
+    """Tests for _is_legacy firmware branching."""
+
+    def test_none_identity(self) -> None:
+        """No identity falls back to legacy services."""
+
+        assert ovpn._is_legacy(None) is True
+
+    def test_unknown_firmware(self) -> None:
+        """Unknown firmware (non-stock) is legacy."""
+
+        assert ovpn._is_legacy(_identity(ARFirmware())) is True
+
+    def test_merlin_firmware(self) -> None:
+        """Merlin-like firmware is legacy."""
+
+        merlin = ARFirmware(
+            major=(3, 0, 0, 4), minor=386, build=0, revision="beta"
+        )
+        assert ovpn._is_legacy(_identity(merlin)) is True
+
+    def test_stock_below_388(self) -> None:
+        """Stock firmware older than 388 is legacy."""
+
+        old = ARFirmware(major=(3, 0, 0, 4), minor=384, build=0)
+        assert ovpn._is_legacy(_identity(old)) is True
+
+    def test_modern_stock(self) -> None:
+        """Stock firmware 388 or newer is not legacy."""
+
+        modern = ARFirmware(major=(3, 0, 0, 4), minor=388, build=0)
+        assert ovpn._is_legacy(_identity(modern)) is False
+
+
+class TestBuildTogglePayload:
+    """Tests for build_toggle_payload."""
+
+    def test_legacy_enable(self) -> None:
+        """Legacy enable uses the per-unit start service."""
+
+        services, arguments = ovpn.build_toggle_payload(2, True, None)
+        assert services == ["start_vpnserver2"]
+        assert arguments == {"id": 2}
+
+    def test_legacy_disable(self) -> None:
+        """Legacy disable uses the per-unit stop service."""
+
+        services, arguments = ovpn.build_toggle_payload(1, False, None)
+        assert services == ["stop_vpnserver1"]
+        assert arguments == {"id": 1}
+
+    def test_modern_enable(self) -> None:
+        """Modern enable chains the service restarts and flags nvram on."""
+
+        modern = _identity(ARFirmware(major=(3, 0, 0, 4), minor=388, build=0))
+        services, arguments = ovpn.build_toggle_payload(1, True, modern)
+        assert services == [
+            ARService.OPENVPN_RESTART,
+            ARService.CHPASS_RESTART,
+            ARService.SAMBA_RESTART,
+            ARService.DNS_RESTART,
+        ]
+        assert arguments == {"VPNServer_enable": 1, "id": 1}
+
+    def test_modern_disable(self) -> None:
+        """Modern disable stops the daemon and flags nvram off."""
+
+        modern = _identity(ARFirmware(major=(3, 0, 0, 4), minor=388, build=0))
+        services, arguments = ovpn.build_toggle_payload(1, False, modern)
+        assert services == [
+            ARService.OPENVPN_STOP,
+            ARService.SAMBA_RESTART,
+            ARService.DNS_RESTART,
+        ]
+        assert arguments == {"VPNServer_enable": 0, "id": 1}
