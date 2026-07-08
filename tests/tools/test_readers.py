@@ -390,3 +390,52 @@ def test_read_units_data_rate() -> None:
             readers.is_non_negative,
             0.0,
         )
+
+
+@pytest.mark.parametrize(
+    ("content", "expected"),
+    [
+        (
+            '<?xml version="1.0" ?>\n<vpnserver>\n'
+            "192.168.55.23:15620 10.8.0.2 Surfie\n\n</vpnserver>",
+            [
+                {
+                    "name": "Surfie",
+                    "vpn_ip": "10.8.0.2",
+                    "remote": "192.168.55.23:15620",
+                }
+            ],
+        ),
+        # Two clients
+        (
+            "<vpnserver>\n1.2.3.4:5 10.0.0.2 a\n6.7.8.9:1 10.0.0.3 b\n"
+            "</vpnserver>",
+            [
+                {"name": "a", "vpn_ip": "10.0.0.2", "remote": "1.2.3.4:5"},
+                {"name": "b", "vpn_ip": "10.0.0.3", "remote": "6.7.8.9:1"},
+            ],
+        ),
+        # Empty server (no connected clients)
+        ("<vpnserver>\n\n</vpnserver>", []),
+        # Malformed lines (wrong field count) are skipped
+        ("<vpnserver>\nonly two\n</vpnserver>", []),
+        # No wrapping tag: body parsed directly
+        (
+            "1.2.3.4:5 10.0.0.2 a",
+            [{"name": "a", "vpn_ip": "10.0.0.2", "remote": "1.2.3.4:5"}],
+        ),
+        (None, None),
+        ("", None),
+    ],
+)
+def test_read_openvpn_client_status(
+    content: str | None, expected: list[dict[str, str]] | None
+) -> None:
+    """The OpenVPN status payload parses into connected-client entries."""
+
+    result = readers.read_openvpn_client_status(content)
+
+    if expected is None:
+        assert result == {}
+    else:
+        assert result == {"connected": expected}

@@ -37,6 +37,10 @@ class ARHook(FromStrMixin, StrEnum):
     CLIENTLIST_DATABASE = "get_clientlist_from_json_database"
     NEWOB_ONBOARDINGLIST = "get_newob_onboardinglist"
 
+    # VPN
+    IPSEC_CONNECTIONS = "get_ipsec_conn"
+    WIREGUARD_SERVER_STATUS = "get_wgsc_status"
+
     # WAN
     WAN_UNIT = "get_wan_unit"
 

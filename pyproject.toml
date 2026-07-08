@@ -109,7 +109,7 @@ combine-as-imports = true
 split-on-trailing-comma = false
 
 [tool.ruff.lint.per-file-ignores]
-"**/network/enums.py" = [
+"**/enums.py" = [
     "S105",    # Enum members are field-name keys, not hardcoded secrets
 ]
 "tools/*" = [
