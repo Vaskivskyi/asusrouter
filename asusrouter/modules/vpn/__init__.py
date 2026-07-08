@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from asusrouter.modules.vpn.client import (
+    ARVpnClientAction,
     ARVpnClientSource,
     ARVpnClientSourceUniversal,
 )
@@ -21,6 +22,7 @@ from asusrouter.modules.vpn.server import (
 )
 
 __all__ = [
+    "ARVpnClientAction",
     "ARVpnClientField",
     "ARVpnClientSource",
     "ARVpnClientSourceUniversal",
