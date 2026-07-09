@@ -20,11 +20,10 @@ from asusrouter.modules.state import (
     save_state,
     set_state,
 )
-from asusrouter.modules.vpnc import AsusVPNC
 
 mock_state_map = {
     AsusState.LED: AsusData.LED,
-    AsusState.VPNC: AsusData.VPNC,
+    AsusState.PARENTAL_CONTROL: AsusData.PARENTAL_CONTROL,
     AsusState.NONE: None,
 }
 
@@ -59,7 +58,7 @@ class MockModule:
     [
         # Existing values of AsusState
         (AsusState.LED, AsusData.LED, True),
-        (AsusState.WIREGUARD_CLIENT, AsusData.WIREGUARD_CLIENT, True),
+        (AsusState.AURA, AsusData.AURA, True),
         (AsusState.PARENTAL_CONTROL, AsusData.PARENTAL_CONTROL, True),
         # Partial data
         (AsusState.PORT_FORWARDING, None, False),
@@ -92,7 +91,6 @@ def test_add_conditional_state(
     [
         # Existing values of AsusState
         (AsusLED.ON, AsusData.LED),
-        (AsusVPNC.ON, AsusData.VPNC),
         # None
         (None, None),
         # Wrong types
@@ -118,7 +116,7 @@ def test_get_datatype(
     [
         # Existing values of AsusState
         (AsusState.LED, AsusData.LED.value),
-        (AsusState.VPNC, AsusData.VPNC.value),
+        (AsusState.PARENTAL_CONTROL, AsusData.PARENTAL_CONTROL.value),
         # None
         (None, None),
         # Wrong types
@@ -165,17 +163,9 @@ def test_get_module_name(
             "mock_module",
         ),
         (
-            AsusState.VPNC,
-            "vpnc",
-            "vpnc",
-            mock.MagicMock(),
-            None,
-            "mock_module",
-        ),
-        (
-            AsusState.WIREGUARD_CLIENT,
-            "wireguard_client",
-            "wireguard",
+            AsusState.PARENTAL_CONTROL,
+            "parental_control",
+            "parental_control",
             mock.MagicMock(),
             None,
             "mock_module",
@@ -279,8 +269,8 @@ async def test_set_state(
 @pytest.mark.parametrize(
     ("state", "datatype"),
     [
-        (AsusState.VPNC, AsusData.VPNC),
-        (AsusState.VPNC, None),
+        (AsusState.PARENTAL_CONTROL, AsusData.PARENTAL_CONTROL),
+        (AsusState.PARENTAL_CONTROL, None),
     ],
 )
 def test_save_state(state: AsusState, datatype: AsusData | None) -> None:
@@ -291,7 +281,7 @@ def test_save_state(state: AsusState, datatype: AsusData | None) -> None:
         "asusrouter.modules.state.get_datatype", return_value=datatype
     ):
         # Mock the AsusDataState objects
-        library = {AsusData.VPNC: MockModule()}
+        library = {AsusData.PARENTAL_CONTROL: MockModule()}
 
         # Call the function
         save_state(state, library)

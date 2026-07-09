@@ -14,37 +14,9 @@ from typing import Any
 
 from asusrouter.modules.data import AsusData
 from asusrouter.modules.state import AsusState
-from asusrouter.modules.vpnc import AsusVPNC
 from asusrouter.tools.converters import flatten_dict, list_from_dict
 
 _LOGGER = logging.getLogger(__name__)
-
-_VPNC_BOOL_MAP: dict[AsusVPNC, bool] = {
-    AsusVPNC.CONNECTED: True,
-    AsusVPNC.CONNECTING: True,
-    AsusVPNC.ON: True,
-    AsusVPNC.OFF: False,
-    AsusVPNC.DISCONNECTED: False,
-    AsusVPNC.ERROR: False,
-}
-
-SENSORS_VPN = {
-    "client": [
-        "state",
-        "remote",
-        "datetime",
-        "tun_tap_read",
-        "tun_tap_write",
-        "tcp_udp_read",
-        "tcp_udp_write",
-        "auth_read",
-        "pre_compress",
-        "post_compress",
-        "pre_decompress",
-        "post_decompress",
-    ],
-    "server": ["state", "client_list", "routing_table"],
-}
 
 
 def convert_to_ha_sensors(
@@ -55,15 +27,7 @@ def convert_to_ha_sensors(
     The result is a list of sensors compatible with Home Assistant.
     """
 
-    sensors = []
-
-    match datatype:
-        case AsusData.OPENVPN:
-            sensors = convert_to_ha_sensors_by_map_2(data, SENSORS_VPN)
-        case _:
-            sensors = convert_to_ha_sensors_list(data)
-
-    return sensors
+    return convert_to_ha_sensors_list(data)
 
 
 def convert_to_ha_data(data: dict[str, Any]) -> dict[str, Any]:
@@ -91,39 +55,6 @@ def convert_to_ha_data(data: dict[str, Any]) -> dict[str, Any]:
     return {}
 
 
-def convert_to_ha_sensors_by_map_2(
-    data: dict[str, Any], sensor_map: dict[str, list[str]]
-) -> list[str]:
-    """Convert available data to the list of sensors.
-
-    Use first two levels of the data and static map.
-    """
-
-    _LOGGER.debug(
-        "Converting data to the list of sensors by 2 levels: %s", data
-    )
-
-    if not isinstance(data, dict):
-        _LOGGER.warning(
-            "Invalid data format for sensors generation from a map: %s",
-            sensor_map,
-        )
-        return []
-
-    sensors = []
-
-    for sensor, sensor_ids in data.items():
-        sensors.extend(
-            [
-                f"{sensor}_{sensor_id}_{sensor_type}"
-                for sensor_id in sensor_ids
-                for sensor_type in sensor_map.get(sensor, [])
-            ]
-        )
-
-    return sensors
-
-
 def convert_to_ha_sensors_group(data: dict[str, Any]) -> list[str]:
     """Convert the top level of data to the list of sensors."""
 
@@ -148,10 +79,6 @@ def convert_to_ha_state_bool(
     # Check whether the state is already a bool
     if isinstance(data, bool):
         return data
-
-    # Special cases
-    if isinstance(data, AsusVPNC):
-        return _VPNC_BOOL_MAP.get(data)
 
     # Check whether the state is based on (int, Enum)
     if isinstance(data, int) and isinstance(data, Enum):

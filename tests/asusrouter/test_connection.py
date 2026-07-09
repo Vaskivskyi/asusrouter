@@ -94,17 +94,15 @@ async def test_async_connect_fetches_data_and_identity_on_success(
     conn = Mock()
     conn.async_connect = AsyncMock(return_value=True)
     monkeypatch.setattr(router, "_connection", conn)
-    monkeypatch.setattr(
-        router,
-        "async_fetch_data",
-        AsyncMock(return_value={"source": "data"}),
-    )
-    mock_identity = Mock()
-    monkeypatch.setattr(router, "_apply_v1_conditional_rules", mock_identity)
+    fetch = AsyncMock(return_value={"source": "data"})
+    monkeypatch.setattr(router, "async_fetch_data", fetch)
 
     result = await router.async_connect()
 
-    mock_identity.assert_called_once()
+    # The device identity source is fetched on connect
+    assert (ARDeviceSourceUniversal,) in [
+        call.args for call in fetch.await_args_list
+    ]
     assert result is True
 
 
@@ -120,7 +118,6 @@ async def test_async_connect_seeds_aimesh_topology(
     monkeypatch.setattr(router, "_connection", conn)
     fetch = AsyncMock(return_value={"x": 1})
     monkeypatch.setattr(router, "async_fetch_data", fetch)
-    monkeypatch.setattr(router, "_apply_v1_conditional_rules", Mock())
 
     await router.async_connect()
 
@@ -141,7 +138,6 @@ async def test_async_connect_fetches_boottime_when_not_seeded(
     monkeypatch.setattr(router, "_connection", conn)
     fetch = AsyncMock(return_value={"x": 1})
     monkeypatch.setattr(router, "async_fetch_data", fetch)
-    monkeypatch.setattr(router, "_apply_v1_conditional_rules", Mock())
 
     await router.async_connect()
 
@@ -169,7 +165,6 @@ async def test_async_connect_seeds_boottime_from_config(
     monkeypatch.setattr(router, "_connection", conn)
     fetch = AsyncMock(return_value={"x": 1})
     monkeypatch.setattr(router, "async_fetch_data", fetch)
-    monkeypatch.setattr(router, "_apply_v1_conditional_rules", Mock())
     monkeypatch.setattr(router._config, "get", lambda key: boottime)
 
     await router.async_connect()
@@ -195,7 +190,6 @@ async def test_async_connect_clears_unavailable_endpoints(
     monkeypatch.setattr(
         router, "async_fetch_data", AsyncMock(return_value={"x": 1})
     )
-    monkeypatch.setattr(router, "_apply_v1_conditional_rules", Mock())
 
     await router.async_connect()
 
@@ -212,15 +206,13 @@ async def test_async_connect_returns_false_when_no_device_data(
     conn = Mock()
     conn.async_connect = AsyncMock(return_value=True)
     monkeypatch.setattr(router, "_connection", conn)
-    monkeypatch.setattr(
-        router, "async_fetch_data", AsyncMock(return_value=None)
-    )
-    mock_identity = Mock()
-    monkeypatch.setattr(router, "_apply_v1_conditional_rules", mock_identity)
+    fetch = AsyncMock(return_value=None)
+    monkeypatch.setattr(router, "async_fetch_data", fetch)
 
     result = await router.async_connect()
 
-    mock_identity.assert_not_called()
+    # Only the device fetch runs; the post-fetch seeding is skipped
+    assert fetch.await_count == 1
     assert result is False
 
 

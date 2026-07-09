@@ -6,12 +6,6 @@ from collections.abc import Callable
 import logging
 
 from asusrouter.modules.data import AsusData
-from asusrouter.modules.endpoint.hook_const import (
-    MAP_OVPN_SERVER_388,
-    MAP_VPNC_WIREGUARD,
-    MAP_WIREGUARD_CLIENT,
-    MAP_WIREGUARD_SERVER,
-)
 from asusrouter.modules.endpoint_v2 import AREndpoint
 from asusrouter.modules.parental_control import HOOK_PC
 from asusrouter.tools import converters
@@ -51,12 +45,6 @@ ASUSDATA_REQUEST = {
     "devices": [
         ("get_clientlist", ""),
     ],
-    "vpnc": [
-        ("get_vpnc_status", ""),
-    ],
-    "wireguard_server": [
-        ("get_wgsc_status", ""),
-    ],
 }
 
 ASUSDATA_NVRAM = {
@@ -78,43 +66,13 @@ ASUSDATA_NVRAM = {
         "ddns_updated",
     ],
     "light": ["led_val"],
-    "openvpn_server_388": [
-        key
-        for element in MAP_OVPN_SERVER_388
-        for key, _, _ in [converters.safe_unpack_keys(element)]
-    ],
     "parental_control": HOOK_PC,
     "port_forwarding": [
         "vts_rulelist",
         "vts_enable_x",
     ],
-    "vpnc": [
-        "vpnc_clientlist",
-    ],
-    "wireguard_server": [
-        key
-        for element in MAP_WIREGUARD_SERVER
-        for key, _, _ in [converters.safe_unpack_keys(element)]
-        if key != "get_wgsc_status"
-    ],
 }
 ASUSDATA_NVRAM["aura"].extend([f"ledg_rgb{num}" for num in range(8)])
-ASUSDATA_NVRAM["vpnc"].extend(
-    [
-        f"wgc{num}_{key}"
-        for num in range(1, 6)
-        for element in MAP_VPNC_WIREGUARD
-        for key, _, _ in [converters.safe_unpack_keys(element)]
-    ]
-)
-ASUSDATA_NVRAM["wireguard_server"].extend(
-    [
-        f"wgs1_c{num}_{key}"
-        for num in range(1, 11)
-        for element in MAP_WIREGUARD_CLIENT
-        for key, _, _ in [converters.safe_unpack_keys(element)]
-    ]
-)
 
 # A map of endptoins to get data from
 ASUSDATA_MAP: dict[AsusData, AsusData | AsusDataFinder] = {
@@ -129,27 +87,11 @@ ASUSDATA_MAP: dict[AsusData, AsusData | AsusDataFinder] = {
     AsusData.LED: AsusDataFinder(
         AREndpoint.FETCH_DATA, nvram=ASUSDATA_NVRAM["light"]
     ),
-    AsusData.OPENVPN: AsusDataFinder(AREndpoint.FETCH_VPN_STATUS),
-    AsusData.OPENVPN_CLIENT: AsusData.OPENVPN,
-    AsusData.OPENVPN_SERVER: AsusData.OPENVPN,
     AsusData.PARENTAL_CONTROL: AsusDataFinder(
         AREndpoint.FETCH_DATA, nvram=ASUSDATA_NVRAM["parental_control"]
     ),
     AsusData.PORT_FORWARDING: AsusDataFinder(
         AREndpoint.FETCH_DATA, nvram=ASUSDATA_NVRAM["port_forwarding"]
-    ),
-    AsusData.VPNC: AsusDataFinder(
-        AREndpoint.FETCH_DATA,
-        nvram=ASUSDATA_NVRAM["vpnc"],
-        request=ASUSDATA_REQUEST["vpnc"],
-    ),
-    AsusData.VPNC_CLIENTLIST: AsusData.VPNC,
-    AsusData.WIREGUARD: AsusData.WIREGUARD_SERVER,
-    AsusData.WIREGUARD_CLIENT: AsusData.VPNC,
-    AsusData.WIREGUARD_SERVER: AsusDataFinder(
-        AREndpoint.FETCH_DATA,
-        nvram=ASUSDATA_NVRAM["wireguard_server"],
-        request=ASUSDATA_REQUEST["wireguard_server"],
     ),
 }
 
