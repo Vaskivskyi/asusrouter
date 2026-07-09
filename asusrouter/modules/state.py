@@ -19,15 +19,9 @@ from asusrouter.modules.parental_control import (
     ParentalControlRule,
 )
 from asusrouter.modules.port_forwarding import AsusPortForwarding
-from asusrouter.modules.vpnc import AsusVPNC
-from asusrouter.modules.wireguard import (
-    AsusWireGuardClient,
-    AsusWireGuardServer,
-)
 from asusrouter.tools.converters import get_enum_key_by_value
 
 from .led import AsusLED
-from .openvpn import AsusOVPNClient, AsusOVPNServer
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -36,9 +30,6 @@ class AsusStateNone(int, Enum):
     """Asus state none."""
 
     NONE = 0
-
-
-# AsusState = Union[AsusLED, AsusOVPNClient, AsusOVPNServer, AsusStateNone]
 
 
 class AsusState(Enum):
@@ -50,14 +41,9 @@ class AsusState(Enum):
     CONNECTION = ARConnectionState
     DDNS = AsusDDNS
     LED = AsusLED
-    OPENVPN_CLIENT = AsusOVPNClient
-    OPENVPN_SERVER = AsusOVPNServer
     PARENTAL_CONTROL = AsusParentalControl
     PC_RULE = ParentalControlRule
     PORT_FORWARDING = AsusPortForwarding
-    VPNC = AsusVPNC
-    WIREGUARD_CLIENT = AsusWireGuardClient
-    WIREGUARD_SERVER = AsusWireGuardServer
 
 
 AsusStateMap: dict[AsusState, AsusData | None] = {
@@ -67,14 +53,9 @@ AsusStateMap: dict[AsusState, AsusData | None] = {
     AsusState.CONNECTION: None,
     AsusState.DDNS: None,
     AsusState.LED: AsusData.LED,
-    AsusState.OPENVPN_CLIENT: AsusData.OPENVPN_CLIENT,
-    AsusState.OPENVPN_SERVER: AsusData.OPENVPN_SERVER,
     AsusState.PARENTAL_CONTROL: AsusData.PARENTAL_CONTROL,
     AsusState.PC_RULE: AsusData.PARENTAL_CONTROL,
     AsusState.PORT_FORWARDING: AsusData.PORT_FORWARDING,
-    AsusState.VPNC: AsusData.VPNC,
-    AsusState.WIREGUARD_CLIENT: AsusData.WIREGUARD_CLIENT,
-    AsusState.WIREGUARD_SERVER: AsusData.WIREGUARD_SERVER,
 }
 
 
@@ -116,9 +97,6 @@ def _get_module(state: AsusState) -> ModuleType | None:
     module_name = _get_module_name(state)
     if not module_name:
         return None
-
-    if module_name.endswith(("_client", "_server")):
-        module_name = module_name[:-7]
 
     # Module path
     module_path = f"asusrouter.modules.{module_name}"

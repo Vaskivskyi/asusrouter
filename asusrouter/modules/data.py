@@ -17,17 +17,9 @@ class AsusData(StrEnum):
     AURA = "aura"
     DDNS = "ddns"
     LED = "led"
-    OPENVPN = "openvpn"
-    OPENVPN_CLIENT = "openvpn_client"
-    OPENVPN_SERVER = "openvpn_server"
     PARENTAL_CONTROL = "parental_control"
     PORT_FORWARDING = "port_forwarding"
     SYSTEM = "system"
-    VPNC = "vpnc"
-    VPNC_CLIENTLIST = "vpnc_clientlist"
-    WIREGUARD = "wireguard"
-    WIREGUARD_CLIENT = "wireguard_client"
-    WIREGUARD_SERVER = "wireguard_server"
 
 
 @dataclass

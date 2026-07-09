@@ -43,14 +43,7 @@ from asusrouter.modules.aimesh import ARAiMeshSourceUniversal
 from asusrouter.modules.aimesh.topology import ARAiMeshTopology
 from asusrouter.modules.boottime import ARBoottime, ARBoottimeSourceUniversal
 from asusrouter.modules.data import AsusData, AsusDataState
-from asusrouter.modules.data_finder import (
-    ASUSDATA_MAP,
-    ASUSDATA_NVRAM,
-    AsusDataFinder,
-    add_conditional_data_alias,
-    add_conditional_data_rule,
-    remove_data_rule,
-)
+from asusrouter.modules.data_finder import ASUSDATA_MAP, AsusDataFinder
 from asusrouter.modules.device import ARDeviceSourceUniversal
 from asusrouter.modules.device.identity import ARDeviceIdentity
 from asusrouter.modules.endpoint import process, read
@@ -60,7 +53,6 @@ from asusrouter.modules.endpoint_v2 import (
     get_endpoint_reader,
     get_endpoint_request_type,
 )
-from asusrouter.modules.firmware import AR_FW_388, AR_FW_MERLIN_LIKE
 from asusrouter.modules.port_forwarding import PortForwardingRule
 from asusrouter.modules.service import async_call_service
 from asusrouter.modules.source import (
@@ -73,7 +65,6 @@ from asusrouter.modules.source import (
 )
 from asusrouter.modules.state import (
     AsusState,
-    add_conditional_state,
     get_datatype,
     save_state,
     set_state,
@@ -284,9 +275,7 @@ class AsusRouter:
         result = await self.async_fetch_data(
             ARDeviceSourceUniversal, force=True
         )
-        # Apply legacy conditional data rules only if description was fetched
         if result is not None:
-            self._apply_v1_conditional_rules()
             # Seed the live AiMesh topology before any user request, so it
             # is available on the identity right after connecting
             await self.async_fetch_data(ARAiMeshSourceUniversal, force=True)
@@ -794,54 +783,6 @@ class AsusRouter:
     # V1 methods -->
     # ---------------------------
 
-    def _apply_v1_conditional_rules(self) -> None:
-        """Apply V1 conditional data rules based on device description."""
-
-        _LOGGER.debug("Triggered method _apply_v1_conditional_rules")
-
-        description = self.description
-        firmware = description.firmware
-        merlin = firmware.firmware_type in AR_FW_MERLIN_LIKE
-
-        if firmware > AR_FW_388:
-            # Stock
-            if not merlin:
-                _LOGGER.debug("Adding conditional rules for stock firmware")
-                add_conditional_state(AsusState.OPENVPN_CLIENT, AsusData.VPNC)
-                add_conditional_state(
-                    AsusState.WIREGUARD_CLIENT, AsusData.VPNC
-                )
-                add_conditional_data_alias(
-                    AsusData.OPENVPN_CLIENT, AsusData.VPNC
-                )
-                add_conditional_data_alias(
-                    AsusData.WIREGUARD_CLIENT, AsusData.VPNC
-                )
-                add_conditional_data_rule(
-                    AsusData.OPENVPN_SERVER,
-                    AsusDataFinder(
-                        AREndpoint.FETCH_DATA,
-                        nvram=ASUSDATA_NVRAM["openvpn_server_388"],
-                    ),
-                )
-            # Merlin / Gnuton
-            else:
-                _LOGGER.debug("Adding conditional rules for Merlin firmware")
-                add_conditional_data_rule(
-                    AsusData.VPNC,
-                    AsusDataFinder(
-                        AREndpoint.FETCH_DATA,
-                        nvram=ASUSDATA_NVRAM["vpnc"],
-                    ),
-                )
-        # Before 388
-        elif firmware < AR_FW_388:
-            remove_data_rule(AsusData.VPNC)
-            remove_data_rule(AsusData.VPNC_CLIENTLIST)
-            remove_data_rule(AsusData.WIREGUARD)
-            remove_data_rule(AsusData.WIREGUARD_CLIENT)
-            remove_data_rule(AsusData.WIREGUARD_SERVER)
-
     async def async_api_query(
         self, endpoint: AREndpoint, payload: str | None = None
     ) -> tuple[int, dict[str, str], str]:
@@ -924,12 +865,6 @@ class AsusRouter:
 
     def _drop_data(self, datatype: AsusData, endpoint: AREndpoint) -> bool:
         """Check whether data should be dropped."""
-
-        if (
-            datatype == AsusData.OPENVPN_CLIENT
-            and self.description.firmware.firmware_type in AR_FW_MERLIN_LIKE
-        ):
-            return endpoint == AREndpoint.FETCH_DATA
 
         return False
 
@@ -1091,7 +1026,7 @@ class AsusRouter:
 
         dependency = get_datatype(state)
 
-        if dependency in (AsusData.VPNC, AsusData.AURA):
+        if dependency == AsusData.AURA:
             # State change requires the correct previous state
             await self.async_get_data(dependency, force=True)
 
@@ -1139,8 +1074,7 @@ class AsusRouter:
         if result is True:
             datatype = get_datatype(state)
 
-            if datatype in (AsusData.VPNC, AsusData.AURA):
-                # The only way to make it work with VPN Fusion
+            if datatype == AsusData.AURA:
                 await asyncio.sleep(1)
                 await self._async_check_state_dependency(state)
             elif (

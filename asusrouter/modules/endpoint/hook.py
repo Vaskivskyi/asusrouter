@@ -6,10 +6,8 @@ import logging
 from typing import Any
 
 from asusrouter.modules.aura import process_aura
-from asusrouter.modules.common.connection import ARConnectionState
 from asusrouter.modules.data import AsusData
 from asusrouter.modules.ddns import process_ddns
-from asusrouter.modules.endpoint.error import AccessError
 from asusrouter.modules.led import AsusLED
 from asusrouter.modules.parental_control import (
     KEY_PC_BLOCK_ALL,
@@ -24,21 +22,7 @@ from asusrouter.modules.port_forwarding import (
     AsusPortForwarding,
     PortForwardingRule,
 )
-from asusrouter.modules.vpnc import AsusVPNC, AsusVPNType
-from asusrouter.tools.converters import run_method, safe_unpack_keys
-from asusrouter.tools.converters_v2.raw import (
-    raw_to_bool,
-    raw_to_int,
-    raw_to_str,
-)
-from asusrouter.tools.readers import merge_dicts
-
-from .hook_const import (
-    MAP_OVPN_SERVER_388,
-    MAP_VPNC_WIREGUARD,
-    MAP_WIREGUARD_CLIENT,
-    MAP_WIREGUARD_SERVER,
-)
+from asusrouter.tools.converters_v2.raw import raw_to_int, raw_to_str
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -73,10 +57,6 @@ def process(data: dict[str, Any]) -> dict[AsusData, Any]:  # noqa: C901, PLR0912
             "state": AsusLED(_led if _led is not None else -999)
         }
 
-    # OpenVPN Server
-    if "vpn_serverx_clientlist" in data:
-        state[AsusData.OPENVPN_SERVER] = process_openvpn_server(data)
-
     # Parental control
     if KEY_PC_STATE in data:
         state[AsusData.PARENTAL_CONTROL] = process_parental_control(data)
@@ -85,40 +65,7 @@ def process(data: dict[str, Any]) -> dict[AsusData, Any]:  # noqa: C901, PLR0912
     if KEY_PORT_FORWARDING_STATE in data:
         state[AsusData.PORT_FORWARDING] = process_port_forwarding(data)
 
-    # VPNC
-    if "vpnc_clientlist" in data:
-        vpnc, vpnc_clientlist = process_vpnc(data)
-        state[AsusData.OPENVPN_CLIENT] = vpnc[AsusVPNType.OPENVPN]
-        state[AsusData.VPNC] = vpnc
-        state[AsusData.VPNC_CLIENTLIST] = vpnc_clientlist
-        state[AsusData.WIREGUARD_CLIENT] = vpnc[AsusVPNType.WIREGUARD]
-
-    # WireGuard
-    if "get_wgsc_status" in data:
-        state[AsusData.WIREGUARD_SERVER] = process_wireguard_server(data)
-
     return state
-
-
-def process_openvpn_server(data: dict[str, Any]) -> dict[int, Any]:
-    """Process OpenVPN server data."""
-
-    server = {}
-
-    # Server data
-    for keys in MAP_OVPN_SERVER_388:
-        key, key_to_use, method = safe_unpack_keys(keys)
-        state_value = data.get(key)
-        if state_value:
-            server[key_to_use] = run_method(state_value, method)
-
-    # Clients
-    clients = server.get("clients", "")
-    clients = clients.replace("&#62", ">").replace("&#60", "<")
-    clients = clients[1:-1].split("><")
-    server["clients"] = clients
-
-    return {1: server}
 
 
 def process_parental_control(data: dict[str, Any]) -> dict[str, Any]:
@@ -177,168 +124,3 @@ def process_port_forwarding(data: dict[str, Any]) -> dict[str, Any]:
         port_forwarding["rules"] = rules.copy()
 
     return port_forwarding
-
-
-def process_vpnc(  # noqa: C901
-    data: dict[str, Any],
-) -> tuple[dict[AsusVPNType, dict[int, Any]], str]:
-    """Process VPNC data."""
-
-    vpnc = {}
-
-    # Get client list
-    vpnc_clientlist = (
-        data.get("vpnc_clientlist", "")
-        .replace("&#62", ">")
-        .replace("&#60", "<")
-    )
-    if vpnc_clientlist != "":
-        clients = vpnc_clientlist.split("<")
-        vpnc_unit = 0
-        for client in clients:
-            if client == "":
-                continue
-            part = client.split(">")
-            # Format: name, type, id, login, password, active,
-            #         vpnc_id, ?, ?, ?, ?, `Web`
-            if len(part) < _VPNC_PART_MIN_FIELDS:
-                continue
-            vpnc_id = raw_to_int(part[6])
-            vpnc[vpnc_id] = {
-                "type": (
-                    AsusVPNType(part[1])
-                    if part[1] in [e.value for e in AsusVPNType]
-                    else AsusVPNType.UNKNOWN
-                ),
-                "id": raw_to_int(part[2]),
-                "name": raw_to_str(part[0]),
-                "login": raw_to_str(part[3]),
-                "password": raw_to_str(part[4]),
-                "active": raw_to_bool(part[5]),
-                "vpnc_unit": vpnc_unit,
-            }
-            vpnc_unit += 1
-
-    # Get clients status
-    get_vpnc_status = data.get("get_vpnc_status")
-    if get_vpnc_status:
-        clients = get_vpnc_status.split("<")
-        for client in clients:
-            if client == "":
-                continue
-            part = client.split(">")
-            vpnc_id = raw_to_int(part[2])
-            state_code = raw_to_int(part[0])
-            error_code = raw_to_int(part[1])
-            vpnc[vpnc_id].update(
-                {
-                    "state": (
-                        AsusVPNC(state_code)
-                        if state_code in [e.value for e in AsusVPNC]
-                        else AsusVPNC.UNKNOWN
-                    ),
-                    "error": (
-                        AccessError(error_code)
-                        if error_code in [e.value for e in AccessError]
-                        else AccessError.UNKNOWN
-                    ),
-                }
-            )
-
-    # Re-sort the data by VPN type / id
-    vpn: dict[AsusVPNType, dict[int, Any]] = {
-        AsusVPNType.L2TP: {},
-        AsusVPNType.OPENVPN: {},
-        AsusVPNType.PPTP: {},
-        AsusVPNType.SURFSHARK: {},
-        AsusVPNType.WIREGUARD: {},
-        AsusVPNType.UNKNOWN: {},
-    }
-
-    for vpnc_id, info in vpnc.items():
-        sorted_id = info.pop("id", None)
-        sorted_type = info.pop("type", None)
-        info["vpnc_id"] = vpnc_id
-        vpn[sorted_type][sorted_id] = info
-
-    # Process WireGuard data
-    vpn[AsusVPNType.WIREGUARD] = merge_dicts(
-        vpn[AsusVPNType.WIREGUARD], process_vpnc_wireguard(data)
-    )
-    # Fill missing clients with unknown state
-    for num in range(1, 6):
-        if num not in vpn[AsusVPNType.WIREGUARD]:
-            vpn[AsusVPNType.WIREGUARD][num] = {
-                "state": AsusVPNC.UNKNOWN,
-                "error": AccessError.NO_ERROR,
-            }
-        if num not in vpn[AsusVPNType.OPENVPN]:
-            vpn[AsusVPNType.OPENVPN][num] = {
-                "state": AsusVPNC.UNKNOWN,
-                "error": AccessError.NO_ERROR,
-            }
-
-    # Remove UNKNOWN VPN type if it's empty
-    if not vpn[AsusVPNType.UNKNOWN]:
-        vpn.pop(AsusVPNType.UNKNOWN, None)
-
-    return vpn, vpnc_clientlist
-
-
-def process_vpnc_wireguard(data: dict[str, Any]) -> dict[int, dict[str, Any]]:
-    """Process VPNC WireGuard data."""
-
-    wireguard = {}
-
-    for num in range(1, 6):
-        client = {}
-        for keys in MAP_VPNC_WIREGUARD:
-            key, key_to_use, method = safe_unpack_keys(keys)
-            state_value = data.get(f"wgc{num}_{key}")
-            if state_value:
-                client[key_to_use] = run_method(state_value, method)
-        if client:
-            wireguard[num] = client
-
-    return wireguard
-
-
-def process_wireguard_server(  # noqa: C901
-    data: dict[str, Any],
-) -> dict[int, dict[str, Any]]:
-    """Process WireGuard data."""
-
-    wireguard = {}
-
-    # Server data
-    for keys in MAP_WIREGUARD_SERVER:
-        key, key_to_use, method = safe_unpack_keys(keys)
-        state_value = data.get(key)
-        if state_value:
-            wireguard[key_to_use] = run_method(state_value, method)
-
-    # Per-client data
-    wireguard["clients"] = {}
-    for num in range(1, 11):
-        client = {}
-        for keys in MAP_WIREGUARD_CLIENT:
-            key, key_to_use, method = safe_unpack_keys(keys)
-            state_value = data.get(f"wgs1_c{num}_{key}")
-            if state_value:
-                client[key_to_use] = run_method(state_value, method)
-        if client:
-            wireguard["clients"][num] = client
-
-    if "status" in wireguard:
-        status = wireguard["status"].get("client_status")
-        if status:
-            for client in status:
-                if client.get("index") in wireguard["clients"]:
-                    wireguard["clients"][client.get("index")]["state"] = (
-                        ARConnectionState.from_value(client.get("status"))
-                    )
-
-    # Remove the `status` value
-    wireguard.pop("status", None)
-
-    return {1: wireguard}
