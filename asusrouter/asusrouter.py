@@ -863,11 +863,6 @@ class AsusRouter:
             request=str(commands),
         )
 
-    def _drop_data(self, datatype: AsusData, endpoint: AREndpoint) -> bool:
-        """Check whether data should be dropped."""
-
-        return False
-
     def _check_state(self, datatype: AsusData | None) -> None:
         """Make sure the state object is available."""
 
@@ -940,7 +935,6 @@ class AsusRouter:
         df_request = data_finder.request
         df_method = data_finder.method
         description = self.description
-        drop_data = self._drop_data
 
         kw_raw = kwargs.get("request", {})
         kw_extra = (
@@ -966,12 +960,6 @@ class AsusRouter:
                     _state,
                     description=description,
                 )
-
-                processed = {
-                    key: val
-                    for key, val in processed.items()
-                    if not drop_data(key, endpoint)
-                }
 
                 result = merge_dicts(result, processed)
 
