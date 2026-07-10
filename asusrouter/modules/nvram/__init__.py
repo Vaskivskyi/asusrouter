@@ -116,9 +116,13 @@ class ARNvramType(ARDataType):
 
     # LED
     AURA = "AllLED"
+    AURA_COUNT = "ledg_count"
     AURA_NIGHT_MODE = "ledg_night_mode"
+    AURA_NIGHT_RGB = "ledg_night_rgb"
+    AURA_RGB = "ledg_rgb"
     AURA_SCHEME = "ledg_scheme"
     AURA_SCHEME_PREV = "ledg_scheme_old"
+    AURA_SDN = "ledg_sdn"
     LED = "led_val"
 
     # Let's Encrypt

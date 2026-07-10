@@ -32,6 +32,7 @@ GET_ENDPOINTS = (
     AREndpoint.FETCH_TRAFFIC_BACKHAUL,
     AREndpoint.FETCH_TRAFFIC_ETHERNET,
     AREndpoint.FETCH_TRAFFIC_WIFI,
+    AREndpoint.SET_AURA,
 )
 
 POST_ENDPOINTS = (
@@ -43,7 +44,6 @@ POST_ENDPOINTS = (
     AREndpoint.LOGIN,
     AREndpoint.LOGOUT,
     AREndpoint.PUSH_DATA,
-    AREndpoint.SET_AURA,
 )
 
 

@@ -20,6 +20,7 @@ class ARHook(FromStrMixin, StrEnum):
     LAN_HWADDR = "get_lan_hwaddr"
     LANGUAGE_SUPPORT_LIST = "language_support_list"
     MEMORY_USAGE = "memory_usage"
+    NVRAM_GET = "nvram_get"
     UI_SUPPORT = "get_ui_support"
     UPTIME = "uptime"
 
