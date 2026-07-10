@@ -1,4 +1,4 @@
-"""Aura module."""
+"""Aura v1 (legacy) module."""
 
 from __future__ import annotations
 

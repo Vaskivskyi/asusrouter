@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from asusrouter.modules.aura import (
+from asusrouter.modules.aura.legacy import (
     DEFAULT_AURA_SCHEME,
     DEFAULT_COLOR_PATTERN,
     AsusAura,
@@ -394,10 +394,10 @@ def test_set_brightness(
 
 
 @pytest.mark.asyncio
-@patch("asusrouter.modules.aura.get_arguments")
-@patch("asusrouter.modules.aura.get_scheme_from_state")
-@patch("asusrouter.modules.aura.set_color")
-@patch("asusrouter.modules.aura.set_brightness")
+@patch("asusrouter.modules.aura.legacy.get_arguments")
+@patch("asusrouter.modules.aura.legacy.get_scheme_from_state")
+@patch("asusrouter.modules.aura.legacy.set_color")
+@patch("asusrouter.modules.aura.legacy.set_brightness")
 async def test_set_state(
     mock_set_brightness: mock.Mock,
     mock_set_color: mock.Mock,
@@ -498,11 +498,11 @@ async def test_set_state(
 
 
 @pytest.mark.asyncio
-@patch("asusrouter.modules.aura.get_arguments")
-@patch("asusrouter.modules.aura.get_scheme_from_state")
-@patch("asusrouter.modules.aura.set_color")
-@patch("asusrouter.modules.aura.set_brightness")
-@patch("asusrouter.modules.aura.get_default_aura_color")
+@patch("asusrouter.modules.aura.legacy.get_arguments")
+@patch("asusrouter.modules.aura.legacy.get_scheme_from_state")
+@patch("asusrouter.modules.aura.legacy.set_color")
+@patch("asusrouter.modules.aura.legacy.set_brightness")
+@patch("asusrouter.modules.aura.legacy.get_default_aura_color")
 async def test_set_state_with_color_support(
     mock_get_default_aura_color: mock.Mock,
     mock_set_brightness: mock.Mock,
