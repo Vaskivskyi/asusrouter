@@ -169,6 +169,11 @@ class ARDataState:
         self._content = content
         self._last_update = datetime.now(UTC)
 
+    def expire(self) -> None:
+        """Mark the cached content stale so the next read refetches it."""
+
+        self._last_update = None
+
     def is_fresh(self, threshold: timedelta) -> bool:
         """Check if the data is fresh based on the given threshold."""
 

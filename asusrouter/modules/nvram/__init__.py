@@ -133,6 +133,11 @@ class ARNvramType(ARDataType):
     MAC_LAN = "lan_hwaddr"
     MAC_WAN = "wan_hwaddr"
 
+    # Port forwarding
+    PORT_FORWARDING_STATE = "vts_enable_x"
+    PORT_FORWARDING_LIST = "vts_rulelist"
+    PORT_FORWARDING_LIST_SECONDARY = "vts1_rulelist"  # dual-WAN load-balance
+
     # Samba
     SAMBA_MODE = "st_samba_mode"
     SAMBA_STATE = "enable_samba"
