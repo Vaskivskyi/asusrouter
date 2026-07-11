@@ -1007,29 +1007,6 @@ class AsusRouter:
 
         return result
 
-    async def _async_check_state_dependency(self, state: AsusState) -> None:
-        """Check and queue state dependencies. Required for some states."""
-
-        _LOGGER.debug("Triggered method _async_check_state_dependency")
-
-        dependency = get_datatype(state)
-
-        if dependency == AsusData.AURA:
-            # State change requires the correct previous state
-            await self.async_get_data(dependency, force=True)
-
-    def _async_get_state_callback(
-        self, state: AsusState
-    ) -> Callable[..., Awaitable]:
-        """Get the state callback."""
-
-        _LOGGER.debug("Triggered method _async_get_state_callback")
-
-        if get_datatype(state) == AsusData.AURA:
-            return self.async_api_command
-
-        return self.async_run_service
-
     async def async_set_state(
         self,
         state: AsusState,
@@ -1046,12 +1023,8 @@ class AsusRouter:
             expect_modify,
         )
 
-        await self._async_check_state_dependency(state)
-
-        callback = self._async_get_state_callback(state)
-
         result = await set_state(
-            callback=callback,
+            callback=self.async_run_service,
             state=state,
             expect_modify=expect_modify,
             router_state=self._state,
@@ -1062,10 +1035,7 @@ class AsusRouter:
         if result is True:
             datatype = get_datatype(state)
 
-            if datatype == AsusData.AURA:
-                await asyncio.sleep(1)
-                await self._async_check_state_dependency(state)
-            elif (
+            if (
                 get_enum_key_by_value(
                     AsusState, type(state), default=AsusState.NONE
                 )

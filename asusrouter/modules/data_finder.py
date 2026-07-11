@@ -48,12 +48,6 @@ ASUSDATA_REQUEST = {
 }
 
 ASUSDATA_NVRAM = {
-    "aura": [
-        "AllLED",
-        "ledg_night_mode",
-        "ledg_scheme",
-        "ledg_scheme_old",
-    ],
     "ddns": [
         "ddns_enable_x",
         "ddns_hostname_x",
@@ -72,14 +66,9 @@ ASUSDATA_NVRAM = {
         "vts_enable_x",
     ],
 }
-ASUSDATA_NVRAM["aura"].extend([f"ledg_rgb{num}" for num in range(8)])
 
 # A map of endptoins to get data from
 ASUSDATA_MAP: dict[AsusData, AsusData | AsusDataFinder] = {
-    AsusData.AURA: AsusDataFinder(
-        AREndpoint.FETCH_DATA,
-        nvram=ASUSDATA_NVRAM["aura"],
-    ),
     AsusData.DDNS: AsusDataFinder(
         AREndpoint.FETCH_DATA,
         nvram=ASUSDATA_NVRAM["ddns"],
