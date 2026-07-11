@@ -60,7 +60,7 @@ class MockModule:
         (AsusState.LED, AsusData.LED, True),
         (AsusState.PARENTAL_CONTROL, AsusData.PARENTAL_CONTROL, True),
         # Partial data
-        (AsusState.PORT_FORWARDING, None, False),
+        (AsusState.CONNECTION, None, False),
         (None, AsusData.LED, False),
         # None
         (None, None, False),

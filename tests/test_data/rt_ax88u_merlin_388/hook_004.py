@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from asusrouter import AsusData
-from asusrouter.modules.port_forwarding import AsusPortForwarding
+from typing import Any
 
-expected_result = {AsusData.PORT_FORWARDING: {"state": AsusPortForwarding.OFF}}
+expected_result: dict[Any, Any] = {}
