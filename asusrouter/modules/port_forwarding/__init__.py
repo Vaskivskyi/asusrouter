@@ -12,13 +12,6 @@ from asusrouter.modules.port_forwarding.enums import (
     ARPortForwardingField,
     ARPortForwardingProtocol,
 )
-from asusrouter.modules.port_forwarding.legacy import (
-    KEY_PORT_FORWARDING_LIST,
-    KEY_PORT_FORWARDING_STATE,
-    AsusPortForwarding,
-    PortForwardingRule,
-    set_state,
-)
 from asusrouter.modules.port_forwarding.source import (
     ARPortForwardingSource,
     ARPortForwardingSourceUniversal,
@@ -28,8 +21,6 @@ from asusrouter.modules.port_forwarding.source import (
 )
 
 __all__ = [
-    "KEY_PORT_FORWARDING_LIST",
-    "KEY_PORT_FORWARDING_STATE",
     "ARPortForwardingAction",
     "ARPortForwardingCommand",
     "ARPortForwardingField",
@@ -37,11 +28,8 @@ __all__ = [
     "ARPortForwardingRule",
     "ARPortForwardingSource",
     "ARPortForwardingSourceUniversal",
-    "AsusPortForwarding",
-    "PortForwardingRule",
     "get_state",
     "run_action",
     "serialize_rules",
-    "set_state",
     "translate_state",
 ]

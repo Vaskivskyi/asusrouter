@@ -15,20 +15,14 @@ from asusrouter.modules.parental_control import (
     AsusParentalControl,
     read_pc_rules,
 )
-from asusrouter.modules.port_forwarding import (
-    KEY_PORT_FORWARDING_LIST,
-    KEY_PORT_FORWARDING_STATE,
-    AsusPortForwarding,
-    PortForwardingRule,
-)
-from asusrouter.tools.converters_v2.raw import raw_to_int, raw_to_str
+from asusrouter.tools.converters_v2.raw import raw_to_int
 
 _LOGGER = logging.getLogger(__name__)
 
 _VPNC_PART_MIN_FIELDS = 7
 
 
-def process(data: dict[str, Any]) -> dict[AsusData, Any]:  # noqa: C901, PLR0912
+def process(data: dict[str, Any]) -> dict[AsusData, Any]:
     """Process hook data."""
 
     # For this endpoint, the received data always depends on the sent request.
@@ -56,10 +50,6 @@ def process(data: dict[str, Any]) -> dict[AsusData, Any]:  # noqa: C901, PLR0912
     if KEY_PC_STATE in data:
         state[AsusData.PARENTAL_CONTROL] = process_parental_control(data)
 
-    # Port forwarding
-    if KEY_PORT_FORWARDING_STATE in data:
-        state[AsusData.PORT_FORWARDING] = process_port_forwarding(data)
-
     return state
 
 
@@ -83,39 +73,3 @@ def process_parental_control(data: dict[str, Any]) -> dict[str, Any]:
     parental_control["rules"] = read_pc_rules(data)
 
     return parental_control
-
-
-def process_port_forwarding(data: dict[str, Any]) -> dict[str, Any]:
-    """Process port forwarding data."""
-
-    port_forwarding = {}
-
-    # State
-    port_forwarding["state"] = AsusPortForwarding(
-        _v
-        if (_v := raw_to_int(data.get(KEY_PORT_FORWARDING_STATE))) is not None
-        else -999
-    )
-
-    # Rules
-    pf_list = data.get(KEY_PORT_FORWARDING_LIST)
-    if pf_list:
-        rules = []
-        rule_list = pf_list.split("&#60")
-        for rule in rule_list:
-            if rule == "":
-                continue
-            part = rule.split("&#62")
-            rules.append(
-                PortForwardingRule(
-                    name=raw_to_str(part[0]),
-                    ip_address=part[2],
-                    port=raw_to_str(part[3]),
-                    protocol=part[4],
-                    ip_external=raw_to_str(part[5]),
-                    port_external=part[1],
-                )
-            )
-        port_forwarding["rules"] = rules.copy()
-
-    return port_forwarding

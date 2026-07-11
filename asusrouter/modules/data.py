@@ -17,7 +17,6 @@ class AsusData(StrEnum):
     DDNS = "ddns"
     LED = "led"
     PARENTAL_CONTROL = "parental_control"
-    PORT_FORWARDING = "port_forwarding"
     SYSTEM = "system"
 
 

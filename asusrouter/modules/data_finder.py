@@ -61,10 +61,6 @@ ASUSDATA_NVRAM = {
     ],
     "light": ["led_val"],
     "parental_control": HOOK_PC,
-    "port_forwarding": [
-        "vts_rulelist",
-        "vts_enable_x",
-    ],
 }
 
 # A map of endptoins to get data from
@@ -78,9 +74,6 @@ ASUSDATA_MAP: dict[AsusData, AsusData | AsusDataFinder] = {
     ),
     AsusData.PARENTAL_CONTROL: AsusDataFinder(
         AREndpoint.FETCH_DATA, nvram=ASUSDATA_NVRAM["parental_control"]
-    ),
-    AsusData.PORT_FORWARDING: AsusDataFinder(
-        AREndpoint.FETCH_DATA, nvram=ASUSDATA_NVRAM["port_forwarding"]
     ),
 }
 

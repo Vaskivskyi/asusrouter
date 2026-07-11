@@ -17,7 +17,6 @@ from asusrouter.modules.parental_control import (
     AsusParentalControl,
     ParentalControlRule,
 )
-from asusrouter.modules.port_forwarding import AsusPortForwarding
 from asusrouter.tools.converters import get_enum_key_by_value
 
 from .led import AsusLED
@@ -41,7 +40,6 @@ class AsusState(Enum):
     LED = AsusLED
     PARENTAL_CONTROL = AsusParentalControl
     PC_RULE = ParentalControlRule
-    PORT_FORWARDING = AsusPortForwarding
 
 
 AsusStateMap: dict[AsusState, AsusData | None] = {
@@ -52,7 +50,6 @@ AsusStateMap: dict[AsusState, AsusData | None] = {
     AsusState.LED: AsusData.LED,
     AsusState.PARENTAL_CONTROL: AsusData.PARENTAL_CONTROL,
     AsusState.PC_RULE: AsusData.PARENTAL_CONTROL,
-    AsusState.PORT_FORWARDING: AsusData.PORT_FORWARDING,
 }
 
 

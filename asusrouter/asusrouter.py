@@ -53,7 +53,6 @@ from asusrouter.modules.endpoint_v2 import (
     get_endpoint_reader,
     get_endpoint_request_type,
 )
-from asusrouter.modules.port_forwarding import PortForwardingRule
 from asusrouter.modules.service import async_call_service
 from asusrouter.modules.source import (
     ARDataCollection,
@@ -71,8 +70,7 @@ from asusrouter.modules.state import (
 )
 from asusrouter.modules.support.flag import ARSupportType
 from asusrouter.registry import ARCallableRegistry as ARCallReg
-from asusrouter.tools import legacy
-from asusrouter.tools.converters import get_enum_key_by_value, safe_list
+from asusrouter.tools.converters import get_enum_key_by_value
 from asusrouter.tools.converters_v2.raw import raw_to_str
 from asusrouter.tools.identifiers import Hostname
 from asusrouter.tools.readers import merge_dicts
@@ -1068,97 +1066,4 @@ class AsusRouter:
 
     # ---------------------------
     # <-- V1 methods
-    # ---------------------------
-
-    # ---------------------------
-    # Legacy methods -->
-    # ---------------------------
-    # Not tested, not used, not documented
-    # This part can be changed / removed in the future
-    # It might also not be working properly
-
-    # If any of port forwarding methods gets removed,
-    # notify in https://github.com/Vaskivskyi/asusrouter/issues/611
-    # so that users of these methods will know of a breaking change
-
-    async def async_apply_port_forwarding_rules(
-        self,
-        rules: list[PortForwardingRule],
-    ) -> bool:
-        """Apply port forwarding rules."""
-
-        request = legacy.compile_port_forwarding(rules)
-
-        if request:
-            return await self.async_run_service(
-                service="restart_firewall",
-                arguments=request,
-                apply=True,
-            )
-
-        return False
-
-    async def async_remove_port_forwarding_rules(
-        self,
-        ips: str | list[str] | None = None,
-        rules: PortForwardingRule | list[PortForwardingRule] | None = None,
-        apply: bool = True,
-    ) -> list[PortForwardingRule]:
-        """Remove port forwarding rules."""
-
-        ips = set() if ips is None else set(safe_list(ips))
-        rules = [] if rules is None else safe_list(rules)
-
-        current_rules: list[PortForwardingRule] = (
-            await self.async_get_data(AsusData.PORT_FORWARDING)
-        )["rules"]
-
-        current_rules = [
-            rule for rule in current_rules if rule.ip_address not in ips
-        ]
-        for rule_to_find in rules:
-            current_rules = [
-                rule
-                for rule in current_rules
-                if not (
-                    rule.ip_address == rule_to_find.ip_address
-                    and rule.port_external == rule_to_find.port_external
-                    and rule.protocol == rule_to_find.protocol
-                    and (
-                        rule_to_find.ip_external is None
-                        or rule.ip_external == rule_to_find.ip_external
-                    )
-                    and (
-                        rule_to_find.port is None
-                        or rule.port == rule_to_find.port
-                    )
-                )
-            ]
-
-        if apply:
-            await self.async_apply_port_forwarding_rules(current_rules)
-
-        return current_rules
-
-    async def async_set_port_forwarding_rules(
-        self,
-        rules: PortForwardingRule | list[PortForwardingRule],
-    ) -> bool:
-        """Set port forwarding rules."""
-
-        rules = safe_list(rules)
-
-        current_rules: list[PortForwardingRule] = (
-            await self.async_get_data(AsusData.PORT_FORWARDING)
-        )["rules"]
-
-        # Make a copy to avoid modifying the original list
-        current_rules = list(current_rules)
-
-        current_rules.extend(rules)
-
-        return await self.async_apply_port_forwarding_rules(current_rules)
-
-    # ---------------------------
-    # <-- Legacy methods
     # ---------------------------
