@@ -210,6 +210,20 @@ class TestARDataState:
         assert instance._content == content
         assert instance._last_update == datetime_value
 
+    def test_expire(self) -> None:
+        """Test that expire drops the last-update timestamp."""
+
+        instance = ARDataState(ARDataTypeGeneric.UNKNOWN)
+        instance._content = "content"
+        instance._last_update = datetime_value
+
+        instance.expire()
+
+        assert instance._last_update is None
+        # Content is kept; only freshness is invalidated
+        assert instance._content == "content"
+        assert instance.is_fresh(threshold=timedelta(seconds=5)) is False
+
     @pytest.mark.parametrize("is_fresh", [True, False, None])
     def test_is_fresh(
         self, is_fresh: bool | None, monkeypatch: pytest.MonkeyPatch
