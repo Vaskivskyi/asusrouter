@@ -58,7 +58,6 @@ class MockModule:
     [
         # Existing values of AsusState
         (AsusState.LED, AsusData.LED, True),
-        (AsusState.AURA, AsusData.AURA, True),
         (AsusState.PARENTAL_CONTROL, AsusData.PARENTAL_CONTROL, True),
         # Partial data
         (AsusState.PORT_FORWARDING, None, False),

@@ -5,7 +5,6 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from asusrouter.modules.aura import process_aura
 from asusrouter.modules.data import AsusData
 from asusrouter.modules.ddns import process_ddns
 from asusrouter.modules.led import AsusLED
@@ -37,10 +36,6 @@ def process(data: dict[str, Any]) -> dict[AsusData, Any]:  # noqa: C901, PLR0912
     # Otherwise, we can accidentally overwrite the data with empty values.
 
     state: dict[AsusData, Any] = {}
-
-    # Aura
-    if "ledg_scheme" in data:
-        state[AsusData.AURA] = process_aura(data)
 
     # DDNS
     if (

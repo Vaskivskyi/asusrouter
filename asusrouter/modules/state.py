@@ -9,7 +9,6 @@ import logging
 from types import ModuleType
 from typing import Any
 
-from asusrouter.modules.aura import AsusAura
 from asusrouter.modules.common.connection import ARConnectionState
 from asusrouter.modules.data import AsusData, AsusDataState
 from asusrouter.modules.ddns import AsusDDNS
@@ -36,7 +35,6 @@ class AsusState(Enum):
     """Asus state."""
 
     NONE = AsusStateNone
-    AURA = AsusAura
     BLOCK_ALL = AsusBlockAll
     CONNECTION = ARConnectionState
     DDNS = AsusDDNS
@@ -48,7 +46,6 @@ class AsusState(Enum):
 
 AsusStateMap: dict[AsusState, AsusData | None] = {
     AsusState.NONE: None,
-    AsusState.AURA: AsusData.AURA,
     AsusState.BLOCK_ALL: AsusData.PARENTAL_CONTROL,
     AsusState.CONNECTION: None,
     AsusState.DDNS: None,

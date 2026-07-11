@@ -14,7 +14,6 @@ from asusrouter.tools.converters_v2.raw import raw_to_bool
 class AsusData(StrEnum):
     """AsusRouter data class."""
 
-    AURA = "aura"
     DDNS = "ddns"
     LED = "led"
     PARENTAL_CONTROL = "parental_control"
