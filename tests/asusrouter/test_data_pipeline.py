@@ -1050,3 +1050,26 @@ class TestTranslateMultidata:
         expected_arg = {source: {"a": 1}} if is_batch else {"a": 1}
         translator.assert_called_once_with(expected_arg, identity=identity)
         assert_state_updated(state, {"x": 1})
+
+
+class TestAsyncExpireData:
+    """Tests for AsusRouter._async_expire_data."""
+
+    async def test_expires_present_state(self, router: AsusRouter) -> None:
+        """A cached state is marked stale."""
+
+        source = ARDataTypeGeneric.UNKNOWN
+        state = ARDataState(source)
+        state.update("content")
+        router._data_states[source] = state
+
+        await router._async_expire_data(source)
+
+        assert state._last_update is None
+
+    async def test_missing_state_is_noop(self, router: AsusRouter) -> None:
+        """Expiring an uncached source does nothing and does not raise."""
+
+        await router._async_expire_data(ARDataTypeGeneric.UNKNOWN)
+
+        assert router._data_states == {}

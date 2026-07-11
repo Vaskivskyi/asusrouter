@@ -1,4 +1,4 @@
-"""Port forwarding module."""
+"""Legacy port forwarding module."""
 
 from __future__ import annotations
 

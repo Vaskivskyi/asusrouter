@@ -710,6 +710,7 @@ class AsusRouter:
         )
         kwargs["raw_callback"] = self.async_fetch
         kwargs["run_action_callback"] = self.async_run_action
+        kwargs["expire_callback"] = self._async_expire_data
 
         raw = await run_caller(
             self.async_read, action, identity=self.description, **kwargs
@@ -729,6 +730,15 @@ class AsusRouter:
         if translate_caller is None:
             return raw
         return translate_caller(raw, identity=self.description, **kwargs)
+
+    async def _async_expire_data(
+        self, source: ARDataSource | ARDataType
+    ) -> None:
+        """Expire a cached data state so its next read refetches."""
+
+        state = self._data_states.get(source)
+        if state is not None:
+            state.expire()
 
     async def _async_handle_reboot(self) -> None:
         """Handle a detected device reboot (V2)."""
