@@ -13,9 +13,12 @@ from asusrouter.modules.aura.support import (
     aura_supported,
     night_mode_supported,
 )
-from asusrouter.modules.endpoint_v2 import AREndpoint
-from asusrouter.modules.endpoint_v2.hooks import ARHook, hook_request
-from asusrouter.modules.nvram import ARNvramType
+from asusrouter.modules.nvram import (
+    ARNvramIndexSource,
+    ARNvramIndexType,
+    ARNvramItem,
+    ARNvramType,
+)
 from asusrouter.modules.source import ARDataSource
 from asusrouter.registry import ARCallableRegistry as ARCallReg
 from asusrouter.tools.color import COLOR_SCALE_ASUS_DAY, Color, parse_colors
@@ -28,17 +31,21 @@ if TYPE_CHECKING:
 # Scheme codes that carry stored colors in nvram
 _SCHEME_CODES = range(8)
 
-_DAY_COLOR_KEYS = [
-    f"{ARNvramType.AURA_RGB.value}{code}" for code in _SCHEME_CODES
-]
-_SCALAR_KEYS = [
-    ARNvramType.AURA.value,
-    ARNvramType.AURA_SCHEME.value,
-    ARNvramType.AURA_SCHEME_PREV.value,
-    ARNvramType.AURA_COUNT.value,
-    ARNvramType.AURA_NIGHT_MODE.value,
-]
-_ALL_KEYS = _SCALAR_KEYS + _DAY_COLOR_KEYS
+# Per-scheme day color sources (`ledg_rgb<code>`)
+_COLOR_SOURCES: tuple[ARNvramIndexSource, ...] = tuple(
+    ARNvramIndexSource(ARNvramIndexType.AURA_RGB, code)
+    for code in _SCHEME_CODES
+)
+
+# Full NVRAM request for the Aura state, built once
+_AURA_REQUEST: tuple[ARNvramItem, ...] = (
+    ARNvramType.AURA,
+    ARNvramType.AURA_SCHEME,
+    ARNvramType.AURA_SCHEME_PREV,
+    ARNvramType.AURA_COUNT,
+    ARNvramType.AURA_NIGHT_MODE,
+    *_COLOR_SOURCES,
+)
 
 
 class ARAuraSource(ARDataSource):
@@ -53,28 +60,29 @@ async def get_state(
     callback: ARCallbackType,
     source: ARAuraSource,
     *,
+    get_data_callback: ARCallbackType | None = None,
     identity: ARDeviceIdentity | None = None,
     **kwargs: Any,
-) -> Any:
-    """Fetch the Aura nvram configuration."""
+) -> dict[Any, Any]:
+    """Fetch the Aura configuration through the NVRAM module."""
 
-    if not aura_supported(identity):
+    if not aura_supported(identity) or get_data_callback is None:
         return {}
 
-    request = hook_request(*((ARHook.NVRAM_GET, key) for key in _ALL_KEYS))
-    return await callback(endpoint=AREndpoint.FETCH_DATA, request=request)
+    values = await get_data_callback(_AURA_REQUEST)
+    return values if isinstance(values, dict) else {}
 
 
 def _parse_scheme_colors(
-    data: dict[str, Any], prefix: str, scale: int
+    data: dict[Any, Any], scale: int
 ) -> dict[ARAuraScheme, list[Color]]:
-    """Parse per-scheme colors from `<prefix><code>` nvram keys."""
+    """Parse per-scheme colors from the indexed color sources."""
 
     colors: dict[ARAuraScheme, list[Color]] = {}
-    for code in _SCHEME_CODES:
-        parsed = parse_colors(data.get(f"{prefix}{code}"), scale=scale)
+    for source in _COLOR_SOURCES:
+        parsed = parse_colors(data.get(source), scale=scale)
         if parsed:
-            colors[ARAuraScheme(code)] = parsed
+            colors[ARAuraScheme(source.index)] = parsed
 
     return colors
 
@@ -90,20 +98,18 @@ def translate_state(
     if not isinstance(data, dict) or not data:
         return {}
 
-    scheme = ARAuraScheme.from_value(data.get(ARNvramType.AURA_SCHEME.value))
+    scheme = ARAuraScheme.from_value(data.get(ARNvramType.AURA_SCHEME))
     scheme_prev = ARAuraScheme.from_value(
-        data.get(ARNvramType.AURA_SCHEME_PREV.value)
+        data.get(ARNvramType.AURA_SCHEME_PREV)
     )
 
-    state = raw_to_bool(data.get(ARNvramType.AURA.value)) or False
+    state = raw_to_bool(data.get(ARNvramType.AURA)) or False
     if scheme is ARAuraScheme.OFF:
         state = False
 
-    day_colors = _parse_scheme_colors(
-        data, ARNvramType.AURA_RGB.value, COLOR_SCALE_ASUS_DAY
-    )
+    day_colors = _parse_scheme_colors(data, COLOR_SCALE_ASUS_DAY)
 
-    zones = raw_to_int(data.get(ARNvramType.AURA_COUNT.value))
+    zones = raw_to_int(data.get(ARNvramType.AURA_COUNT))
     if not zones:
         zones = len(day_colors.get(ARAuraScheme.STATIC, []))
 
@@ -117,7 +123,7 @@ def translate_state(
 
     if night_mode_supported(identity):
         result[ARAuraField.NIGHT_MODE] = (
-            raw_to_bool(data.get(ARNvramType.AURA_NIGHT_MODE.value)) or False
+            raw_to_bool(data.get(ARNvramType.AURA_NIGHT_MODE)) or False
         )
 
     # Active scheme summary

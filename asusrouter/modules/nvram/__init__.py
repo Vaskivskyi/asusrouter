@@ -240,6 +240,9 @@ class ARNvramIndexType(FromStrMixin, StrEnum):
 
     UNKNOWN = UNKNOWN_MEMBER_STR
 
+    # Aura (per-scheme)
+    AURA_RGB = "ledg_rgb{}"
+
     # WAN (per-unit)
     WAN_DOT1Q = "wan{}_dot1q"
     WAN_ENABLE = "wan{}_enable"

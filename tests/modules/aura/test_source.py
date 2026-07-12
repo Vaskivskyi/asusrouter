@@ -14,8 +14,18 @@ from asusrouter.modules.aura.source import (
     get_state,
     translate_state,
 )
-from asusrouter.modules.endpoint_v2 import AREndpoint
+from asusrouter.modules.nvram import (
+    ARNvramIndexSource,
+    ARNvramIndexType,
+    ARNvramType,
+)
 from asusrouter.modules.support.flag import ARSupportType
+
+
+def _rgb(code: int) -> ARNvramIndexSource:
+    """Build the indexed color source for a scheme code."""
+
+    return ARNvramIndexSource(ARNvramIndexType.AURA_RGB, code)
 
 
 def _identity(*, aura: bool = True, night: bool = False) -> SimpleNamespace:
@@ -49,20 +59,52 @@ class TestGetState:
         assert result == {}
         callback.assert_not_awaited()
 
-    async def test_supported_fetches_nvram(self) -> None:
-        """A supported device fetches the Aura nvram keys."""
+    async def test_supported_fetches_via_nvram(self) -> None:
+        """A supported device requests the Aura items from the NVRAM module."""
 
-        callback = AsyncMock(return_value={"AllLED": "1"})
-        await get_state(callback, ARAuraSourceUniversal, identity=_identity())
+        values = {ARNvramType.AURA: "1"}
+        get_data = AsyncMock(return_value=values)
+        callback = AsyncMock()
 
-        request = callback.await_args.kwargs["request"]
-        assert callback.await_args.kwargs["endpoint"] is AREndpoint.FETCH_DATA
-        assert request.startswith("hook=")
-        assert "nvram_get(AllLED)" in request
-        assert "ledg_scheme" in request
-        assert "ledg_rgb0" in request
-        assert "ledg_night_mode" in request  # flag read
-        assert "ledg_night_rgb" not in request  # firmware-dead, not fetched
+        result = await get_state(
+            callback,
+            ARAuraSourceUniversal,
+            get_data_callback=get_data,
+            identity=_identity(),
+        )
+
+        assert result == values
+        callback.assert_not_awaited()
+        request = get_data.await_args.args[0]
+        assert ARNvramType.AURA in request
+        assert ARNvramType.AURA_SCHEME in request
+        assert _rgb(0) in request
+        assert _rgb(7) in request
+        assert ARNvramType.AURA_NIGHT_MODE in request  # flag read
+        # Night colors are firmware-dead, not fetched
+        assert ARNvramType.AURA_NIGHT_RGB not in request
+
+    async def test_no_get_data_callback(self) -> None:
+        """Without a data callback nothing is fetched."""
+
+        callback = AsyncMock()
+        result = await get_state(
+            callback, ARAuraSourceUniversal, identity=_identity()
+        )
+        assert result == {}
+        callback.assert_not_awaited()
+
+    async def test_non_dict_response(self) -> None:
+        """A non-dict response is normalized to an empty dict."""
+
+        get_data = AsyncMock(return_value=None)
+        result = await get_state(
+            AsyncMock(),
+            ARAuraSourceUniversal,
+            get_data_callback=get_data,
+            identity=_identity(),
+        )
+        assert result == {}
 
 
 class TestTranslateState:
@@ -102,7 +144,7 @@ class TestTranslateState:
 
         data = {
             "ledg_scheme": "2",
-            "ledg_rgb2": "10,0,64,64,0,32",  # two colors
+            _rgb(2): "10,0,64,64,0,32",  # two colors
         }
         result = translate_state(data, identity=_identity())
         assert result[ARAuraField.ZONES] == 2
@@ -110,7 +152,7 @@ class TestTranslateState:
     def test_day_colors_parsed(self) -> None:
         """Day colors are grouped per scheme."""
 
-        data = {"ledg_scheme": "2", "ledg_rgb2": "10,0,64"}
+        data = {"ledg_scheme": "2", _rgb(2): "10,0,64"}
         result = translate_state(data, identity=_identity())
         colors = result[ARAuraField.COLORS]
         assert ARAuraScheme.STATIC in colors
@@ -149,7 +191,7 @@ class TestTranslateState:
     def test_active_summary(self) -> None:
         """A color scheme reports a blended active color and brightness."""
 
-        data = {"ledg_scheme": "2", "ledg_rgb2": "10,0,64,64,0,32"}
+        data = {"ledg_scheme": "2", _rgb(2): "10,0,64,64,0,32"}
         result = translate_state(data, identity=_identity())
         assert ARAuraField.COLOR in result
         assert ARAuraField.BRIGHTNESS in result
@@ -157,6 +199,6 @@ class TestTranslateState:
     def test_no_active_summary_for_non_color_scheme(self) -> None:
         """A non-color scheme omits the active color summary."""
 
-        data = {"ledg_scheme": "5", "ledg_rgb5": "10,0,64"}  # rainbow
+        data = {"ledg_scheme": "5", _rgb(5): "10,0,64"}  # rainbow
         result = translate_state(data, identity=_identity())
         assert ARAuraField.COLOR not in result

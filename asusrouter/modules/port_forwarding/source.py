@@ -4,8 +4,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from asusrouter.modules.endpoint_v2 import AREndpoint
-from asusrouter.modules.endpoint_v2.hooks import ARHook, hook_request
 from asusrouter.modules.nvram import ARNvramType
 from asusrouter.modules.port_forwarding.enums import (
     ARPortForwardingField,
@@ -24,13 +22,15 @@ from asusrouter.tools.types import ARCallbackType
 if TYPE_CHECKING:
     from asusrouter.modules.device.identity import ARDeviceIdentity
 
-KEY_STATE = ARNvramType.PORT_FORWARDING_STATE.value
+KEY_STATE = ARNvramType.PORT_FORWARDING_STATE
 # Per-WAN rule lists; secondary is only populated on dual-WAN load-balance
-_RULE_KEYS = {
-    0: ARNvramType.PORT_FORWARDING_LIST.value,
-    1: ARNvramType.PORT_FORWARDING_LIST_SECONDARY.value,
+_RULE_KEYS: dict[int, ARNvramType] = {
+    0: ARNvramType.PORT_FORWARDING_LIST,
+    1: ARNvramType.PORT_FORWARDING_LIST_SECONDARY,
 }
-_ALL_KEYS = [KEY_STATE, *_RULE_KEYS.values()]
+
+# Full NVRAM request for the port forwarding state, built once
+_PF_REQUEST: tuple[ARNvramType, ...] = (KEY_STATE, *_RULE_KEYS.values())
 
 # nvram rule columns: name > external_port > internal_ip > internal_port >
 # protocol > source_ip
@@ -56,13 +56,17 @@ async def get_state(
     callback: ARCallbackType,
     source: ARPortForwardingSource,
     *,
+    get_data_callback: ARCallbackType | None = None,
     identity: ARDeviceIdentity | None = None,
     **kwargs: Any,
-) -> Any:
-    """Fetch the port forwarding nvram configuration."""
+) -> dict[Any, Any]:
+    """Fetch the port forwarding configuration through the NVRAM module."""
 
-    request = hook_request(*((ARHook.NVRAM_GET, key) for key in _ALL_KEYS))
-    return await callback(endpoint=AREndpoint.FETCH_DATA, request=request)
+    if get_data_callback is None:
+        return {}
+
+    values = await get_data_callback(_PF_REQUEST)
+    return values if isinstance(values, dict) else {}
 
 
 def _decode(raw: Any) -> str:

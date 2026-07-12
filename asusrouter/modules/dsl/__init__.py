@@ -5,8 +5,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 from asusrouter.modules.common.metrics import ARMetricType
-from asusrouter.modules.endpoint_v2 import AREndpoint
-from asusrouter.modules.endpoint_v2.hooks import hook_request
 from asusrouter.modules.nvram import ARNvramType
 from asusrouter.modules.source import ARDataSource
 from asusrouter.modules.support.flag import ARSupportType
@@ -24,6 +22,9 @@ _RATE_KEYS: tuple[tuple[ARNvramType, ARMetricType], ...] = (
     (ARNvramType.DSL_DATARATE_DOWN, ARMetricType.DOWNLOAD_SPEED),
     (ARNvramType.DSL_DATARATE_UP, ARMetricType.UPLOAD_SPEED),
 )
+
+# Full NVRAM request for the DSL rates, built once
+_DSL_REQUEST: tuple[ARNvramType, ...] = tuple(key for key, _ in _RATE_KEYS)
 
 
 def _read_rate(value: Any) -> float | None:
@@ -52,19 +53,21 @@ async def get_state(
     callback: ARCallbackType,
     source: ARDSLSource,
     *,
+    get_data_callback: ARCallbackType | None = None,
     identity: ARDeviceIdentity | None = None,
     **kwargs: Any,
-) -> dict[str, Any]:
-    """Fetch the raw DSL data rate nvram values."""
+) -> dict[Any, Any]:
+    """Fetch the DSL data rates through the NVRAM module."""
 
+    if get_data_callback is None:
+        return {}
     if identity is None or not support_available(
         identity.support, ARSupportType.DSL
     ):
         return {}
 
-    request = hook_request(*(key for key, _ in _RATE_KEYS))
-    raw = await callback(endpoint=AREndpoint.FETCH_DATA, request=request)
-    return raw if isinstance(raw, dict) else {}
+    values = await get_data_callback(_DSL_REQUEST)
+    return values if isinstance(values, dict) else {}
 
 
 def translate_state(
@@ -80,7 +83,7 @@ def translate_state(
 
     result: dict[ARMetricType, Any] = {}
     for key, metric in _RATE_KEYS:
-        rate = _read_rate(data.get(key.value))
+        rate = _read_rate(data.get(key))
         if rate is not None:
             result[metric] = rate
 
