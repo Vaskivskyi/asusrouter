@@ -6,7 +6,20 @@ from typing import Any
 
 import pytest
 
-from asusrouter.modules.endpoint_v2.hooks import ARHook, hook_request
+from asusrouter.modules.endpoint_v2.hooks import (
+    ARHook,
+    hook_request,
+    nvram_hooks,
+)
+
+
+class _FakeItem:
+    """A minimal ARHookItem implementation for tests."""
+
+    def as_hook(self) -> tuple[ARHook, str]:
+        """Render as an `nvram_get` hook call."""
+
+        return (ARHook.NVRAM_GET, "some_key")
 
 
 class TestARHook:
@@ -44,10 +57,32 @@ class TestHookRequest:
                 (ARHook.UPTIME, (ARHook.NETDEV, "appobj")),
                 "hook=uptime();netdev(appobj)",
             ),
+            ((_FakeItem(),), "hook=nvram_get(some_key)"),
+            (
+                (ARHook.UPTIME, _FakeItem()),
+                "hook=uptime();nvram_get(some_key)",
+            ),
         ],
-        ids=["single", "with_args", "multiple"],
+        ids=["single", "with_args", "multiple", "item", "mixed"],
     )
     def test_build(self, hooks: Any, expected: str) -> None:
         """Requests join `name(args)` parts under a single `hook=`."""
 
         assert hook_request(*hooks) == expected
+
+
+class TestNvramHooks:
+    """Tests for nvram_hooks."""
+
+    def test_renders_keys(self) -> None:
+        """Each key becomes an `nvram_get` hook call."""
+
+        assert nvram_hooks("a", "b") == (
+            (ARHook.NVRAM_GET, "a"),
+            (ARHook.NVRAM_GET, "b"),
+        )
+
+    def test_empty(self) -> None:
+        """No keys yield no hook calls."""
+
+        assert nvram_hooks() == ()

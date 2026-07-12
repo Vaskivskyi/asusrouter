@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from enum import StrEnum
+from typing import Protocol
 
 from asusrouter.const import UNKNOWN_MEMBER_STR
 from asusrouter.tools.enum import FromStrMixin
@@ -72,11 +73,29 @@ class ARHook(FromStrMixin, StrEnum):
     WL_NBAND_INFO = "wl_nband_info"
 
 
-def hook_request(*hooks: ARHook | tuple[ARHook, str]) -> str:
+class ARHookItem(Protocol):
+    """An item that renders itself as a single appGet hook call."""
+
+    def as_hook(self) -> tuple[ARHook, str]:
+        """Return the hook and its argument string."""
+
+
+def hook_request(*items: ARHook | tuple[ARHook, str] | ARHookItem) -> str:
     """Build an appGet `hook=` request string from one or more hooks."""
 
     parts: list[str] = []
-    for item in hooks:
-        hook, args = item if isinstance(item, tuple) else (item, "")
+    for item in items:
+        if isinstance(item, ARHook):
+            hook, args = item, ""
+        elif isinstance(item, tuple):
+            hook, args = item
+        else:
+            hook, args = item.as_hook()
         parts.append(f"{hook.value}({args})")
     return "hook=" + ";".join(parts)
+
+
+def nvram_hooks(*keys: str) -> tuple[tuple[ARHook, str], ...]:
+    """Render dynamically built NVRAM keys as `nvram_get` hook calls."""
+
+    return tuple((ARHook.NVRAM_GET, key) for key in keys)

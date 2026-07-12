@@ -9,6 +9,7 @@ from __future__ import annotations
 from typing import Any
 
 from asusrouter.modules.endpoint_v2 import AREndpoint
+from asusrouter.modules.endpoint_v2.hooks import hook_request, nvram_hooks
 from asusrouter.modules.network.common import (
     bandwidth_limit,
     decode,
@@ -22,6 +23,7 @@ from asusrouter.modules.network.enums import (
     ARNetworkType,
 )
 from asusrouter.modules.network.handle import ARNetworkHandle
+from asusrouter.modules.nvram import ARNvramType
 from asusrouter.modules.wifi import ARWiFiAuthMode, ARWiFiBand
 from asusrouter.tools.converters_v2.raw import (
     raw_to_bool,
@@ -30,7 +32,6 @@ from asusrouter.tools.converters_v2.raw import (
 )
 from asusrouter.tools.identifiers import Password, Ssid
 from asusrouter.tools.types import ARCallbackType
-from asusrouter.tools.writers import nvram
 
 # `sdn_rl` column indices (see `set_sdn_profile` in the firmware)
 _COL_IDX = 0
@@ -189,15 +190,17 @@ def _ap_request(profiles: list[tuple[str, str, int, int, bool]]) -> str:
         for _, prefix, apg_idx, _, _ in profiles
         for key in _AP_KEYS
     ]
-    return f"hook={nvram(keys) or ''}"
+    return hook_request(*nvram_hooks(*keys))
 
 
 async def fetch_sdn_rl(callback: ARCallbackType) -> Any:
     """Fetch the raw `sdn_rl` rule list, or None if unavailable."""
 
-    request = f"hook={nvram(['sdn_rl']) or ''}"
+    request = hook_request(ARNvramType.SDN_RL)
     data = await callback(endpoint=AREndpoint.FETCH_DATA, request=request)
-    return data.get("sdn_rl") if isinstance(data, dict) else None
+    return (
+        data.get(ARNvramType.SDN_RL.value) if isinstance(data, dict) else None
+    )
 
 
 async def fetch(callback: ARCallbackType) -> Any:
@@ -209,13 +212,13 @@ async def fetch(callback: ARCallbackType) -> Any:
 
     profiles = _parse_sdn_rl(sdn_rl)
     if not profiles:
-        return {"sdn_rl": sdn_rl}
+        return {ARNvramType.SDN_RL.value: sdn_rl}
 
     second = await callback(
         endpoint=AREndpoint.FETCH_DATA, request=_ap_request(profiles)
     )
     ap_data = second if isinstance(second, dict) else {}
-    return {"sdn_rl": sdn_rl, **ap_data}
+    return {ARNvramType.SDN_RL.value: sdn_rl, **ap_data}
 
 
 def _build_network(
@@ -281,7 +284,7 @@ def translate(
 
     result: dict[ARNetworkType, list[dict[ARNetworkField, Any]]] = {}
     for name, prefix, apg_idx, sdn_idx, sdn_enabled in _parse_sdn_rl(
-        data.get("sdn_rl")
+        data.get(ARNvramType.SDN_RL.value)
     ):
         handle = ARNetworkHandle(
             backend=ARNetworkBackend.SDN,
@@ -312,7 +315,7 @@ def build_toggle_payload(
     new_sdn_rl = "".join("<" + ">".join(cols) for cols in rows)
     rc_service = f"restart_wireless;restart_sdn {handle.sdn_idx};"
     arguments: dict[str, Any] = {
-        "sdn_rl": new_sdn_rl,
+        ARNvramType.SDN_RL.value: new_sdn_rl,
         f"{handle.ap_prefix}{handle.ap_idx}_enable": int(state),
     }
     return rc_service, arguments

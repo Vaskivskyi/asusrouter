@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING, Any
 
 from asusrouter.modules.network import legacy, sdn
 from asusrouter.modules.network.enums import ARNetworkField, ARNetworkType
+from asusrouter.modules.nvram import ARNvramType
 from asusrouter.modules.source import ARDataSource
 from asusrouter.modules.support.flag import ARSupportType
 from asusrouter.registry import ARCallableRegistry as ARCallReg
@@ -67,7 +68,7 @@ def translate_state(
     if not isinstance(data, dict):
         return {}
 
-    if "sdn_rl" in data:
+    if ARNvramType.SDN_RL.value in data:
         bands = list(identity.wifi) if identity is not None else []
         return sdn.translate(data, bands)
 

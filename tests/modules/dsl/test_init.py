@@ -21,7 +21,7 @@ from asusrouter.modules.endpoint_v2 import AREndpoint
 from asusrouter.modules.source import ARDataSource
 from asusrouter.modules.support.flag import ARSupportType
 
-_REQUEST = "nvram_get(dsllog_dataratedown);nvram_get(dsllog_datarateup);"
+_REQUEST = "hook=nvram_get(dsllog_dataratedown);nvram_get(dsllog_datarateup)"
 
 
 def _identity(*, dsl_support: bool) -> ARDeviceIdentity:

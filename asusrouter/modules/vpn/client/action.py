@@ -6,6 +6,8 @@ from typing import TYPE_CHECKING, Any
 
 from asusrouter.modules.action import ARAction
 from asusrouter.modules.endpoint_v2 import AREndpoint
+from asusrouter.modules.endpoint_v2.hooks import hook_request
+from asusrouter.modules.nvram import ARNvramType
 from asusrouter.modules.service.action import (
     ARServiceInput,
     ARServiceResult,
@@ -17,7 +19,6 @@ from asusrouter.modules.vpn.enums import ARVpnProtocol
 from asusrouter.registry import ARCallableRegistry as ARCallReg
 from asusrouter.tools.converters_v2.raw import raw_to_str
 from asusrouter.tools.types import ARCallbackType
-from asusrouter.tools.writers import nvram
 
 if TYPE_CHECKING:
     from asusrouter.modules.device.identity import ARDeviceIdentity
@@ -61,11 +62,11 @@ class ARVpnClientAction(ARAction):
 async def _read_clientlist(callback: ARCallbackType) -> str | None:
     """Read the raw `vpnc_clientlist`, or None on a non-Fusion device."""
 
-    request = f"hook={nvram(['vpnc_clientlist']) or ''}"
+    request = hook_request(ARNvramType.VPNC_CLIENTLIST)
     data = await callback(endpoint=AREndpoint.FETCH_DATA, request=request)
     if not isinstance(data, dict):
         return None
-    return raw_to_str(data.get("vpnc_clientlist"))
+    return raw_to_str(data.get(ARNvramType.VPNC_CLIENTLIST.value))
 
 
 async def run_action(

@@ -67,7 +67,6 @@ from asusrouter.modules.support.wifi import (
 )
 from asusrouter.registry import ARCallableRegistry as ARCallReg
 from asusrouter.tools.types import ARCallableType, ARCallbackType
-from asusrouter.tools.writers import nvram
 
 
 class ARSupportSource(ARDataSource):
@@ -117,7 +116,8 @@ async def _fetch_rc_support(callback: ARCallbackType) -> dict[str, Any]:
 
     key = ARNvramType.RC_SUPPORT.value
     response = await callback(
-        endpoint=AREndpoint.FETCH_DATA, request=f"hook={nvram([key]) or ''}"
+        endpoint=AREndpoint.FETCH_DATA,
+        request=hook_request(ARNvramType.RC_SUPPORT),
     )
     tokens = response.get(key) if isinstance(response, dict) else None
     if isinstance(tokens, str) and tokens:
@@ -138,7 +138,7 @@ async def get_state(
         request=hook_request(ARHook.UI_SUPPORT),
     )
     if isinstance(response, dict):
-        ui_support = response.get("get_ui_support")
+        ui_support = response.get(ARHook.UI_SUPPORT.value)
         if isinstance(ui_support, dict) and ui_support:
             return ui_support
 

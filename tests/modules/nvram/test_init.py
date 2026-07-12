@@ -9,6 +9,7 @@ import pytest
 
 from asusrouter.const import AR_CALL_GET_STATE, AR_CALL_TRANSLATE_STATE
 from asusrouter.modules.common.connection import ARConnectionStatus
+from asusrouter.modules.endpoint_v2.hooks import ARHook
 from asusrouter.modules.nvram import (
     ARNvramIndexSource,
     ARNvramIndexType,
@@ -73,6 +74,33 @@ class TestGetState:
             ARNvramType.MAC: "00:11:22:33:44:55",
             ARNvramType.MODEL: "RT-AX88U",
         }
+
+    @pytest.mark.asyncio
+    async def test_request_built_from_hooks(self) -> None:
+        """The request renders each item as an `nvram_get` hook call."""
+
+        callback = AsyncMock(return_value={})
+        await get_state(callback, [ARNvramType.MAC, ARNvramType.MODEL])
+        kwargs = callback.await_args.kwargs
+        assert (
+            kwargs["request"]
+            == "hook=nvram_get(label_mac);nvram_get(productid)"
+        )
+
+
+class TestAsHook:
+    """Tests for as_hook rendering."""
+
+    def test_type(self) -> None:
+        """A flat NVRAM type renders its raw key."""
+
+        assert ARNvramType.MAC.as_hook() == (ARHook.NVRAM_GET, "label_mac")
+
+    def test_index_source(self) -> None:
+        """An indexed source renders its resolved key."""
+
+        source = ARNvramIndexSource(ARNvramIndexType.WAN_IPADDR, 1)
+        assert source.as_hook() == (ARHook.NVRAM_GET, "wan1_ipaddr")
 
 
 class TestTranslateState:

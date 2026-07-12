@@ -5,14 +5,14 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 from asusrouter.modules.endpoint_v2 import AREndpoint
-from asusrouter.modules.endpoint_v2.hooks import hook_request
+from asusrouter.modules.endpoint_v2.hooks import hook_request, nvram_hooks
+from asusrouter.modules.nvram import ARNvramType
 from asusrouter.modules.source import ARDataSource
 from asusrouter.modules.vpn.client import classic, fusion
 from asusrouter.modules.vpn.enums import ARVpnClientField, ARVpnProtocol
 from asusrouter.registry import ARCallableRegistry as ARCallReg
 from asusrouter.tools.converters_v2.raw import raw_to_str
 from asusrouter.tools.types import ARCallbackType
-from asusrouter.tools.writers import nvram
 
 if TYPE_CHECKING:
     from asusrouter.modules.device.identity import ARDeviceIdentity
@@ -29,7 +29,7 @@ ARVpnClientSourceUniversal: ARVpnClientSource = ARVpnClientSource()
 def _is_fusion(data: dict[str, Any]) -> bool:
     """Whether the device exposes the VPN Fusion `vpnc_clientlist`."""
 
-    return raw_to_str(data.get("vpnc_clientlist")) is not None
+    return raw_to_str(data.get(ARNvramType.VPNC_CLIENTLIST.value)) is not None
 
 
 async def get_state(
@@ -42,8 +42,9 @@ async def get_state(
     """Fetch client status and config, falling back to the classic path."""
 
     keys = list(dict.fromkeys(fusion.nvram_keys() + classic.nvram_keys()))
-    hooks = hook_request(fusion.STATUS_HOOK, fusion.NONDEF_WAN_HOOK)
-    request = f"{hooks};{nvram(keys) or ''}"
+    request = hook_request(
+        fusion.STATUS_HOOK, fusion.NONDEF_WAN_HOOK, *nvram_hooks(*keys)
+    )
     data = await callback(endpoint=AREndpoint.FETCH_DATA, request=request)
 
     # Non-Fusion devices report OpenVPN clients through vpn.cgi instead

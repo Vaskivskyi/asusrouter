@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from asusrouter.modules.endpoint_v2 import AREndpoint
+from asusrouter.modules.endpoint_v2.hooks import hook_request, nvram_hooks
 from asusrouter.modules.network.common import (
     bandwidth_limit,
     mac_filter_mode,
@@ -24,7 +25,6 @@ from asusrouter.tools.converters_v2.raw import (
 )
 from asusrouter.tools.identifiers import Password, Ssid
 from asusrouter.tools.types import ARCallbackType
-from asusrouter.tools.writers import nvram
 
 # Per-band main network keys (`wl{unit}_*`)
 _MAIN_KEYS = (
@@ -73,7 +73,8 @@ async def fetch(callback: ARCallbackType, wifi: dict[ARWiFiBand, int]) -> Any:
             keys.extend(f"wl{unit}.{slot}_{key}" for key in _GUEST_KEYS)
 
     return await callback(
-        endpoint=AREndpoint.FETCH_DATA, request=f"hook={nvram(keys) or ''}"
+        endpoint=AREndpoint.FETCH_DATA,
+        request=hook_request(*nvram_hooks(*keys)),
     )
 
 

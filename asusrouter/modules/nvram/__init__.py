@@ -15,6 +15,7 @@ from asusrouter.modules.common.connection import (
     ARConnectionStatus,
 )
 from asusrouter.modules.endpoint_v2 import AREndpoint
+from asusrouter.modules.endpoint_v2.hooks import ARHook, hook_request
 from asusrouter.modules.source import ARDataSource, ARDataType
 from asusrouter.registry import ARCallableRegistry as ARCallReg
 from asusrouter.tools.converters import safe_list_from_string
@@ -23,7 +24,6 @@ from asusrouter.tools.enum import FromStrMixin
 from asusrouter.tools.identifiers import MacAddress
 from asusrouter.tools.identifiers.ip import IpAddress, read_ip_list
 from asusrouter.tools.types import ARCallableType, ARCallbackType
-from asusrouter.tools.writers import nvram
 
 read_mac = MacAddress.from_value_safe
 
@@ -80,6 +80,10 @@ class ARNvramType(ARDataType):
     # DNS
     DNS_PING_LIST = "dns_ping_list"
     DNS_PING_STATUS = "dns_ping_state"
+
+    # DSL
+    DSL_DATARATE_DOWN = "dsllog_dataratedown"
+    DSL_DATARATE_UP = "dsllog_datarateup"
 
     # Dual WAN
     DUAL_WAN_CAPABILITY = "wans_cap"
@@ -142,11 +146,15 @@ class ARNvramType(ARDataType):
     SAMBA_MODE = "st_samba_mode"
     SAMBA_STATE = "enable_samba"
 
+    # SDN
+    SDN_RL = "sdn_rl"
+
     # SpeedTest
     OOKLA_START_TIME = "ookla_start_time"
     OOKLA_STATE = "ookla_state"
 
     # VPN
+    VPNC_CLIENTLIST = "vpnc_clientlist"
     VPN_SERVER1_STATUS = "vpn_server1_status"
     VPN_SERVER2_STATUS = "vpn_server2_status"
 
@@ -220,6 +228,11 @@ class ARNvramType(ARDataType):
 
     # WPS
     WPS_STATE = "wps_enable"
+
+    def as_hook(self) -> tuple[ARHook, str]:
+        """Render as an `nvram_get` hook call."""
+
+        return (ARHook.NVRAM_GET, self.value)
 
 
 class ARNvramIndexType(FromStrMixin, StrEnum):
@@ -321,6 +334,11 @@ class ARNvramIndexSource(ARDataSource):
         """The resolved NVRAM key (e.g. `wan0_ipaddr`)."""
 
         return self.kind.value.format(self.index)
+
+    def as_hook(self) -> tuple[ARHook, str]:
+        """Render as an `nvram_get` hook call."""
+
+        return (ARHook.NVRAM_GET, self.key)
 
     def __eq__(self, other: object) -> bool:
         """Equal by kind and index."""
@@ -453,7 +471,7 @@ async def get_state(
         _resolve_key(item): item for item in items
     }
 
-    request = "hook=" + (nvram(list(forward.keys())) or "")
+    request = hook_request(*forward.values())
     response = await callback(endpoint=AREndpoint.FETCH_DATA, request=request)
 
     if not isinstance(response, dict):

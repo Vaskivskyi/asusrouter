@@ -5,12 +5,12 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 from asusrouter.modules.endpoint_v2 import AREndpoint
+from asusrouter.modules.endpoint_v2.hooks import hook_request, nvram_hooks
 from asusrouter.modules.source import ARDataSource
 from asusrouter.modules.vpn.enums import ARVpnProtocol, ARVpnServerField
 from asusrouter.modules.vpn.server import openvpn, wireguard
 from asusrouter.registry import ARCallableRegistry as ARCallReg
 from asusrouter.tools.types import ARCallbackType
-from asusrouter.tools.writers import nvram
 
 if TYPE_CHECKING:
     from asusrouter.modules.device.identity import ARDeviceIdentity
@@ -43,7 +43,7 @@ async def get_state(
     for backend in _BACKENDS.values():
         keys.extend(backend.nvram_keys())
 
-    request = f"hook={wireguard.HOOK.value}();{nvram(keys) or ''}"
+    request = hook_request(wireguard.HOOK, *nvram_hooks(*keys))
     data = await callback(endpoint=AREndpoint.FETCH_DATA, request=request)
 
     # OpenVPN connected clients live in a separate endpoint; only worth

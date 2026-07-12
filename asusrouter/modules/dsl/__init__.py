@@ -6,6 +6,8 @@ from typing import TYPE_CHECKING, Any
 
 from asusrouter.modules.common.metrics import ARMetricType
 from asusrouter.modules.endpoint_v2 import AREndpoint
+from asusrouter.modules.endpoint_v2.hooks import hook_request
+from asusrouter.modules.nvram import ARNvramType
 from asusrouter.modules.source import ARDataSource
 from asusrouter.modules.support.flag import ARSupportType
 from asusrouter.modules.support.helpers import support_available
@@ -13,15 +15,14 @@ from asusrouter.registry import ARCallableRegistry as ARCallReg
 from asusrouter.tools.converters_v2.raw import raw_to_int
 from asusrouter.tools.types import ARCallbackType
 from asusrouter.tools.units import DataRateUnitConverter, UnitOfDataRate
-from asusrouter.tools.writers import nvram
 
 if TYPE_CHECKING:
     from asusrouter.modules.device.identity import ARDeviceIdentity
 
 # The nvram key for each data rate direction and its target metric
-_RATE_KEYS: tuple[tuple[str, ARMetricType], ...] = (
-    ("dsllog_dataratedown", ARMetricType.DOWNLOAD_SPEED),
-    ("dsllog_datarateup", ARMetricType.UPLOAD_SPEED),
+_RATE_KEYS: tuple[tuple[ARNvramType, ARMetricType], ...] = (
+    (ARNvramType.DSL_DATARATE_DOWN, ARMetricType.DOWNLOAD_SPEED),
+    (ARNvramType.DSL_DATARATE_UP, ARMetricType.UPLOAD_SPEED),
 )
 
 
@@ -61,7 +62,7 @@ async def get_state(
     ):
         return {}
 
-    request = nvram([key for key, _ in _RATE_KEYS])
+    request = hook_request(*(key for key, _ in _RATE_KEYS))
     raw = await callback(endpoint=AREndpoint.FETCH_DATA, request=request)
     return raw if isinstance(raw, dict) else {}
 
@@ -79,7 +80,7 @@ def translate_state(
 
     result: dict[ARMetricType, Any] = {}
     for key, metric in _RATE_KEYS:
-        rate = _read_rate(data.get(key))
+        rate = _read_rate(data.get(key.value))
         if rate is not None:
             result[metric] = rate
 

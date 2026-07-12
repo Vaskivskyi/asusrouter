@@ -6,7 +6,11 @@ from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
 
 from asusrouter.modules.endpoint_v2 import AREndpoint
-from asusrouter.modules.endpoint_v2.hooks import ARHook
+from asusrouter.modules.endpoint_v2.hooks import (
+    ARHook,
+    hook_request,
+    nvram_hooks,
+)
 from asusrouter.modules.source import ARDataSource
 from asusrouter.modules.wifi.enums import (
     ARWiFiBand,
@@ -21,7 +25,6 @@ from asusrouter.tools.converters_v2.raw import (
 )
 from asusrouter.tools.identifiers import MacAddress
 from asusrouter.tools.types import ARCallbackType
-from asusrouter.tools.writers import nvram
 
 if TYPE_CHECKING:
     from asusrouter.modules.device.identity import ARDeviceIdentity
@@ -97,8 +100,7 @@ def _build_request(identity: ARDeviceIdentity | None) -> str | None:
         keys.extend(f"{band.value}_{key}" for key, _, _ in _BAND_KEYS)
         keys.extend(f"wl{unit}_{key}" for key, _, _ in _UNIT_KEYS)
 
-    hooks = ";".join(f"{hook.value}()" for hook in _WIFI_HOOKS)
-    return f"hook={hooks};{nvram(keys) or ''}"
+    return hook_request(*_WIFI_HOOKS, *nvram_hooks(*keys))
 
 
 async def get_state(
