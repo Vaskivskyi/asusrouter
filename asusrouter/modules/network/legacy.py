@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from asusrouter.modules.endpoint_v2 import AREndpoint
-from asusrouter.modules.endpoint_v2.hooks import hook_request, nvram_hooks
+from asusrouter.modules.endpoint_v2.hooks import hook_request
 from asusrouter.modules.network.common import (
     bandwidth_limit,
     mac_filter_mode,
@@ -17,6 +17,7 @@ from asusrouter.modules.network.enums import (
     ARNetworkType,
 )
 from asusrouter.modules.network.handle import ARNetworkHandle
+from asusrouter.modules.nvram import ARNvramIndexSource, ARNvramIndexType
 from asusrouter.modules.wifi import ARWiFiAuthMode, ARWiFiBand
 from asusrouter.tools.converters_v2.raw import (
     raw_to_bool,
@@ -28,34 +29,34 @@ from asusrouter.tools.types import ARCallbackType
 
 # Per-band main network keys (`wl{unit}_*`)
 _MAIN_KEYS = (
-    "ssid",
-    "wpa_psk",
-    "auth_mode_x",
-    "crypto",
-    "closed",
-    "macmode",
-    "maclist_x",
-    "radio",
-    "ap_isolate",
+    ARNvramIndexType.WL_SSID,
+    ARNvramIndexType.WL_WPA_PSK,
+    ARNvramIndexType.WL_AUTH_MODE,
+    ARNvramIndexType.WL_CRYPTO,
+    ARNvramIndexType.WL_CLOSED,
+    ARNvramIndexType.WL_MACMODE,
+    ARNvramIndexType.WL_MACLIST_X,
+    ARNvramIndexType.WL_RADIO,
+    ARNvramIndexType.WL_AP_ISOLATE,
 )
 
 # Per-band guest network keys (`wl{unit}.{slot}_*`)
 _GUEST_KEYS = (
-    "ssid",
-    "wpa_psk",
-    "auth_mode_x",
-    "crypto",
-    "closed",
-    "macmode",
-    "maclist",
-    "bss_enabled",
-    "ap_isolate",
-    "lanaccess",
-    "expire",
-    "expire_tmp",
-    "bw_enabled",
-    "bw_dl",
-    "bw_ul",
+    ARNvramIndexType.WL_SSID,
+    ARNvramIndexType.WL_WPA_PSK,
+    ARNvramIndexType.WL_AUTH_MODE,
+    ARNvramIndexType.WL_CRYPTO,
+    ARNvramIndexType.WL_CLOSED,
+    ARNvramIndexType.WL_MACMODE,
+    ARNvramIndexType.WL_MACLIST,
+    ARNvramIndexType.WL_BSS_ENABLED,
+    ARNvramIndexType.WL_AP_ISOLATE,
+    ARNvramIndexType.WL_LANACCESS,
+    ARNvramIndexType.WL_EXPIRE,
+    ARNvramIndexType.WL_EXPIRE_TMP,
+    ARNvramIndexType.WL_BW_ENABLED,
+    ARNvramIndexType.WL_BW_DL,
+    ARNvramIndexType.WL_BW_UL,
 )
 _GUEST_SLOTS = (1, 2, 3)
 
@@ -66,60 +67,70 @@ async def fetch(callback: ARCallbackType, wifi: dict[ARWiFiBand, int]) -> Any:
     if not wifi:
         return None
 
-    keys: list[str] = []
+    items: list[ARNvramIndexSource] = []
     for unit in wifi.values():
-        keys.extend(f"wl{unit}_{key}" for key in _MAIN_KEYS)
+        items.extend(ARNvramIndexSource(kind, unit) for kind in _MAIN_KEYS)
         for slot in _GUEST_SLOTS:
-            keys.extend(f"wl{unit}.{slot}_{key}" for key in _GUEST_KEYS)
+            items.extend(
+                ARNvramIndexSource(kind, f"{unit}.{slot}")
+                for kind in _GUEST_KEYS
+            )
 
     return await callback(
-        endpoint=AREndpoint.FETCH_DATA,
-        request=hook_request(*nvram_hooks(*keys)),
+        endpoint=AREndpoint.FETCH_DATA, request=hook_request(*items)
     )
 
 
 def _new_network(
     data: dict[str, Any],
-    prefix: str,
+    index: int | str,
     ssid: Ssid,
-    maclist: str,
+    maclist: ARNvramIndexType,
 ) -> dict[ARNetworkField, Any]:
     """Build the network-level fields for a new SSID group."""
 
-    def _get(key: str) -> Any:
-        return data.get(f"{prefix}_{key}")
+    def _get(kind: ARNvramIndexType) -> Any:
+        return data.get(kind.key(index))
 
     fields: dict[ARNetworkField, Any] = {
         ARNetworkField.SSID: ssid,
         # Aggregated from every band in the group by `_group`; a multi-band
         # network is on if any of its bands is on
         ARNetworkField.ENABLED: False,
-        ARNetworkField.HIDDEN: raw_to_bool(_get("closed")) or False,
-        ARNetworkField.AP_ISOLATE: raw_to_bool(_get("ap_isolate")) or False,
+        ARNetworkField.HIDDEN: (
+            raw_to_bool(_get(ARNvramIndexType.WL_CLOSED)) or False
+        ),
+        ARNetworkField.AP_ISOLATE: (
+            raw_to_bool(_get(ARNvramIndexType.WL_AP_ISOLATE)) or False
+        ),
         ARNetworkField.BANDS: [],
         ARNetworkField.SECURITY: {},
     }
 
-    password = Password.from_value_safe(_get("wpa_psk"))
+    password = Password.from_value_safe(_get(ARNvramIndexType.WL_WPA_PSK))
     if password is not None:
         fields[ARNetworkField.PASSWORD] = password
 
     # Guest-only nvram (absent on the main network -> skipped)
-    lan_access = raw_to_bool(_get("lanaccess"))
+    lan_access = raw_to_bool(_get(ARNvramIndexType.WL_LANACCESS))
     if lan_access is not None:
         fields[ARNetworkField.LAN_ACCESS] = lan_access
-    expire = raw_to_int(_get("expire"))
+    expire = raw_to_int(_get(ARNvramIndexType.WL_EXPIRE))
     if expire is not None:
         fields[ARNetworkField.EXPIRE] = expire
-    remaining = raw_to_int(_get("expire_tmp"))
+    remaining = raw_to_int(_get(ARNvramIndexType.WL_EXPIRE_TMP))
     if remaining is not None:
         fields[ARNetworkField.EXPIRE_REMAINING] = remaining
 
     fields.update(
-        bandwidth_limit(_get("bw_enabled"), _get("bw_dl"), _get("bw_ul"))
+        bandwidth_limit(
+            _get(ARNvramIndexType.WL_BW_ENABLED),
+            _get(ARNvramIndexType.WL_BW_DL),
+            _get(ARNvramIndexType.WL_BW_UL),
+        )
     )
 
-    mode = mac_filter_mode(_get("macmode"))
+    mode = mac_filter_mode(_get(ARNvramIndexType.WL_MACMODE))
     if mode is not None:
         fields[ARNetworkField.MAC_FILTER_MODE] = mode
     macs = read_mac_list(_get(maclist))
@@ -132,8 +143,8 @@ def _new_network(
 def _group(
     data: dict[str, Any],
     band_specs: list[tuple[ARWiFiBand, int, int | None]],
-    enable_key: str,
-    maclist: str,
+    enable_key: ARNvramIndexType,
+    maclist: ARNvramIndexType,
 ) -> list[dict[ARNetworkField, Any]]:
     """Group per-band configs by SSID into networks."""
 
@@ -142,8 +153,8 @@ def _group(
     units: dict[str, list[tuple[int, int | None]]] = {}
 
     for band, unit, slot in band_specs:
-        prefix = f"wl{unit}" if slot is None else f"wl{unit}.{slot}"
-        raw_ssid = data.get(f"{prefix}_ssid")
+        index = unit if slot is None else f"{unit}.{slot}"
+        raw_ssid = data.get(ARNvramIndexType.WL_SSID.key(index))
         ssid = Ssid.from_value_safe(raw_ssid)
         if ssid is None:
             continue
@@ -153,7 +164,7 @@ def _group(
         if network is None:
             # Network-level fields come from the first band of the group;
             # bands sharing an SSID share these settings
-            network = _new_network(data, prefix, ssid, maclist)
+            network = _new_network(data, index, ssid, maclist)
             groups[key] = network
             order.append(key)
             units[key] = []
@@ -162,16 +173,18 @@ def _group(
 
         # Enable is per-band (main uses the radio state); the network is on
         # when any of its bands is on, so a single disabled band never hides it
-        if raw_to_bool(data.get(f"{prefix}_{enable_key}")):
+        if raw_to_bool(data.get(enable_key.key(index))):
             network[ARNetworkField.ENABLED] = True
 
         network[ARNetworkField.BANDS].append(band)
         band_security: dict[ARNetworkField, Any] = {
             ARNetworkField.AUTH: ARWiFiAuthMode.from_value(
-                data.get(f"{prefix}_auth_mode_x")
+                data.get(ARNvramIndexType.WL_AUTH_MODE.key(index))
             ),
         }
-        if cipher := raw_to_str(data.get(f"{prefix}_crypto")):
+        if cipher := raw_to_str(
+            data.get(ARNvramIndexType.WL_CRYPTO.key(index))
+        ):
             band_security[ARNetworkField.CIPHER] = cipher
         network[ARNetworkField.SECURITY][band] = band_security
 
@@ -193,8 +206,8 @@ def translate(
     main = _group(
         data,
         [(band, unit, None) for band, unit in wifi.items()],
-        "radio",
-        "maclist_x",
+        ARNvramIndexType.WL_RADIO,
+        ARNvramIndexType.WL_MACLIST_X,
     )
     if main:
         result[ARNetworkType.MAINFH] = main
@@ -206,8 +219,8 @@ def translate(
             for slot in _GUEST_SLOTS
             for band, unit in wifi.items()
         ],
-        "bss_enabled",
-        "maclist",
+        ARNvramIndexType.WL_BSS_ENABLED,
+        ARNvramIndexType.WL_MACLIST,
     )
     if guests:
         result[ARNetworkType.GUEST] = guests
@@ -224,12 +237,13 @@ def build_toggle_payload(
     has_guest = False
     for unit, slot in handle.units:
         if slot is None:
-            arguments[f"wl{unit}_radio"] = int(state)
+            arguments[ARNvramIndexType.WL_RADIO.key(unit)] = int(state)
             continue
         has_guest = True
-        arguments[f"wl{unit}.{slot}_bss_enabled"] = int(state)
+        index = f"{unit}.{slot}"
+        arguments[ARNvramIndexType.WL_BSS_ENABLED.key(index)] = int(state)
         if state:
-            arguments[f"wl{unit}.{slot}_expire"] = 0
+            arguments[ARNvramIndexType.WL_EXPIRE.key(index)] = 0
 
     rc_service = (
         "restart_wireless;restart_firewall"

@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 from asusrouter.modules.endpoint_v2 import AREndpoint
-from asusrouter.modules.endpoint_v2.hooks import hook_request, nvram_hooks
+from asusrouter.modules.endpoint_v2.hooks import hook_request
 from asusrouter.modules.nvram import ARNvramType
 from asusrouter.modules.source import ARDataSource
 from asusrouter.modules.vpn.client import classic, fusion
@@ -41,10 +41,8 @@ async def get_state(
 ) -> Any:
     """Fetch client status and config, falling back to the classic path."""
 
-    keys = list(dict.fromkeys(fusion.nvram_keys() + classic.nvram_keys()))
-    request = hook_request(
-        fusion.STATUS_HOOK, fusion.NONDEF_WAN_HOOK, *nvram_hooks(*keys)
-    )
+    items = list(dict.fromkeys(fusion.nvram_items() + classic.nvram_items()))
+    request = hook_request(fusion.STATUS_HOOK, fusion.NONDEF_WAN_HOOK, *items)
     data = await callback(endpoint=AREndpoint.FETCH_DATA, request=request)
 
     # Non-Fusion devices report OpenVPN clients through vpn.cgi instead

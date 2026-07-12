@@ -324,7 +324,7 @@ class ARWanSource(ARDataSource):
 ARWanSourceUniversal: ARWanSource = ARWanSource()
 
 
-_Indexed = dict[tuple[ARNvramIndexType, int], Any]
+_Indexed = dict[tuple[ARNvramIndexType, int | str], Any]
 
 # Per-unit address members, ordered as the `ARWanAddress` fields use them
 _ADDR_MAIN: tuple[ARNvramIndexType, ...] = (

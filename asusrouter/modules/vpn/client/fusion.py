@@ -8,6 +8,12 @@ from typing import TYPE_CHECKING, Any
 
 from asusrouter.modules.common.command import ARService
 from asusrouter.modules.endpoint_v2.hooks import ARHook
+from asusrouter.modules.nvram import (
+    ARNvramIndexSource,
+    ARNvramIndexType,
+    ARNvramItem,
+    ARNvramType,
+)
 from asusrouter.modules.vpn.enums import (
     ARVpnClientField,
     ARVpnProtocol,
@@ -62,19 +68,49 @@ _INFO: tuple[tuple[int, ARVpnClientField, Callable[[Any], Any]], ...] = (
     (_F_REGION, ARVpnClientField.REGION, raw_to_str),
 )
 
-# WireGuard client nvram suffix -> field, converter (`wgc{unit}_{suffix}`)
-_WG: tuple[tuple[str, ARVpnClientField, Callable[[Any], Any]], ...] = (
-    ("priv", ARVpnClientField.PRIVATE_KEY, Password.from_value_safe),
-    ("addr", ARVpnClientField.ADDRESS, IpInterface.from_value_safe),
-    ("dns", ARVpnClientField.DNS, IpAddress.from_value_safe),
-    ("mtu", ARVpnClientField.MTU, raw_to_int),
-    ("ppub", ARVpnClientField.PUBLIC_KEY, raw_to_str),
-    ("psk", ARVpnClientField.PSK, Password.from_value_safe),
-    ("aips", ARVpnClientField.ALLOWED_IPS, read_ip_interface_list),
-    ("ep_addr", ARVpnClientField.ENDPOINT_ADDRESS, IpAddress.from_value_safe),
-    ("ep_port", ARVpnClientField.ENDPOINT_PORT, raw_to_int),
-    ("alive", ARVpnClientField.KEEPALIVE, raw_to_int),
-    ("nat", ARVpnClientField.NAT, raw_to_bool),
+# WireGuard client nvram key -> field, converter (`wgc{unit}_*`)
+_WG: tuple[
+    tuple[ARNvramIndexType, ARVpnClientField, Callable[[Any], Any]], ...
+] = (
+    (
+        ARNvramIndexType.WGC_PRIV,
+        ARVpnClientField.PRIVATE_KEY,
+        Password.from_value_safe,
+    ),
+    (
+        ARNvramIndexType.WGC_ADDR,
+        ARVpnClientField.ADDRESS,
+        IpInterface.from_value_safe,
+    ),
+    (
+        ARNvramIndexType.WGC_DNS,
+        ARVpnClientField.DNS,
+        IpAddress.from_value_safe,
+    ),
+    (ARNvramIndexType.WGC_MTU, ARVpnClientField.MTU, raw_to_int),
+    (ARNvramIndexType.WGC_PPUB, ARVpnClientField.PUBLIC_KEY, raw_to_str),
+    (
+        ARNvramIndexType.WGC_PSK,
+        ARVpnClientField.PSK,
+        Password.from_value_safe,
+    ),
+    (
+        ARNvramIndexType.WGC_AIPS,
+        ARVpnClientField.ALLOWED_IPS,
+        read_ip_interface_list,
+    ),
+    (
+        ARNvramIndexType.WGC_EP_ADDR,
+        ARVpnClientField.ENDPOINT_ADDRESS,
+        IpAddress.from_value_safe,
+    ),
+    (
+        ARNvramIndexType.WGC_EP_PORT,
+        ARVpnClientField.ENDPOINT_PORT,
+        raw_to_int,
+    ),
+    (ARNvramIndexType.WGC_ALIVE, ARVpnClientField.KEEPALIVE, raw_to_int),
+    (ARNvramIndexType.WGC_NAT, ARVpnClientField.NAT, raw_to_bool),
 )
 
 
@@ -89,13 +125,17 @@ class _Context:
     default_wan: int | None
 
 
-def nvram_keys() -> list[str]:
-    """Return the nvram keys required to read all Fusion client profiles."""
+def nvram_items() -> list[ARNvramItem]:
+    """Return the nvram items required to read all Fusion client profiles."""
 
-    keys = ["vpnc_clientlist", "vpnc_pptp_options_x_list", "vpnc_default_wan"]
+    items: list[ARNvramItem] = [
+        ARNvramType.VPNC_CLIENTLIST,
+        ARNvramType.VPNC_PPTP_OPTIONS,
+        ARNvramType.VPNC_DEFAULT_WAN,
+    ]
     for unit in WG_UNITS:
-        keys.extend(f"wgc{unit}_{suffix}" for suffix, _, _ in _WG)
-    return keys
+        items.extend(ARNvramIndexSource(kind, unit) for kind, _, _ in _WG)
+    return items
 
 
 def _convert(raw: Any, converter: Callable[[Any], Any]) -> Any:
@@ -160,8 +200,8 @@ def _wireguard(data: dict[str, Any], unit: int) -> dict[ARVpnClientField, Any]:
     """Read the `wgc{unit}_*` peer config of a WireGuard client."""
 
     fields: dict[ARVpnClientField, Any] = {}
-    for suffix, field, converter in _WG:
-        value = _convert(data.get(f"wgc{unit}_{suffix}"), converter)
+    for kind, field, converter in _WG:
+        value = _convert(data.get(kind.key(unit)), converter)
         if value is not None:
             fields[field] = value
     return fields
@@ -251,17 +291,19 @@ def translate(
 ) -> dict[ARVpnProtocol, dict[int, dict[ARVpnClientField, Any]]]:
     """Translate raw data into client profiles grouped by protocol."""
 
-    rows = _split_rows(data.get("vpnc_clientlist"))
+    rows = _split_rows(data.get(ARNvramType.VPNC_CLIENTLIST.value))
     if not rows:
         return {}
 
     # Parallel list; a leading empty aligns it one ahead of the clientlist
     ctx = _Context(
         data=data,
-        pptp_options=_split_rows(data.get("vpnc_pptp_options_x_list"))[1:],
+        pptp_options=_split_rows(
+            data.get(ARNvramType.VPNC_PPTP_OPTIONS.value)
+        )[1:],
         status=_status(data),
         support=_default_wan_support(data),
-        default_wan=raw_to_int(data.get("vpnc_default_wan")),
+        default_wan=raw_to_int(data.get(ARNvramType.VPNC_DEFAULT_WAN.value)),
     )
 
     result: dict[ARVpnProtocol, dict[int, dict[ARVpnClientField, Any]]] = {}
@@ -320,7 +362,7 @@ def build_toggle_payload(
 
     service = ARService.VPNC_RESTART if state else ARService.VPNC_STOP
     arguments: dict[str, Any] = {
-        "vpnc_unit": target,
-        "vpnc_clientlist": "<".join(rows),
+        ARNvramType.VPNC_UNIT.value: target,
+        ARNvramType.VPNC_CLIENTLIST.value: "<".join(rows),
     }
     return [service], arguments

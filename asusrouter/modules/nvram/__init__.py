@@ -155,8 +155,49 @@ class ARNvramType(ARDataType):
 
     # VPN
     VPNC_CLIENTLIST = "vpnc_clientlist"
+    VPNC_DEFAULT_WAN = "vpnc_default_wan"
+    VPNC_PPTP_OPTIONS = "vpnc_pptp_options_x_list"
+    VPNC_UNIT = "vpnc_unit"
+    VPN_CLIENT_EAS = "vpn_clientx_eas"
     VPN_SERVER1_STATUS = "vpn_server1_status"
     VPN_SERVER2_STATUS = "vpn_server2_status"
+    VPN_SERVER_C2C = "vpn_server_c2c"
+    VPN_SERVER_CIPHER = "vpn_server_cipher"
+    VPN_SERVER_CLIENTLIST = "vpn_serverx_clientlist"
+    VPN_SERVER_COMP = "vpn_server_comp"
+    VPN_SERVER_CRYPT = "vpn_server_crypt"
+    VPN_SERVER_DHCP = "vpn_server_dhcp"
+    VPN_SERVER_DIGEST = "vpn_server_digest"
+    VPN_SERVER_ENABLE = "VPNServer_enable"
+    VPN_SERVER_HMAC = "vpn_server_hmac"
+    VPN_SERVER_IF = "vpn_server_if"
+    VPN_SERVER_IGNCRT = "vpn_server_igncrt"
+    VPN_SERVER_LOCAL = "vpn_server_local"
+    VPN_SERVER_NM = "vpn_server_nm"
+    VPN_SERVER_PDNS = "vpn_server_pdns"
+    VPN_SERVER_PORT = "vpn_server_port"
+    VPN_SERVER_PROTO = "vpn_server_proto"
+    VPN_SERVER_R1 = "vpn_server_r1"
+    VPN_SERVER_R2 = "vpn_server_r2"
+    VPN_SERVER_REMOTE = "vpn_server_remote"
+    VPN_SERVER_RENEG = "vpn_server_reneg"
+    VPN_SERVER_RGW = "vpn_server_rgw"
+    VPN_SERVER_SN = "vpn_server_sn"
+    VPN_SERVER_TLS_KEYSIZE = "vpn_server_tls_keysize"
+    VPN_SERVER_UNIT = "vpn_server_unit"
+    WGC_ENABLE = "wgc_enable"
+    WGC_UNIT = "wgc_unit"
+    WGS_ADDR = "wgs_addr"
+    WGS_ALIVE = "wgs_alive"
+    WGS_DNS = "wgs_dns"
+    WGS_ENABLE = "wgs_enable"
+    WGS_LANACCESS = "wgs_lanaccess"
+    WGS_NAT6 = "wgs_nat6"
+    WGS_PORT = "wgs_port"
+    WGS_PRIV = "wgs_priv"
+    WGS_PSK = "wgs_psk"
+    WGS_PUB = "wgs_pub"
+    WGS_UNIT = "wgs_unit"
 
     # WAN
     LINK_INTERNET = "link_internet"
@@ -243,6 +284,55 @@ class ARNvramIndexType(FromStrMixin, StrEnum):
     # Aura (per-scheme)
     AURA_RGB = "ledg_rgb{}"
 
+    # SDN AP group (index = group prefix + index, e.g. `g1` for `apg1`)
+    AP_11BE = "ap{}_11be"
+    AP_AP_ISOLATE = "ap{}_ap_isolate"
+    AP_BW_LIMIT = "ap{}_bw_limit"
+    AP_DUT_LIST = "ap{}_dut_list"
+    AP_ENABLE = "ap{}_enable"
+    AP_EXPIRETIME = "ap{}_expiretime"
+    AP_HIDE_SSID = "ap{}_hide_ssid"
+    AP_MACLIST = "ap{}_maclist"
+    AP_MACMODE = "ap{}_macmode"
+    AP_MLO = "ap{}_mlo"
+    AP_SCHED = "ap{}_sched"
+    AP_SECURITY = "ap{}_security"
+    AP_SSID = "ap{}_ssid"
+    AP_TIMESCHED = "ap{}_timesched"
+
+    # VPN client - OpenVPN (per-unit)
+    VPN_CLIENT_ADDR = "vpn_client{}_addr"
+    VPN_CLIENT_DESC = "vpn_client{}_desc"
+    VPN_CLIENT_ERRNO = "vpn_client{}_errno"
+    VPN_CLIENT_PORT = "vpn_client{}_port"
+    VPN_CLIENT_STATE = "vpn_client{}_state"
+    VPN_CLIENT_USERNAME = "vpn_client{}_username"
+
+    # VPN client - WireGuard (per-unit)
+    WGC_ADDR = "wgc{}_addr"
+    WGC_AIPS = "wgc{}_aips"
+    WGC_ALIVE = "wgc{}_alive"
+    WGC_DNS = "wgc{}_dns"
+    WGC_ENABLE = "wgc{}_enable"
+    WGC_EP_ADDR = "wgc{}_ep_addr"
+    WGC_EP_PORT = "wgc{}_ep_port"
+    WGC_MTU = "wgc{}_mtu"
+    WGC_NAT = "wgc{}_nat"
+    WGC_PPUB = "wgc{}_ppub"
+    WGC_PRIV = "wgc{}_priv"
+    WGC_PSK = "wgc{}_psk"
+
+    # VPN server - OpenVPN (per-unit)
+    VPN_SERVER_ERRNO = "vpn_server{}_errno"
+    VPN_SERVER_STATE = "vpn_server{}_state"
+
+    # VPN server - WireGuard peers (per-peer, single server unit)
+    WGS_PEER_ADDR = "wgs1_c{}_addr"
+    WGS_PEER_AIPS = "wgs1_c{}_aips"
+    WGS_PEER_CAIPS = "wgs1_c{}_caips"
+    WGS_PEER_ENABLE = "wgs1_c{}_enable"
+    WGS_PEER_NAME = "wgs1_c{}_name"
+
     # WAN (per-unit)
     WAN_DOT1Q = "wan{}_dot1q"
     WAN_ENABLE = "wan{}_enable"
@@ -317,14 +407,52 @@ class ARNvramIndexType(FromStrMixin, StrEnum):
     WAN_S46_PSID = "wan{}_s46_psid_x"
     WAN_S46_PSIDLEN = "wan{}_s46_psidlen_x"
 
-    # WiFi (per-unit)
+    # WiFi (per-unit; guest networks use a `{unit}.{slot}` index)
+    WL_AP_ISOLATE = "wl{}_ap_isolate"
+    WL_AUTH_MODE = "wl{}_auth_mode_x"
+    WL_BSS_ENABLED = "wl{}_bss_enabled"
+    WL_BW_DL = "wl{}_bw_dl"
+    WL_BW_ENABLED = "wl{}_bw_enabled"
+    WL_BW_UL = "wl{}_bw_ul"
+    WL_CLOSED = "wl{}_closed"
+    WL_COUNTRY_CODE = "wl{}_country_code"
+    WL_CRYPTO = "wl{}_crypto"
+    WL_EXPIRE = "wl{}_expire"
+    WL_EXPIRE_TMP = "wl{}_expire_tmp"
+    WL_HWADDR = "wl{}_hwaddr"
+    WL_LANACCESS = "wl{}_lanaccess"
+    WL_MACLIST = "wl{}_maclist"
+    WL_MACLIST_X = "wl{}_maclist_x"
+    WL_MACMODE = "wl{}_macmode"
     WL_NBAND = "wl{}_nband"
+    WL_RADIO = "wl{}_radio"
+    WL_SSID = "wl{}_ssid"
+    WL_VERSION = "wl{}_version"
+    WL_WPA_PSK = "wl{}_wpa_psk"
+
+    # WiFi band (index = band prefix, e.g. `2g1`)
+    WL_BAND_11BE = "{}_11be"
+    WL_BAND_BW = "{}_bw"
+    WL_BAND_BW_160 = "{}_bw_160"
+    WL_BAND_BW_240 = "{}_bw_240"
+    WL_BAND_CHANSPEC = "{}_chanspec"
+    WL_BAND_NCTRLSB = "{}_nctrlsb"
+    WL_BAND_NMODE = "{}_nmode_x"
+
+    def key(self, index: int | str) -> str:
+        """Resolve the template into a raw NVRAM key."""
+
+        return self.value.format(index)
 
 
 class ARNvramIndexSource(ARDataSource):
-    """An `ARNvramIndexType` bound to an index, fetchable as one NVRAM key."""
+    """An `ARNvramIndexType` bound to an index, fetchable as one NVRAM key.
 
-    def __init__(self, kind: ARNvramIndexType, index: int) -> None:
+    The index is usually an int unit; string indices serve composite
+    prefixes (e.g. a band `2g1`, a guest slot `0.1`, an AP group `g1`).
+    """
+
+    def __init__(self, kind: ARNvramIndexType, index: int | str) -> None:
         """Initialize the indexed NVRAM source."""
 
         super().__init__()
@@ -336,7 +464,7 @@ class ARNvramIndexSource(ARDataSource):
     def key(self) -> str:
         """The resolved NVRAM key (e.g. `wan0_ipaddr`)."""
 
-        return self.kind.value.format(self.index)
+        return self.kind.key(self.index)
 
     def as_hook(self) -> tuple[ARHook, str]:
         """Render as an `nvram_get` hook call."""

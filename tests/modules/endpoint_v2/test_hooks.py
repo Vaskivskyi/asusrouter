@@ -6,11 +6,7 @@ from typing import Any
 
 import pytest
 
-from asusrouter.modules.endpoint_v2.hooks import (
-    ARHook,
-    hook_request,
-    nvram_hooks,
-)
+from asusrouter.modules.endpoint_v2.hooks import ARHook, hook_request
 
 
 class _FakeItem:
@@ -69,20 +65,3 @@ class TestHookRequest:
         """Requests join `name(args)` parts under a single `hook=`."""
 
         assert hook_request(*hooks) == expected
-
-
-class TestNvramHooks:
-    """Tests for nvram_hooks."""
-
-    def test_renders_keys(self) -> None:
-        """Each key becomes an `nvram_get` hook call."""
-
-        assert nvram_hooks("a", "b") == (
-            (ARHook.NVRAM_GET, "a"),
-            (ARHook.NVRAM_GET, "b"),
-        )
-
-    def test_empty(self) -> None:
-        """No keys yield no hook calls."""
-
-        assert nvram_hooks() == ()

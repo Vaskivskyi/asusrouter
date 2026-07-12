@@ -6,11 +6,8 @@ from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
 
 from asusrouter.modules.endpoint_v2 import AREndpoint
-from asusrouter.modules.endpoint_v2.hooks import (
-    ARHook,
-    hook_request,
-    nvram_hooks,
-)
+from asusrouter.modules.endpoint_v2.hooks import ARHook, hook_request
+from asusrouter.modules.nvram import ARNvramIndexSource, ARNvramIndexType
 from asusrouter.modules.source import ARDataSource
 from asusrouter.modules.wifi.enums import (
     ARWiFiBand,
@@ -48,8 +45,8 @@ def _read_bandwidth(value: Any) -> ARWiFiBandwidth | None:
     return _BW_INDEX.get(index) if index is not None else None
 
 
-# A raw key/hook, the field it maps to, and its converter
-_FieldMap = tuple[str, ARWiFiField, Callable[[Any], Any]]
+# A key template/hook, the field it maps to, and its converter
+_FieldMap = tuple[ARNvramIndexType, ARWiFiField, Callable[[Any], Any]]
 _HookMap = tuple[ARHook, ARWiFiField, Callable[[Any], Any]]
 
 # Per-radio hooks whose response is a list indexed by wireless unit
@@ -59,21 +56,21 @@ _HOOK_UNIT_ARRAYS: tuple[_HookMap, ...] = (
 
 # nvram keys stored per band, prefixed with the band value (e.g. `2g1_bw`)
 _BAND_KEYS: tuple[_FieldMap, ...] = (
-    ("nmode_x", ARWiFiField.WIRELESS_MODE, raw_to_int),
-    ("bw", ARWiFiField.BANDWIDTH, _read_bandwidth),
-    ("chanspec", ARWiFiField.CHANNEL_SPEC, raw_to_str),
-    ("nctrlsb", ARWiFiField.SIDE_BAND, raw_to_str),
-    ("bw_160", ARWiFiField.ENABLE_160MHZ, raw_to_bool),
-    ("bw_240", ARWiFiField.ENABLE_240MHZ, raw_to_bool),
-    ("11be", ARWiFiField.WIFI7, raw_to_bool),
+    (ARNvramIndexType.WL_BAND_NMODE, ARWiFiField.WIRELESS_MODE, raw_to_int),
+    (ARNvramIndexType.WL_BAND_BW, ARWiFiField.BANDWIDTH, _read_bandwidth),
+    (ARNvramIndexType.WL_BAND_CHANSPEC, ARWiFiField.CHANNEL_SPEC, raw_to_str),
+    (ARNvramIndexType.WL_BAND_NCTRLSB, ARWiFiField.SIDE_BAND, raw_to_str),
+    (ARNvramIndexType.WL_BAND_BW_160, ARWiFiField.ENABLE_160MHZ, raw_to_bool),
+    (ARNvramIndexType.WL_BAND_BW_240, ARWiFiField.ENABLE_240MHZ, raw_to_bool),
+    (ARNvramIndexType.WL_BAND_11BE, ARWiFiField.WIFI7, raw_to_bool),
 )
 
 # nvram keys stored per unit, prefixed with the interface (e.g. `wl0_hwaddr`)
 _UNIT_KEYS: tuple[_FieldMap, ...] = (
-    ("radio", ARWiFiField.STATE, raw_to_bool),
-    ("country_code", ARWiFiField.COUNTRY, raw_to_str),
-    ("version", ARWiFiField.DRIVER, raw_to_str),
-    ("hwaddr", ARWiFiField.MAC, MacAddress.from_value_safe),
+    (ARNvramIndexType.WL_RADIO, ARWiFiField.STATE, raw_to_bool),
+    (ARNvramIndexType.WL_COUNTRY_CODE, ARWiFiField.COUNTRY, raw_to_str),
+    (ARNvramIndexType.WL_VERSION, ARWiFiField.DRIVER, raw_to_str),
+    (ARNvramIndexType.WL_HWADDR, ARWiFiField.MAC, MacAddress.from_value_safe),
 )
 
 # appGet hooks that yield the per-unit radio arrays
@@ -95,12 +92,16 @@ def _build_request(identity: ARDeviceIdentity | None) -> str | None:
     if not wifi:
         return None
 
-    keys: list[str] = []
+    items: list[ARNvramIndexSource] = []
     for band, unit in wifi.items():
-        keys.extend(f"{band.value}_{key}" for key, _, _ in _BAND_KEYS)
-        keys.extend(f"wl{unit}_{key}" for key, _, _ in _UNIT_KEYS)
+        items.extend(
+            ARNvramIndexSource(kind, band.value) for kind, _, _ in _BAND_KEYS
+        )
+        items.extend(
+            ARNvramIndexSource(kind, unit) for kind, _, _ in _UNIT_KEYS
+        )
 
-    return hook_request(*_WIFI_HOOKS, *nvram_hooks(*keys))
+    return hook_request(*_WIFI_HOOKS, *items)
 
 
 async def get_state(
@@ -148,13 +149,13 @@ def _translate_band(
         if value is not None:
             fields[field] = value
 
-    for key, field, converter in _BAND_KEYS:
-        value = _convert(data.get(f"{band.value}_{key}"), converter)
+    for kind, field, converter in _BAND_KEYS:
+        value = _convert(data.get(kind.key(band.value)), converter)
         if value is not None:
             fields[field] = value
 
-    for key, field, converter in _UNIT_KEYS:
-        value = _convert(data.get(f"wl{unit}_{key}"), converter)
+    for kind, field, converter in _UNIT_KEYS:
+        value = _convert(data.get(kind.key(unit)), converter)
         if value is not None:
             fields[field] = value
 

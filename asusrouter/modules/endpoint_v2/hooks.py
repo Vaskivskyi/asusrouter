@@ -93,9 +93,3 @@ def hook_request(*items: ARHook | tuple[ARHook, str] | ARHookItem) -> str:
             hook, args = item.as_hook()
         parts.append(f"{hook.value}({args})")
     return "hook=" + ";".join(parts)
-
-
-def nvram_hooks(*keys: str) -> tuple[tuple[ARHook, str], ...]:
-    """Render dynamically built NVRAM keys as `nvram_get` hook calls."""
-
-    return tuple((ARHook.NVRAM_GET, key) for key in keys)

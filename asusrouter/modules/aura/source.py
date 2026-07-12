@@ -82,7 +82,7 @@ def _parse_scheme_colors(
     for source in _COLOR_SOURCES:
         parsed = parse_colors(data.get(source), scale=scale)
         if parsed:
-            colors[ARAuraScheme(source.index)] = parsed
+            colors[ARAuraScheme(int(source.index))] = parsed
 
     return colors
 

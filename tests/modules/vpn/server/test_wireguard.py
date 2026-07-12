@@ -65,13 +65,13 @@ class TestDecode:
         assert wg._decode_interfaces(None) == []
 
 
-class TestNvramKeys:
-    """Tests for nvram_keys."""
+class TestNvramItems:
+    """Tests for nvram_items."""
 
     def test_contains_settings_and_peers(self) -> None:
-        """Keys cover settings plus every peer slot."""
+        """Items cover settings plus every peer slot."""
 
-        keys = wg.nvram_keys()
+        keys = [item.as_hook()[1] for item in wg.nvram_items()]
         assert "wgs_enable" in keys
         assert "wgs_priv" in keys
         assert "wgs1_c1_name" in keys

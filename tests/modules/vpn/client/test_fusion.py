@@ -41,13 +41,13 @@ _DATA: dict[str, Any] = {
 }
 
 
-class TestNvramKeys:
-    """Tests for nvram_keys."""
+class TestNvramItems:
+    """Tests for nvram_items."""
 
     def test_contains(self) -> None:
-        """Keys cover the clientlist plus every WireGuard client unit."""
+        """Items cover the clientlist plus every WireGuard client unit."""
 
-        keys = fusion.nvram_keys()
+        keys = [item.as_hook()[1] for item in fusion.nvram_items()]
         assert "vpnc_clientlist" in keys
         assert "vpnc_default_wan" in keys
         assert "wgc1_priv" in keys
