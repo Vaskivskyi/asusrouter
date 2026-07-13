@@ -16,7 +16,6 @@ from asusrouter.modules.wifi.source import (
     ARWiFiSourceUniversal,
     _array_at,
     _build_request,
-    _convert,
     get_state,
     translate_state,
 )
@@ -72,31 +71,6 @@ class TestArrayAt:
         """Returns the indexed item or None."""
 
         assert _array_at(value, index) == expected
-
-
-class TestConvert:
-    """Tests for _convert."""
-
-    def test_none_and_empty(self) -> None:
-        """None and empty strings are treated as no value."""
-
-        assert _convert(None, str) is None
-        assert _convert("", str) is None
-
-    def test_value(self) -> None:
-        """A value is passed through the converter."""
-
-        assert _convert("5", int) == 5
-
-    def test_empty_list_result(self) -> None:
-        """An empty-list result is treated as no value."""
-
-        assert _convert("x", lambda _: []) is None
-
-    def test_zero_kept(self) -> None:
-        """A zero result is kept (not treated as absent)."""
-
-        assert _convert("0", int) == 0
 
 
 class TestBuildRequest:

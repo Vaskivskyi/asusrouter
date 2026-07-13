@@ -78,22 +78,6 @@ class TestNvramItems:
         assert f"wgs1_c{wg.MAX_PEERS}_caips" in keys
 
 
-class TestConvert:
-    """Tests for _convert."""
-
-    def test_none_empty(self) -> None:
-        """None/empty are absent."""
-
-        assert wg._convert(None, str) is None
-        assert wg._convert("", str) is None
-
-    def test_value_and_empty_list(self) -> None:
-        """Values pass through; empty-list results are absent."""
-
-        assert wg._convert("5", int) == 5
-        assert wg._convert("x", lambda _: []) is None
-
-
 class TestPeerStatus:
     """Tests for _peer_status."""
 

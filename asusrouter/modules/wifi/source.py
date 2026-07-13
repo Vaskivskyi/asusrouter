@@ -16,11 +16,13 @@ from asusrouter.modules.wifi.enums import (
 )
 from asusrouter.registry import ARCallableRegistry as ARCallReg
 from asusrouter.tools.converters_v2.raw import (
+    raw_convert,
     raw_to_bool,
     raw_to_int,
     raw_to_str,
 )
 from asusrouter.tools.identifiers import MacAddress
+from asusrouter.tools.readers_v2.table import read_table
 from asusrouter.tools.types import ARCallbackType
 
 if TYPE_CHECKING:
@@ -128,15 +130,6 @@ def _array_at(value: Any, index: int) -> Any:
     return None
 
 
-def _convert(raw: Any, converter: Callable[[Any], Any]) -> Any:
-    """Convert a raw value, treating empty/absent as no value."""
-
-    if raw is None or raw == "":
-        return None
-    value = converter(raw)
-    return None if value == [] else value
-
-
 def _translate_band(
     data: dict[str, Any], band: ARWiFiBand, unit: int
 ) -> dict[ARWiFiField, Any]:
@@ -145,19 +138,16 @@ def _translate_band(
     fields: dict[ARWiFiField, Any] = {}
 
     for hook, field, converter in _HOOK_UNIT_ARRAYS:
-        value = _convert(_array_at(data.get(hook.value), unit), converter)
+        value = raw_convert(_array_at(data.get(hook.value), unit), converter)
         if value is not None:
             fields[field] = value
 
-    for kind, field, converter in _BAND_KEYS:
-        value = _convert(data.get(kind.key(band.value)), converter)
-        if value is not None:
-            fields[field] = value
-
-    for kind, field, converter in _UNIT_KEYS:
-        value = _convert(data.get(kind.key(unit)), converter)
-        if value is not None:
-            fields[field] = value
+    fields.update(
+        read_table(data, _BAND_KEYS, key=lambda kind: kind.key(band.value))
+    )
+    fields.update(
+        read_table(data, _UNIT_KEYS, key=lambda kind: kind.key(unit))
+    )
 
     return fields
 

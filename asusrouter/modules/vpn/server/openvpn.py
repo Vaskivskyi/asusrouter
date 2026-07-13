@@ -23,11 +23,13 @@ from asusrouter.modules.vpn.enums import (
     ARVpnState,
 )
 from asusrouter.tools.converters_v2.raw import (
+    raw_convert,
     raw_to_bool,
     raw_to_int,
     raw_to_str,
 )
 from asusrouter.tools.identifiers import IpAddress, IpInterface, Password
+from asusrouter.tools.readers_v2.table import read_table
 
 if TYPE_CHECKING:
     from asusrouter.modules.device.identity import ARDeviceIdentity
@@ -177,23 +179,10 @@ def nvram_items() -> list[ARNvramItem]:
     return items
 
 
-def _convert(raw: Any, converter: Callable[[Any], Any]) -> Any:
-    """Convert a raw value, treating empty/absent as no value."""
-
-    if raw is None or raw == "":
-        return None
-    return converter(raw)
-
-
 def _settings(data: dict[str, Any]) -> dict[ARVpnServerField, Any]:
     """Read the active-unit settings block."""
 
-    fields: dict[ARVpnServerField, Any] = {}
-    for key, field, converter in _SETTINGS:
-        value = _convert(data.get(key.value), converter)
-        if value is not None:
-            fields[field] = value
-    return fields
+    return read_table(data, _SETTINGS)
 
 
 def _clients(raw: Any) -> list[dict[ARVpnPeerField, Any]]:
@@ -293,13 +282,13 @@ def translate(data: dict[str, Any]) -> dict[int, dict[ARVpnServerField, Any]]:
     for unit in UNITS:
         fields: dict[ARVpnServerField, Any] = {}
 
-        state = _convert(
+        state = raw_convert(
             data.get(ARNvramIndexType.VPN_SERVER_STATE.key(unit)),
             ARVpnState.from_value,
         )
         if state is not None:
             fields[ARVpnServerField.STATE] = state
-        errno = _convert(
+        errno = raw_convert(
             data.get(ARNvramIndexType.VPN_SERVER_ERRNO.key(unit)), raw_to_int
         )
         if errno is not None:

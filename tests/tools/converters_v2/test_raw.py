@@ -9,11 +9,37 @@ import pytest
 from asusrouter.tools.converters_v2.raw import (
     _BOM,
     _STR_TO_BOOL,
+    raw_convert,
     raw_to_bool,
     raw_to_float,
     raw_to_int,
     raw_to_str,
 )
+
+
+class TestRawConvert:
+    """Tests for raw_convert."""
+
+    def test_none_and_empty(self) -> None:
+        """None and empty strings are treated as no value."""
+
+        assert raw_convert(None, str) is None
+        assert raw_convert("", str) is None
+
+    def test_value(self) -> None:
+        """A value is passed through the converter."""
+
+        assert raw_convert("5", int) == 5
+
+    def test_empty_list_result(self) -> None:
+        """An empty-list result is treated as no value."""
+
+        assert raw_convert("x", lambda _: []) is None
+
+    def test_zero_kept(self) -> None:
+        """A zero result is kept (not treated as absent)."""
+
+        assert raw_convert("0", int) == 0
 
 
 def test_str_to_bool_type() -> None:

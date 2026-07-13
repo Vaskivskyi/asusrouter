@@ -26,6 +26,7 @@ from asusrouter.tools.converters_v2.raw import (
 )
 from asusrouter.tools.identifiers import IpInterface, Password
 from asusrouter.tools.identifiers.ip import read_ip_interface_list
+from asusrouter.tools.readers_v2.table import read_table
 
 if TYPE_CHECKING:
     from asusrouter.modules.service.action import ARServiceInput
@@ -126,15 +127,6 @@ def nvram_items() -> list[ARNvramItem]:
     return items
 
 
-def _convert(raw: Any, converter: Callable[[Any], Any]) -> Any:
-    """Convert a raw value, treating empty/absent as no value."""
-
-    if raw is None or raw == "":
-        return None
-    value = converter(raw)
-    return None if value == [] else value
-
-
 def _peer_status(data: dict[str, Any]) -> dict[int, ARVpnState]:
     """Map peer index -> live state from the status hook."""
 
@@ -160,12 +152,7 @@ def _peer(
 ) -> dict[ARVpnPeerField, Any] | None:
     """Build a single peer entry, or None when the slot is empty."""
 
-    fields: dict[ARVpnPeerField, Any] = {}
-    for kind, field, converter in _PEER:
-        value = _convert(data.get(kind.key(index)), converter)
-        if value is not None:
-            fields[field] = value
-
+    fields = read_table(data, _PEER, key=lambda kind: kind.key(index))
     if not fields:
         return None
 
@@ -178,12 +165,7 @@ def _peer(
 def translate(data: dict[str, Any]) -> dict[int, dict[ARVpnServerField, Any]]:
     """Translate raw data into the WireGuard server profile keyed by unit."""
 
-    fields: dict[ARVpnServerField, Any] = {}
-    for key, field, converter in _SETTINGS:
-        value = _convert(data.get(key.value), converter)
-        if value is not None:
-            fields[field] = value
-
+    fields = read_table(data, _SETTINGS)
     if not fields:
         return {}
 

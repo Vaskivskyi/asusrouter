@@ -12,14 +12,19 @@ from asusrouter.modules.nvram import (
     ARNvramItem,
     ARNvramType,
 )
-from asusrouter.modules.vpn.client.fusion import _WG, _convert
+from asusrouter.modules.vpn.client.fusion import _WG
 from asusrouter.modules.vpn.enums import (
     ARVpnClientField,
     ARVpnProtocol,
     ARVpnState,
 )
-from asusrouter.tools.converters_v2.raw import raw_to_int, raw_to_str
+from asusrouter.tools.converters_v2.raw import (
+    raw_convert,
+    raw_to_int,
+    raw_to_str,
+)
 from asusrouter.tools.identifiers import IpAddress
+from asusrouter.tools.readers_v2.table import read_table
 
 if TYPE_CHECKING:
     from asusrouter.modules.service.action import ARServiceInput
@@ -142,7 +147,7 @@ def _parse_status(raw: Any) -> dict[ARVpnClientField, Any]:
 
     for token, field, converter in _STATS:
         match = re.search(rf"{re.escape(token)},(.*?)(?=>)", text)
-        value = _convert(match[1] if match else None, converter)
+        value = raw_convert(match[1] if match else None, converter)
         if value is not None:
             fields[field] = value
 
@@ -157,20 +162,16 @@ def _openvpn(
 ) -> dict[ARVpnClientField, Any] | None:
     """Build an OpenVPN client profile, or None when the unit is empty."""
 
-    fields: dict[ARVpnClientField, Any] = {}
-    for kind, field, converter in _OVPN:
-        value = _convert(data.get(kind.key(unit)), converter)
-        if value is not None:
-            fields[field] = value
+    fields = read_table(data, _OVPN, key=lambda kind: kind.key(unit))
 
-    state = _convert(
+    state = raw_convert(
         data.get(ARNvramIndexType.VPN_CLIENT_STATE.key(unit)),
         ARVpnState.from_value,
     )
     if state is not None:
         fields[ARVpnClientField.STATE] = state
         if state is ARVpnState.ERROR:
-            errno = _convert(
+            errno = raw_convert(
                 data.get(ARNvramIndexType.VPN_CLIENT_ERRNO.key(unit)),
                 raw_to_int,
             )
@@ -197,13 +198,9 @@ def _wireguard(
 ) -> dict[ARVpnClientField, Any] | None:
     """Build a WireGuard client profile, or None when the unit is empty."""
 
-    fields: dict[ARVpnClientField, Any] = {}
-    for kind, field, converter in _WG:
-        value = _convert(data.get(kind.key(unit)), converter)
-        if value is not None:
-            fields[field] = value
+    fields = read_table(data, _WG, key=lambda kind: kind.key(unit))
 
-    enable = _convert(
+    enable = raw_convert(
         data.get(ARNvramIndexType.WGC_ENABLE.key(unit)), raw_to_int
     )
     if enable is None and not fields:

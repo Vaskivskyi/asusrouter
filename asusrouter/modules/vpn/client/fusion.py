@@ -20,12 +20,14 @@ from asusrouter.modules.vpn.enums import (
     ARVpnState,
 )
 from asusrouter.tools.converters_v2.raw import (
+    raw_convert,
     raw_to_bool,
     raw_to_int,
     raw_to_str,
 )
 from asusrouter.tools.identifiers import IpAddress, IpInterface, Password
 from asusrouter.tools.identifiers.ip import read_ip_interface_list
+from asusrouter.tools.readers_v2.table import read_table
 
 if TYPE_CHECKING:
     from asusrouter.modules.service.action import ARServiceInput
@@ -138,15 +140,6 @@ def nvram_items() -> list[ARNvramItem]:
     return items
 
 
-def _convert(raw: Any, converter: Callable[[Any], Any]) -> Any:
-    """Convert a raw value, treating empty/absent as no value."""
-
-    if raw is None or raw == "":
-        return None
-    value = converter(raw)
-    return None if value == [] else value
-
-
 def _get(parts: list[str], index: int) -> str | None:
     """Return a `>`-split field, or None when absent."""
 
@@ -199,12 +192,7 @@ def _default_wan_support(data: dict[str, Any]) -> dict[int, bool]:
 def _wireguard(data: dict[str, Any], unit: int) -> dict[ARVpnClientField, Any]:
     """Read the `wgc{unit}_*` peer config of a WireGuard client."""
 
-    fields: dict[ARVpnClientField, Any] = {}
-    for kind, field, converter in _WG:
-        value = _convert(data.get(kind.key(unit)), converter)
-        if value is not None:
-            fields[field] = value
-    return fields
+    return read_table(data, _WG, key=lambda kind: kind.key(unit))
 
 
 def _base_fields(
@@ -230,7 +218,7 @@ def _base_fields(
         fields[ARVpnClientField.VPNC_INDEX] = vpnc_idx
 
     for index, field, converter in _INFO:
-        value = _convert(_get(parts, index), converter)
+        value = raw_convert(_get(parts, index), converter)
         if value is not None:
             fields[field] = value
 
