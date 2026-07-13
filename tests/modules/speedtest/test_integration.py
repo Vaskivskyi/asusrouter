@@ -58,10 +58,19 @@ async def test_fetch_source_by_server_with_refresh(
             return {_RESULT_HOOK: _events(result_id)}
         return {}
 
+    async def fake_fetch(
+        *, endpoint: AREndpoint, request: str | None = None, **_: Any
+    ) -> Any:
+        reads.append((endpoint, request))
+        return ""
+
     monkeypatch.setattr(router, "async_read", AsyncMock(side_effect=fake_read))
+    monkeypatch.setattr(
+        router, "async_fetch", AsyncMock(side_effect=fake_fetch)
+    )
 
     with (
-        patch("asusrouter.modules.speedtest.asyncio.sleep", AsyncMock()),
+        patch("asusrouter.modules.action.asyncio.sleep", AsyncMock()),
         patch("asusrouter.tools.poll.asyncio.sleep", AsyncMock()),
     ):
         result = await router.async_fetch_data(

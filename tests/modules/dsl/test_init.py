@@ -8,20 +8,18 @@ from unittest.mock import AsyncMock, Mock
 
 import pytest
 
-from asusrouter.modules import dsl
 from asusrouter.modules.common.metrics import ARMetricType
 from asusrouter.modules.device.identity import ARDeviceIdentity
 from asusrouter.modules.dsl import (
     ARDSLSource,
-    _read_rate,
     get_state,
+    source as dsl_source,
     translate_state,
 )
-from asusrouter.modules.endpoint_v2 import AREndpoint
+from asusrouter.modules.dsl.source import _read_rate
+from asusrouter.modules.nvram import ARNvramType
 from asusrouter.modules.source import ARDataSource
 from asusrouter.modules.support.flag import ARSupportType
-
-_REQUEST = "nvram_get(dsllog_dataratedown);nvram_get(dsllog_datarateup);"
 
 
 def _identity(*, dsl_support: bool) -> ARDeviceIdentity:
@@ -81,29 +79,51 @@ class TestGetState:
     """Tests for get_state."""
 
     async def test_fetches_when_supported(self) -> None:
-        """A DSL-capable device fetches the data rate nvram keys."""
+        """A DSL-capable device requests the rates from the NVRAM module."""
 
-        callback = AsyncMock(return_value={"dsllog_dataratedown": "1 Kbps"})
+        values = {ARNvramType.DSL_DATARATE_DOWN: "1 Kbps"}
+        get_data = AsyncMock(return_value=values)
+        callback = AsyncMock()
 
         result = await get_state(
-            callback, ARDSLSource(), identity=_identity(dsl_support=True)
+            callback,
+            ARDSLSource(),
+            get_data_callback=get_data,
+            identity=_identity(dsl_support=True),
         )
 
-        assert result == {"dsllog_dataratedown": "1 Kbps"}
-        kwargs = callback.await_args.kwargs
-        assert kwargs["endpoint"] == AREndpoint.FETCH_DATA
-        assert kwargs["request"] == _REQUEST
+        assert result == values
+        callback.assert_not_awaited()
+        assert get_data.await_args.args[0] == (
+            ARNvramType.DSL_DATARATE_DOWN,
+            ARNvramType.DSL_DATARATE_UP,
+        )
 
     async def test_non_dict_response(self) -> None:
         """A non-dict response is normalized to an empty dict."""
 
-        callback = AsyncMock(return_value=None)
+        get_data = AsyncMock(return_value=None)
+
+        result = await get_state(
+            AsyncMock(),
+            ARDSLSource(),
+            get_data_callback=get_data,
+            identity=_identity(dsl_support=True),
+        )
+
+        assert result == {}
+
+    async def test_no_get_data_callback(self) -> None:
+        """Without a data callback nothing is fetched."""
+
+        callback = AsyncMock()
 
         result = await get_state(
             callback, ARDSLSource(), identity=_identity(dsl_support=True)
         )
 
         assert result == {}
+        callback.assert_not_awaited()
 
     @pytest.mark.parametrize(
         "identity",
@@ -115,12 +135,17 @@ class TestGetState:
     ) -> None:
         """No fetch happens without an identity or DSL support."""
 
-        callback = AsyncMock()
+        get_data = AsyncMock()
 
-        result = await get_state(callback, ARDSLSource(), identity=identity)
+        result = await get_state(
+            AsyncMock(),
+            ARDSLSource(),
+            get_data_callback=get_data,
+            identity=identity,
+        )
 
         assert result == {}
-        callback.assert_not_awaited()
+        get_data.assert_not_awaited()
 
 
 class TestTranslateState:
@@ -164,10 +189,10 @@ def test_registers_callable(monkeypatch: pytest.MonkeyPatch) -> None:
         mock_register,
     )
 
-    importlib.reload(dsl)
+    module = importlib.reload(dsl_source)
 
     mock_register.assert_called_once_with(
-        dsl.ARDSLSource,
-        get_state=dsl.get_state,
-        translate_state=dsl.translate_state,
+        module.ARDSLSource,
+        get_state=module.get_state,
+        translate_state=module.translate_state,
     )

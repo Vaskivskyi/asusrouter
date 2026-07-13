@@ -93,7 +93,7 @@ class TestRunActionScheme:
             callback, action, get_data_callback=get_data, identity=_ID
         )
 
-        assert result is True
+        assert result.success is True
         assert callback.await_args.kwargs["endpoint"] is AREndpoint.SET_AURA
         assert "ledg_scheme=2" in _query(callback)
         assert "ledg_rgb" not in _query(callback)
@@ -144,7 +144,7 @@ class TestRunActionScheme:
         result = await run_action(
             callback, action, get_data_callback=get_data, identity=_ID
         )
-        assert result is True
+        assert result.success is True
         assert "ledg_night_mode" not in _query(callback)
 
     async def test_no_get_data_callback(self) -> None:
@@ -162,10 +162,10 @@ class TestRunActionScheme:
         callback = AsyncMock(return_value={})
         raw = AsyncMock(return_value=None)
         action = ARAuraAction(scheme=ARAuraScheme.STATIC)
-        assert (
-            await run_action(callback, action, raw_callback=raw, identity=_ID)
-            is False
+        result = await run_action(
+            callback, action, raw_callback=raw, identity=_ID
         )
+        assert result.success is False
 
     async def test_success_on_empty_body(self) -> None:
         """An empty 200 body from the raw poster still means success."""
@@ -173,10 +173,10 @@ class TestRunActionScheme:
         callback = AsyncMock(return_value={})
         raw = AsyncMock(return_value="")
         action = ARAuraAction(scheme=ARAuraScheme.STATIC)
-        assert (
-            await run_action(callback, action, raw_callback=raw, identity=_ID)
-            is True
+        result = await run_action(
+            callback, action, raw_callback=raw, identity=_ID
         )
+        assert result.success is True
         assert "ledg_scheme=2" in raw.await_args.kwargs["request"]
 
 
@@ -273,7 +273,7 @@ class TestRunActionUnsupported:
             identity=identity,
         )
 
-        assert result is False
+        assert result.success is False
         callback.assert_not_awaited()
         raw.assert_not_awaited()
         get_data.assert_not_awaited()

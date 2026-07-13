@@ -18,6 +18,7 @@ from asusrouter.modules.network.enums import (
     ARNetworkType,
 )
 from asusrouter.modules.network.handle import ARNetworkHandle
+from asusrouter.modules.nvram import ARNvramType
 from asusrouter.modules.service.action import ARServiceResult
 from asusrouter.registry import ARCallableRegistry as ARCallReg
 from asusrouter.tools.identifiers import Ssid
@@ -119,15 +120,22 @@ class TestRunAction:
     async def test_sdn_reads_then_pushes(self) -> None:
         """SDN fetches sdn_rl, then pushes the toggled list and apg enable."""
 
-        callback = AsyncMock(return_value={"sdn_rl": _SDN_RL})
+        get_data_callback = AsyncMock(
+            return_value={ARNvramType.SDN_RL: _SDN_RL}
+        )
         raw_callback = AsyncMock(return_value="NOT MODIFIED")
         action = ARNetworkAction(_SDN_HANDLE, True)
 
-        result = await run_action(callback, action, raw_callback=raw_callback)
+        result = await run_action(
+            AsyncMock(),
+            action,
+            get_data_callback=get_data_callback,
+            raw_callback=raw_callback,
+        )
 
         assert result.success is True
-        # sdn_rl fetched via the plain callback
-        assert callback.await_args.kwargs["endpoint"] is AREndpoint.FETCH_DATA
+        # sdn_rl fetched via the data pipeline
+        get_data_callback.assert_awaited_once_with(ARNvramType.SDN_RL)
         # request pushed via the raw callback
         push = raw_callback.await_args.kwargs
         assert push["endpoint"] is AREndpoint.PUSH_DATA
@@ -140,11 +148,40 @@ class TestRunAction:
     async def test_sdn_missing_list_fails(self) -> None:
         """A missing sdn_rl fails without a push."""
 
-        callback = AsyncMock(return_value={})
+        get_data_callback = AsyncMock(return_value={})
         raw_callback = AsyncMock()
         result = await run_action(
-            callback,
+            AsyncMock(),
             ARNetworkAction(_SDN_HANDLE, True),
+            get_data_callback=get_data_callback,
+            raw_callback=raw_callback,
+        )
+
+        assert result == ARServiceResult(success=False)
+        raw_callback.assert_not_awaited()
+
+    async def test_sdn_no_data_callback_fails(self) -> None:
+        """SDN without a data callback fails without a push."""
+
+        raw_callback = AsyncMock()
+        result = await run_action(
+            AsyncMock(),
+            ARNetworkAction(_SDN_HANDLE, True),
+            raw_callback=raw_callback,
+        )
+
+        assert result == ARServiceResult(success=False)
+        raw_callback.assert_not_awaited()
+
+    async def test_sdn_non_dict_read_fails(self) -> None:
+        """A non-dict nvram reply fails without a push."""
+
+        get_data_callback = AsyncMock(return_value=None)
+        raw_callback = AsyncMock()
+        result = await run_action(
+            AsyncMock(),
+            ARNetworkAction(_SDN_HANDLE, True),
+            get_data_callback=get_data_callback,
             raw_callback=raw_callback,
         )
 

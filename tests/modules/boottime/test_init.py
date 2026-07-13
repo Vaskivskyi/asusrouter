@@ -9,15 +9,15 @@ from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
-from asusrouter.modules import boottime
 from asusrouter.modules.boottime import (
     ARBoottime,
     ARBoottimeSource,
-    _extract_uptime,
     get_state,
     read_uptime,
+    source as boottime_source,
     stabilize,
 )
+from asusrouter.modules.boottime.source import _extract_uptime
 from asusrouter.modules.device.identity import ARDeviceIdentity
 from asusrouter.modules.endpoint_v2 import AREndpoint
 from asusrouter.modules.source import ARDataSource
@@ -32,7 +32,9 @@ class TestReadUptime:
     def test_parses_boot_time(self) -> None:
         """Boot time = parsed `when` minus uptime, tagged as ARBoottime."""
 
-        with patch.object(boottime, "safe_datetime", return_value=_WHEN):
+        with patch.object(
+            boottime_source, "safe_datetime", return_value=_WHEN
+        ):
             result = read_uptime("Jan 1 12:00:00 2026(100 secs)")
 
         assert result == _BOOT
@@ -51,7 +53,7 @@ class TestReadUptime:
     def test_bad_datetime(self) -> None:
         """An unparseable `when` yields None."""
 
-        with patch.object(boottime, "safe_datetime", return_value=None):
+        with patch.object(boottime_source, "safe_datetime", return_value=None):
             assert read_uptime("bad(100 secs)") is None
 
 
@@ -161,7 +163,7 @@ class TestGetState:
             return_value='{\n"uptime":when(100 secs since boot)\n}'
         )
 
-        with patch.object(boottime, "read_uptime", return_value=_BOOT):
+        with patch.object(boottime_source, "read_uptime", return_value=_BOOT):
             result = await get_state(
                 callback,
                 ARBoottimeSource(),
@@ -180,7 +182,9 @@ class TestGetState:
 
         # A 1s jitter is absorbed: the identity's value is kept
         with patch.object(
-            boottime, "read_uptime", return_value=_BOOT + timedelta(seconds=1)
+            boottime_source,
+            "read_uptime",
+            return_value=_BOOT + timedelta(seconds=1),
         ):
             result = await get_state(
                 callback, ARBoottimeSource(), identity=identity
@@ -196,7 +200,7 @@ class TestGetState:
 
         callback = AsyncMock(return_value={"uptime": "when(100 secs)"})
 
-        with patch.object(boottime, "read_uptime", return_value=_BOOT):
+        with patch.object(boottime_source, "read_uptime", return_value=_BOOT):
             result = await get_state(callback, ARBoottimeSource())
 
         assert result == _BOOT
@@ -223,9 +227,9 @@ def test_registers_callable(monkeypatch: pytest.MonkeyPatch) -> None:
         mock_register,
     )
 
-    importlib.reload(boottime)
+    module = importlib.reload(boottime_source)
 
     mock_register.assert_called_once_with(
-        boottime.ARBoottimeSource,
-        get_state=boottime.get_state,
+        module.ARBoottimeSource,
+        get_state=module.get_state,
     )

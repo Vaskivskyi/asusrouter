@@ -5,17 +5,17 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 from asusrouter.modules.endpoint_v2 import AREndpoint
+from asusrouter.modules.endpoint_v2.hooks import hook_request
 from asusrouter.modules.source import ARDataSource
 from asusrouter.modules.vpn.enums import ARVpnProtocol, ARVpnServerField
 from asusrouter.modules.vpn.server import openvpn, wireguard
 from asusrouter.registry import ARCallableRegistry as ARCallReg
 from asusrouter.tools.types import ARCallbackType
-from asusrouter.tools.writers import nvram
 
 if TYPE_CHECKING:
     from asusrouter.modules.device.identity import ARDeviceIdentity
 
-# Protocol -> its backend module (each exposes `nvram_keys` and `translate`)
+# Protocol -> its backend module (each exposes `nvram_items` and `translate`)
 _BACKENDS = {
     ARVpnProtocol.WIREGUARD: wireguard,
     ARVpnProtocol.OPENVPN: openvpn,
@@ -39,11 +39,13 @@ async def get_state(
 ) -> Any:
     """Fetch the status hook and nvram config for every VPN server."""
 
-    keys: list[str] = []
-    for backend in _BACKENDS.values():
-        keys.extend(backend.nvram_keys())
+    items = [
+        item
+        for backend in _BACKENDS.values()
+        for item in backend.nvram_items()
+    ]
 
-    request = f"hook={wireguard.HOOK.value}();{nvram(keys) or ''}"
+    request = hook_request(wireguard.HOOK, *items)
     data = await callback(endpoint=AREndpoint.FETCH_DATA, request=request)
 
     # OpenVPN connected clients live in a separate endpoint; only worth

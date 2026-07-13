@@ -9,6 +9,15 @@ import pytest
 from asusrouter.modules.endpoint_v2.hooks import ARHook, hook_request
 
 
+class _FakeItem:
+    """A minimal ARHookItem implementation for tests."""
+
+    def as_hook(self) -> tuple[ARHook, str]:
+        """Render as an `nvram_get` hook call."""
+
+        return (ARHook.NVRAM_GET, "some_key")
+
+
 class TestARHook:
     """Tests for the ARHook enum."""
 
@@ -44,8 +53,13 @@ class TestHookRequest:
                 (ARHook.UPTIME, (ARHook.NETDEV, "appobj")),
                 "hook=uptime();netdev(appobj)",
             ),
+            ((_FakeItem(),), "hook=nvram_get(some_key)"),
+            (
+                (ARHook.UPTIME, _FakeItem()),
+                "hook=uptime();nvram_get(some_key)",
+            ),
         ],
-        ids=["single", "with_args", "multiple"],
+        ids=["single", "with_args", "multiple", "item", "mixed"],
     )
     def test_build(self, hooks: Any, expected: str) -> None:
         """Requests join `name(args)` parts under a single `hook=`."""

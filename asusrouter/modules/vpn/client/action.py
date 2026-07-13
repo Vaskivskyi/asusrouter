@@ -5,19 +5,17 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 from asusrouter.modules.action import ARAction
-from asusrouter.modules.endpoint_v2 import AREndpoint
+from asusrouter.modules.nvram import ARNvramType, async_get_value
 from asusrouter.modules.service.action import (
     ARServiceInput,
     ARServiceResult,
-    build_service_request,
-    read_service_result,
+    async_run_service,
 )
 from asusrouter.modules.vpn.client import classic, fusion
 from asusrouter.modules.vpn.enums import ARVpnProtocol
 from asusrouter.registry import ARCallableRegistry as ARCallReg
 from asusrouter.tools.converters_v2.raw import raw_to_str
 from asusrouter.tools.types import ARCallbackType
-from asusrouter.tools.writers import nvram
 
 if TYPE_CHECKING:
     from asusrouter.modules.device.identity import ARDeviceIdentity
@@ -41,44 +39,31 @@ class ARVpnClientAction(ARAction):
         self.state = state
         self.unit = unit
 
-    def __eq__(self, other: object) -> bool:
-        """Equal by target protocol, unit and desired state."""
+    def _key(self) -> tuple[Any, ...]:
+        """Key by the target protocol, unit and desired state."""
 
-        if not isinstance(other, ARVpnClientAction):
-            return NotImplemented
-        return (
-            self.protocol == other.protocol
-            and self.unit == other.unit
-            and self.state == other.state
-        )
-
-    def __hash__(self) -> int:
-        """Hash by target protocol, unit and desired state."""
-
-        return hash((type(self), self.protocol, self.unit, self.state))
-
-
-async def _read_clientlist(callback: ARCallbackType) -> str | None:
-    """Read the raw `vpnc_clientlist`, or None on a non-Fusion device."""
-
-    request = f"hook={nvram(['vpnc_clientlist']) or ''}"
-    data = await callback(endpoint=AREndpoint.FETCH_DATA, request=request)
-    if not isinstance(data, dict):
-        return None
-    return raw_to_str(data.get("vpnc_clientlist"))
+        return (self.protocol, self.unit, self.state)
 
 
 async def run_action(
     callback: ARCallbackType,
     action: ARVpnClientAction,
     *,
+    get_data_callback: ARCallbackType | None = None,
     raw_callback: ARCallbackType | None = None,
     identity: ARDeviceIdentity | None = None,
     **kwargs: Any,
 ) -> ARServiceResult:
     """Toggle the action's VPN client on whichever backend the device uses."""
 
-    clientlist = await _read_clientlist(callback)
+    # The clientlist decides the backend; without it no safe push is possible
+    if get_data_callback is None:
+        return ARServiceResult(success=False)
+
+    # A None clientlist means a non-Fusion device
+    clientlist = raw_to_str(
+        await async_get_value(get_data_callback, ARNvramType.VPNC_CLIENTLIST)
+    )
     payload: tuple[list[ARServiceInput], dict[str, Any]] | None
     if clientlist is not None:
         payload = fusion.build_toggle_payload(
@@ -93,10 +78,9 @@ async def run_action(
         return ARServiceResult(success=False)
 
     services, arguments = payload
-    request = build_service_request(services, arguments=arguments)
-    poster = raw_callback or callback
-    data = await poster(endpoint=AREndpoint.PUSH_DATA, request=request)
-    return read_service_result(data, services)
+    return await async_run_service(
+        callback, services, arguments=arguments, raw_callback=raw_callback
+    )
 
 
 ARCallReg.register_action(ARVpnClientAction, run_action=run_action)

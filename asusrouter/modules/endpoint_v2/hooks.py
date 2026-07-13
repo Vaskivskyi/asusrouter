@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from enum import StrEnum
+from typing import Any, Protocol
 
 from asusrouter.const import UNKNOWN_MEMBER_STR
 from asusrouter.tools.enum import FromStrMixin
@@ -72,11 +73,38 @@ class ARHook(FromStrMixin, StrEnum):
     WL_NBAND_INFO = "wl_nband_info"
 
 
-def hook_request(*hooks: ARHook | tuple[ARHook, str]) -> str:
+class ARHookItem(Protocol):
+    """An item that renders itself as a single appGet hook call."""
+
+    def as_hook(self) -> tuple[ARHook, str]:
+        """Return the hook and its argument string."""
+
+
+def hook_request(*items: ARHook | tuple[ARHook, str] | ARHookItem) -> str:
     """Build an appGet `hook=` request string from one or more hooks."""
 
     parts: list[str] = []
-    for item in hooks:
-        hook, args = item if isinstance(item, tuple) else (item, "")
+    for item in items:
+        if isinstance(item, ARHook):
+            hook, args = item, ""
+        elif isinstance(item, tuple):
+            hook, args = item
+        else:
+            hook, args = item.as_hook()
         parts.append(f"{hook.value}({args})")
     return "hook=" + ";".join(parts)
+
+
+def hook_value(data: Any, item: ARHook | ARHookItem) -> Any:
+    """Read one hook item's value from a parsed response, or None.
+
+    Plain hooks key the response by their name; argument-carrying items
+    (e.g. `nvram_get`) key it by the argument.
+    """
+
+    if not isinstance(data, dict):
+        return None
+    if isinstance(item, ARHook):
+        return data.get(item.value)
+    _, key = item.as_hook()
+    return data.get(key)

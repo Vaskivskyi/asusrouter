@@ -6,11 +6,9 @@ from typing import TYPE_CHECKING, Any
 
 from asusrouter.modules.action import ARAction
 from asusrouter.modules.common.command import ARService
-from asusrouter.modules.endpoint_v2 import AREndpoint
 from asusrouter.modules.service.action import (
     ARServiceResult,
-    build_service_request,
-    read_service_result,
+    async_run_service,
 )
 from asusrouter.modules.wifi.enums import ARWiFiBand
 from asusrouter.registry import ARCallableRegistry as ARCallReg
@@ -31,17 +29,10 @@ class ARWiFiAction(ARAction):
         self.band = band
         self.state = state
 
-    def __eq__(self, other: object) -> bool:
-        """Equal by target band and desired state."""
+    def _key(self) -> tuple[Any, ...]:
+        """Key by the target band and desired state."""
 
-        if not isinstance(other, ARWiFiAction):
-            return NotImplemented
-        return self.band == other.band and self.state == other.state
-
-    def __hash__(self) -> int:
-        """Hash by target band and desired state."""
-
-        return hash((type(self), self.band, self.state))
+        return (self.band, self.state)
 
 
 async def run_action(
@@ -60,12 +51,12 @@ async def run_action(
 
     unit = wifi[action.band]
     arguments = {f"wl{unit}_radio": int(action.state)}
-    request = build_service_request(
-        ARService.WIRELESS_RESTART, arguments=arguments
+    return await async_run_service(
+        callback,
+        ARService.WIRELESS_RESTART,
+        arguments=arguments,
+        raw_callback=raw_callback,
     )
-    poster = raw_callback or callback
-    data = await poster(endpoint=AREndpoint.PUSH_DATA, request=request)
-    return read_service_result(data, ARService.WIRELESS_RESTART)
 
 
 ARCallReg.register_action(ARWiFiAction, run_action=run_action)

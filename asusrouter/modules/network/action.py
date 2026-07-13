@@ -6,7 +6,6 @@ from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any
 
 from asusrouter.modules.action import ARAction
-from asusrouter.modules.endpoint_v2 import AREndpoint
 from asusrouter.modules.network import legacy, sdn
 from asusrouter.modules.network.enums import (
     ARNetworkBackend,
@@ -14,10 +13,10 @@ from asusrouter.modules.network.enums import (
     ARNetworkType,
 )
 from asusrouter.modules.network.handle import ARNetworkHandle
+from asusrouter.modules.nvram import ARNvramType, async_get_value
 from asusrouter.modules.service.action import (
     ARServiceResult,
-    build_service_request,
-    read_service_result,
+    async_run_service,
 )
 from asusrouter.registry import ARCallableRegistry as ARCallReg
 from asusrouter.tools.identifiers import Ssid
@@ -53,26 +52,23 @@ class ARNetworkAction(ARAction):
         self.handle = handle
         self.state = state
 
-    def __eq__(self, other: object) -> bool:
-        """Equal by target profile and desired state."""
+    def _key(self) -> tuple[Any, ...]:
+        """Key by the target profile and desired state."""
 
-        if not isinstance(other, ARNetworkAction):
-            return NotImplemented
-        return self.handle == other.handle and self.state == other.state
-
-    def __hash__(self) -> int:
-        """Hash by target profile and desired state."""
-
-        return hash((type(self), self.handle, self.state))
+        return (self.handle, self.state)
 
 
 async def _build_payload(
-    callback: ARCallbackType, handle: ARNetworkHandle, state: bool
+    get_data_callback: ARCallbackType | None,
+    handle: ARNetworkHandle,
+    state: bool,
 ) -> tuple[str, dict[str, Any]] | None:
     """Build the `(rc_service, arguments)` for the backend, or None."""
 
     if handle.backend is ARNetworkBackend.SDN:
-        raw_sdn_rl = await sdn.fetch_sdn_rl(callback)
+        raw_sdn_rl = await async_get_value(
+            get_data_callback, ARNvramType.SDN_RL
+        )
         if raw_sdn_rl is None:
             return None
         return sdn.build_toggle_payload(raw_sdn_rl, handle, state)
@@ -84,21 +80,23 @@ async def run_action(
     callback: ARCallbackType,
     action: ARNetworkAction,
     *,
+    get_data_callback: ARCallbackType | None = None,
     raw_callback: ARCallbackType | None = None,
     identity: ARDeviceIdentity | None = None,
     **kwargs: Any,
 ) -> ARServiceResult:
     """Toggle the action's network on its backend."""
 
-    payload = await _build_payload(callback, action.handle, action.state)
+    payload = await _build_payload(
+        get_data_callback, action.handle, action.state
+    )
     if payload is None:
         return ARServiceResult(success=False)
 
     rc_service, arguments = payload
-    request = build_service_request(rc_service, arguments=arguments)
-    poster = raw_callback or callback
-    data = await poster(endpoint=AREndpoint.PUSH_DATA, request=request)
-    return read_service_result(data, rc_service)
+    return await async_run_service(
+        callback, rc_service, arguments=arguments, raw_callback=raw_callback
+    )
 
 
 ARCallReg.register_action(ARNetworkAction, run_action=run_action)

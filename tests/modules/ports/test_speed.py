@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from asusrouter.modules.ports.speed import ARPortSpeed
+from asusrouter.modules.ports.enums import ARPortSpeed
 
 
 class TestARPortSpeed:

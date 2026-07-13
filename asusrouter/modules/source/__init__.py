@@ -22,31 +22,41 @@ class ARDataSource:
     This is a universal class representing a data source
     within the AsusRouter ecosystem.
 
-    Sources are equal by exact type (router-global) by default;
-    subclasses with defining properties override equality and hash.
+    Sources are equal by exact type and their `_key()`; router-global
+    sources keep the empty default, subclasses with defining properties
+    override `_key` only.
     """
 
     def __init__(self) -> None:
         """Initialize the data source."""
 
-    def __eq__(self, other: object) -> bool:
-        """Equal by exact type (router-global by default)."""
+    def _key(self) -> tuple[Any, ...]:
+        """Return the defining fields for equality and hashing."""
 
-        if not isinstance(other, ARDataSource):
+        return ()
+
+    def __eq__(self, other: object) -> bool:
+        """Equal by exact type and defining fields."""
+
+        if type(other) is not type(self):
             return NotImplemented
-        return type(self) is type(other)
+        return self._key() == other._key()
 
     def __hash__(self) -> int:
-        """Hash by type."""
+        """Hash by type and defining fields."""
 
-        return hash(type(self))
+        return hash((type(self), *self._key()))
 
     def __repr__(self) -> str:
         """Representation of the data source."""
 
-        return f"<{type(self).__name__}>"
+        key = self._key()
+        name = type(self).__name__
+        return f"<{name} {key!r}>" if key else f"<{name}>"
 
 
+# Empty abstract base - UNKNOWN lives in subclasses (an enum with
+# members cannot be subclassed)
 class ARDataType(FromStrMixin, StrEnum):
     """AsusRouter data type."""
 

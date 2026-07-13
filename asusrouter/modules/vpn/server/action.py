@@ -5,12 +5,10 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 from asusrouter.modules.action import ARAction
-from asusrouter.modules.endpoint_v2 import AREndpoint
 from asusrouter.modules.service.action import (
     ARServiceInput,
     ARServiceResult,
-    build_service_request,
-    read_service_result,
+    async_run_service,
 )
 from asusrouter.modules.vpn.enums import ARVpnProtocol
 from asusrouter.modules.vpn.server import openvpn, wireguard
@@ -35,21 +33,10 @@ class ARVpnServerAction(ARAction):
         self.state = state
         self.unit = unit
 
-    def __eq__(self, other: object) -> bool:
-        """Equal by target protocol, unit and desired state."""
+    def _key(self) -> tuple[Any, ...]:
+        """Key by the target protocol, unit and desired state."""
 
-        if not isinstance(other, ARVpnServerAction):
-            return NotImplemented
-        return (
-            self.protocol == other.protocol
-            and self.unit == other.unit
-            and self.state == other.state
-        )
-
-    def __hash__(self) -> int:
-        """Hash by target protocol, unit and desired state."""
-
-        return hash((type(self), self.protocol, self.unit, self.state))
+        return (self.protocol, self.unit, self.state)
 
 
 def _build_payload(
@@ -81,10 +68,9 @@ async def run_action(
         return ARServiceResult(success=False)
 
     services, arguments = payload
-    request = build_service_request(services, arguments=arguments)
-    poster = raw_callback or callback
-    data = await poster(endpoint=AREndpoint.PUSH_DATA, request=request)
-    return read_service_result(data, services)
+    return await async_run_service(
+        callback, services, arguments=arguments, raw_callback=raw_callback
+    )
 
 
 ARCallReg.register_action(ARVpnServerAction, run_action=run_action)

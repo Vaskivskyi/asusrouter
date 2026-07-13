@@ -11,17 +11,26 @@ from asusrouter.modules.firmware import (
     AR_FW_MERLIN_LIKE,
     ARFirmwareType,
 )
+from asusrouter.modules.nvram import (
+    ARNvramIndexSource,
+    ARNvramIndexType,
+    ARNvramItem,
+    ARNvramType,
+)
 from asusrouter.modules.vpn.enums import (
     ARVpnPeerField,
     ARVpnServerField,
     ARVpnState,
 )
 from asusrouter.tools.converters_v2.raw import (
+    raw_convert,
     raw_to_bool,
     raw_to_int,
     raw_to_str,
 )
 from asusrouter.tools.identifiers import IpAddress, IpInterface, Password
+from asusrouter.tools.readers_v2.nvram_list import get_field, split_rows
+from asusrouter.tools.readers_v2.table import read_table
 
 if TYPE_CHECKING:
     from asusrouter.modules.device.identity import ARDeviceIdentity
@@ -34,43 +43,77 @@ UNITS = (1, 2)
 CLIENT_STATUS_KEY = "_openvpn_client_status"
 
 # Settings nvram key -> field, converter (apply to the active unit only)
-_SETTINGS: tuple[tuple[str, ARVpnServerField, Callable[[Any], Any]], ...] = (
-    ("vpn_server_port", ARVpnServerField.PORT, raw_to_int),
-    ("vpn_server_proto", ARVpnServerField.PROTOCOL, raw_to_str),
-    ("vpn_server_if", ARVpnServerField.INTERFACE, raw_to_str),
-    ("vpn_server_crypt", ARVpnServerField.CRYPT, raw_to_str),
-    ("vpn_server_cipher", ARVpnServerField.CIPHER, raw_to_str),
-    ("vpn_server_digest", ARVpnServerField.DIGEST, raw_to_str),
-    ("vpn_server_comp", ARVpnServerField.COMPRESSION, raw_to_str),
-    ("vpn_server_hmac", ARVpnServerField.HMAC, raw_to_int),
-    ("vpn_server_tls_keysize", ARVpnServerField.TLS_KEYSIZE, raw_to_int),
-    ("vpn_server_igncrt", ARVpnServerField.IGNORE_CERTIFICATE, raw_to_bool),
-    ("vpn_server_pdns", ARVpnServerField.PUSH_DNS, raw_to_bool),
-    ("vpn_server_sn", ARVpnServerField.SUBNET, IpAddress.from_value_safe),
-    ("vpn_server_nm", ARVpnServerField.NETMASK, IpAddress.from_value_safe),
-    ("vpn_server_dhcp", ARVpnServerField.DHCP, raw_to_bool),
-    ("vpn_server_r1", ARVpnServerField.POOL_START, IpAddress.from_value_safe),
-    ("vpn_server_r2", ARVpnServerField.POOL_END, IpAddress.from_value_safe),
+_SETTINGS: tuple[
+    tuple[ARNvramType, ARVpnServerField, Callable[[Any], Any]], ...
+] = (
+    (ARNvramType.VPN_SERVER_PORT, ARVpnServerField.PORT, raw_to_int),
+    (ARNvramType.VPN_SERVER_PROTO, ARVpnServerField.PROTOCOL, raw_to_str),
+    (ARNvramType.VPN_SERVER_IF, ARVpnServerField.INTERFACE, raw_to_str),
+    (ARNvramType.VPN_SERVER_CRYPT, ARVpnServerField.CRYPT, raw_to_str),
+    (ARNvramType.VPN_SERVER_CIPHER, ARVpnServerField.CIPHER, raw_to_str),
+    (ARNvramType.VPN_SERVER_DIGEST, ARVpnServerField.DIGEST, raw_to_str),
+    (ARNvramType.VPN_SERVER_COMP, ARVpnServerField.COMPRESSION, raw_to_str),
+    (ARNvramType.VPN_SERVER_HMAC, ARVpnServerField.HMAC, raw_to_int),
     (
-        "vpn_server_local",
+        ARNvramType.VPN_SERVER_TLS_KEYSIZE,
+        ARVpnServerField.TLS_KEYSIZE,
+        raw_to_int,
+    ),
+    (
+        ARNvramType.VPN_SERVER_IGNCRT,
+        ARVpnServerField.IGNORE_CERTIFICATE,
+        raw_to_bool,
+    ),
+    (ARNvramType.VPN_SERVER_PDNS, ARVpnServerField.PUSH_DNS, raw_to_bool),
+    (
+        ARNvramType.VPN_SERVER_SN,
+        ARVpnServerField.SUBNET,
+        IpAddress.from_value_safe,
+    ),
+    (
+        ARNvramType.VPN_SERVER_NM,
+        ARVpnServerField.NETMASK,
+        IpAddress.from_value_safe,
+    ),
+    (ARNvramType.VPN_SERVER_DHCP, ARVpnServerField.DHCP, raw_to_bool),
+    (
+        ARNvramType.VPN_SERVER_R1,
+        ARVpnServerField.POOL_START,
+        IpAddress.from_value_safe,
+    ),
+    (
+        ARNvramType.VPN_SERVER_R2,
+        ARVpnServerField.POOL_END,
+        IpAddress.from_value_safe,
+    ),
+    (
+        ARNvramType.VPN_SERVER_LOCAL,
         ARVpnServerField.LOCAL_ADDRESS,
         IpAddress.from_value_safe,
     ),
     (
-        "vpn_server_remote",
+        ARNvramType.VPN_SERVER_REMOTE,
         ARVpnServerField.REMOTE_ADDRESS,
         IpAddress.from_value_safe,
     ),
-    ("vpn_server_reneg", ARVpnServerField.RENEG, raw_to_int),
-    ("vpn_server_rgw", ARVpnServerField.REDIRECT_GATEWAY, raw_to_int),
-    ("vpn_server_c2c", ARVpnServerField.CLIENT_TO_CLIENT, raw_to_bool),
+    (ARNvramType.VPN_SERVER_RENEG, ARVpnServerField.RENEG, raw_to_int),
+    (
+        ARNvramType.VPN_SERVER_RGW,
+        ARVpnServerField.REDIRECT_GATEWAY,
+        raw_to_int,
+    ),
+    (
+        ARNvramType.VPN_SERVER_C2C,
+        ARVpnServerField.CLIENT_TO_CLIENT,
+        raw_to_bool,
+    ),
 )
 
 
 def server_enabled(data: dict[str, Any]) -> bool:
     """Whether the OpenVPN server is enabled (worth fetching live status)."""
 
-    return raw_to_bool(data.get("VPNServer_enable")) is True
+    return raw_to_bool(data.get(ARNvramType.VPN_SERVER_ENABLE.value)) is True
 
 
 def _is_legacy(identity: ARDeviceIdentity | None) -> bool:
@@ -111,58 +154,49 @@ def build_toggle_payload(
             ARService.DNS_RESTART,
         ]
     )
-    arguments: dict[str, Any] = {"VPNServer_enable": int(state), "id": unit}
+    arguments: dict[str, Any] = {
+        ARNvramType.VPN_SERVER_ENABLE.value: int(state),
+        "id": unit,
+    }
     return services, arguments
 
 
-def nvram_keys() -> list[str]:
-    """Return the nvram keys required to read every OpenVPN server unit."""
+def nvram_items() -> list[ARNvramItem]:
+    """Return the nvram items required to read every OpenVPN server unit."""
 
-    keys = ["VPNServer_enable", "vpn_server_unit", "vpn_serverx_clientlist"]
-    keys.extend(key for key, _, _ in _SETTINGS)
+    items: list[ARNvramItem] = [
+        ARNvramType.VPN_SERVER_ENABLE,
+        ARNvramType.VPN_SERVER_UNIT,
+        ARNvramType.VPN_SERVER_CLIENTLIST,
+    ]
+    items.extend(key for key, _, _ in _SETTINGS)
     for unit in UNITS:
-        keys.append(f"vpn_server{unit}_state")
-        keys.append(f"vpn_server{unit}_errno")
-    return keys
-
-
-def _convert(raw: Any, converter: Callable[[Any], Any]) -> Any:
-    """Convert a raw value, treating empty/absent as no value."""
-
-    if raw is None or raw == "":
-        return None
-    return converter(raw)
+        items.append(
+            ARNvramIndexSource(ARNvramIndexType.VPN_SERVER_STATE, unit)
+        )
+        items.append(
+            ARNvramIndexSource(ARNvramIndexType.VPN_SERVER_ERRNO, unit)
+        )
+    return items
 
 
 def _settings(data: dict[str, Any]) -> dict[ARVpnServerField, Any]:
     """Read the active-unit settings block."""
 
-    fields: dict[ARVpnServerField, Any] = {}
-    for key, field, converter in _SETTINGS:
-        value = _convert(data.get(key), converter)
-        if value is not None:
-            fields[field] = value
-    return fields
+    return read_table(data, _SETTINGS)
 
 
 def _clients(raw: Any) -> list[dict[ARVpnPeerField, Any]]:
     """Parse the `<username>password` account list of the active unit."""
 
-    text = raw_to_str(raw)
-    if text is None:
-        return []
-    # nvram may HTML-encode the `<` / `>` delimiters
-    text = text.replace("&#60", "<").replace("&#62", ">")
-
     clients: list[dict[ARVpnPeerField, Any]] = []
-    for entry in text.split("<"):
+    for entry in split_rows(raw):
         parts = entry.split(">")
         name = raw_to_str(parts[0])
         if name is None:
             continue
         client: dict[ARVpnPeerField, Any] = {ARVpnPeerField.NAME: name}
-        raw_password = parts[1] if len(parts) > 1 else None
-        password = Password.from_value_safe(raw_password)
+        password = Password.from_value_safe(get_field(parts, 1))
         if password is not None:
             client[ARVpnPeerField.PASSWORD] = password
         clients.append(client)
@@ -234,20 +268,23 @@ def _apply_status(
 def translate(data: dict[str, Any]) -> dict[int, dict[ARVpnServerField, Any]]:
     """Translate raw data into OpenVPN server profiles keyed by unit."""
 
-    active = raw_to_int(data.get("vpn_server_unit"))
-    enabled = raw_to_bool(data.get("VPNServer_enable"))
+    active = raw_to_int(data.get(ARNvramType.VPN_SERVER_UNIT.value))
+    enabled = raw_to_bool(data.get(ARNvramType.VPN_SERVER_ENABLE.value))
     settings = _settings(data)
 
     result: dict[int, dict[ARVpnServerField, Any]] = {}
     for unit in UNITS:
         fields: dict[ARVpnServerField, Any] = {}
 
-        state = _convert(
-            data.get(f"vpn_server{unit}_state"), ARVpnState.from_value
+        state = raw_convert(
+            data.get(ARNvramIndexType.VPN_SERVER_STATE.key(unit)),
+            ARVpnState.from_value,
         )
         if state is not None:
             fields[ARVpnServerField.STATE] = state
-        errno = _convert(data.get(f"vpn_server{unit}_errno"), raw_to_int)
+        errno = raw_convert(
+            data.get(ARNvramIndexType.VPN_SERVER_ERRNO.key(unit)), raw_to_int
+        )
         if errno is not None:
             fields[ARVpnServerField.ERRNO] = errno
 
@@ -257,7 +294,7 @@ def translate(data: dict[str, Any]) -> dict[int, dict[ARVpnServerField, Any]]:
                 fields[ARVpnServerField.ENABLED] = enabled
             fields.update(settings)
             clients = _apply_status(
-                _clients(data.get("vpn_serverx_clientlist")),
+                _clients(data.get(ARNvramType.VPN_SERVER_CLIENTLIST.value)),
                 _connected(data),
             )
             if clients:

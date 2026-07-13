@@ -7,13 +7,15 @@ from typing import Any
 from urllib.parse import unquote_plus
 
 from asusrouter.modules.common.metrics import ARMetricType as M
+from asusrouter.modules.speedtest.enums import (
+    ARSpeedTestEventType,
+    ARSpeedTestState,
+)
 from asusrouter.modules.speedtest.models import (
     EXE_TYPE_LIST,
     EXE_TYPE_RUN,
-    ARSpeedTestEventType,
     ARSpeedTestResult,
     ARSpeedTestServer,
-    ARSpeedTestState,
     build_history_request,
     build_run_request,
     build_start_time_request,

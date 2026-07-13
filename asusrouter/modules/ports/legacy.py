@@ -8,9 +8,9 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from asusrouter.modules.ports.base import ARPortProperty, ARPortsData
+from asusrouter.modules.ports.base import ARPortsData
 from asusrouter.modules.ports.common import warn_unknown_port
-from asusrouter.modules.ports.speed import ARPortSpeed
+from asusrouter.modules.ports.enums import ARPortProperty, ARPortSpeed
 from asusrouter.tools.converters_v2.raw import raw_to_int
 from asusrouter.tools.identifiers import MacAddress
 

@@ -120,9 +120,13 @@ class TestARSystemStatusSource:
         assert ARSystemStatusSource(_MAC) != "not-a-source"
 
     def test_repr(self) -> None:
-        """Repr includes the target."""
+        """Repr includes the target key field."""
 
-        assert "target" in repr(ARSystemStatusSource(_MAC))
+        source = ARSystemStatusSource(_MAC)
+        text = repr(source)
+
+        assert text.startswith("<ARSystemStatusSource ")
+        assert repr(source.target) in text
 
 
 class TestGetState:

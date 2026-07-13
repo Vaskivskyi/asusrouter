@@ -8,6 +8,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 from asusrouter.const import AR_CALL_RUN_ACTION, RequestType
+from asusrouter.modules.action import _RUN_START_DELAY
 from asusrouter.modules.common.metrics import ARMetricType as M
 from asusrouter.modules.common.status import STATUS_CODE_KEY
 from asusrouter.modules.endpoint_v2 import (
@@ -16,17 +17,16 @@ from asusrouter.modules.endpoint_v2 import (
 )
 from asusrouter.modules.nvram import ARNvramType
 from asusrouter.modules.ping import (
-    _RUN_START_DELAY,
     ARPingAction,
     ARPingResult,
     ARPingSource,
     ARPingSourceUniversal,
     ARPingStatus,
-    _build_request,
     get_state,
     run_action,
     translate_state,
 )
+from asusrouter.modules.ping.source import _build_request
 from asusrouter.registry import ARCallableRegistry as ARCallReg
 from asusrouter.tools.identifiers.ip import IpAddress
 
@@ -103,7 +103,7 @@ class TestGetState:
         """Skip the real run-start delay during tests."""
 
         with patch(
-            "asusrouter.modules.ping.asyncio.sleep", AsyncMock()
+            "asusrouter.modules.action.asyncio.sleep", AsyncMock()
         ) as sleep:
             yield sleep
 
@@ -113,7 +113,7 @@ class TestGetState:
         callback = AsyncMock()
         result = await get_state(callback, ARPingSourceUniversal)
 
-        assert result is None
+        assert result == {}
         callback.assert_not_awaited()
 
     async def test_default_reads_finished_results(
@@ -152,7 +152,7 @@ class TestGetState:
                 get_data_callback=get_data_callback,
             )
 
-        assert result is None
+        assert result == {}
         callback.assert_not_awaited()
         get_data_callback.assert_awaited_with(
             ARNvramType.DNS_PING_STATUS, force=True
@@ -169,7 +169,7 @@ class TestGetState:
                 get_data_callback=get_data_callback,
             )
 
-        assert result is None
+        assert result == {}
 
     async def test_empty_contents(self) -> None:
         """Empty rows yield no data."""
@@ -181,7 +181,7 @@ class TestGetState:
             get_data_callback=_status_callback("3"),
         )
 
-        assert result is None
+        assert result == {}
 
     async def test_non_dict_data(self) -> None:
         """A non-dict diagnostics reply yields no data."""
@@ -193,7 +193,7 @@ class TestGetState:
             get_data_callback=_status_callback("3"),
         )
 
-        assert result is None
+        assert result == {}
 
     async def test_refresh_no_run_action_callback(self) -> None:
         """Refresh without a run-action callback fetches nothing."""
@@ -206,7 +206,7 @@ class TestGetState:
             refresh=True,
         )
 
-        assert result is None
+        assert result == {}
         callback.assert_not_awaited()
 
     async def test_refresh_run_not_started(self) -> None:
@@ -223,7 +223,7 @@ class TestGetState:
             refresh=True,
         )
 
-        assert result is None
+        assert result == {}
         callback.assert_not_awaited()
         get_data_callback.assert_not_awaited()
 
@@ -318,7 +318,7 @@ class TestRunAction:
 
         result = await run_action(callback, ARPingAction())
 
-        assert result is True
+        assert result.success is True
         callback.assert_awaited_once_with(
             endpoint=AREndpoint.RUN_PING, request=None
         )
@@ -328,14 +328,16 @@ class TestRunAction:
 
         callback = AsyncMock(return_value={STATUS_CODE_KEY: "error"})
 
-        assert await run_action(callback, ARPingAction()) is False
+        result = await run_action(callback, ARPingAction())
+        assert result.success is False
 
     async def test_non_dict_response(self) -> None:
         """A non-dict response reports False."""
 
         callback = AsyncMock(return_value=None)
 
-        assert await run_action(callback, ARPingAction()) is False
+        result = await run_action(callback, ARPingAction())
+        assert result.success is False
 
 
 class TestEndpoint:

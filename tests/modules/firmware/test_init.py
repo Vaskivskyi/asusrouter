@@ -21,11 +21,13 @@ from asusrouter.modules.firmware import (
     ARFirmwareWebFetch,
     ARFirmwareWebNotify,
     ARFirmwareWebUpgrade,
+    get_state,
+    translate_state,
+)
+from asusrouter.modules.firmware.source import (
     _available,
     _fetch_note,
     _is_stable_update,
-    get_state,
-    translate_state,
 )
 from asusrouter.registry import ARCallableRegistry as ARCallReg
 

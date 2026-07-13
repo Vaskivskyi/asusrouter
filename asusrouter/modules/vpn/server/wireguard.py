@@ -8,6 +8,12 @@ from urllib.parse import unquote
 
 from asusrouter.modules.common.command import ARService
 from asusrouter.modules.endpoint_v2.hooks import ARHook
+from asusrouter.modules.nvram import (
+    ARNvramIndexSource,
+    ARNvramIndexType,
+    ARNvramItem,
+    ARNvramType,
+)
 from asusrouter.modules.vpn.enums import (
     ARVpnPeerField,
     ARVpnServerField,
@@ -20,6 +26,7 @@ from asusrouter.tools.converters_v2.raw import (
 )
 from asusrouter.tools.identifiers import IpInterface, Password
 from asusrouter.tools.identifiers.ip import read_ip_interface_list
+from asusrouter.tools.readers_v2.table import read_table
 
 if TYPE_CHECKING:
     from asusrouter.modules.service.action import ARServiceInput
@@ -47,33 +54,51 @@ def _decode_interfaces(value: Any) -> list[IpInterface]:
 
 
 # Server nvram key -> field, converter
-_SETTINGS: tuple[tuple[str, ARVpnServerField, Callable[[Any], Any]], ...] = (
-    ("wgs_enable", ARVpnServerField.ENABLED, raw_to_bool),
-    ("wgs_addr", ARVpnServerField.ADDRESS, IpInterface.from_value_safe),
-    ("wgs_port", ARVpnServerField.PORT, raw_to_int),
-    ("wgs_dns", ARVpnServerField.ALLOW_DNS, raw_to_bool),
-    ("wgs_nat6", ARVpnServerField.NAT6, raw_to_bool),
-    ("wgs_psk", ARVpnServerField.PSK, raw_to_bool),
-    ("wgs_alive", ARVpnServerField.KEEPALIVE, raw_to_int),
-    ("wgs_lanaccess", ARVpnServerField.LAN_ACCESS, raw_to_bool),
-    ("wgs_pub", ARVpnServerField.PUBLIC_KEY, raw_to_str),
-    ("wgs_priv", ARVpnServerField.PRIVATE_KEY, Password.from_value_safe),
+_SETTINGS: tuple[
+    tuple[ARNvramType, ARVpnServerField, Callable[[Any], Any]], ...
+] = (
+    (ARNvramType.WGS_ENABLE, ARVpnServerField.ENABLED, raw_to_bool),
+    (
+        ARNvramType.WGS_ADDR,
+        ARVpnServerField.ADDRESS,
+        IpInterface.from_value_safe,
+    ),
+    (ARNvramType.WGS_PORT, ARVpnServerField.PORT, raw_to_int),
+    (ARNvramType.WGS_DNS, ARVpnServerField.ALLOW_DNS, raw_to_bool),
+    (ARNvramType.WGS_NAT6, ARVpnServerField.NAT6, raw_to_bool),
+    (ARNvramType.WGS_PSK, ARVpnServerField.PSK, raw_to_bool),
+    (ARNvramType.WGS_ALIVE, ARVpnServerField.KEEPALIVE, raw_to_int),
+    (ARNvramType.WGS_LANACCESS, ARVpnServerField.LAN_ACCESS, raw_to_bool),
+    (ARNvramType.WGS_PUB, ARVpnServerField.PUBLIC_KEY, raw_to_str),
+    (
+        ARNvramType.WGS_PRIV,
+        ARVpnServerField.PRIVATE_KEY,
+        Password.from_value_safe,
+    ),
 )
 
-# Per-peer nvram suffix -> field, converter (`wgs{unit}_c{n}_{suffix}`)
-_PEER: tuple[tuple[str, ARVpnPeerField, Callable[[Any], Any]], ...] = (
-    ("enable", ARVpnPeerField.ENABLED, raw_to_bool),
-    ("name", ARVpnPeerField.NAME, _decode),
-    ("addr", ARVpnPeerField.ADDRESS, _decode_interfaces),
-    ("aips", ARVpnPeerField.ALLOWED_IPS, _decode_interfaces),
-    ("caips", ARVpnPeerField.CLIENT_ALLOWED_IPS, _decode_interfaces),
+# Per-peer nvram key -> field, converter (`wgs1_c{n}_*`)
+_PEER: tuple[
+    tuple[ARNvramIndexType, ARVpnPeerField, Callable[[Any], Any]], ...
+] = (
+    (ARNvramIndexType.WGS_PEER_ENABLE, ARVpnPeerField.ENABLED, raw_to_bool),
+    (ARNvramIndexType.WGS_PEER_NAME, ARVpnPeerField.NAME, _decode),
+    (
+        ARNvramIndexType.WGS_PEER_ADDR,
+        ARVpnPeerField.ADDRESS,
+        _decode_interfaces,
+    ),
+    (
+        ARNvramIndexType.WGS_PEER_AIPS,
+        ARVpnPeerField.ALLOWED_IPS,
+        _decode_interfaces,
+    ),
+    (
+        ARNvramIndexType.WGS_PEER_CAIPS,
+        ARVpnPeerField.CLIENT_ALLOWED_IPS,
+        _decode_interfaces,
+    ),
 )
-
-
-def _peer_key(index: int, suffix: str) -> str:
-    """Build a per-peer nvram key."""
-
-    return f"wgs{UNIT}_c{index}_{suffix}"
 
 
 def build_toggle_payload(
@@ -86,29 +111,20 @@ def build_toggle_payload(
         ARService.DNS_RESTART,
     ]
     arguments: dict[str, Any] = {
-        "wgs_enable": int(state),
-        "wgs_unit": unit,
+        ARNvramType.WGS_ENABLE.value: int(state),
+        ARNvramType.WGS_UNIT.value: unit,
         "id": unit,
     }
     return services, arguments
 
 
-def nvram_keys() -> list[str]:
-    """Return the nvram keys to read the WireGuard server and its peers."""
+def nvram_items() -> list[ARNvramItem]:
+    """Return the nvram items to read the WireGuard server and its peers."""
 
-    keys = [key for key, _, _ in _SETTINGS]
+    items: list[ARNvramItem] = [key for key, _, _ in _SETTINGS]
     for index in range(1, MAX_PEERS + 1):
-        keys.extend(_peer_key(index, suffix) for suffix, _, _ in _PEER)
-    return keys
-
-
-def _convert(raw: Any, converter: Callable[[Any], Any]) -> Any:
-    """Convert a raw value, treating empty/absent as no value."""
-
-    if raw is None or raw == "":
-        return None
-    value = converter(raw)
-    return None if value == [] else value
+        items.extend(ARNvramIndexSource(kind, index) for kind, _, _ in _PEER)
+    return items
 
 
 def _peer_status(data: dict[str, Any]) -> dict[int, ARVpnState]:
@@ -136,12 +152,7 @@ def _peer(
 ) -> dict[ARVpnPeerField, Any] | None:
     """Build a single peer entry, or None when the slot is empty."""
 
-    fields: dict[ARVpnPeerField, Any] = {}
-    for suffix, field, converter in _PEER:
-        value = _convert(data.get(_peer_key(index, suffix)), converter)
-        if value is not None:
-            fields[field] = value
-
+    fields = read_table(data, _PEER, key=lambda kind: kind.key(index))
     if not fields:
         return None
 
@@ -154,12 +165,7 @@ def _peer(
 def translate(data: dict[str, Any]) -> dict[int, dict[ARVpnServerField, Any]]:
     """Translate raw data into the WireGuard server profile keyed by unit."""
 
-    fields: dict[ARVpnServerField, Any] = {}
-    for key, field, converter in _SETTINGS:
-        value = _convert(data.get(key), converter)
-        if value is not None:
-            fields[field] = value
-
+    fields = read_table(data, _SETTINGS)
     if not fields:
         return {}
 

@@ -1,11 +1,15 @@
-"""SpeedTest servers module for AsusRouter."""
+"""SpeedTest servers data source for AsusRouter."""
 
 from __future__ import annotations
 
 from typing import Any
 
 from asusrouter.modules.endpoint_v2 import AREndpoint
-from asusrouter.modules.endpoint_v2.hooks import ARHook, hook_request
+from asusrouter.modules.endpoint_v2.hooks import (
+    ARHook,
+    hook_request,
+    hook_value,
+)
 from asusrouter.modules.source import ARDataSource
 from asusrouter.modules.speedtest.models import (
     EXE_TYPE_LIST,
@@ -42,21 +46,13 @@ ARSpeedTestServersSourceUniversal: ARSpeedTestServersSource = (
 # Fetch
 
 
-def _extract(data: Any) -> Any:
-    """Pull the server list out of a hook response."""
-
-    if isinstance(data, dict):
-        return data.get(ARHook.OOKLA_SPEEDTEST_SERVERS.value)
-    return None
-
-
 async def _async_fetch(callback: ARCallbackType) -> Any:
     """Fetch the raw server list from the hook."""
 
     data = await callback(
         endpoint=AREndpoint.FETCH_DATA, request=_SERVERS_REQUEST
     )
-    return _extract(data)
+    return hook_value(data, ARHook.OOKLA_SPEEDTEST_SERVERS)
 
 
 async def get_state(
@@ -74,7 +70,7 @@ async def get_state(
             endpoint=AREndpoint.RUN_SPEEDTEST,
             request=build_run_request(EXE_TYPE_LIST),
         )
-        return await async_poll_until(
+        fresh = await async_poll_until(
             lambda **_: _async_fetch(callback),
             lambda value: (
                 isinstance(value, list) and len(value) >= _MIN_SERVERS
@@ -82,8 +78,10 @@ async def get_state(
             interval=_POLL_INTERVAL,
             attempts=_POLL_ATTEMPTS,
         )
+        return fresh if fresh is not None else {}
 
-    return await _async_fetch(callback)
+    servers = await _async_fetch(callback)
+    return servers if servers is not None else {}
 
 
 def translate_state(data: Any, **kwargs: Any) -> list[ARSpeedTestServer]:

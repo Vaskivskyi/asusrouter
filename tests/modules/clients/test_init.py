@@ -7,12 +7,12 @@ from unittest.mock import AsyncMock, Mock
 
 import pytest
 
-from asusrouter.modules import clients
 from asusrouter.modules.clients import (
     ARClient,
     ARClientConnection,
     ARClientsSource,
     get_state,
+    source as clients_source,
 )
 from asusrouter.modules.device.identity import ARDeviceIdentity
 from asusrouter.modules.endpoint_v2 import AREndpoint
@@ -130,9 +130,9 @@ def test_registers_callable(monkeypatch: pytest.MonkeyPatch) -> None:
         mock_register,
     )
 
-    importlib.reload(clients)
+    module = importlib.reload(clients_source)
 
     mock_register.assert_called_once_with(
-        clients.ARClientsSource,
-        get_state=clients.get_state,
+        module.ARClientsSource,
+        get_state=module.get_state,
     )

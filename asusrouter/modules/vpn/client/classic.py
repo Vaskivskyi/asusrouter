@@ -6,14 +6,25 @@ from collections.abc import Callable
 import re
 from typing import TYPE_CHECKING, Any
 
-from asusrouter.modules.vpn.client.fusion import _WG, _convert
+from asusrouter.modules.nvram import (
+    ARNvramIndexSource,
+    ARNvramIndexType,
+    ARNvramItem,
+    ARNvramType,
+)
+from asusrouter.modules.vpn.client.fusion import _WG
 from asusrouter.modules.vpn.enums import (
     ARVpnClientField,
     ARVpnProtocol,
     ARVpnState,
 )
-from asusrouter.tools.converters_v2.raw import raw_to_int, raw_to_str
+from asusrouter.tools.converters_v2.raw import (
+    raw_convert,
+    raw_to_int,
+    raw_to_str,
+)
 from asusrouter.tools.identifiers import IpAddress
+from asusrouter.tools.readers_v2.table import read_table
 
 if TYPE_CHECKING:
     from asusrouter.modules.service.action import ARServiceInput
@@ -27,12 +38,22 @@ STATUS_KEY = "_vpn_status"
 # Values that mean "no data" in the status endpoint
 _EMPTY = ("", "None")
 
-# OpenVPN client nvram suffix -> field, converter (`vpn_client{unit}_*`)
-_OVPN: tuple[tuple[str, ARVpnClientField, Callable[[Any], Any]], ...] = (
-    ("desc", ARVpnClientField.NAME, raw_to_str),
-    ("addr", ARVpnClientField.SERVER, raw_to_str),
-    ("port", ARVpnClientField.ENDPOINT_PORT, raw_to_int),
-    ("username", ARVpnClientField.USERNAME, raw_to_str),
+# OpenVPN client nvram key -> field, converter (`vpn_client{unit}_*`)
+_OVPN: tuple[
+    tuple[ARNvramIndexType, ARVpnClientField, Callable[[Any], Any]], ...
+] = (
+    (ARNvramIndexType.VPN_CLIENT_DESC, ARVpnClientField.NAME, raw_to_str),
+    (ARNvramIndexType.VPN_CLIENT_ADDR, ARVpnClientField.SERVER, raw_to_str),
+    (
+        ARNvramIndexType.VPN_CLIENT_PORT,
+        ARVpnClientField.ENDPOINT_PORT,
+        raw_to_int,
+    ),
+    (
+        ARNvramIndexType.VPN_CLIENT_USERNAME,
+        ARVpnClientField.USERNAME,
+        raw_to_str,
+    ),
 )
 
 # vpn.cgi status token -> field, converter (parsed from `vpn_client{n}_status`)
@@ -58,17 +79,21 @@ _STATS: tuple[tuple[str, ARVpnClientField, Callable[[Any], Any]], ...] = (
 )
 
 
-def nvram_keys() -> list[str]:
-    """Return the nvram keys required to read every classic client unit."""
+def nvram_items() -> list[ARNvramItem]:
+    """Return the nvram items required to read every classic client unit."""
 
-    keys = ["vpn_clientx_eas"]
+    items: list[ARNvramItem] = [ARNvramType.VPN_CLIENT_EAS]
     for unit in UNITS:
-        keys.append(f"vpn_client{unit}_state")
-        keys.append(f"vpn_client{unit}_errno")
-        keys.extend(f"vpn_client{unit}_{suffix}" for suffix, _, _ in _OVPN)
-        keys.append(f"wgc{unit}_enable")
-        keys.extend(f"wgc{unit}_{suffix}" for suffix, _, _ in _WG)
-    return keys
+        items.append(
+            ARNvramIndexSource(ARNvramIndexType.VPN_CLIENT_STATE, unit)
+        )
+        items.append(
+            ARNvramIndexSource(ARNvramIndexType.VPN_CLIENT_ERRNO, unit)
+        )
+        items.extend(ARNvramIndexSource(kind, unit) for kind, _, _ in _OVPN)
+        items.append(ARNvramIndexSource(ARNvramIndexType.WGC_ENABLE, unit))
+        items.extend(ARNvramIndexSource(kind, unit) for kind, _, _ in _WG)
+    return items
 
 
 def _clean(value: Any) -> str | None:
@@ -95,7 +120,7 @@ def _status_data(data: dict[str, Any]) -> dict[str, Any]:
 def _enabled_units(data: dict[str, Any]) -> set[int]:
     """Parse `vpn_clientx_eas` into the set of active OpenVPN units."""
 
-    text = raw_to_str(data.get("vpn_clientx_eas"))
+    text = raw_to_str(data.get(ARNvramType.VPN_CLIENT_EAS.value))
     if text is None:
         return set()
     return {n for part in text.split(",") if (n := raw_to_int(part))}
@@ -122,7 +147,7 @@ def _parse_status(raw: Any) -> dict[ARVpnClientField, Any]:
 
     for token, field, converter in _STATS:
         match = re.search(rf"{re.escape(token)},(.*?)(?=>)", text)
-        value = _convert(match[1] if match else None, converter)
+        value = raw_convert(match[1] if match else None, converter)
         if value is not None:
             fields[field] = value
 
@@ -137,19 +162,19 @@ def _openvpn(
 ) -> dict[ARVpnClientField, Any] | None:
     """Build an OpenVPN client profile, or None when the unit is empty."""
 
-    fields: dict[ARVpnClientField, Any] = {}
-    for suffix, field, converter in _OVPN:
-        value = _convert(data.get(f"vpn_client{unit}_{suffix}"), converter)
-        if value is not None:
-            fields[field] = value
+    fields = read_table(data, _OVPN, key=lambda kind: kind.key(unit))
 
-    state = _convert(
-        data.get(f"vpn_client{unit}_state"), ARVpnState.from_value
+    state = raw_convert(
+        data.get(ARNvramIndexType.VPN_CLIENT_STATE.key(unit)),
+        ARVpnState.from_value,
     )
     if state is not None:
         fields[ARVpnClientField.STATE] = state
         if state is ARVpnState.ERROR:
-            errno = _convert(data.get(f"vpn_client{unit}_errno"), raw_to_int)
+            errno = raw_convert(
+                data.get(ARNvramIndexType.VPN_CLIENT_ERRNO.key(unit)),
+                raw_to_int,
+            )
             if errno is not None:
                 fields[ARVpnClientField.STATE_REASON] = errno
 
@@ -173,13 +198,11 @@ def _wireguard(
 ) -> dict[ARVpnClientField, Any] | None:
     """Build a WireGuard client profile, or None when the unit is empty."""
 
-    fields: dict[ARVpnClientField, Any] = {}
-    for suffix, field, converter in _WG:
-        value = _convert(data.get(f"wgc{unit}_{suffix}"), converter)
-        if value is not None:
-            fields[field] = value
+    fields = read_table(data, _WG, key=lambda kind: kind.key(unit))
 
-    enable = _convert(data.get(f"wgc{unit}_enable"), raw_to_int)
+    enable = raw_convert(
+        data.get(ARNvramIndexType.WGC_ENABLE.key(unit)), raw_to_int
+    )
     if enable is None and not fields:
         return None
 
@@ -227,8 +250,8 @@ def build_toggle_payload(
     if protocol is ARVpnProtocol.WIREGUARD:
         service = f"start_wgc {unit}" if state else f"stop_wgc {unit}"
         arguments: dict[str, Any] = {
-            "wgc_enable": int(state),
-            "wgc_unit": unit,
+            ARNvramType.WGC_ENABLE.value: int(state),
+            ARNvramType.WGC_UNIT.value: unit,
             "id": unit,
         }
         return [service], arguments

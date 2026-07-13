@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import Any
 
 _BOM = "﻿"  # This is a literal BOM character. Don't edit it!
@@ -22,6 +23,15 @@ _STR_TO_BOOL: dict[str, bool] = {
     "0": False,
     "off": False,
 }
+
+
+def raw_convert(raw: Any, converter: Callable[[Any], Any]) -> Any:
+    """Convert a raw value, treating empty/absent as no value."""
+
+    if raw is None or raw == "":
+        return None
+    value = converter(raw)
+    return None if value == [] else value
 
 
 def raw_to_str(value: Any) -> str | None:

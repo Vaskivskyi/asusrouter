@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from asusrouter.modules.endpoint_v2 import AREndpoint
+from asusrouter.modules.nvram import ARNvramType
 from asusrouter.modules.port_forwarding.enums import (
     ARPortForwardingField,
     ARPortForwardingProtocol,
@@ -28,18 +28,45 @@ _RULE_SOURCE = "&#60&#62443&#62192.168.1.30&#62&#62UDP&#6210.0.0.0/24"
 class TestGetState:
     """Tests for get_state."""
 
-    async def test_fetches_nvram(self) -> None:
-        """The port forwarding nvram keys are requested."""
+    async def test_fetches_via_nvram(self) -> None:
+        """The port forwarding items are requested from the NVRAM module."""
 
-        callback = AsyncMock(return_value={"vts_enable_x": "1"})
-        await get_state(callback, ARPortForwardingSourceUniversal)
+        values = {ARNvramType.PORT_FORWARDING_STATE: "1"}
+        get_data = AsyncMock(return_value=values)
+        callback = AsyncMock()
 
-        request = callback.await_args.kwargs["request"]
-        assert callback.await_args.kwargs["endpoint"] is AREndpoint.FETCH_DATA
-        assert request.startswith("hook=")
-        assert "nvram_get(vts_enable_x)" in request
-        assert "nvram_get(vts_rulelist)" in request
-        assert "nvram_get(vts1_rulelist)" in request
+        result = await get_state(
+            callback,
+            ARPortForwardingSourceUniversal,
+            get_data_callback=get_data,
+        )
+
+        assert result == values
+        callback.assert_not_awaited()
+        assert get_data.await_args.args[0] == (
+            ARNvramType.PORT_FORWARDING_STATE,
+            ARNvramType.PORT_FORWARDING_LIST,
+            ARNvramType.PORT_FORWARDING_LIST_SECONDARY,
+        )
+
+    async def test_no_get_data_callback(self) -> None:
+        """Without a data callback nothing is fetched."""
+
+        callback = AsyncMock()
+        result = await get_state(callback, ARPortForwardingSourceUniversal)
+        assert result == {}
+        callback.assert_not_awaited()
+
+    async def test_non_dict_response(self) -> None:
+        """A non-dict response is normalized to an empty dict."""
+
+        get_data = AsyncMock(return_value=None)
+        result = await get_state(
+            AsyncMock(),
+            ARPortForwardingSourceUniversal,
+            get_data_callback=get_data,
+        )
+        assert result == {}
 
 
 class TestTranslateState:

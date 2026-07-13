@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from asusrouter.modules.firmware.enums import ARFirmwareType
 from asusrouter.modules.firmware.translate import (
     translate_build,
     translate_major,
@@ -11,7 +12,6 @@ from asusrouter.modules.firmware.translate import (
     translate_string,
     translate_type,
 )
-from asusrouter.modules.firmware.types import ARFirmwareType
 
 
 def _compare_revision(a: int | str | None, b: int | str | None) -> bool:

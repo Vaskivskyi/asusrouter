@@ -25,6 +25,7 @@ from asusrouter.modules.endpoint_v2 import (
     get_endpoint_request_type,
 )
 from asusrouter.modules.nvram import ARNvramType
+from asusrouter.modules.service.action import ARServiceResult
 from asusrouter.registry import ARCallableRegistry as ARCallReg
 from asusrouter.tools.color import COLOR_SCALE_ASUS_DAY, Color, dump_colors
 from asusrouter.tools.types import ARCallbackType
@@ -99,12 +100,12 @@ async def run_action(
     raw_callback: ARCallbackType | None = None,
     identity: ARDeviceIdentity | None = None,
     **kwargs: Any,
-) -> bool:
+) -> ARServiceResult:
     """Apply the Aura action."""
 
     if not aura_supported(identity):
         _LOGGER.debug("Aura unsupported on this device; ignoring action")
-        return False
+        return ARServiceResult(success=False)
 
     current: dict[ARAuraField, Any] = {}
     if get_data_callback is not None:
@@ -134,7 +135,7 @@ async def run_action(
     # success, while async_read would collapse a failed fetch to {} and hide it
     poster = raw_callback or callback
     data = await poster(endpoint=AREndpoint.SET_AURA, request=request)
-    return data is not None
+    return ARServiceResult(success=data is not None)
 
 
 ARCallReg.register_action(ARAuraAction, run_action=run_action)

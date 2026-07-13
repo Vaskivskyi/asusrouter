@@ -29,7 +29,7 @@ from asusrouter.modules.aimesh.topology import (
 )
 from asusrouter.modules.common.region import ARRegion
 from asusrouter.modules.firmware import ARFirmware
-from asusrouter.modules.ports.speed import ARPortSpeed
+from asusrouter.modules.ports.enums import ARPortSpeed
 from asusrouter.modules.wifi import ARWiFiBand
 from asusrouter.tools.identifiers import MacAddress
 

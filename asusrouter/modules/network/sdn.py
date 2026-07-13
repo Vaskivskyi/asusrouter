@@ -9,9 +9,9 @@ from __future__ import annotations
 from typing import Any
 
 from asusrouter.modules.endpoint_v2 import AREndpoint
+from asusrouter.modules.endpoint_v2.hooks import hook_request, hook_value
 from asusrouter.modules.network.common import (
     bandwidth_limit,
-    decode,
     mac_filter_mode,
     read_mac_list,
 )
@@ -22,6 +22,11 @@ from asusrouter.modules.network.enums import (
     ARNetworkType,
 )
 from asusrouter.modules.network.handle import ARNetworkHandle
+from asusrouter.modules.nvram import (
+    ARNvramIndexSource,
+    ARNvramIndexType,
+    ARNvramType,
+)
 from asusrouter.modules.wifi import ARWiFiAuthMode, ARWiFiBand
 from asusrouter.tools.converters_v2.raw import (
     raw_to_bool,
@@ -29,8 +34,8 @@ from asusrouter.tools.converters_v2.raw import (
     raw_to_str,
 )
 from asusrouter.tools.identifiers import Password, Ssid
+from asusrouter.tools.readers_v2.nvram_list import split_rows
 from asusrouter.tools.types import ARCallbackType
-from asusrouter.tools.writers import nvram
 
 # `sdn_rl` column indices (see `set_sdn_profile` in the firmware)
 _COL_IDX = 0
@@ -52,21 +57,28 @@ _BW_DOWNLOAD_COL = 2
 
 # Per-profile AP-group keys we read and parse
 _AP_KEYS = (
-    "enable",
-    "ssid",
-    "hide_ssid",
-    "security",
-    "ap_isolate",
-    "macmode",
-    "mlo",
-    "maclist",
-    "dut_list",
-    "11be",
-    "timesched",
-    "sched",
-    "expiretime",
-    "bw_limit",
+    ARNvramIndexType.AP_ENABLE,
+    ARNvramIndexType.AP_SSID,
+    ARNvramIndexType.AP_HIDE_SSID,
+    ARNvramIndexType.AP_SECURITY,
+    ARNvramIndexType.AP_AP_ISOLATE,
+    ARNvramIndexType.AP_MACMODE,
+    ARNvramIndexType.AP_MLO,
+    ARNvramIndexType.AP_MACLIST,
+    ARNvramIndexType.AP_DUT_LIST,
+    ARNvramIndexType.AP_11BE,
+    ARNvramIndexType.AP_TIMESCHED,
+    ARNvramIndexType.AP_SCHED,
+    ARNvramIndexType.AP_EXPIRETIME,
+    ARNvramIndexType.AP_BW_LIMIT,
 )
+
+
+def _ap_index(prefix: str | None, idx: int | None) -> str:
+    """Build the AP-group template index (`g1` for `apg1`)."""
+
+    return f"{(prefix or '').removeprefix('ap')}{idx}"
+
 
 # WiFi band bitmask -> band (`wifi_band_options_cb`): a band matches any of
 # its bits (single vs dual-band variants)
@@ -82,8 +94,7 @@ _BAND_BITS: dict[ARWiFiBand, int] = {
 def _rows(raw: Any) -> list[list[str]]:
     """Decode a char-encoded rule-list into rows of `>`-separated columns."""
 
-    decoded = decode(raw)
-    return [chunk.split(">") for chunk in decoded.split("<") if chunk != ""]
+    return [row.split(">") for row in split_rows(raw) if row != ""]
 
 
 def _parse_sdn_rl(raw: Any) -> list[tuple[str, str, int, int, bool]]:
@@ -184,20 +195,20 @@ def _schedule(
 def _ap_request(profiles: list[tuple[str, str, int, int, bool]]) -> str:
     """Build the appGet request for the referenced AP groups."""
 
-    keys = [
-        f"{prefix}{apg_idx}_{key}"
+    items = [
+        ARNvramIndexSource(kind, _ap_index(prefix, apg_idx))
         for _, prefix, apg_idx, _, _ in profiles
-        for key in _AP_KEYS
+        for kind in _AP_KEYS
     ]
-    return f"hook={nvram(keys) or ''}"
+    return hook_request(*items)
 
 
 async def fetch_sdn_rl(callback: ARCallbackType) -> Any:
     """Fetch the raw `sdn_rl` rule list, or None if unavailable."""
 
-    request = f"hook={nvram(['sdn_rl']) or ''}"
+    request = hook_request(ARNvramType.SDN_RL)
     data = await callback(endpoint=AREndpoint.FETCH_DATA, request=request)
-    return data.get("sdn_rl") if isinstance(data, dict) else None
+    return hook_value(data, ARNvramType.SDN_RL)
 
 
 async def fetch(callback: ARCallbackType) -> Any:
@@ -209,13 +220,13 @@ async def fetch(callback: ARCallbackType) -> Any:
 
     profiles = _parse_sdn_rl(sdn_rl)
     if not profiles:
-        return {"sdn_rl": sdn_rl}
+        return {ARNvramType.SDN_RL.value: sdn_rl}
 
     second = await callback(
         endpoint=AREndpoint.FETCH_DATA, request=_ap_request(profiles)
     )
     ap_data = second if isinstance(second, dict) else {}
-    return {"sdn_rl": sdn_rl, **ap_data}
+    return {ARNvramType.SDN_RL.value: sdn_rl, **ap_data}
 
 
 def _build_network(
@@ -226,46 +237,62 @@ def _build_network(
 ) -> dict[ARNetworkField, Any]:
     """Build the network profile dict for one AP group."""
 
-    def _get(key: str) -> Any:
-        return data.get(f"{handle.ap_prefix}{handle.ap_idx}_{key}")
+    index = _ap_index(handle.ap_prefix, handle.ap_idx)
+
+    def _get(kind: ARNvramIndexType) -> Any:
+        return data.get(kind.key(index))
 
     # A network is on only when both the SDN profile and its AP group are on
-    enabled = sdn_enabled and (raw_to_bool(_get("enable")) or False)
+    enabled = sdn_enabled and (
+        raw_to_bool(_get(ARNvramIndexType.AP_ENABLE)) or False
+    )
 
     fields: dict[ARNetworkField, Any] = {
         ARNetworkField.ENABLED: enabled,
         ARNetworkField.HANDLE: handle,
-        ARNetworkField.HIDDEN: raw_to_bool(_get("hide_ssid")) or False,
-        ARNetworkField.WIFI7: raw_to_bool(_get("11be")) or False,
-        ARNetworkField.AP_ISOLATE: raw_to_bool(_get("ap_isolate")) or False,
+        ARNetworkField.HIDDEN: (
+            raw_to_bool(_get(ARNvramIndexType.AP_HIDE_SSID)) or False
+        ),
+        ARNetworkField.WIFI7: (
+            raw_to_bool(_get(ARNvramIndexType.AP_11BE)) or False
+        ),
+        ARNetworkField.AP_ISOLATE: (
+            raw_to_bool(_get(ARNvramIndexType.AP_AP_ISOLATE)) or False
+        ),
     }
 
-    ssid = Ssid.from_value_safe(_get("ssid"))
+    ssid = Ssid.from_value_safe(_get(ARNvramIndexType.AP_SSID))
     if ssid is not None:
         fields[ARNetworkField.SSID] = ssid
 
-    mlo = raw_to_int(_get("mlo"))
+    mlo = raw_to_int(_get(ARNvramIndexType.AP_MLO))
     if mlo is not None:
         fields[ARNetworkField.MLO] = mlo
 
     fields.update(
-        _schedule(_get("timesched"), _get("sched"), _get("expiretime"))
+        _schedule(
+            _get(ARNvramIndexType.AP_TIMESCHED),
+            _get(ARNvramIndexType.AP_SCHED),
+            _get(ARNvramIndexType.AP_EXPIRETIME),
+        )
     )
-    fields.update(_bandwidth(_get("bw_limit")))
+    fields.update(_bandwidth(_get(ARNvramIndexType.AP_BW_LIMIT)))
 
-    mode = mac_filter_mode(_get("macmode"))
+    mode = mac_filter_mode(_get(ARNvramIndexType.AP_MACMODE))
     if mode is not None:
         fields[ARNetworkField.MAC_FILTER_MODE] = mode
-    mac_list = read_mac_list(_get("maclist"))
+    mac_list = read_mac_list(_get(ARNvramIndexType.AP_MACLIST))
     if mac_list:
         fields[ARNetworkField.MAC_FILTER_LIST] = mac_list
 
-    dut_bands = _dut_bands(_get("dut_list"), bands)
+    dut_bands = _dut_bands(_get(ARNvramIndexType.AP_DUT_LIST), bands)
     if dut_bands:
         fields[ARNetworkField.BANDS] = dut_bands
 
     # Security only for the bands the network is actually bound to
-    password, security = _parse_security(_get("security"), dut_bands)
+    password, security = _parse_security(
+        _get(ARNvramIndexType.AP_SECURITY), dut_bands
+    )
     if password is not None:
         fields[ARNetworkField.PASSWORD] = password
     if security:
@@ -281,7 +308,7 @@ def translate(
 
     result: dict[ARNetworkType, list[dict[ARNetworkField, Any]]] = {}
     for name, prefix, apg_idx, sdn_idx, sdn_enabled in _parse_sdn_rl(
-        data.get("sdn_rl")
+        data.get(ARNvramType.SDN_RL.value)
     ):
         handle = ARNetworkHandle(
             backend=ARNetworkBackend.SDN,
@@ -311,8 +338,11 @@ def build_toggle_payload(
 
     new_sdn_rl = "".join("<" + ">".join(cols) for cols in rows)
     rc_service = f"restart_wireless;restart_sdn {handle.sdn_idx};"
+    ap_enable = ARNvramIndexType.AP_ENABLE.key(
+        _ap_index(handle.ap_prefix, handle.ap_idx)
+    )
     arguments: dict[str, Any] = {
-        "sdn_rl": new_sdn_rl,
-        f"{handle.ap_prefix}{handle.ap_idx}_enable": int(state),
+        ARNvramType.SDN_RL.value: new_sdn_rl,
+        ap_enable: int(state),
     }
     return rc_service, arguments

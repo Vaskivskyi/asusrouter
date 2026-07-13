@@ -8,12 +8,12 @@ from unittest.mock import AsyncMock, Mock
 
 import pytest
 
-from asusrouter.modules import aimesh
 from asusrouter.modules.aimesh import (
     ARAiMeshSource,
     ARAiMeshSourceUniversal,
     ARAiMeshTopology,
     get_state,
+    source as aimesh_source,
     translate_state,
 )
 from asusrouter.modules.endpoint_v2 import AREndpoint, get_endpoint_reader
@@ -135,12 +135,12 @@ def test_registers_callables(monkeypatch: pytest.MonkeyPatch) -> None:
         mock_register,
     )
 
-    importlib.reload(aimesh)
+    module = importlib.reload(aimesh_source)
 
     mock_register.assert_called_once()
     args, kwargs = mock_register.call_args
-    assert args[0] is aimesh.ARAiMeshSource
+    assert args[0] is module.ARAiMeshSource
     assert kwargs == {
-        "get_state": aimesh.get_state,
-        "translate_state": aimesh.translate_state,
+        "get_state": module.get_state,
+        "translate_state": module.translate_state,
     }

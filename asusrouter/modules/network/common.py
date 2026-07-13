@@ -9,6 +9,7 @@ from asusrouter.modules.network.enums import ARNetworkField
 from asusrouter.modules.wifi import ARWiFiMacFilterMode
 from asusrouter.tools.converters_v2.raw import raw_to_bool, raw_to_int
 from asusrouter.tools.identifiers.mac import MacAddress
+from asusrouter.tools.readers_v2.nvram_list import decode
 from asusrouter.tools.units import DataRateUnitConverter, UnitOfDataRate
 
 # Matches a colon-separated MAC address anywhere in a string
@@ -23,14 +24,6 @@ _MAC_FILTER_MODES: dict[str, ARWiFiMacFilterMode] = {
     "allow": ARWiFiMacFilterMode.ALLOW,
     "deny": ARWiFiMacFilterMode.DENY,
 }
-
-
-def decode(raw: Any) -> str:
-    """Decode the char-encoded nvram separators to `<`/`>`."""
-
-    if not isinstance(raw, str):
-        return ""
-    return raw.replace("&#60", "<").replace("&#62", ">")
 
 
 def read_mac_list(raw: Any) -> list[MacAddress]:

@@ -2,30 +2,12 @@
 
 from __future__ import annotations
 
-from enum import StrEnum
 from typing import Any
 
-from asusrouter.const import UNKNOWN_MEMBER_STR
 from asusrouter.modules.source import ARDataSource
+from asusrouter.modules.traffic.enums import ARTrafficType
 from asusrouter.modules.wifi import ARWiFiBand
-from asusrouter.tools.enum import FromStrMixin
 from asusrouter.tools.identifiers import MacAddress
-
-
-class ARTrafficType(FromStrMixin, StrEnum):
-    """A traffic link / interface type."""
-
-    UNKNOWN = UNKNOWN_MEMBER_STR
-
-    BACKHAUL = "backhaul"
-    BRIDGE = "bridge"
-    LACP = "lacp"
-    LACP1 = "lacp1"
-    LACP2 = "lacp2"
-    USB = "usb"
-    WAN = "wan"
-    WIRED = "wired"
-
 
 # A traffic link: a fixed type or a specific wifi band (wireless)
 ARTrafficLink = ARTrafficType | ARWiFiBand
@@ -86,26 +68,7 @@ class ARTrafficSource(ARDataSource):
 
         self._link = _coerce_link(value)
 
-    def __eq__(self, other: object) -> bool:
-        """Equal by exact type, target and link."""
+    def _key(self) -> tuple[Any, ...]:
+        """Key by the target device and link."""
 
-        if not isinstance(other, ARTrafficSource):
-            return NotImplemented
-        return (
-            type(self) is type(other)
-            and self._target == other._target
-            and self._link == other._link
-        )
-
-    def __hash__(self) -> int:
-        """Hash by type, target and link."""
-
-        return hash((type(self), self._target, self._link))
-
-    def __repr__(self) -> str:
-        """Representation of the traffic source."""
-
-        return (
-            f"<{type(self).__name__} target=`{self._target}` "
-            f"link=`{self._link}`>"
-        )
+        return (self._target, self._link)

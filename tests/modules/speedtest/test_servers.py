@@ -51,7 +51,7 @@ class TestGetState:
         callback = AsyncMock(return_value=None)
         result = await get_state(callback, ARSpeedTestServersSourceUniversal)
 
-        assert result is None
+        assert result == {}
 
     async def test_refresh_dispatches_and_polls(self) -> None:
         """Refresh asks the router to rebuild, then reads the filled list."""

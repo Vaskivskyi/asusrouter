@@ -3,47 +3,19 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from enum import StrEnum
 import json
 from typing import Any
 
-from asusrouter.const import UNKNOWN_MEMBER_STR, RequestType
+from asusrouter.const import RequestType
 from asusrouter.modules.common.metrics import ARMetricType
+from asusrouter.modules.speedtest.enums import ARSpeedTestEventType
 from asusrouter.tools.converters_v2.raw import (
     raw_to_float,
     raw_to_int,
     raw_to_str,
 )
-from asusrouter.tools.enum import FromStrMixin
 from asusrouter.tools.units import DataRateUnitConverter, UnitOfDataRate
 from asusrouter.tools.writers import dict_to_request
-
-
-class ARSpeedTestState(FromStrMixin, StrEnum):
-    """SpeedTest run state reported in nvram `ookla_state`."""
-
-    UNKNOWN = UNKNOWN_MEMBER_STR
-
-    IDLE = "0"
-    RUNNING = "1"
-    ERROR_DISCONNECTED = "2"
-    ERROR_TIMEOUT = "3"
-    ERROR_TERMINATED = "4"
-    ERROR_UNKNOWN = "5"
-
-
-class ARSpeedTestEventType(FromStrMixin, StrEnum):
-    """Event type of a row in the Ookla result stream."""
-
-    UNKNOWN = UNKNOWN_MEMBER_STR
-
-    DOWNLOAD = "download"
-    ERROR = "error"
-    LOG = "log"
-    RESULT = "result"
-    TEST_START = "testStart"
-    UPLOAD = "upload"
-
 
 # Ookla marks a failed run (bad server, disconnect) with this log level
 _ERROR_LEVEL = "error"
@@ -284,10 +256,8 @@ def servers_from_list(data: Any) -> list[ARSpeedTestServer]:
 __all__ = [
     "EXE_TYPE_LIST",
     "EXE_TYPE_RUN",
-    "ARSpeedTestEventType",
     "ARSpeedTestResult",
     "ARSpeedTestServer",
-    "ARSpeedTestState",
     "build_history_request",
     "build_run_request",
     "build_start_time_request",

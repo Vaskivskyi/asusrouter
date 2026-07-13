@@ -62,6 +62,11 @@ class ARServiceResult:
     needed_time: int | None = None
     last_id: int | None = None
 
+    def __bool__(self) -> bool:
+        """Truthy when the run succeeded."""
+
+        return self.success
+
 
 class ARServiceAction(ARAction):
     """Run one or more device services via `rc_service`."""
@@ -141,6 +146,23 @@ def read_service_result(
     )
 
 
+async def async_run_service(
+    callback: ARCallbackType,
+    services: ARServiceInput | Iterable[ARServiceInput],
+    *,
+    arguments: dict[str, Any] | None = None,
+    raw_callback: ARCallbackType | None = None,
+) -> ARServiceResult:
+    """Post a service run and read the outcome."""
+
+    request = build_service_request(services, arguments=arguments)
+    # Post raw when possible: async_fetch preserves a failed fetch as None,
+    # while async_read would collapse it to {} and hide the failure
+    poster = raw_callback or callback
+    data = await poster(endpoint=AREndpoint.PUSH_DATA, request=request)
+    return read_service_result(data, services)
+
+
 async def run_action(
     callback: ARCallbackType,
     action: ARServiceAction,
@@ -154,12 +176,12 @@ async def run_action(
     if not action.services:
         return ARServiceResult(success=False)
 
-    request = build_service_request(
-        action.services, arguments=action.arguments or None
+    result = await async_run_service(
+        callback,
+        action.services,
+        arguments=action.arguments or None,
+        raw_callback=raw_callback,
     )
-    poster = raw_callback or callback
-    data = await poster(endpoint=AREndpoint.PUSH_DATA, request=request)
-    result = read_service_result(data, action.services)
 
     # A reboot drops the session; flag it so the caller reconnects
     if (
@@ -179,6 +201,7 @@ __all__ = [
     "ARServiceAction",
     "ARServiceInput",
     "ARServiceResult",
+    "async_run_service",
     "build_service_request",
     "read_service_result",
     "run_action",

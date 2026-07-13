@@ -63,13 +63,13 @@ class TestServerEnabled:
         assert ovpn.server_enabled({"VPNServer_enable": value}) is expected
 
 
-class TestNvramKeys:
-    """Tests for nvram_keys."""
+class TestNvramItems:
+    """Tests for nvram_items."""
 
     def test_contains(self) -> None:
-        """Keys cover the enable flag, settings and per-unit state."""
+        """Items cover the enable flag, settings and per-unit state."""
 
-        keys = ovpn.nvram_keys()
+        keys = [item.as_hook()[1] for item in ovpn.nvram_items()]
         assert "VPNServer_enable" in keys
         assert "vpn_serverx_clientlist" in keys
         assert "vpn_server1_state" in keys

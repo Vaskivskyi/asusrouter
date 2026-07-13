@@ -7,19 +7,19 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
+from asusrouter.modules.action import _RUN_START_DELAY
 from asusrouter.modules.endpoint_v2 import AREndpoint
 from asusrouter.modules.endpoint_v2.hooks import ARHook
 from asusrouter.modules.speedtest import (
-    _RUN_START_DELAY,
     ARSpeedTestAction,
     ARSpeedTestResult,
     ARSpeedTestSource,
     ARSpeedTestSourceUniversal,
-    _log_stream,
     get_state,
     run_action,
     translate_state,
 )
+from asusrouter.modules.speedtest.source import _log_stream
 from asusrouter.registry import ARCallableRegistry as ARCallReg
 
 _HOOK = ARHook.OOKLA_SPEEDTEST_RESULT.value
@@ -106,7 +106,7 @@ class TestGetState:
         """Skip the real run-start delay during tests."""
 
         with patch(
-            "asusrouter.modules.speedtest.asyncio.sleep", AsyncMock()
+            "asusrouter.modules.action.asyncio.sleep", AsyncMock()
         ) as sleep:
             yield sleep
 
@@ -126,7 +126,7 @@ class TestGetState:
         callback = AsyncMock(return_value=None)
         result = await get_state(callback, ARSpeedTestSourceUniversal)
 
-        assert result is None
+        assert result == {}
 
     async def test_bound_source_uses_matching_last_run(self) -> None:
         """A bound source keeps the last run when it is for its server."""
@@ -157,8 +157,8 @@ class TestGetState:
 
         assert result == [entry]
 
-    async def test_bound_source_no_data_returns_none(self) -> None:
-        """No matching last run and no history yields None."""
+    async def test_bound_source_no_data(self) -> None:
+        """No matching last run and no history yields no data."""
 
         callback = AsyncMock(
             side_effect=[
@@ -169,7 +169,7 @@ class TestGetState:
 
         result = await get_state(callback, ARSpeedTestSource(54112))
 
-        assert result is None
+        assert result == {}
 
     async def test_refresh_missing_run_callback(self) -> None:
         """Refresh without a run-action callback fetches nothing."""
@@ -179,7 +179,7 @@ class TestGetState:
             callback, ARSpeedTestSourceUniversal, refresh=True
         )
 
-        assert result is None
+        assert result == {}
         callback.assert_not_awaited()
 
     async def test_refresh_run_not_started(self) -> None:
@@ -194,7 +194,7 @@ class TestGetState:
             refresh=True,
         )
 
-        assert result is None
+        assert result == {}
         callback.assert_awaited_once()
 
     async def test_refresh_times_out(self) -> None:
@@ -210,7 +210,7 @@ class TestGetState:
                 refresh=True,
             )
 
-        assert result is None
+        assert result == {}
 
     async def test_refresh_ignores_stale_then_reads_fresh(self) -> None:
         """A lingering old result is skipped until a fresh id appears."""
@@ -300,7 +300,7 @@ class TestGetState:
                 refresh=True,
             )
 
-        assert result is None
+        assert result == {}
         assert "No servers defined" in caplog.text
 
     async def test_refresh_save_persists_fresh_result(self) -> None:
@@ -310,7 +310,7 @@ class TestGetState:
         callback = AsyncMock(side_effect=[_reply("old"), {_HOOK: fresh}])
 
         with patch(
-            "asusrouter.modules.speedtest.async_save_result",
+            "asusrouter.modules.speedtest.source.async_save_result",
             AsyncMock(return_value=True),
         ) as save:
             result = await get_state(
@@ -334,7 +334,7 @@ class TestGetState:
 
         with (
             patch(
-                "asusrouter.modules.speedtest.async_save_result",
+                "asusrouter.modules.speedtest.source.async_save_result",
                 AsyncMock(return_value=False),
             ),
             caplog.at_level("DEBUG"),
@@ -356,7 +356,8 @@ class TestGetState:
         callback = AsyncMock(return_value={_HOOK: _EVENTS})
 
         with patch(
-            "asusrouter.modules.speedtest.async_save_result", AsyncMock()
+            "asusrouter.modules.speedtest.source.async_save_result",
+            AsyncMock(),
         ) as save:
             result = await get_state(
                 callback, ARSpeedTestSourceUniversal, save=True
@@ -429,7 +430,8 @@ class TestRunAction:
         """A default run stamps the start time, then posts an empty body."""
 
         callback = AsyncMock()
-        assert await run_action(callback, ARSpeedTestAction()) is True
+        result = await run_action(callback, ARSpeedTestAction())
+        assert result.success is True
 
         # First the start time, then the run trigger
         start, run = callback.await_args_list
@@ -457,6 +459,31 @@ class TestRunAction:
 
         run = callback.await_args_list[1].kwargs
         assert run["request"] == "type=&id=54112"
+
+    async def test_prefers_raw_callback(self) -> None:
+        """With a raw callback, both requests post raw and success is True."""
+
+        callback = AsyncMock()
+        raw_callback = AsyncMock(return_value="")
+
+        result = await run_action(
+            callback, ARSpeedTestAction(), raw_callback=raw_callback
+        )
+
+        assert result.success is True
+        callback.assert_not_awaited()
+        assert raw_callback.await_count == 2
+
+    async def test_failed_run_returns_false(self) -> None:
+        """A failed run request reports False."""
+
+        raw_callback = AsyncMock(return_value=None)
+
+        result = await run_action(
+            AsyncMock(), ARSpeedTestAction(), raw_callback=raw_callback
+        )
+
+        assert result.success is False
 
     def test_registered(self) -> None:
         """The action resolves to the module run_action callable."""

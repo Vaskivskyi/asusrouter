@@ -38,13 +38,13 @@ _DATA: dict[str, Any] = {
 }
 
 
-class TestNvramKeys:
-    """Tests for nvram_keys."""
+class TestNvramItems:
+    """Tests for nvram_items."""
 
     def test_contains(self) -> None:
-        """Keys cover per-unit OpenVPN and WireGuard clients."""
+        """Items cover per-unit OpenVPN and WireGuard clients."""
 
-        keys = classic.nvram_keys()
+        keys = [item.as_hook()[1] for item in classic.nvram_items()]
         assert "vpn_clientx_eas" in keys
         assert "vpn_client1_state" in keys
         assert "vpn_client1_desc" in keys

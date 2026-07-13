@@ -2,10 +2,20 @@
 
 from __future__ import annotations
 
+import asyncio
 from enum import StrEnum
+import logging
+from typing import Any
 
 from asusrouter.const import UNKNOWN_MEMBER_STR
 from asusrouter.tools.enum import FromStrMixin
+from asusrouter.tools.types import ARCallbackType
+
+_LOGGER = logging.getLogger(__name__)
+
+# The router needs a moment to spin up a run after the trigger returns;
+# reading sooner still sees the previous run and stale/absent results
+_RUN_START_DELAY = 1.0
 
 
 class ARActionType(FromStrMixin, StrEnum):
@@ -23,32 +33,58 @@ class ARAction:
 
     A universal class representing an action to run on the device.
 
-    Actions are equal by exact type (router-global) by default;
-    subclasses with defining parameters override equality and hash.
+    Actions are equal by exact type and their `_key()`; router-global
+    actions keep the empty default, subclasses with defining parameters
+    override `_key` only.
     """
 
     def __init__(self) -> None:
         """Initialize the action."""
 
-    def __eq__(self, other: object) -> bool:
-        """Equal by exact type (router-global by default)."""
+    def _key(self) -> tuple[Any, ...]:
+        """Return the defining fields for equality and hashing."""
 
-        if not isinstance(other, ARAction):
+        return ()
+
+    def __eq__(self, other: object) -> bool:
+        """Equal by exact type and defining fields."""
+
+        if type(other) is not type(self):
             return NotImplemented
-        return type(self) is type(other)
+        return self._key() == other._key()
 
     def __hash__(self) -> int:
-        """Hash by type."""
+        """Hash by type and defining fields."""
 
-        return hash(type(self))
+        return hash((type(self), *self._key()))
 
     def __repr__(self) -> str:
         """Representation of the action."""
 
-        return f"<{type(self).__name__}>"
+        key = self._key()
+        name = type(self).__name__
+        return f"<{name} {key!r}>" if key else f"<{name}>"
+
+
+async def async_start_run(
+    run_action_callback: ARCallbackType | None,
+    action: ARAction,
+    *,
+    delay: float = _RUN_START_DELAY,
+) -> bool:
+    """Trigger an action run and give the device time to start it."""
+
+    if run_action_callback is None:
+        return False
+    if not await run_action_callback(action):
+        _LOGGER.debug("%r did not start; dropping results", action)
+        return False
+    await asyncio.sleep(delay)
+    return True
 
 
 __all__ = [
     "ARAction",
     "ARActionType",
+    "async_start_run",
 ]
