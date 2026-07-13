@@ -11,7 +11,6 @@ from typing import Any
 
 from asusrouter.modules.common.connection import ARConnectionState
 from asusrouter.modules.data import AsusData, AsusDataState
-from asusrouter.modules.ddns import AsusDDNS
 from asusrouter.modules.parental_control import (
     AsusBlockAll,
     AsusParentalControl,
@@ -36,7 +35,6 @@ class AsusState(Enum):
     NONE = AsusStateNone
     BLOCK_ALL = AsusBlockAll
     CONNECTION = ARConnectionState
-    DDNS = AsusDDNS
     LED = AsusLED
     PARENTAL_CONTROL = AsusParentalControl
     PC_RULE = ParentalControlRule
@@ -46,7 +44,6 @@ AsusStateMap: dict[AsusState, AsusData | None] = {
     AsusState.NONE: None,
     AsusState.BLOCK_ALL: AsusData.PARENTAL_CONTROL,
     AsusState.CONNECTION: None,
-    AsusState.DDNS: None,
     AsusState.LED: AsusData.LED,
     AsusState.PARENTAL_CONTROL: AsusData.PARENTAL_CONTROL,
     AsusState.PC_RULE: AsusData.PARENTAL_CONTROL,

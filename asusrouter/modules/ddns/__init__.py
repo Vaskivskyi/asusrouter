@@ -14,16 +14,6 @@ from asusrouter.modules.ddns.enums import (
     ARDdnsServer,
     ARDdnsStatus,
 )
-from asusrouter.modules.ddns.legacy import (
-    DDNS_HINT_MAP,
-    DDNS_STATUS_ACTIVE,
-    DDNS_STATUS_HINT,
-    AsusDDNS,
-    DDNSStatusCode,
-    DDNSStatusHint,
-    process_ddns,
-    read_ddns_status_code,
-)
 from asusrouter.modules.ddns.source import (
     DDNS_REQUEST,
     ARDdnsSource,
@@ -35,10 +25,7 @@ from asusrouter.modules.ddns.source import (
 
 __all__ = [
     "ACTIVE_STATUSES",
-    "DDNS_HINT_MAP",
     "DDNS_REQUEST",
-    "DDNS_STATUS_ACTIVE",
-    "DDNS_STATUS_HINT",
     "ARDdnsAction",
     "ARDdnsCommand",
     "ARDdnsConfig",
@@ -47,12 +34,7 @@ __all__ = [
     "ARDdnsSource",
     "ARDdnsSourceUniversal",
     "ARDdnsStatus",
-    "AsusDDNS",
-    "DDNSStatusCode",
-    "DDNSStatusHint",
     "get_state",
-    "process_ddns",
-    "read_ddns_status_code",
     "read_status",
     "run_action",
     "translate_state",

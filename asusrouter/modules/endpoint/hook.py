@@ -6,7 +6,6 @@ import logging
 from typing import Any
 
 from asusrouter.modules.data import AsusData
-from asusrouter.modules.ddns import process_ddns
 from asusrouter.modules.led import AsusLED
 from asusrouter.modules.parental_control import (
     KEY_PC_BLOCK_ALL,
@@ -30,14 +29,6 @@ def process(data: dict[str, Any]) -> dict[AsusData, Any]:
     # Otherwise, we can accidentally overwrite the data with empty values.
 
     state: dict[AsusData, Any] = {}
-
-    # DDNS
-    if (
-        "ddns_return_code_chk" in data
-        or "ddns_server_x" in data
-        or "ddns_hostname_x" in data
-    ):
-        state[AsusData.DDNS] = process_ddns(data)
 
     # LED
     if "led_val" in data:
