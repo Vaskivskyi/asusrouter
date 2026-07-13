@@ -8,7 +8,6 @@ from typing import Any
 
 from asusrouter.modules.action import ARAction
 from asusrouter.modules.common.command import ARService
-from asusrouter.modules.endpoint_v2 import AREndpoint
 from asusrouter.modules.nvram import ARNvramType
 from asusrouter.modules.port_forwarding.enums import (
     ARPortForwardingCommand,
@@ -21,8 +20,7 @@ from asusrouter.modules.port_forwarding.source import (
 )
 from asusrouter.modules.service.action import (
     ARServiceResult,
-    build_service_request,
-    read_service_result,
+    async_run_service,
 )
 from asusrouter.registry import ARCallableRegistry as ARCallReg
 from asusrouter.tools.identifiers.ip import IpAddress, IpInterface
@@ -263,11 +261,12 @@ async def run_action(
     if not arguments:
         return ARServiceResult(success=False)
 
-    services = [ARService.FIREWALL_RESTART]
-    request = build_service_request(services, arguments=arguments)
-    poster = raw_callback or callback
-    data = await poster(endpoint=AREndpoint.PUSH_DATA, request=request)
-    result = read_service_result(data, services)
+    result = await async_run_service(
+        callback,
+        ARService.FIREWALL_RESTART,
+        arguments=arguments,
+        raw_callback=raw_callback,
+    )
 
     # Drop the now-stale cached rules/state so the next read refetches
     if result.success and expire_callback is not None:

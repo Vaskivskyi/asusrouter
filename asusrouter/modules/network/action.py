@@ -6,7 +6,6 @@ from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any
 
 from asusrouter.modules.action import ARAction
-from asusrouter.modules.endpoint_v2 import AREndpoint
 from asusrouter.modules.network import legacy, sdn
 from asusrouter.modules.network.enums import (
     ARNetworkBackend,
@@ -17,8 +16,7 @@ from asusrouter.modules.network.handle import ARNetworkHandle
 from asusrouter.modules.nvram import ARNvramType
 from asusrouter.modules.service.action import (
     ARServiceResult,
-    build_service_request,
-    read_service_result,
+    async_run_service,
 )
 from asusrouter.registry import ARCallableRegistry as ARCallReg
 from asusrouter.tools.identifiers import Ssid
@@ -112,10 +110,9 @@ async def run_action(
         return ARServiceResult(success=False)
 
     rc_service, arguments = payload
-    request = build_service_request(rc_service, arguments=arguments)
-    poster = raw_callback or callback
-    data = await poster(endpoint=AREndpoint.PUSH_DATA, request=request)
-    return read_service_result(data, rc_service)
+    return await async_run_service(
+        callback, rc_service, arguments=arguments, raw_callback=raw_callback
+    )
 
 
 ARCallReg.register_action(ARNetworkAction, run_action=run_action)

@@ -5,12 +5,10 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 from asusrouter.modules.action import ARAction
-from asusrouter.modules.endpoint_v2 import AREndpoint
 from asusrouter.modules.service.action import (
     ARServiceInput,
     ARServiceResult,
-    build_service_request,
-    read_service_result,
+    async_run_service,
 )
 from asusrouter.modules.vpn.enums import ARVpnProtocol
 from asusrouter.modules.vpn.server import openvpn, wireguard
@@ -81,10 +79,9 @@ async def run_action(
         return ARServiceResult(success=False)
 
     services, arguments = payload
-    request = build_service_request(services, arguments=arguments)
-    poster = raw_callback or callback
-    data = await poster(endpoint=AREndpoint.PUSH_DATA, request=request)
-    return read_service_result(data, services)
+    return await async_run_service(
+        callback, services, arguments=arguments, raw_callback=raw_callback
+    )
 
 
 ARCallReg.register_action(ARVpnServerAction, run_action=run_action)
