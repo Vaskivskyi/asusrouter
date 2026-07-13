@@ -14,6 +14,7 @@ from asusrouter.modules.nvram import (
     ARNvramIndexSource,
     ARNvramIndexType,
     ARNvramType,
+    async_expire_values,
     get_state,
     translate_state,
 )
@@ -251,6 +252,38 @@ class TestTranslateStateIndexed:
             ARConnectionStatus.CONNECTED
         )
         assert result[ARNvramType.DUAL_WAN_CONFIG] == ["lan", "usb"]
+
+
+class TestAsyncExpireValues:
+    """Tests for async_expire_values."""
+
+    @pytest.mark.asyncio
+    async def test_expires_each_item(self) -> None:
+        """Every requested item is expired individually."""
+
+        expire = AsyncMock()
+        request = (ARNvramType.MAC, ARNvramType.WAN_UNIT)
+        await async_expire_values(expire, request)
+
+        assert expire.await_count == 2
+        expire.assert_any_await(ARNvramType.MAC)
+        expire.assert_any_await(ARNvramType.WAN_UNIT)
+
+    @pytest.mark.asyncio
+    async def test_single_item(self) -> None:
+        """A single item works without wrapping it in an iterable."""
+
+        expire = AsyncMock()
+        source = ARNvramIndexSource(ARNvramIndexType.WAN_STATE, 0)
+        await async_expire_values(expire, source)
+
+        expire.assert_awaited_once_with(source)
+
+    @pytest.mark.asyncio
+    async def test_no_callback(self) -> None:
+        """Without a callback nothing happens."""
+
+        await async_expire_values(None, ARNvramType.MAC)
 
 
 @pytest.mark.parametrize("cls", [ARNvramType, ARNvramIndexSource])

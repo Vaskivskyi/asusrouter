@@ -52,12 +52,25 @@ class ARNvramType(ARDataType):
     AI_STATUS = "ai_prog_status"
 
     # DDNS
-    DDNS_STATE = "ddns_enable_x"
-    DDNS_SERVER = "ddns_server_x"
     DDNS_HOSTNAME = "ddns_hostname_x"
+    DDNS_HOSTNAME_OLD = "ddns_hostname_old"
+    DDNS_IP_ADDRESS = "ddns_ipaddr"
+    DDNS_IPV6_UPDATE = "ddns_ipv6_update"
     DDNS_OLD_NAME = "ddns_old_name"
-    DDNS_UPDATED = "ddns_updated"
+    DDNS_PASSWORD = "ddns_passwd_x"
+    DDNS_REFRESH_INTERVAL = "ddns_refresh_x"  # Merlin only
+    DDNS_REGISTRATION_RESULT = "asusddns_reg_result"
+    DDNS_REGULAR_CHECK = "ddns_regular_check"
+    DDNS_REGULAR_PERIOD = "ddns_regular_period"
+    DDNS_REPLACE_STATUS = "ddns_replace_status"
     DDNS_RETURN_CODE_CHK = "ddns_return_code_chk"
+    DDNS_SERVER = "ddns_server_x"
+    DDNS_STATE = "ddns_enable_x"
+    DDNS_TOKEN_STATE = "asusddns_token_state"
+    DDNS_UPDATED = "ddns_updated"
+    DDNS_USERNAME = "ddns_username_x"
+    DDNS_WAN_UNIT = "ddns_wan_unit"
+    DDNS_WILDCARD = "ddns_wildcard_x"
 
     # DNS
     DNS_PING_LIST = "dns_ping_list"

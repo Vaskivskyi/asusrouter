@@ -1,4 +1,4 @@
-"""DDNS module."""
+"""Legacy DDNS module."""
 
 from __future__ import annotations
 

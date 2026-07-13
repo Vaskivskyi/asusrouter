@@ -155,6 +155,16 @@ def _resolve_key(item: ARNvramItem) -> str:
     return item.value
 
 
+def _as_items(
+    request: ARNvramItem | Iterable[ARNvramItem],
+) -> list[ARNvramItem]:
+    """Coerce a single item or an iterable of them into a list."""
+
+    if isinstance(request, (ARNvramType, ARNvramIndexSource)):
+        return [request]
+    return list(request)
+
+
 async def get_state(
     callback: ARCallbackType,
     source: ARNvramItem | Iterable[ARNvramItem],
@@ -162,11 +172,7 @@ async def get_state(
 ) -> dict[ARNvramItem, str]:
     """Fetch the NVRAM data state."""
 
-    items: list[ARNvramItem] = (
-        [source]
-        if isinstance(source, (ARNvramType, ARNvramIndexSource))
-        else list(source)
-    )
+    items = _as_items(source)
 
     # Map each raw key back to the item that requested it
     forward: dict[str, ARNvramItem] = {
@@ -208,6 +214,23 @@ async def async_get_value(
 
     values = await async_fetch_values(get_data_callback, item, **kwargs)
     return values.get(item)
+
+
+async def async_expire_values(
+    expire_callback: ARCallbackType | None,
+    request: ARNvramItem | Iterable[ARNvramItem],
+) -> None:
+    """Expire cached NVRAM values so the next fetch refetches them.
+
+    NVRAM items are cached per item; a module expiring its own source
+    must expire the underlying items too, or a refetch within the cache
+    window returns the stale pre-action values.
+    """
+
+    if expire_callback is None:
+        return
+    for item in _as_items(request):
+        await expire_callback(item)
 
 
 def translate_state(

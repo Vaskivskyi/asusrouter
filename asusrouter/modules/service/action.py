@@ -89,6 +89,7 @@ def build_service_request(
     services: ARServiceInput | Iterable[ARServiceInput],
     *,
     arguments: dict[str, Any] | None = None,
+    action_mode: ARActionMode = ARActionMode.APPLY,
 ) -> str:
     """Build an applyapp request body that runs one or more services."""
 
@@ -96,7 +97,7 @@ def build_service_request(
     payload: dict[str, Any] = {RC_SERVICE_KEY: names}
     if arguments:
         payload.update(arguments)
-    return build_push_request(ARActionMode.APPLY, payload)
+    return build_push_request(action_mode, payload)
 
 
 def _try_json(text: str) -> dict[str, Any] | None:
@@ -151,11 +152,14 @@ async def async_run_service(
     services: ARServiceInput | Iterable[ARServiceInput],
     *,
     arguments: dict[str, Any] | None = None,
+    action_mode: ARActionMode = ARActionMode.APPLY,
     raw_callback: ARCallbackType | None = None,
 ) -> ARServiceResult:
     """Post a service run and read the outcome."""
 
-    request = build_service_request(services, arguments=arguments)
+    request = build_service_request(
+        services, arguments=arguments, action_mode=action_mode
+    )
     # Post raw when possible: async_fetch preserves a failed fetch as None,
     # while async_read would collapse it to {} and hide the failure
     poster = raw_callback or callback

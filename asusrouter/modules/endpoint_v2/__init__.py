@@ -51,6 +51,8 @@ class AREndpoint(FromStrMixin, StrEnum):
     FETCH_VPN_STATUS = "ajax_vpn_status.asp"
 
     # Write endpoints
+    DDNS_CLEAN = "clean_ddns.cgi"
+    DDNS_UNREGISTER = "unreg_ASUSDDNS.cgi"
     PUSH_DATA = "applyapp.cgi"
     RUN_PING = "dns_ping.cgi"
     RUN_SPEEDTEST = "ookla_speedtest_exe.cgi"
@@ -95,6 +97,8 @@ _RAW_POST_SENSITIVE_META = AREndpointMeta(
 )
 
 _ENDPOINT_META: dict[AREndpoint, AREndpointMeta] = {
+    AREndpoint.DDNS_CLEAN: _GET_META,
+    AREndpoint.DDNS_UNREGISTER: _GET_META,
     AREndpoint.FETCH_DIAGNOSTICS_DATA: _GET_META,
     AREndpoint.FETCH_NETWORK: _GET_META,
     AREndpoint.FETCH_PORT_STATUS: _GET_META,
