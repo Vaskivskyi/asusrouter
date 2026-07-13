@@ -531,13 +531,18 @@ class AsusRouter:
         """Fetch and translate a multicaller group in one batched request."""
 
         sources = [state.source for state in states]
-        data = await caller(
-            self.async_read,
-            sources,
-            identity=identity,
-            **kwargs,
-        )
-        self._translate_multidata(states, data, identity)
+        try:
+            data = await caller(
+                self.async_read,
+                sources,
+                identity=identity,
+                **kwargs,
+            )
+            self._translate_multidata(states, data, identity)
+        finally:
+            # Wake waiters as soon as this batch is done
+            for state in states:
+                state.end_refresh()
 
     async def _async_refresh_single(
         self,
@@ -548,17 +553,21 @@ class AsusRouter:
     ) -> None:
         """Fetch, translate and commit a single state."""
 
-        raw = await caller(
-            self.async_read,
-            state.source,
-            identity=identity,
-            **kwargs,
-        )
-        translate = state.translate_caller
-        self._commit_data_state(
-            state,
-            translate(raw, identity=identity) if translate else raw,
-        )
+        try:
+            raw = await caller(
+                self.async_read,
+                state.source,
+                identity=identity,
+                **kwargs,
+            )
+            translate = state.translate_caller
+            self._commit_data_state(
+                state,
+                translate(raw, identity=identity) if translate else raw,
+            )
+        finally:
+            # Wake waiters as soon as this fetch is done
+            state.end_refresh()
 
     async def _async_refresh_states(
         self,
@@ -592,7 +601,8 @@ class AsusRouter:
         try:
             results = await asyncio.gather(*tasks, return_exceptions=True)
         finally:
-            # Always wake waiters, even on errors, to avoid deadlocks
+            # Safety net: each task ends its own states' refresh above so
+            # in-gather waiters wake promptly
             for state in states:
                 state.end_refresh()
         for result in results:
