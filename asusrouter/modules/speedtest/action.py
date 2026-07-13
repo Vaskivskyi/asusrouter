@@ -32,17 +32,10 @@ class ARSpeedTestAction(ARAction):
         self.server_id = normalize_server_id(server_id)
         self.iface = iface
 
-    def __eq__(self, other: object) -> bool:
-        """Equal by chosen server and interface."""
+    def _key(self) -> tuple[Any, ...]:
+        """Key by the chosen server and interface."""
 
-        if not isinstance(other, ARSpeedTestAction):
-            return NotImplemented
-        return (self.server_id, self.iface) == (other.server_id, other.iface)
-
-    def __hash__(self) -> int:
-        """Hash by type, server, and interface."""
-
-        return hash((type(self), self.server_id, self.iface))
+        return (self.server_id, self.iface)
 
 
 async def run_action(

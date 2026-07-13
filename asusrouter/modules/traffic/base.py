@@ -68,21 +68,10 @@ class ARTrafficSource(ARDataSource):
 
         self._link = _coerce_link(value)
 
-    def __eq__(self, other: object) -> bool:
-        """Equal by exact type, target and link."""
+    def _key(self) -> tuple[Any, ...]:
+        """Key by the target device and link."""
 
-        if not isinstance(other, ARTrafficSource):
-            return NotImplemented
-        return (
-            type(self) is type(other)
-            and self._target == other._target
-            and self._link == other._link
-        )
-
-    def __hash__(self) -> int:
-        """Hash by type, target and link."""
-
-        return hash((type(self), self._target, self._link))
+        return (self._target, self._link)
 
     def __repr__(self) -> str:
         """Representation of the traffic source."""

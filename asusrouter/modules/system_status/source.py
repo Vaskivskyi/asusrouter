@@ -95,17 +95,10 @@ class ARSystemStatusSource(ARDataSource):
         self._prev_cpu = counters
         return prev
 
-    def __eq__(self, other: object) -> bool:
-        """Two sources are equal when they target the same MAC."""
+    def _key(self) -> tuple[Any, ...]:
+        """Key by the target MAC."""
 
-        if not isinstance(other, ARSystemStatusSource):
-            return NotImplemented
-        return self._target == other._target
-
-    def __hash__(self) -> int:
-        """Hash by type and target MAC."""
-
-        return hash((type(self), self._target))
+        return (self._target,)
 
     def __repr__(self) -> str:
         """Representation of the system status source."""

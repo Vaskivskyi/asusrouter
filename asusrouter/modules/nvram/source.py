@@ -49,17 +49,10 @@ class ARNvramIndexSource(ARDataSource):
 
         return (ARHook.NVRAM_GET, self.key)
 
-    def __eq__(self, other: object) -> bool:
-        """Equal by kind and index."""
+    def _key(self) -> tuple[Any, ...]:
+        """Key by the kind and index."""
 
-        if not isinstance(other, ARNvramIndexSource):
-            return NotImplemented
-        return self.kind == other.kind and self.index == other.index
-
-    def __hash__(self) -> int:
-        """Hash by kind and index."""
-
-        return hash((type(self), self.kind, self.index))
+        return (self.kind, self.index)
 
     def __repr__(self) -> str:
         """Representation of the indexed NVRAM source."""

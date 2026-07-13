@@ -29,17 +29,10 @@ class ARWiFiAction(ARAction):
         self.band = band
         self.state = state
 
-    def __eq__(self, other: object) -> bool:
-        """Equal by target band and desired state."""
+    def _key(self) -> tuple[Any, ...]:
+        """Key by the target band and desired state."""
 
-        if not isinstance(other, ARWiFiAction):
-            return NotImplemented
-        return self.band == other.band and self.state == other.state
-
-    def __hash__(self) -> int:
-        """Hash by target band and desired state."""
-
-        return hash((type(self), self.band, self.state))
+        return (self.band, self.state)
 
 
 async def run_action(

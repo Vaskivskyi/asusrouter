@@ -52,17 +52,10 @@ class ARNetworkAction(ARAction):
         self.handle = handle
         self.state = state
 
-    def __eq__(self, other: object) -> bool:
-        """Equal by target profile and desired state."""
+    def _key(self) -> tuple[Any, ...]:
+        """Key by the target profile and desired state."""
 
-        if not isinstance(other, ARNetworkAction):
-            return NotImplemented
-        return self.handle == other.handle and self.state == other.state
-
-    def __hash__(self) -> int:
-        """Hash by target profile and desired state."""
-
-        return hash((type(self), self.handle, self.state))
+        return (self.handle, self.state)
 
 
 async def _read_sdn_rl(get_data_callback: ARCallbackType | None) -> Any:

@@ -39,21 +39,10 @@ class ARVpnClientAction(ARAction):
         self.state = state
         self.unit = unit
 
-    def __eq__(self, other: object) -> bool:
-        """Equal by target protocol, unit and desired state."""
+    def _key(self) -> tuple[Any, ...]:
+        """Key by the target protocol, unit and desired state."""
 
-        if not isinstance(other, ARVpnClientAction):
-            return NotImplemented
-        return (
-            self.protocol == other.protocol
-            and self.unit == other.unit
-            and self.state == other.state
-        )
-
-    def __hash__(self) -> int:
-        """Hash by target protocol, unit and desired state."""
-
-        return hash((type(self), self.protocol, self.unit, self.state))
+        return (self.protocol, self.unit, self.state)
 
 
 async def _read_clientlist(
