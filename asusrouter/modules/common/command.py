@@ -19,6 +19,7 @@ class ARActionMode(FromStrMixin, StrEnum):
 
     # System
     APPLY = "apply"
+    UPDATE = "Update"
 
     # AiMesh
     AIMESH_ADD_NODE = "ob_selection"
@@ -72,7 +73,9 @@ class ARService(FromStrMixin, StrEnum):
     CLOUDSYNC_RESTART = "restart_cloudsync"
 
     # DDNS
-    DDNS_RESTART = "restart_ddns_le"
+    DDNS_CLIENT = "ddnsclient"  # force a DDNS update
+    DDNS_LE_RESTART = "restart_ddns_le"  # DDNS restart incl. Let's Encrypt
+    DDNS_RESTART = "restart_ddns"
 
     # DNS
     DNS_RESTART = "restart_dnsmasq"  # dnsmasq
