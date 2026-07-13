@@ -27,6 +27,7 @@ from asusrouter.tools.converters_v2.raw import (
 )
 from asusrouter.tools.identifiers import IpAddress, IpInterface, Password
 from asusrouter.tools.identifiers.ip import read_ip_interface_list
+from asusrouter.tools.readers_v2.nvram_list import get_field, split_rows
 from asusrouter.tools.readers_v2.table import read_table
 
 if TYPE_CHECKING:
@@ -140,38 +141,22 @@ def nvram_items() -> list[ARNvramItem]:
     return items
 
 
-def _get(parts: list[str], index: int) -> str | None:
-    """Return a `>`-split field, or None when absent."""
-
-    return parts[index] if index < len(parts) else None
-
-
-def _split_rows(raw: Any) -> list[str]:
-    """Decode a nvram list and split it into `<`-delimited rows."""
-
-    text = raw_to_str(raw)
-    if text is None:
-        return []
-    text = text.replace("&#60", "<").replace("&#62", ">")
-    return text.split("<")
-
-
 def _status(data: dict[str, Any]) -> dict[int, tuple[ARVpnState, int | None]]:
     """Map vpnc_idx -> (state, reason) from the status hook."""
 
     status: dict[int, tuple[ARVpnState, int | None]] = {}
-    for row in _split_rows(data.get(STATUS_HOOK.value)):
+    for row in split_rows(data.get(STATUS_HOOK.value)):
         parts = row.split(">")
-        vpnc_idx = raw_to_int(_get(parts, _S_VPNC_IDX))
+        vpnc_idx = raw_to_int(get_field(parts, _S_VPNC_IDX))
         if vpnc_idx is None:
             continue
-        code = raw_to_int(_get(parts, _S_STATUS))
+        code = raw_to_int(get_field(parts, _S_STATUS))
         state = (
             _STATE_MAP.get(code, ARVpnState.UNKNOWN)
             if code is not None
             else ARVpnState.UNKNOWN
         )
-        status[vpnc_idx] = (state, raw_to_int(_get(parts, _S_REASON)))
+        status[vpnc_idx] = (state, raw_to_int(get_field(parts, _S_REASON)))
     return status
 
 
@@ -179,13 +164,13 @@ def _default_wan_support(data: dict[str, Any]) -> dict[int, bool]:
     """Map vpnc_idx -> whether the profile supports default-WAN routing."""
 
     support: dict[int, bool] = {}
-    for row in _split_rows(data.get(NONDEF_WAN_HOOK.value)):
+    for row in split_rows(data.get(NONDEF_WAN_HOOK.value)):
         parts = row.split(">")
-        vpnc_idx = raw_to_int(_get(parts, 0))
+        vpnc_idx = raw_to_int(get_field(parts, 0))
         if vpnc_idx is None:
             continue
         # `0` means the profile is allowed on the default WAN
-        support[vpnc_idx] = _get(parts, 1) == "0"
+        support[vpnc_idx] = get_field(parts, 1) == "0"
     return support
 
 
@@ -200,25 +185,27 @@ def _base_fields(
 ) -> dict[ARVpnClientField, Any]:
     """Build the clientlist-derived fields of a profile."""
 
-    protocol = ARVpnProtocol.from_value(_get(parts, _F_PROTO))
-    server_int = raw_to_int(_get(parts, _F_SERVER))
-    server = server_int if server_int is not None else _get(parts, _F_SERVER)
+    protocol = ARVpnProtocol.from_value(get_field(parts, _F_PROTO))
+    server_int = raw_to_int(get_field(parts, _F_SERVER))
+    server = (
+        server_int if server_int is not None else get_field(parts, _F_SERVER)
+    )
 
     fields: dict[ARVpnClientField, Any] = {
-        ARVpnClientField.NAME: raw_to_str(_get(parts, _F_NAME)),
+        ARVpnClientField.NAME: raw_to_str(get_field(parts, _F_NAME)),
         ARVpnClientField.PROTOCOL: protocol,
         ARVpnClientField.UNIT: position,
-        ARVpnClientField.ENABLED: _get(parts, _F_ACTIVATE) == "1",
+        ARVpnClientField.ENABLED: get_field(parts, _F_ACTIVATE) == "1",
     }
     if server not in (None, ""):
         fields[ARVpnClientField.SERVER] = server
 
-    vpnc_idx = raw_to_int(_get(parts, _F_VPNC_IDX))
+    vpnc_idx = raw_to_int(get_field(parts, _F_VPNC_IDX))
     if vpnc_idx is not None:
         fields[ARVpnClientField.VPNC_INDEX] = vpnc_idx
 
     for index, field, converter in _INFO:
-        value = raw_convert(_get(parts, index), converter)
+        value = raw_convert(get_field(parts, index), converter)
         if value is not None:
             fields[field] = value
 
@@ -248,7 +235,7 @@ def _profile(
     """Build a single client profile, or None when the row is empty."""
 
     parts = row.split(">")
-    if raw_to_str(_get(parts, _F_NAME)) is None:
+    if raw_to_str(get_field(parts, _F_NAME)) is None:
         return None
 
     fields = _base_fields(parts, position)
@@ -279,16 +266,16 @@ def translate(
 ) -> dict[ARVpnProtocol, dict[int, dict[ARVpnClientField, Any]]]:
     """Translate raw data into client profiles grouped by protocol."""
 
-    rows = _split_rows(data.get(ARNvramType.VPNC_CLIENTLIST.value))
+    rows = split_rows(data.get(ARNvramType.VPNC_CLIENTLIST.value))
     if not rows:
         return {}
 
     # Parallel list; a leading empty aligns it one ahead of the clientlist
     ctx = _Context(
         data=data,
-        pptp_options=_split_rows(
-            data.get(ARNvramType.VPNC_PPTP_OPTIONS.value)
-        )[1:],
+        pptp_options=split_rows(data.get(ARNvramType.VPNC_PPTP_OPTIONS.value))[
+            1:
+        ],
         status=_status(data),
         support=_default_wan_support(data),
         default_wan=raw_to_int(data.get(ARNvramType.VPNC_DEFAULT_WAN.value)),
@@ -327,7 +314,7 @@ def build_toggle_payload(
     (`vpnc_unit`), mirroring the web UI's `restart_vpnc` / `stop_vpnc` toggle.
     """
 
-    rows = _split_rows(clientlist_raw)
+    rows = split_rows(clientlist_raw)
     position = 0
     target: int | None = None
     for index, row in enumerate(rows):
@@ -335,8 +322,8 @@ def build_toggle_payload(
             continue
         parts = row.split(">")
         if (
-            ARVpnProtocol.from_value(_get(parts, _F_PROTO)) is protocol
-            and raw_to_int(_get(parts, _F_SERVER)) == unit
+            ARVpnProtocol.from_value(get_field(parts, _F_PROTO)) is protocol
+            and raw_to_int(get_field(parts, _F_SERVER)) == unit
             and len(parts) > _F_ACTIVATE
         ):
             parts[_F_ACTIVATE] = "1" if state else "0"

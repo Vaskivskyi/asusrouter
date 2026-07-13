@@ -17,6 +17,7 @@ from asusrouter.tools.converters_v2.raw import (
     raw_to_str,
 )
 from asusrouter.tools.identifiers.ip import IpAddress, IpInterface
+from asusrouter.tools.readers_v2.nvram_list import get_field, split_rows
 from asusrouter.tools.types import ARCallbackType
 
 if TYPE_CHECKING:
@@ -65,21 +66,13 @@ async def get_state(
     return await async_fetch_values(get_data_callback, _PF_REQUEST)
 
 
-def _decode(raw: Any) -> str:
-    """Decode the char-encoded nvram separators to `<`/`>`."""
-
-    if not isinstance(raw, str):
-        return ""
-    return raw.replace("&#60", "<").replace("&#62", ">")
-
-
 def _parse_rule(
     parts: list[str], wan_unit: int
 ) -> dict[ARPortForwardingField, Any]:
     """Build a single rule dict from its nvram columns."""
 
     def col(index: int) -> str | None:
-        return parts[index] if len(parts) > index else None
+        return get_field(parts, index)
 
     protocol = ARPortForwardingProtocol.from_value(col(_COL_PROTOCOL))
 
@@ -122,7 +115,7 @@ def _parse_rules(
     """Parse one WAN's rule list into rule dicts."""
 
     rules: list[dict[ARPortForwardingField, Any]] = []
-    for row in _decode(raw).split("<"):
+    for row in split_rows(raw):
         if row == "":
             continue
         rules.append(_parse_rule(row.split(">"), wan_unit))

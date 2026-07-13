@@ -9,6 +9,7 @@ from asusrouter.modules.nvram import ARNvramType, async_get_value
 from asusrouter.modules.source import ARDataSource
 from asusrouter.registry import ARCallableRegistry as ARCallReg
 from asusrouter.tools.identifiers.ip import IpAddress
+from asusrouter.tools.readers_v2.nvram_list import split_rows
 from asusrouter.tools.types import ARCallbackType
 
 # Data model
@@ -61,10 +62,8 @@ def translate_state(data: Any, **kwargs: Any) -> list[ARPingTarget]:
 def _parse_targets(raw: str) -> list[ARPingTarget]:
     """Parse a `<name>ip` delimited dns_ping_list value into targets."""
 
-    # nvram list values arrive HTML-entity encoded: `<`=`&#60`, `>`=`&#62`
-    decoded = raw.replace("&#60", "<").replace("&#62", ">")
     targets: list[ARPingTarget] = []
-    for entry in decoded.split("<"):
+    for entry in split_rows(raw):
         if not entry:
             continue
         name, _, ip_raw = entry.partition(">")

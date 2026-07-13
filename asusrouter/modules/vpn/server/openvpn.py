@@ -29,6 +29,7 @@ from asusrouter.tools.converters_v2.raw import (
     raw_to_str,
 )
 from asusrouter.tools.identifiers import IpAddress, IpInterface, Password
+from asusrouter.tools.readers_v2.nvram_list import get_field, split_rows
 from asusrouter.tools.readers_v2.table import read_table
 
 if TYPE_CHECKING:
@@ -188,21 +189,14 @@ def _settings(data: dict[str, Any]) -> dict[ARVpnServerField, Any]:
 def _clients(raw: Any) -> list[dict[ARVpnPeerField, Any]]:
     """Parse the `<username>password` account list of the active unit."""
 
-    text = raw_to_str(raw)
-    if text is None:
-        return []
-    # nvram may HTML-encode the `<` / `>` delimiters
-    text = text.replace("&#60", "<").replace("&#62", ">")
-
     clients: list[dict[ARVpnPeerField, Any]] = []
-    for entry in text.split("<"):
+    for entry in split_rows(raw):
         parts = entry.split(">")
         name = raw_to_str(parts[0])
         if name is None:
             continue
         client: dict[ARVpnPeerField, Any] = {ARVpnPeerField.NAME: name}
-        raw_password = parts[1] if len(parts) > 1 else None
-        password = Password.from_value_safe(raw_password)
+        password = Password.from_value_safe(get_field(parts, 1))
         if password is not None:
             client[ARVpnPeerField.PASSWORD] = password
         clients.append(client)

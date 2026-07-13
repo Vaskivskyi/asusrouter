@@ -12,7 +12,6 @@ from asusrouter.modules.endpoint_v2 import AREndpoint
 from asusrouter.modules.endpoint_v2.hooks import hook_request, hook_value
 from asusrouter.modules.network.common import (
     bandwidth_limit,
-    decode,
     mac_filter_mode,
     read_mac_list,
 )
@@ -35,6 +34,7 @@ from asusrouter.tools.converters_v2.raw import (
     raw_to_str,
 )
 from asusrouter.tools.identifiers import Password, Ssid
+from asusrouter.tools.readers_v2.nvram_list import split_rows
 from asusrouter.tools.types import ARCallbackType
 
 # `sdn_rl` column indices (see `set_sdn_profile` in the firmware)
@@ -94,8 +94,7 @@ _BAND_BITS: dict[ARWiFiBand, int] = {
 def _rows(raw: Any) -> list[list[str]]:
     """Decode a char-encoded rule-list into rows of `>`-separated columns."""
 
-    decoded = decode(raw)
-    return [chunk.split(">") for chunk in decoded.split("<") if chunk != ""]
+    return [row.split(">") for row in split_rows(raw) if row != ""]
 
 
 def _parse_sdn_rl(raw: Any) -> list[tuple[str, str, int, int, bool]]:
