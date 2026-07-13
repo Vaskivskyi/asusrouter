@@ -50,7 +50,9 @@ class ARDataSource:
     def __repr__(self) -> str:
         """Representation of the data source."""
 
-        return f"<{type(self).__name__}>"
+        key = self._key()
+        name = type(self).__name__
+        return f"<{name} {key!r}>" if key else f"<{name}>"
 
 
 # Empty abstract base - UNKNOWN lives in subclasses (an enum with

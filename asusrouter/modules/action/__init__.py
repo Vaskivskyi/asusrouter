@@ -61,7 +61,9 @@ class ARAction:
     def __repr__(self) -> str:
         """Representation of the action."""
 
-        return f"<{type(self).__name__}>"
+        key = self._key()
+        name = type(self).__name__
+        return f"<{name} {key!r}>" if key else f"<{name}>"
 
 
 async def async_start_run(

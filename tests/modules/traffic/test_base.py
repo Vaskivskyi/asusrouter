@@ -67,12 +67,14 @@ class TestARTrafficSource:
         assert ARTrafficSource(link=value).link == expected
 
     def test_repr(self) -> None:
-        """Repr includes target and link."""
+        """Repr includes the target and link key fields."""
 
-        text = repr(ARTrafficSource(ARTrafficType.WIRED, _TARGET))
+        source = ARTrafficSource(ARTrafficType.WIRED, _TARGET)
+        text = repr(source)
 
-        assert "target" in text
-        assert "link" in text
+        assert text.startswith("<ARTrafficSource ")
+        assert repr(source.target) in text
+        assert repr(source.link) in text
 
     def test_equal_and_hash(self) -> None:
         """Equal by type, target and link; hash matches."""

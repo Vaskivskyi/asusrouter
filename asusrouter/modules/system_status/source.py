@@ -100,11 +100,6 @@ class ARSystemStatusSource(ARDataSource):
 
         return (self._target,)
 
-    def __repr__(self) -> str:
-        """Representation of the system status source."""
-
-        return f"<ARSystemStatusSource target=`{self._target}`>"
-
 
 # Universal instance - preferred (targets the main router)
 ARSystemStatusSourceUniversal: ARSystemStatusSource = ARSystemStatusSource()

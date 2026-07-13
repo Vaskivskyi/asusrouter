@@ -72,11 +72,3 @@ class ARTrafficSource(ARDataSource):
         """Key by the target device and link."""
 
         return (self._target, self._link)
-
-    def __repr__(self) -> str:
-        """Representation of the traffic source."""
-
-        return (
-            f"<{type(self).__name__} target=`{self._target}` "
-            f"link=`{self._link}`>"
-        )
