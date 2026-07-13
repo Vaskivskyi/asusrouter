@@ -16,17 +16,16 @@ from asusrouter.modules.endpoint_v2 import (
 )
 from asusrouter.modules.nvram import ARNvramType
 from asusrouter.modules.ping import (
-    _RUN_START_DELAY,
     ARPingAction,
     ARPingResult,
     ARPingSource,
     ARPingSourceUniversal,
     ARPingStatus,
-    _build_request,
     get_state,
     run_action,
     translate_state,
 )
+from asusrouter.modules.ping.source import _RUN_START_DELAY, _build_request
 from asusrouter.registry import ARCallableRegistry as ARCallReg
 from asusrouter.tools.identifiers.ip import IpAddress
 
@@ -103,7 +102,7 @@ class TestGetState:
         """Skip the real run-start delay during tests."""
 
         with patch(
-            "asusrouter.modules.ping.asyncio.sleep", AsyncMock()
+            "asusrouter.modules.ping.source.asyncio.sleep", AsyncMock()
         ) as sleep:
             yield sleep
 

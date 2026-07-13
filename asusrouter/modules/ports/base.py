@@ -1,6 +1,6 @@
 """Base definitions for the ports module.
 
-Port enums and the readers shared by the port_status and ethernet
+Port models and the readers shared by the port_status and ethernet
 parsers. Kept separate from the package __init__ so the parsing
 submodules can import them without a circular import.
 """
@@ -8,99 +8,18 @@ submodules can import them without a circular import.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from enum import IntEnum, StrEnum
 from typing import Any
 
-from asusrouter.const import UNKNOWN_MEMBER, UNKNOWN_MEMBER_STR
-from asusrouter.modules.ports.speed import ARPortSpeed
+from asusrouter.modules.ports.enums import (
+    ARPortCapability,
+    ARPortProperty,
+    ARPortsInfo,
+    ARPortSpeed,
+    ARPortType,
+)
 from asusrouter.modules.usb import ARUSBSpeed
 from asusrouter.tools.converters_v2.int import int_to_bits
 from asusrouter.tools.converters_v2.raw import raw_to_int
-from asusrouter.tools.enum import FromIntMixin, FromStrMixin
-
-
-class ARPortCapability(FromIntMixin, IntEnum):
-    """Port capability."""
-
-    UNKNOWN = UNKNOWN_MEMBER
-
-    WAN = 0
-    LAN = 1
-    GAME = 2
-    PLC = 3
-    WAN2 = 4
-    WAN3 = 5
-    SFPP = 6
-    USB = 7
-    MOBILE = 8
-    WANLAN = 9
-    MOCA = 10
-    IPTV_BRIDGE = 26
-    IPTV_VOIP = 27
-    IPTV_STB = 28
-    DUALWAN_SECONDARY = 29
-    DUALWAN_PRIMARY = 30
-
-
-class ARPortType(FromStrMixin, StrEnum):
-    """Port type."""
-
-    UNKNOWN = UNKNOWN_MEMBER_STR
-
-    AI = "ai"
-    ETHERNET = "ethernet"
-    LAN = "lan"
-    MOCA = "moca"
-    POWERLINE = "powerline"
-    SFPP = "sfpp"
-    USB = "usb"
-    WAN = "wan"
-
-
-class ARPortProperty(StrEnum):
-    """A single property of a port."""
-
-    NATIVE_NAME = "native_name"
-    STATE = "state"
-    LINK_RATE = "link_rate"
-    MAX_RATE = "max_rate"
-    ROLE = "role"
-    CAPABILITIES = "capabilities"
-    EXTENDED = "extended"
-    IFNAME = "ifname"
-    UI_DISPLAY = "ui_display"
-    SEQ_NO = "seq_no"
-    FLAG = "flag"
-    PHY_PORT_ID = "phy_port_id"
-    EXT_PORT_ID = "ext_port_id"
-    TIMEOUT = "timeout"
-    LINK_RECOVER = "link_recover"
-    CABLE = "cable"
-    DEVICES = "devices"
-
-
-class ARPortsInfo(StrEnum):
-    """Node-level information reported alongside the ports.
-
-    Values match the raw keys returned by the device.
-    """
-
-    CD_GOOD_TO_GO = "cd_good_to_go"
-    POWER_LIMIT = "power_limit"
-    POWER_REMAIN = "power_remain"
-    PER_PORT_POWER_LIMIT = "per_port_power_limit"
-
-
-class ARPortCablePair(StrEnum):
-    """The four twisted pairs of an ethernet cable.
-
-    Values match the raw keys returned by the device.
-    """
-
-    BROWN = "brown"
-    BLUE = "blue"
-    GREEN = "green"
-    ORANGE = "orange"
 
 
 @dataclass(frozen=True)
@@ -171,15 +90,8 @@ def read_port_capabilities(raw: Any) -> dict[ARPortCapability, bool]:
 
 
 __all__ = [
-    "ARPortCablePair",
     "ARPortCableState",
-    "ARPortCapability",
-    "ARPortSpeed",
-    "ARPortProperty",
-    "ARPortType",
     "ARPortsData",
-    "ARUSBSpeed",
-    "ARPortsInfo",
     "read_port_capabilities",
     "read_port_speed",
     "read_port_type",

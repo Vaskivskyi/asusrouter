@@ -8,15 +8,15 @@ from unittest.mock import AsyncMock, Mock
 
 import pytest
 
-from asusrouter.modules import dsl
 from asusrouter.modules.common.metrics import ARMetricType
 from asusrouter.modules.device.identity import ARDeviceIdentity
 from asusrouter.modules.dsl import (
     ARDSLSource,
-    _read_rate,
     get_state,
+    source as dsl_source,
     translate_state,
 )
+from asusrouter.modules.dsl.source import _read_rate
 from asusrouter.modules.nvram import ARNvramType
 from asusrouter.modules.source import ARDataSource
 from asusrouter.modules.support.flag import ARSupportType
@@ -189,10 +189,10 @@ def test_registers_callable(monkeypatch: pytest.MonkeyPatch) -> None:
         mock_register,
     )
 
-    importlib.reload(dsl)
+    module = importlib.reload(dsl_source)
 
     mock_register.assert_called_once_with(
-        dsl.ARDSLSource,
-        get_state=dsl.get_state,
-        translate_state=dsl.translate_state,
+        module.ARDSLSource,
+        get_state=module.get_state,
+        translate_state=module.translate_state,
     )

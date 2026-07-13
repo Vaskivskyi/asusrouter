@@ -11,11 +11,11 @@ import pytest
 from asusrouter.error import AsusRouter404Error
 from asusrouter.modules.common.metrics import ARMetricType as M
 from asusrouter.modules.device.identity import ARDeviceIdentity
-from asusrouter.modules.traffic import interface
 from asusrouter.modules.traffic.base import ARTrafficSource, ARTrafficType as T
 from asusrouter.modules.traffic.interface import (
     ARTrafficInterfaceSource,
     get_state,
+    source as interface,
     translate_state,
 )
 from asusrouter.modules.wifi import ARWiFiBand

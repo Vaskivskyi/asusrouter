@@ -2,30 +2,12 @@
 
 from __future__ import annotations
 
-from enum import StrEnum
 from typing import Any
 
-from asusrouter.const import UNKNOWN_MEMBER_STR
 from asusrouter.modules.source import ARDataSource
+from asusrouter.modules.traffic.enums import ARTrafficType
 from asusrouter.modules.wifi import ARWiFiBand
-from asusrouter.tools.enum import FromStrMixin
 from asusrouter.tools.identifiers import MacAddress
-
-
-class ARTrafficType(FromStrMixin, StrEnum):
-    """A traffic link / interface type."""
-
-    UNKNOWN = UNKNOWN_MEMBER_STR
-
-    BACKHAUL = "backhaul"
-    BRIDGE = "bridge"
-    LACP = "lacp"
-    LACP1 = "lacp1"
-    LACP2 = "lacp2"
-    USB = "usb"
-    WAN = "wan"
-    WIRED = "wired"
-
 
 # A traffic link: a fixed type or a specific wifi band (wireless)
 ARTrafficLink = ARTrafficType | ARWiFiBand

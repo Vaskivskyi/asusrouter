@@ -8,14 +8,13 @@ import pytest
 
 from asusrouter.modules.device.identity import ARDeviceIdentity
 from asusrouter.modules.ports import common
-from asusrouter.modules.ports.base import (
+from asusrouter.modules.ports.enums import (
     ARPortCablePair,
     ARPortCapability,
     ARPortProperty as P,
     ARPortsInfo,
     ARPortSpeed,
     ARPortType,
-    ARUSBSpeed,
 )
 from asusrouter.modules.ports.status import (
     ARPortCableState,
@@ -27,7 +26,7 @@ from asusrouter.modules.ports.status import (
     read_role,
     translate_port_status,
 )
-from asusrouter.modules.usb import ARUSBDeviceType
+from asusrouter.modules.usb import ARUSBDeviceType, ARUSBSpeed
 from asusrouter.tools.identifiers import MacAddress
 
 

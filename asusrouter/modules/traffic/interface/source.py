@@ -1,4 +1,4 @@
-"""Interface Traffic module for AsusRouter."""
+"""Interface traffic data source for AsusRouter."""
 
 from __future__ import annotations
 
@@ -13,11 +13,8 @@ from asusrouter.modules.endpoint_v2 import (
     get_endpoint_request_type,
 )
 from asusrouter.modules.endpoint_v2.hooks import ARHook, hook_request
-from asusrouter.modules.traffic.base import (
-    ARTrafficLink,
-    ARTrafficSource,
-    ARTrafficType,
-)
+from asusrouter.modules.traffic.base import ARTrafficLink, ARTrafficSource
+from asusrouter.modules.traffic.enums import ARTrafficType
 from asusrouter.modules.wifi import ARWiFiBand
 from asusrouter.registry import ARCallableRegistry as ARCallReg
 from asusrouter.tools.converters_v2.raw import raw_to_int

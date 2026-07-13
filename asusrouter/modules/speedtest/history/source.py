@@ -1,4 +1,4 @@
-"""SpeedTest history module for AsusRouter."""
+"""SpeedTest history data source for AsusRouter."""
 
 from __future__ import annotations
 

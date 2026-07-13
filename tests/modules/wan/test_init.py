@@ -18,16 +18,15 @@ from asusrouter.modules.nvram import (
     ARNvramType,
 )
 from asusrouter.modules.wan import (
-    _WAN_REQUEST,
     ARDualWanMode,
     ARWan,
     ARWanSource,
     ARWanSourceUniversal,
     ARWanUnit,
-    _parse_lb_ratio,
     get_state,
     translate_state,
 )
+from asusrouter.modules.wan.source import _WAN_REQUEST, _parse_lb_ratio
 from asusrouter.registry import ARCallableRegistry as ARCallReg
 from asusrouter.tools.identifiers import IpAddress, MacAddress
 

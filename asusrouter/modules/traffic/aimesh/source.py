@@ -1,4 +1,4 @@
-"""AiMesh Traffic module for AsusRouter."""
+"""AiMesh traffic data source for AsusRouter."""
 
 from __future__ import annotations
 
@@ -12,11 +12,8 @@ from asusrouter.modules.endpoint_v2 import (
     AREndpoint,
     get_endpoint_request_type,
 )
-from asusrouter.modules.traffic.base import (
-    ARTrafficLink,
-    ARTrafficSource,
-    ARTrafficType,
-)
+from asusrouter.modules.traffic.base import ARTrafficLink, ARTrafficSource
+from asusrouter.modules.traffic.enums import ARTrafficType
 from asusrouter.modules.wifi import ARWiFiBand
 from asusrouter.registry import ARCallableRegistry as ARCallReg
 from asusrouter.tools.converters import flatten_dict

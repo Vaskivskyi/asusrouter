@@ -6,21 +6,22 @@ from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
 
 from asusrouter.modules.ports.base import (
-    ARPortCablePair,
     ARPortCableState,
-    ARPortCapability,
-    ARPortProperty,
     ARPortsData,
-    ARPortsInfo,
-    ARPortSpeed,
-    ARPortType,
-    ARUSBSpeed,
     read_port_capabilities,
     read_port_speed,
     read_port_type,
 )
 from asusrouter.modules.ports.common import warn_unknown_port
-from asusrouter.modules.usb import ARUSBDevice
+from asusrouter.modules.ports.enums import (
+    ARPortCablePair,
+    ARPortCapability,
+    ARPortProperty,
+    ARPortsInfo,
+    ARPortSpeed,
+    ARPortType,
+)
+from asusrouter.modules.usb import ARUSBDevice, ARUSBSpeed
 from asusrouter.tools.converters_v2.raw import (
     raw_to_bool,
     raw_to_int,

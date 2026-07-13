@@ -1,8 +1,7 @@
-"""Ping targets module for AsusRouter."""
+"""Ping targets action for AsusRouter."""
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 import logging
 from typing import Any
 
@@ -10,7 +9,11 @@ from asusrouter.modules.action import ARAction, ARActionType
 from asusrouter.modules.common.status import MODIFY_KEY
 from asusrouter.modules.endpoint_v2 import AREndpoint, build_push_request
 from asusrouter.modules.nvram import ARNvramType
-from asusrouter.modules.source import ARDataSource
+from asusrouter.modules.ping.targets.source import (
+    ARPingTarget,
+    ARPingTargetInput,
+    _parse_targets,
+)
 from asusrouter.registry import ARCallableRegistry as ARCallReg
 from asusrouter.tools.converters_v2.raw import raw_to_bool
 from asusrouter.tools.identifiers.ip import IpAddress
@@ -18,31 +21,28 @@ from asusrouter.tools.types import ARCallbackType
 
 _LOGGER = logging.getLogger(__name__)
 
+# Default name for a target added by bare IP; names need not be unique
+_DEFAULT_TARGET_NAME = "target"
 
-# Data model
 
+def _normalize(target: ARPingTargetInput) -> ARPingTarget | None:
+    """Coerce a target, IP, or IP string into a target; drop if invalid.
 
-@dataclass
-class ARPingTarget:
-    """A DNS ping target."""
+    The IP is always coerced to `IpAddress` - a target constructed with a
+    string IP would otherwise break IP-keyed dedup and comparison.
+    """
 
     name: str
-    ip: IpAddress
+    value: Any
+    if isinstance(target, ARPingTarget):
+        name, value = target.name, target.ip
+    else:
+        name, value = _DEFAULT_TARGET_NAME, target
 
-
-# A target, or something coercible into one
-ARPingTargetInput = ARPingTarget | IpAddress | str
-
-
-# Sources and actions
-
-
-class ARPingTargetsSource(ARDataSource):
-    """AsusRouter ping targets data source."""
-
-
-# Universal instance - preferred
-ARPingTargetsSourceUniversal: ARPingTargetsSource = ARPingTargetsSource()
+    ip = IpAddress.from_value_safe(value)
+    if ip is None:
+        return None
+    return ARPingTarget(name=name, ip=ip)
 
 
 class ARPingTargetsAction(ARAction):
@@ -71,78 +71,6 @@ class ARPingTargetsAction(ARAction):
             for target in provided
             if (normalized := _normalize(target)) is not None
         ]
-
-
-# Fetch
-
-
-async def get_state(
-    callback: ARCallbackType,
-    source: ARPingTargetsSource,
-    *,
-    get_data_callback: ARCallbackType | None = None,
-    **kwargs: Any,
-) -> Any:
-    """Fetch the raw dns_ping_list value."""
-
-    if get_data_callback is None:
-        return None
-
-    values = await get_data_callback(ARNvramType.DNS_PING_LIST)
-
-    if isinstance(values, dict):
-        return values.get(ARNvramType.DNS_PING_LIST)
-    return None
-
-
-def translate_state(data: Any, **kwargs: Any) -> list[ARPingTarget]:
-    """Translate the raw dns_ping_list value into targets."""
-
-    if not isinstance(data, str):
-        return []
-    return _parse_targets(data)
-
-
-def _parse_targets(raw: str) -> list[ARPingTarget]:
-    """Parse a `<name>ip` delimited dns_ping_list value into targets."""
-
-    # nvram list values arrive HTML-entity encoded: `<`=`&#60`, `>`=`&#62`
-    decoded = raw.replace("&#60", "<").replace("&#62", ">")
-    targets: list[ARPingTarget] = []
-    for entry in decoded.split("<"):
-        if not entry:
-            continue
-        name, _, ip_raw = entry.partition(">")
-        ip = IpAddress.from_value_safe(ip_raw)
-        if ip is not None:
-            targets.append(ARPingTarget(name=name, ip=ip))
-    return targets
-
-
-# Action
-
-# Default name for a target added by bare IP; names need not be unique
-_DEFAULT_TARGET_NAME = "target"
-
-
-def _normalize(target: ARPingTargetInput) -> ARPingTarget | None:
-    """Coerce a target, IP, or IP string into a target; drop if invalid.
-
-    The IP is always coerced to `IpAddress` - a target constructed with a
-    string IP would otherwise break IP-keyed dedup and comparison.
-    """
-
-    name: str
-    value: Any
-    if isinstance(target, ARPingTarget):
-        name, value = target.name, target.ip
-    else:
-        name, value = _DEFAULT_TARGET_NAME, target
-
-    ip = IpAddress.from_value_safe(value)
-    if ip is None:
-        return None
-    return ARPingTarget(name=name, ip=ip)
 
 
 def _encode_targets(targets: list[ARPingTarget]) -> str:
@@ -233,22 +161,10 @@ async def run_action(
     return raw_to_bool(data.get(MODIFY_KEY)) is True
 
 
-# Registration
-
-ARCallReg.register_module(
-    ARPingTargetsSource,
-    get_state=get_state,
-    translate_state=translate_state,
-)
 ARCallReg.register_action(ARPingTargetsAction, run_action=run_action)
 
 
 __all__ = [
-    "ARPingTarget",
     "ARPingTargetsAction",
-    "ARPingTargetsSource",
-    "ARPingTargetsSourceUniversal",
-    "get_state",
     "run_action",
-    "translate_state",
 ]

@@ -1,4 +1,4 @@
-"""SpeedTest servers module for AsusRouter."""
+"""SpeedTest servers data source for AsusRouter."""
 
 from __future__ import annotations
 

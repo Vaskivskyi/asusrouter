@@ -3,56 +3,24 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from enum import StrEnum
 from typing import Any
 
-from asusrouter.const import UNKNOWN_MEMBER_STR
 from asusrouter.modules.aimesh.capability import (
-    ARAiMeshFeature,
     is_fully_decoded,
     translate_features,
 )
+from asusrouter.modules.aimesh.enums import (
+    ARAiMeshFeature,
+    ARAiMeshMedium,
+    ARAiMeshRole,
+)
 from asusrouter.modules.common.region import ARRegion, translate_region
 from asusrouter.modules.firmware import ARFirmware
+from asusrouter.modules.ports.enums import ARPortSpeed
 from asusrouter.modules.ports.legacy import read_ethernet_port_speed
-from asusrouter.modules.ports.speed import ARPortSpeed
 from asusrouter.modules.wifi import ARWiFiBand
 from asusrouter.tools.converters_v2.raw import raw_to_bool, raw_to_int
-from asusrouter.tools.enum import FromStrMixin
 from asusrouter.tools.identifiers import IpAddress, MacAddress
-
-# === Enums ===
-
-
-class ARAiMeshRole(FromStrMixin, StrEnum):
-    """Role of an AiMesh device."""
-
-    UNKNOWN = UNKNOWN_MEMBER_STR
-
-    NODE = "node"
-    ROUTER = "router"
-
-
-class ARAiMeshMedium(FromStrMixin, StrEnum):
-    """Medium of an AiMesh backhaul link."""
-
-    UNKNOWN = UNKNOWN_MEMBER_STR
-
-    MLO = "mlo"
-    MOCA = "moca"
-    PLC = "plc"
-    WIRED = "wired"
-    WIRELESS = "wireless"
-
-
-class ARAiMeshDirection(FromStrMixin, StrEnum):
-    """Direction of an AiMesh traffic link."""
-
-    UNKNOWN = UNKNOWN_MEMBER_STR
-
-    BACKHAUL = "backhaul"
-    FRONTHAUL = "fronthaul"
-
 
 # === Radio ===
 

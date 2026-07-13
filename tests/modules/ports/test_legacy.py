@@ -6,7 +6,7 @@ import pytest
 
 from asusrouter.modules.device.identity import ARDeviceIdentity
 from asusrouter.modules.ports import common
-from asusrouter.modules.ports.base import ARPortProperty as P, ARPortSpeed
+from asusrouter.modules.ports.enums import ARPortProperty as P, ARPortSpeed
 from asusrouter.modules.ports.legacy import (
     native_name,
     read_ethernet_port_speed,

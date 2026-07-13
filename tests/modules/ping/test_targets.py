@@ -14,15 +14,17 @@ from asusrouter.modules.ping.targets import (
     ARPingTargetsAction,
     ARPingTargetsSource,
     ARPingTargetsSourceUniversal,
-    _add,
-    _encode_targets,
-    _normalize,
-    _parse_targets,
-    _remove,
     get_state,
     run_action,
     translate_state,
 )
+from asusrouter.modules.ping.targets.action import (
+    _add,
+    _encode_targets,
+    _normalize,
+    _remove,
+)
+from asusrouter.modules.ping.targets.source import _parse_targets
 from asusrouter.registry import ARCallableRegistry as ARCallReg
 from asusrouter.tools.identifiers.ip import IpAddress
 

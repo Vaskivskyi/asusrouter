@@ -8,10 +8,9 @@ from unittest.mock import AsyncMock, Mock
 
 import pytest
 
-from asusrouter.modules import traffic
 from asusrouter.modules.common.metrics import ARMetricType as M
 from asusrouter.modules.device.identity import ARDeviceIdentity
-from asusrouter.modules.traffic import get_state
+from asusrouter.modules.traffic import get_state, source as traffic_source
 from asusrouter.modules.traffic.aimesh import ARTrafficAiMeshSource
 from asusrouter.modules.traffic.base import ARTrafficSource, ARTrafficType as T
 from asusrouter.modules.traffic.interface import ARTrafficInterfaceSource
@@ -251,9 +250,9 @@ def test_registers_dispatcher(monkeypatch: pytest.MonkeyPatch) -> None:
         mock_register,
     )
 
-    importlib.reload(traffic)
+    module = importlib.reload(traffic_source)
 
     mock_register.assert_called_once_with(
-        traffic.ARTrafficSource,
-        get_state=traffic.get_state,
+        module.ARTrafficSource,
+        get_state=module.get_state,
     )

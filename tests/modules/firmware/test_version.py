@@ -6,7 +6,7 @@ from typing import Any
 
 import pytest
 
-from asusrouter.modules.firmware.types import ARFirmwareType
+from asusrouter.modules.firmware.enums import ARFirmwareType
 from asusrouter.modules.firmware.version import ARFirmware, _compare_revision
 
 # Canonical instances reused across comparison / equality test cases
