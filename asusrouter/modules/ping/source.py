@@ -147,15 +147,15 @@ async def get_state(
     """Fetch ping results; with `refresh`, run a fresh ping first."""
 
     if get_data_callback is None:
-        return None
+        return {}
 
     # Optionally trigger a fresh run
     if refresh:
         if run_action_callback is None:
-            return None
+            return {}
         if not await run_action_callback(ARPingAction()):
             _LOGGER.debug("Ping run did not start; dropping results")
-            return None
+            return {}
         # Give the router time to start the run before polling status
         await asyncio.sleep(_RUN_START_DELAY)
 
@@ -163,7 +163,7 @@ async def get_state(
     # before reading, or drop stale/partial data
     if not await _async_wait_finished(get_data_callback):
         _LOGGER.debug("Ping run did not finish; dropping results")
-        return None
+        return {}
 
     data = await callback(
         endpoint=AREndpoint.FETCH_DIAGNOSTICS_DATA,
@@ -171,7 +171,7 @@ async def get_state(
     )
     contents = data.get("contents") if isinstance(data, dict) else None
     if not contents:
-        return None
+        return {}
 
     return contents
 

@@ -74,7 +74,7 @@ async def get_state(
             endpoint=AREndpoint.RUN_SPEEDTEST,
             request=build_run_request(EXE_TYPE_LIST),
         )
-        return await async_poll_until(
+        fresh = await async_poll_until(
             lambda **_: _async_fetch(callback),
             lambda value: (
                 isinstance(value, list) and len(value) >= _MIN_SERVERS
@@ -82,8 +82,10 @@ async def get_state(
             interval=_POLL_INTERVAL,
             attempts=_POLL_ATTEMPTS,
         )
+        return fresh if fresh is not None else {}
 
-    return await _async_fetch(callback)
+    servers = await _async_fetch(callback)
+    return servers if servers is not None else {}
 
 
 def translate_state(data: Any, **kwargs: Any) -> list[ARSpeedTestServer]:

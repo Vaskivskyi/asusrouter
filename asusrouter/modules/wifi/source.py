@@ -115,7 +115,7 @@ async def get_state(
 
     request = _build_request(identity)
     if request is None:
-        return None
+        return {}
 
     return await callback(endpoint=AREndpoint.FETCH_DATA, request=request)
 

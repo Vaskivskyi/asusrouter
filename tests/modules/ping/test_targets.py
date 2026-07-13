@@ -212,9 +212,7 @@ class TestGetState:
     async def test_no_data_callback(self) -> None:
         """Without a data callback nothing is fetched."""
 
-        assert await get_state(AsyncMock(), ARPingTargetsSourceUniversal) is (
-            None
-        )
+        assert await get_state(AsyncMock(), ARPingTargetsSourceUniversal) == {}
 
     async def test_returns_raw(self) -> None:
         """The raw dns_ping_list value is returned."""
@@ -234,7 +232,7 @@ class TestGetState:
             ARPingTargetsSourceUniversal,
             get_data_callback=AsyncMock(return_value=None),
         )
-        assert result is None
+        assert result == {}
 
 
 class TestTranslateState:

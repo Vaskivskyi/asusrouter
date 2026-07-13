@@ -186,25 +186,25 @@ async def get_state(
     # Optionally trigger a fresh run against the source's server/interface
     if refresh:
         if run_action_callback is None:
-            return None
+            return {}
         action = ARSpeedTestAction(source.server_id, source.iface)
         # Note the current result id, so a stale read is not taken as ours
         prior_id = _result_id(await _async_fetch_events(callback))
         if not await run_action_callback(action):
             _LOGGER.debug("Speedtest run did not start; dropping result")
-            return None
+            return {}
         # Give the router a moment to clear the old stream and start running
         await asyncio.sleep(_RUN_START_DELAY)
         events = await _async_wait_result(callback, prior_id)
         if events is None:
             _LOGGER.debug("Speedtest run did not finish; dropping result")
-            return None
+            return {}
         if stream_has_error(events):
             _LOGGER.debug(
                 "Speedtest run failed: %s",
                 stream_error_message(events) or "unknown error",
             )
-            return None
+            return {}
         # Persist the fresh run to history, if asked
         if save and not await async_save_result(
             callback, raw_result_from_events(events)
@@ -212,7 +212,8 @@ async def get_state(
             _LOGGER.debug("Speedtest result not saved to history")
         return events
 
-    return await _async_bare_read(callback, source)
+    result = await _async_bare_read(callback, source)
+    return result if result is not None else {}
 
 
 def translate_state(data: Any, **kwargs: Any) -> ARSpeedTestResult | None:

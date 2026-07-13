@@ -125,7 +125,7 @@ class TestGetState:
         callback = AsyncMock(return_value=None)
         result = await get_state(callback, ARSpeedTestSourceUniversal)
 
-        assert result is None
+        assert result == {}
 
     async def test_bound_source_uses_matching_last_run(self) -> None:
         """A bound source keeps the last run when it is for its server."""
@@ -156,8 +156,8 @@ class TestGetState:
 
         assert result == [entry]
 
-    async def test_bound_source_no_data_returns_none(self) -> None:
-        """No matching last run and no history yields None."""
+    async def test_bound_source_no_data(self) -> None:
+        """No matching last run and no history yields no data."""
 
         callback = AsyncMock(
             side_effect=[
@@ -168,7 +168,7 @@ class TestGetState:
 
         result = await get_state(callback, ARSpeedTestSource(54112))
 
-        assert result is None
+        assert result == {}
 
     async def test_refresh_missing_run_callback(self) -> None:
         """Refresh without a run-action callback fetches nothing."""
@@ -178,7 +178,7 @@ class TestGetState:
             callback, ARSpeedTestSourceUniversal, refresh=True
         )
 
-        assert result is None
+        assert result == {}
         callback.assert_not_awaited()
 
     async def test_refresh_run_not_started(self) -> None:
@@ -193,7 +193,7 @@ class TestGetState:
             refresh=True,
         )
 
-        assert result is None
+        assert result == {}
         callback.assert_awaited_once()
 
     async def test_refresh_times_out(self) -> None:
@@ -209,7 +209,7 @@ class TestGetState:
                 refresh=True,
             )
 
-        assert result is None
+        assert result == {}
 
     async def test_refresh_ignores_stale_then_reads_fresh(self) -> None:
         """A lingering old result is skipped until a fresh id appears."""
@@ -299,7 +299,7 @@ class TestGetState:
                 refresh=True,
             )
 
-        assert result is None
+        assert result == {}
         assert "No servers defined" in caplog.text
 
     async def test_refresh_save_persists_fresh_result(self) -> None:

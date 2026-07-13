@@ -59,7 +59,8 @@ async def get_state(
 ) -> Any:
     """Fetch the raw speedtest history."""
 
-    return await _async_fetch_history(callback)
+    history = await _async_fetch_history(callback)
+    return history if history is not None else {}
 
 
 def translate_state(data: Any, **kwargs: Any) -> list[ARSpeedTestResult]:

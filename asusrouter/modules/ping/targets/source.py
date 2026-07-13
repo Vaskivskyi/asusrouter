@@ -47,13 +47,14 @@ async def get_state(
     """Fetch the raw dns_ping_list value."""
 
     if get_data_callback is None:
-        return None
+        return {}
 
     values = await get_data_callback(ARNvramType.DNS_PING_LIST)
+    if not isinstance(values, dict):
+        return {}
 
-    if isinstance(values, dict):
-        return values.get(ARNvramType.DNS_PING_LIST)
-    return None
+    value = values.get(ARNvramType.DNS_PING_LIST)
+    return value if value is not None else {}
 
 
 def translate_state(data: Any, **kwargs: Any) -> list[ARPingTarget]:

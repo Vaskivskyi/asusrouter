@@ -112,7 +112,7 @@ class TestGetState:
         callback = AsyncMock()
         result = await get_state(callback, ARPingSourceUniversal)
 
-        assert result is None
+        assert result == {}
         callback.assert_not_awaited()
 
     async def test_default_reads_finished_results(
@@ -151,7 +151,7 @@ class TestGetState:
                 get_data_callback=get_data_callback,
             )
 
-        assert result is None
+        assert result == {}
         callback.assert_not_awaited()
         get_data_callback.assert_awaited_with(
             ARNvramType.DNS_PING_STATUS, force=True
@@ -168,7 +168,7 @@ class TestGetState:
                 get_data_callback=get_data_callback,
             )
 
-        assert result is None
+        assert result == {}
 
     async def test_empty_contents(self) -> None:
         """Empty rows yield no data."""
@@ -180,7 +180,7 @@ class TestGetState:
             get_data_callback=_status_callback("3"),
         )
 
-        assert result is None
+        assert result == {}
 
     async def test_non_dict_data(self) -> None:
         """A non-dict diagnostics reply yields no data."""
@@ -192,7 +192,7 @@ class TestGetState:
             get_data_callback=_status_callback("3"),
         )
 
-        assert result is None
+        assert result == {}
 
     async def test_refresh_no_run_action_callback(self) -> None:
         """Refresh without a run-action callback fetches nothing."""
@@ -205,7 +205,7 @@ class TestGetState:
             refresh=True,
         )
 
-        assert result is None
+        assert result == {}
         callback.assert_not_awaited()
 
     async def test_refresh_run_not_started(self) -> None:
@@ -222,7 +222,7 @@ class TestGetState:
             refresh=True,
         )
 
-        assert result is None
+        assert result == {}
         callback.assert_not_awaited()
         get_data_callback.assert_not_awaited()
 

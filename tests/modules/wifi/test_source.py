@@ -128,12 +128,12 @@ class TestGetState:
     """Tests for get_state."""
 
     async def test_no_identity(self) -> None:
-        """No identity returns None without calling back."""
+        """No identity yields no data without calling back."""
 
         callback = AsyncMock()
         result = await get_state(callback, ARWiFiSourceUniversal)
 
-        assert result is None
+        assert result == {}
         callback.assert_not_called()
 
     async def test_fetches(self) -> None:

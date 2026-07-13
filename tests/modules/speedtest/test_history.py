@@ -75,7 +75,7 @@ class TestGetState:
         callback = AsyncMock(return_value=None)
         result = await get_state(callback, ARSpeedTestHistorySourceUniversal)
 
-        assert result is None
+        assert result == {}
 
 
 class TestTranslateState:
