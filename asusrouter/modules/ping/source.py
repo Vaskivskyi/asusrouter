@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-import asyncio
 from collections.abc import Callable
 from dataclasses import dataclass, field
 import logging
 from typing import Any
 
+from asusrouter.modules.action import async_start_run
 from asusrouter.modules.common.metrics import ARMetricType
 from asusrouter.modules.endpoint_v2 import (
     AREndpoint,
@@ -68,10 +68,6 @@ _DIAG_REQUEST_TYPE = get_endpoint_request_type(
 # otherwise the router may return empty or partial rows
 _POLL_INTERVAL = 1.0
 _POLL_ATTEMPTS = 15
-
-# The router needs a moment to spin up the run after the trigger returns;
-# polling sooner still sees the previous run and reads stale/absent results
-_RUN_START_DELAY = 1.0
 
 # Diagnostics content columns, in request/response order
 _CONTENT_COLUMNS = (
@@ -150,14 +146,10 @@ async def get_state(
         return {}
 
     # Optionally trigger a fresh run
-    if refresh:
-        if run_action_callback is None:
-            return {}
-        if not await run_action_callback(ARPingAction()):
-            _LOGGER.debug("Ping run did not start; dropping results")
-            return {}
-        # Give the router time to start the run before polling status
-        await asyncio.sleep(_RUN_START_DELAY)
+    if refresh and not await async_start_run(
+        run_action_callback, ARPingAction()
+    ):
+        return {}
 
     # A run may be in progress (ours or an unrelated trigger); wait it out
     # before reading, or drop stale/partial data

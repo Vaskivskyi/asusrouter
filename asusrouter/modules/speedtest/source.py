@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-import asyncio
 import logging
 from typing import Any
 
+from asusrouter.modules.action import async_start_run
 from asusrouter.modules.endpoint_v2 import AREndpoint
 from asusrouter.modules.endpoint_v2.hooks import ARHook, hook_request
 from asusrouter.modules.source import ARDataSource
@@ -63,10 +63,6 @@ ARSpeedTestSourceUniversal: ARSpeedTestSource = ARSpeedTestSource()
 
 
 # Fetch
-
-# The router needs a moment to enter the running state after the trigger;
-# polling sooner still sees the previous state and reads a stale result
-_RUN_START_DELAY = 1.0
 
 # Wait out a run before reading; the WebUI caps a test at 120s
 _POLL_INTERVAL = 2.0
@@ -190,11 +186,8 @@ async def get_state(
         action = ARSpeedTestAction(source.server_id, source.iface)
         # Note the current result id, so a stale read is not taken as ours
         prior_id = _result_id(await _async_fetch_events(callback))
-        if not await run_action_callback(action):
-            _LOGGER.debug("Speedtest run did not start; dropping result")
+        if not await async_start_run(run_action_callback, action):
             return {}
-        # Give the router a moment to clear the old stream and start running
-        await asyncio.sleep(_RUN_START_DELAY)
         events = await _async_wait_result(callback, prior_id)
         if events is None:
             _LOGGER.debug("Speedtest run did not finish; dropping result")

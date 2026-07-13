@@ -7,6 +7,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
+from asusrouter.modules.action import _RUN_START_DELAY
 from asusrouter.modules.endpoint_v2 import AREndpoint
 from asusrouter.modules.endpoint_v2.hooks import ARHook
 from asusrouter.modules.speedtest import (
@@ -18,7 +19,7 @@ from asusrouter.modules.speedtest import (
     run_action,
     translate_state,
 )
-from asusrouter.modules.speedtest.source import _RUN_START_DELAY, _log_stream
+from asusrouter.modules.speedtest.source import _log_stream
 from asusrouter.registry import ARCallableRegistry as ARCallReg
 
 _HOOK = ARHook.OOKLA_SPEEDTEST_RESULT.value
@@ -105,7 +106,7 @@ class TestGetState:
         """Skip the real run-start delay during tests."""
 
         with patch(
-            "asusrouter.modules.speedtest.source.asyncio.sleep", AsyncMock()
+            "asusrouter.modules.action.asyncio.sleep", AsyncMock()
         ) as sleep:
             yield sleep
 

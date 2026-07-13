@@ -8,6 +8,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 from asusrouter.const import AR_CALL_RUN_ACTION, RequestType
+from asusrouter.modules.action import _RUN_START_DELAY
 from asusrouter.modules.common.metrics import ARMetricType as M
 from asusrouter.modules.common.status import STATUS_CODE_KEY
 from asusrouter.modules.endpoint_v2 import (
@@ -25,7 +26,7 @@ from asusrouter.modules.ping import (
     run_action,
     translate_state,
 )
-from asusrouter.modules.ping.source import _RUN_START_DELAY, _build_request
+from asusrouter.modules.ping.source import _build_request
 from asusrouter.registry import ARCallableRegistry as ARCallReg
 from asusrouter.tools.identifiers.ip import IpAddress
 
@@ -102,7 +103,7 @@ class TestGetState:
         """Skip the real run-start delay during tests."""
 
         with patch(
-            "asusrouter.modules.ping.source.asyncio.sleep", AsyncMock()
+            "asusrouter.modules.action.asyncio.sleep", AsyncMock()
         ) as sleep:
             yield sleep
 

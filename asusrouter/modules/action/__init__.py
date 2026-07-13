@@ -2,10 +2,19 @@
 
 from __future__ import annotations
 
+import asyncio
 from enum import StrEnum
+import logging
 
 from asusrouter.const import UNKNOWN_MEMBER_STR
 from asusrouter.tools.enum import FromStrMixin
+from asusrouter.tools.types import ARCallbackType
+
+_LOGGER = logging.getLogger(__name__)
+
+# The router needs a moment to spin up a run after the trigger returns;
+# reading sooner still sees the previous run and stale/absent results
+_RUN_START_DELAY = 1.0
 
 
 class ARActionType(FromStrMixin, StrEnum):
@@ -48,7 +57,25 @@ class ARAction:
         return f"<{type(self).__name__}>"
 
 
+async def async_start_run(
+    run_action_callback: ARCallbackType | None,
+    action: ARAction,
+    *,
+    delay: float = _RUN_START_DELAY,
+) -> bool:
+    """Trigger an action run and give the device time to start it."""
+
+    if run_action_callback is None:
+        return False
+    if not await run_action_callback(action):
+        _LOGGER.debug("%r did not start; dropping results", action)
+        return False
+    await asyncio.sleep(delay)
+    return True
+
+
 __all__ = [
     "ARAction",
     "ARActionType",
+    "async_start_run",
 ]
