@@ -8,8 +8,10 @@ from asusrouter.const import UNKNOWN_MEMBER, UNKNOWN_MEMBER_STR
 from asusrouter.tools.enum import FromIntMixin, FromStrMixin
 
 
-class ARNetworkBackend(StrEnum):
+class ARNetworkBackend(FromStrMixin, StrEnum):
     """Backend that produced a network profile (write dispatch target)."""
+
+    UNKNOWN = UNKNOWN_MEMBER_STR
 
     LEGACY = "legacy"
     SDN = "sdn"

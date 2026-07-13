@@ -8,14 +8,16 @@ from asusrouter.const import UNKNOWN_MEMBER, UNKNOWN_MEMBER_STR
 from asusrouter.tools.enum import FromIntMixin, FromStrMixin
 
 
-class ARPortCablePair(StrEnum):
+class ARPortCablePair(FromStrMixin, StrEnum):
     """The four twisted pairs of an ethernet cable.
 
     Values match the raw keys returned by the device.
     """
 
-    BROWN = "brown"
+    UNKNOWN = UNKNOWN_MEMBER_STR
+
     BLUE = "blue"
+    BROWN = "brown"
     GREEN = "green"
     ORANGE = "orange"
 
@@ -43,26 +45,28 @@ class ARPortCapability(FromIntMixin, IntEnum):
     DUALWAN_PRIMARY = 30
 
 
-class ARPortProperty(StrEnum):
+class ARPortProperty(FromStrMixin, StrEnum):
     """A single property of a port."""
 
-    NATIVE_NAME = "native_name"
-    STATE = "state"
-    LINK_RATE = "link_rate"
-    MAX_RATE = "max_rate"
-    ROLE = "role"
-    CAPABILITIES = "capabilities"
-    EXTENDED = "extended"
-    IFNAME = "ifname"
-    UI_DISPLAY = "ui_display"
-    SEQ_NO = "seq_no"
-    FLAG = "flag"
-    PHY_PORT_ID = "phy_port_id"
-    EXT_PORT_ID = "ext_port_id"
-    TIMEOUT = "timeout"
-    LINK_RECOVER = "link_recover"
+    UNKNOWN = UNKNOWN_MEMBER_STR
+
     CABLE = "cable"
+    CAPABILITIES = "capabilities"
     DEVICES = "devices"
+    EXTENDED = "extended"
+    EXT_PORT_ID = "ext_port_id"
+    FLAG = "flag"
+    IFNAME = "ifname"
+    LINK_RATE = "link_rate"
+    LINK_RECOVER = "link_recover"
+    MAX_RATE = "max_rate"
+    NATIVE_NAME = "native_name"
+    PHY_PORT_ID = "phy_port_id"
+    ROLE = "role"
+    SEQ_NO = "seq_no"
+    STATE = "state"
+    TIMEOUT = "timeout"
+    UI_DISPLAY = "ui_display"
 
 
 class ARPortSpeed(FromIntMixin, IntEnum):
@@ -79,16 +83,18 @@ class ARPortSpeed(FromIntMixin, IntEnum):
     MBPS_10000 = 10000
 
 
-class ARPortsInfo(StrEnum):
+class ARPortsInfo(FromStrMixin, StrEnum):
     """Node-level information reported alongside the ports.
 
     Values match the raw keys returned by the device.
     """
 
+    UNKNOWN = UNKNOWN_MEMBER_STR
+
     CD_GOOD_TO_GO = "cd_good_to_go"
+    PER_PORT_POWER_LIMIT = "per_port_power_limit"
     POWER_LIMIT = "power_limit"
     POWER_REMAIN = "power_remain"
-    PER_PORT_POWER_LIMIT = "per_port_power_limit"
 
 
 class ARPortType(FromStrMixin, StrEnum):

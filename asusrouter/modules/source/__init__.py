@@ -47,6 +47,8 @@ class ARDataSource:
         return f"<{type(self).__name__}>"
 
 
+# Empty abstract base - UNKNOWN lives in subclasses (an enum with
+# members cannot be subclassed)
 class ARDataType(FromStrMixin, StrEnum):
     """AsusRouter data type."""
 
