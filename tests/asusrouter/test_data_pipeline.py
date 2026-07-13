@@ -415,6 +415,45 @@ class TestAsyncRefreshDataState:
         assert state.refreshing is False
 
     @pytest.mark.asyncio
+    async def test_parent_and_child_in_one_batch_no_deadlock(
+        self,
+        router: AsusRouter,
+        bind_state: BindStateFactory,
+    ) -> None:
+        """A parent sub-fetching a child in the same batch must not hang."""
+
+        parent_src, child_src = ARDataSource(), _AltSource()
+
+        async def child_caller(_read: Any, _source: Any, **_kw: Any) -> Any:
+            await asyncio.sleep(0.01)
+            return {"child": 1}
+
+        async def parent_caller(_read: Any, _source: Any, **_kw: Any) -> Any:
+            # Re-enter the pipeline for the child that is in this batch;
+            # the child is in-flight, so this lands in the pending wait
+            await router._async_refresh_data_state(
+                ARDataCollection([child_src])
+            )
+            return {"parent": 1}
+
+        parent = bind_state(parent_src, caller=parent_caller)
+        child = bind_state(child_src, caller=child_caller)
+
+        collection = ARDataCollection([parent_src, child_src])
+
+        # Per-task end_refresh wakes the child waiter mid-gather; without
+        # it the whole gather never completes and this times out
+        await asyncio.wait_for(
+            router._async_refresh_data_state(collection, force=True),
+            timeout=2,
+        )
+
+        assert_state_updated(parent, {"parent": 1})
+        assert_state_updated(child, {"child": 1})
+        assert parent.refreshing is False
+        assert child.refreshing is False
+
+    @pytest.mark.asyncio
     @pytest.mark.parametrize(
         ("has_translate", "expected_value"),
         [
