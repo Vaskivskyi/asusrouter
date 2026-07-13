@@ -14,6 +14,7 @@ from asusrouter.modules.network.enums import (
     ARNetworkType,
 )
 from asusrouter.modules.network.handle import ARNetworkHandle
+from asusrouter.modules.nvram import ARNvramType
 from asusrouter.modules.service.action import (
     ARServiceResult,
     build_service_request,
@@ -66,13 +67,26 @@ class ARNetworkAction(ARAction):
         return hash((type(self), self.handle, self.state))
 
 
+async def _read_sdn_rl(get_data_callback: ARCallbackType | None) -> Any:
+    """Read the raw `sdn_rl` rule list via the NVRAM module, or None."""
+
+    if get_data_callback is None:
+        return None
+    values = await get_data_callback(ARNvramType.SDN_RL)
+    if not isinstance(values, dict):
+        return None
+    return values.get(ARNvramType.SDN_RL)
+
+
 async def _build_payload(
-    callback: ARCallbackType, handle: ARNetworkHandle, state: bool
+    get_data_callback: ARCallbackType | None,
+    handle: ARNetworkHandle,
+    state: bool,
 ) -> tuple[str, dict[str, Any]] | None:
     """Build the `(rc_service, arguments)` for the backend, or None."""
 
     if handle.backend is ARNetworkBackend.SDN:
-        raw_sdn_rl = await sdn.fetch_sdn_rl(callback)
+        raw_sdn_rl = await _read_sdn_rl(get_data_callback)
         if raw_sdn_rl is None:
             return None
         return sdn.build_toggle_payload(raw_sdn_rl, handle, state)
@@ -84,13 +98,16 @@ async def run_action(
     callback: ARCallbackType,
     action: ARNetworkAction,
     *,
+    get_data_callback: ARCallbackType | None = None,
     raw_callback: ARCallbackType | None = None,
     identity: ARDeviceIdentity | None = None,
     **kwargs: Any,
 ) -> ARServiceResult:
     """Toggle the action's network on its backend."""
 
-    payload = await _build_payload(callback, action.handle, action.state)
+    payload = await _build_payload(
+        get_data_callback, action.handle, action.state
+    )
     if payload is None:
         return ARServiceResult(success=False)
 

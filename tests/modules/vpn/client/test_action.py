@@ -6,6 +6,7 @@ from unittest.mock import AsyncMock
 
 from asusrouter.const import AR_CALL_RUN_ACTION
 from asusrouter.modules.endpoint_v2 import AREndpoint
+from asusrouter.modules.nvram import ARNvramType
 from asusrouter.modules.service.action import ARServiceResult
 from asusrouter.modules.vpn.client.action import ARVpnClientAction, run_action
 from asusrouter.modules.vpn.enums import ARVpnProtocol
@@ -67,14 +68,21 @@ class TestRunAction:
     async def test_fusion_rewrites_clientlist(self) -> None:
         """A Fusion device flips the activate flag and runs restart_vpnc."""
 
-        callback = AsyncMock(return_value={"vpnc_clientlist": _CLIENTLIST})
+        get_data_callback = AsyncMock(
+            return_value={ARNvramType.VPNC_CLIENTLIST: _CLIENTLIST}
+        )
         raw_callback = AsyncMock(return_value="NOT MODIFIED")
         action = ARVpnClientAction(ARVpnProtocol.WIREGUARD, False, unit=5)
 
-        result = await run_action(callback, action, raw_callback=raw_callback)
+        result = await run_action(
+            AsyncMock(),
+            action,
+            get_data_callback=get_data_callback,
+            raw_callback=raw_callback,
+        )
 
         assert result.success is True
-        assert callback.await_args.kwargs["endpoint"] is AREndpoint.FETCH_DATA
+        get_data_callback.assert_awaited_once_with(ARNvramType.VPNC_CLIENTLIST)
         push = raw_callback.await_args.kwargs
         assert push["endpoint"] is AREndpoint.PUSH_DATA
         assert '"rc_service":"stop_vpnc"' in push["request"]
@@ -83,11 +91,16 @@ class TestRunAction:
     async def test_classic_openvpn(self) -> None:
         """Without a clientlist, OpenVPN uses the per-unit service."""
 
-        callback = AsyncMock(return_value={})
+        get_data_callback = AsyncMock(return_value={})
         raw_callback = AsyncMock(return_value="NOT MODIFIED")
         action = ARVpnClientAction(ARVpnProtocol.OPENVPN, True, unit=2)
 
-        result = await run_action(callback, action, raw_callback=raw_callback)
+        result = await run_action(
+            AsyncMock(),
+            action,
+            get_data_callback=get_data_callback,
+            raw_callback=raw_callback,
+        )
 
         assert result.success is True
         request = raw_callback.await_args.kwargs["request"]
@@ -96,11 +109,16 @@ class TestRunAction:
     async def test_classic_wireguard(self) -> None:
         """Classic WireGuard flips the enable flag with `start_wgc`."""
 
-        callback = AsyncMock(return_value={})
+        get_data_callback = AsyncMock(return_value={})
         raw_callback = AsyncMock(return_value="NOT MODIFIED")
         action = ARVpnClientAction(ARVpnProtocol.WIREGUARD, True, unit=3)
 
-        await run_action(callback, action, raw_callback=raw_callback)
+        await run_action(
+            AsyncMock(),
+            action,
+            get_data_callback=get_data_callback,
+            raw_callback=raw_callback,
+        )
 
         request = raw_callback.await_args.kwargs["request"]
         assert '"rc_service":"start_wgc 3"' in request
@@ -109,11 +127,14 @@ class TestRunAction:
     async def test_unknown_client_fails(self) -> None:
         """A Fusion device without the target profile fails without a push."""
 
-        callback = AsyncMock(return_value={"vpnc_clientlist": _CLIENTLIST})
+        get_data_callback = AsyncMock(
+            return_value={ARNvramType.VPNC_CLIENTLIST: _CLIENTLIST}
+        )
         raw_callback = AsyncMock()
         result = await run_action(
-            callback,
+            AsyncMock(),
             ARVpnClientAction(ARVpnProtocol.WIREGUARD, True, unit=9),
+            get_data_callback=get_data_callback,
             raw_callback=raw_callback,
         )
 
@@ -123,10 +144,13 @@ class TestRunAction:
     async def test_non_dict_read_uses_classic(self) -> None:
         """A non-dict clientlist read falls back to the classic backend."""
 
-        callback = AsyncMock(side_effect=["not-a-dict", "NOT MODIFIED"])
+        get_data_callback = AsyncMock(return_value="not-a-dict")
+        callback = AsyncMock(return_value="NOT MODIFIED")
         action = ARVpnClientAction(ARVpnProtocol.OPENVPN, True, unit=1)
 
-        result = await run_action(callback, action)
+        result = await run_action(
+            callback, action, get_data_callback=get_data_callback
+        )
 
         assert result.success is True
         assert (
@@ -134,14 +158,26 @@ class TestRunAction:
             in callback.await_args.kwargs["request"]
         )
 
+    async def test_no_data_callback_fails(self) -> None:
+        """Without a data callback no backend is known; nothing is pushed."""
+
+        callback = AsyncMock()
+        result = await run_action(
+            callback, ARVpnClientAction(ARVpnProtocol.WIREGUARD, True)
+        )
+
+        assert result == ARServiceResult(success=False)
+        callback.assert_not_awaited()
+
     async def test_unsupported_protocol_fails(self) -> None:
         """A classic protocol without a toggle fails without a push."""
 
-        callback = AsyncMock(return_value={})
+        get_data_callback = AsyncMock(return_value={})
         raw_callback = AsyncMock()
         result = await run_action(
-            callback,
+            AsyncMock(),
             ARVpnClientAction(ARVpnProtocol.PPTP, True),
+            get_data_callback=get_data_callback,
             raw_callback=raw_callback,
         )
 
@@ -151,13 +187,16 @@ class TestRunAction:
     async def test_falls_back_to_callback(self) -> None:
         """Without a raw callback the plain callback posts the request."""
 
-        callback = AsyncMock(side_effect=[{}, "NOT MODIFIED"])
+        get_data_callback = AsyncMock(return_value={})
+        callback = AsyncMock(return_value="NOT MODIFIED")
         action = ARVpnClientAction(ARVpnProtocol.OPENVPN, False, unit=1)
 
-        result = await run_action(callback, action)
+        result = await run_action(
+            callback, action, get_data_callback=get_data_callback
+        )
 
         assert result.success is True
-        assert callback.await_count == 2
+        callback.assert_awaited_once()
         assert (
             '"rc_service":"stop_vpnclient1"'
             in callback.await_args.kwargs["request"]
