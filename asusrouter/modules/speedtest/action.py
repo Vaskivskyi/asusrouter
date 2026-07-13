@@ -46,21 +46,30 @@ class ARSpeedTestAction(ARAction):
 
 
 async def run_action(
-    callback: ARCallbackType, action: ARSpeedTestAction, **kwargs: Any
+    callback: ARCallbackType,
+    action: ARSpeedTestAction,
+    *,
+    raw_callback: ARCallbackType | None = None,
+    **kwargs: Any,
 ) -> bool:
     """Trigger a speedtest run."""
 
-    await callback(
+    # Post raw: async_fetch returns None on failure and the (ignored) body on
+    # success, while async_read would collapse a failed fetch to {} and hide it
+    poster = raw_callback or callback
+
+    # The start time is only stored for the WebUI display; result not checked
+    await poster(
         endpoint=AREndpoint.SET_SPEEDTEST_START_TIME,
         request=build_start_time_request(int(time.time() * 1000)),
     )
-    await callback(
+    data = await poster(
         endpoint=AREndpoint.RUN_SPEEDTEST,
         request=build_run_request(
             EXE_TYPE_RUN, server_id=action.server_id, iface=action.iface
         ),
     )
-    return True
+    return data is not None
 
 
 ARCallReg.register_action(ARSpeedTestAction, run_action=run_action)

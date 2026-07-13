@@ -458,6 +458,31 @@ class TestRunAction:
         run = callback.await_args_list[1].kwargs
         assert run["request"] == "type=&id=54112"
 
+    async def test_prefers_raw_callback(self) -> None:
+        """With a raw callback, both requests post raw and success is True."""
+
+        callback = AsyncMock()
+        raw_callback = AsyncMock(return_value="")
+
+        result = await run_action(
+            callback, ARSpeedTestAction(), raw_callback=raw_callback
+        )
+
+        assert result is True
+        callback.assert_not_awaited()
+        assert raw_callback.await_count == 2
+
+    async def test_failed_run_returns_false(self) -> None:
+        """A failed run request reports False."""
+
+        raw_callback = AsyncMock(return_value=None)
+
+        result = await run_action(
+            AsyncMock(), ARSpeedTestAction(), raw_callback=raw_callback
+        )
+
+        assert result is False
+
     def test_registered(self) -> None:
         """The action resolves to the module run_action callable."""
 
