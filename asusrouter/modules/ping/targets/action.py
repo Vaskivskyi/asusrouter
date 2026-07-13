@@ -14,6 +14,7 @@ from asusrouter.modules.ping.targets.source import (
     ARPingTargetInput,
     _parse_targets,
 )
+from asusrouter.modules.service.action import ARServiceResult
 from asusrouter.registry import ARCallableRegistry as ARCallReg
 from asusrouter.tools.converters_v2.raw import raw_to_bool
 from asusrouter.tools.identifiers.ip import IpAddress
@@ -126,7 +127,7 @@ async def run_action(
     *,
     get_data_callback: ARCallbackType | None = None,
     **kwargs: Any,
-) -> bool:
+) -> ARServiceResult:
     """Apply an add/remove/clean operation to the ping target list."""
 
     if action.op is ARActionType.CLEAN:
@@ -134,9 +135,9 @@ async def run_action(
     elif action.op in (ARActionType.ADD, ARActionType.REMOVE):
         if not action.targets:
             _LOGGER.debug("No compatible target provided; nothing to apply")
-            return False
+            return ARServiceResult(success=False)
         if get_data_callback is None:
-            return False
+            return ARServiceResult(success=False)
         current = await _async_current(get_data_callback)
         targets = (
             _add(current, action.targets)
@@ -145,17 +146,17 @@ async def run_action(
         )
         if targets == current:
             _LOGGER.debug("Target list unchanged; nothing to apply")
-            return True
+            return ARServiceResult(success=True)
     else:
-        return False
+        return ARServiceResult(success=False)
 
     request = build_push_request(
         payload={ARNvramType.DNS_PING_LIST.value: _encode_targets(targets)},
     )
     data = await callback(endpoint=AREndpoint.PUSH_DATA, request=request)
     if not isinstance(data, dict):
-        return False
-    return raw_to_bool(data.get(MODIFY_KEY)) is True
+        return ARServiceResult(success=False)
+    return ARServiceResult(success=raw_to_bool(data.get(MODIFY_KEY)) is True)
 
 
 ARCallReg.register_action(ARPingTargetsAction, run_action=run_action)

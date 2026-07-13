@@ -430,7 +430,8 @@ class TestRunAction:
         """A default run stamps the start time, then posts an empty body."""
 
         callback = AsyncMock()
-        assert await run_action(callback, ARSpeedTestAction()) is True
+        result = await run_action(callback, ARSpeedTestAction())
+        assert result.success is True
 
         # First the start time, then the run trigger
         start, run = callback.await_args_list
@@ -469,7 +470,7 @@ class TestRunAction:
             callback, ARSpeedTestAction(), raw_callback=raw_callback
         )
 
-        assert result is True
+        assert result.success is True
         callback.assert_not_awaited()
         assert raw_callback.await_count == 2
 
@@ -482,7 +483,7 @@ class TestRunAction:
             AsyncMock(), ARSpeedTestAction(), raw_callback=raw_callback
         )
 
-        assert result is False
+        assert result.success is False
 
     def test_registered(self) -> None:
         """The action resolves to the module run_action callable."""

@@ -318,7 +318,7 @@ class TestRunAction:
 
         result = await run_action(callback, ARPingAction())
 
-        assert result is True
+        assert result.success is True
         callback.assert_awaited_once_with(
             endpoint=AREndpoint.RUN_PING, request=None
         )
@@ -328,14 +328,16 @@ class TestRunAction:
 
         callback = AsyncMock(return_value={STATUS_CODE_KEY: "error"})
 
-        assert await run_action(callback, ARPingAction()) is False
+        result = await run_action(callback, ARPingAction())
+        assert result.success is False
 
     async def test_non_dict_response(self) -> None:
         """A non-dict response reports False."""
 
         callback = AsyncMock(return_value=None)
 
-        assert await run_action(callback, ARPingAction()) is False
+        result = await run_action(callback, ARPingAction())
+        assert result.success is False
 
 
 class TestEndpoint:

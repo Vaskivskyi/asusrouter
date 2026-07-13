@@ -7,6 +7,7 @@ from typing import Any
 
 from asusrouter.modules.action import ARAction
 from asusrouter.modules.endpoint_v2 import AREndpoint
+from asusrouter.modules.service.action import ARServiceResult
 from asusrouter.modules.speedtest.models import (
     EXE_TYPE_RUN,
     build_run_request,
@@ -44,7 +45,7 @@ async def run_action(
     *,
     raw_callback: ARCallbackType | None = None,
     **kwargs: Any,
-) -> bool:
+) -> ARServiceResult:
     """Trigger a speedtest run."""
 
     # Post raw: async_fetch returns None on failure and the (ignored) body on
@@ -62,7 +63,7 @@ async def run_action(
             EXE_TYPE_RUN, server_id=action.server_id, iface=action.iface
         ),
     )
-    return data is not None
+    return ARServiceResult(success=data is not None)
 
 
 ARCallReg.register_action(ARSpeedTestAction, run_action=run_action)

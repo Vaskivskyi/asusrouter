@@ -317,7 +317,7 @@ class TestRunAction:
             get_data_callback=get_data_callback,
         )
 
-        assert result is True
+        assert result.success is True
         get_data_callback.assert_not_awaited()
         call = callback.await_args.kwargs
         assert call["endpoint"] == AREndpoint.PUSH_DATA
@@ -335,7 +335,7 @@ class TestRunAction:
             get_data_callback=get_data_callback,
         )
 
-        assert result is True
+        assert result.success is True
         get_data_callback.assert_awaited_once_with(
             ARNvramType.DNS_PING_LIST, force=True
         )
@@ -355,7 +355,7 @@ class TestRunAction:
             get_data_callback=get_data_callback,
         )
 
-        assert result is True
+        assert result.success is True
         request = callback.await_args.kwargs["request"]
         assert "1.1.1.1" not in request
         assert "8.8.8.8" in request
@@ -372,7 +372,7 @@ class TestRunAction:
             get_data_callback=get_data_callback,
         )
 
-        assert result is True
+        assert result.success is True
         get_data_callback.assert_awaited_once()
         callback.assert_not_awaited()
 
@@ -388,7 +388,7 @@ class TestRunAction:
             get_data_callback=get_data_callback,
         )
 
-        assert result is True
+        assert result.success is True
         callback.assert_not_awaited()
 
     async def test_add_without_targets(self) -> None:
@@ -403,7 +403,7 @@ class TestRunAction:
             get_data_callback=get_data_callback,
         )
 
-        assert result is False
+        assert result.success is False
         callback.assert_not_awaited()
         get_data_callback.assert_not_awaited()
 
@@ -415,7 +415,7 @@ class TestRunAction:
             callback, ARPingTargetsAction(ARActionType.ADD, [_ip("1.1.1.1")])
         )
 
-        assert result is False
+        assert result.success is False
         callback.assert_not_awaited()
 
     async def test_unknown_op(self) -> None:
@@ -428,7 +428,7 @@ class TestRunAction:
             get_data_callback=_list_callback(_RAW),
         )
 
-        assert result is False
+        assert result.success is False
         callback.assert_not_awaited()
 
     async def test_modify_false(self) -> None:
@@ -440,7 +440,7 @@ class TestRunAction:
             ARPingTargetsAction(ARActionType.CLEAN),
         )
 
-        assert result is False
+        assert result.success is False
 
     async def test_non_dict_response(self) -> None:
         """A non-dict applyapp reply reports failure."""
@@ -451,4 +451,4 @@ class TestRunAction:
             ARPingTargetsAction(ARActionType.CLEAN),
         )
 
-        assert result is False
+        assert result.success is False

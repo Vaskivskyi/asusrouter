@@ -62,6 +62,11 @@ class ARServiceResult:
     needed_time: int | None = None
     last_id: int | None = None
 
+    def __bool__(self) -> bool:
+        """Truthy when the run succeeded."""
+
+        return self.success
+
 
 class ARServiceAction(ARAction):
     """Run one or more device services via `rc_service`."""
