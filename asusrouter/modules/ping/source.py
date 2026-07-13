@@ -13,7 +13,7 @@ from asusrouter.modules.endpoint_v2 import (
     AREndpoint,
     get_endpoint_request_type,
 )
-from asusrouter.modules.nvram import ARNvramType
+from asusrouter.modules.nvram import ARNvramType, async_get_value
 from asusrouter.modules.ping.action import ARPingAction
 from asusrouter.modules.ping.enums import ARPingStatus
 from asusrouter.modules.source import ARDataSource
@@ -112,11 +112,8 @@ async def _async_wait_finished(get_data_callback: ARCallbackType) -> bool:
     """Poll `dns_ping_state` until the ping run reports finished."""
 
     async def _probe(**kwargs: Any) -> ARPingStatus:
-        values = await get_data_callback(ARNvramType.DNS_PING_STATUS, **kwargs)
-        raw = (
-            values.get(ARNvramType.DNS_PING_STATUS)
-            if isinstance(values, dict)
-            else None
+        raw = await async_get_value(
+            get_data_callback, ARNvramType.DNS_PING_STATUS, **kwargs
         )
         return ARPingStatus.from_value(raw)
 

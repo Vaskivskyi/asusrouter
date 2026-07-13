@@ -186,6 +186,30 @@ async def get_state(
     }
 
 
+async def async_fetch_values(
+    get_data_callback: ARCallbackType | None,
+    request: ARNvramItem | Iterable[ARNvramItem],
+    **kwargs: Any,
+) -> dict[Any, Any]:
+    """Fetch NVRAM values through the data pipeline, or {} if unavailable."""
+
+    if get_data_callback is None:
+        return {}
+    values = await get_data_callback(request, **kwargs)
+    return values if isinstance(values, dict) else {}
+
+
+async def async_get_value(
+    get_data_callback: ARCallbackType | None,
+    item: ARNvramItem,
+    **kwargs: Any,
+) -> Any:
+    """Fetch a single NVRAM value through the data pipeline, or None."""
+
+    values = await async_fetch_values(get_data_callback, item, **kwargs)
+    return values.get(item)
+
+
 def translate_state(
     data: dict[ARNvramItem, Any],
     **kwargs: Any,

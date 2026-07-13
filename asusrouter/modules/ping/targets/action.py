@@ -8,7 +8,7 @@ from typing import Any
 from asusrouter.modules.action import ARAction, ARActionType
 from asusrouter.modules.common.status import MODIFY_KEY
 from asusrouter.modules.endpoint_v2 import AREndpoint, build_push_request
-from asusrouter.modules.nvram import ARNvramType
+from asusrouter.modules.nvram import ARNvramType, async_get_value
 from asusrouter.modules.ping.targets.source import (
     ARPingTarget,
     ARPingTargetInput,
@@ -114,11 +114,8 @@ async def _async_current(
 ) -> list[ARPingTarget]:
     """Fetch the current target list, bypassing the cache."""
 
-    values = await get_data_callback(ARNvramType.DNS_PING_LIST, force=True)
-    raw = (
-        values.get(ARNvramType.DNS_PING_LIST)
-        if isinstance(values, dict)
-        else None
+    raw = await async_get_value(
+        get_data_callback, ARNvramType.DNS_PING_LIST, force=True
     )
     return _parse_targets(raw) if isinstance(raw, str) else []
 

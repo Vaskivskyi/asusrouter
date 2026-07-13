@@ -7,7 +7,11 @@ from typing import Any
 
 from asusrouter.modules.action import async_start_run
 from asusrouter.modules.endpoint_v2 import AREndpoint
-from asusrouter.modules.endpoint_v2.hooks import ARHook, hook_request
+from asusrouter.modules.endpoint_v2.hooks import (
+    ARHook,
+    hook_request,
+    hook_value,
+)
 from asusrouter.modules.source import ARDataSource
 from asusrouter.modules.speedtest.action import ARSpeedTestAction
 from asusrouter.modules.speedtest.history import (
@@ -64,21 +68,13 @@ _POLL_ATTEMPTS = 90
 _RESULT_REQUEST = hook_request(ARHook.OOKLA_SPEEDTEST_RESULT)
 
 
-def _extract(data: Any) -> Any:
-    """Pull the result stream out of a hook response."""
-
-    if isinstance(data, dict):
-        return data.get(ARHook.OOKLA_SPEEDTEST_RESULT.value)
-    return None
-
-
 async def _async_fetch_events(callback: ARCallbackType) -> Any:
     """Fetch the raw Ookla result stream."""
 
     data = await callback(
         endpoint=AREndpoint.FETCH_DATA, request=_RESULT_REQUEST
     )
-    return _extract(data)
+    return hook_value(data, ARHook.OOKLA_SPEEDTEST_RESULT)
 
 
 def _result_id(events: Any) -> str | None:

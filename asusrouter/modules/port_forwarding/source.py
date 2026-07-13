@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from asusrouter.modules.nvram import ARNvramType
+from asusrouter.modules.nvram import ARNvramType, async_fetch_values
 from asusrouter.modules.port_forwarding.enums import (
     ARPortForwardingField,
     ARPortForwardingProtocol,
@@ -62,11 +62,7 @@ async def get_state(
 ) -> dict[Any, Any]:
     """Fetch the port forwarding configuration through the NVRAM module."""
 
-    if get_data_callback is None:
-        return {}
-
-    values = await get_data_callback(_PF_REQUEST)
-    return values if isinstance(values, dict) else {}
+    return await async_fetch_values(get_data_callback, _PF_REQUEST)
 
 
 def _decode(raw: Any) -> str:

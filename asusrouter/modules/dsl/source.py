@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 from asusrouter.modules.common.metrics import ARMetricType
-from asusrouter.modules.nvram import ARNvramType
+from asusrouter.modules.nvram import ARNvramType, async_fetch_values
 from asusrouter.modules.source import ARDataSource
 from asusrouter.modules.support.flag import ARSupportType
 from asusrouter.modules.support.helpers import support_available
@@ -59,15 +59,12 @@ async def get_state(
 ) -> dict[Any, Any]:
     """Fetch the DSL data rates through the NVRAM module."""
 
-    if get_data_callback is None:
-        return {}
     if identity is None or not support_available(
         identity.support, ARSupportType.DSL
     ):
         return {}
 
-    values = await get_data_callback(_DSL_REQUEST)
-    return values if isinstance(values, dict) else {}
+    return await async_fetch_values(get_data_callback, _DSL_REQUEST)
 
 
 def translate_state(

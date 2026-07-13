@@ -18,6 +18,7 @@ from asusrouter.modules.nvram import (
     ARNvramIndexType,
     ARNvramItem,
     ARNvramType,
+    async_fetch_values,
 )
 from asusrouter.modules.source import ARDataSource
 from asusrouter.registry import ARCallableRegistry as ARCallReg
@@ -66,11 +67,10 @@ async def get_state(
 ) -> dict[Any, Any]:
     """Fetch the Aura configuration through the NVRAM module."""
 
-    if not aura_supported(identity) or get_data_callback is None:
+    if not aura_supported(identity):
         return {}
 
-    values = await get_data_callback(_AURA_REQUEST)
-    return values if isinstance(values, dict) else {}
+    return await async_fetch_values(get_data_callback, _AURA_REQUEST)
 
 
 def _parse_scheme_colors(

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from enum import StrEnum
-from typing import Protocol
+from typing import Any, Protocol
 
 from asusrouter.const import UNKNOWN_MEMBER_STR
 from asusrouter.tools.enum import FromStrMixin
@@ -93,3 +93,18 @@ def hook_request(*items: ARHook | tuple[ARHook, str] | ARHookItem) -> str:
             hook, args = item.as_hook()
         parts.append(f"{hook.value}({args})")
     return "hook=" + ";".join(parts)
+
+
+def hook_value(data: Any, item: ARHook | ARHookItem) -> Any:
+    """Read one hook item's value from a parsed response, or None.
+
+    Plain hooks key the response by their name; argument-carrying items
+    (e.g. `nvram_get`) key it by the argument.
+    """
+
+    if not isinstance(data, dict):
+        return None
+    if isinstance(item, ARHook):
+        return data.get(item.value)
+    _, key = item.as_hook()
+    return data.get(key)

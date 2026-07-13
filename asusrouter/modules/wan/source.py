@@ -14,6 +14,7 @@ from asusrouter.modules.nvram import (
     ARNvramIndexType,
     ARNvramItem,
     ARNvramType,
+    async_fetch_values,
 )
 from asusrouter.modules.source import ARDataSource
 from asusrouter.modules.wan.enums import ARDualWanMode
@@ -572,11 +573,7 @@ async def get_state(
 ) -> dict[Any, Any]:
     """Fetch the WAN state in a single batched NVRAM request."""
 
-    if get_data_callback is None:
-        return {}
-
-    values = await get_data_callback(_WAN_REQUEST)
-    return values if isinstance(values, dict) else {}
+    return await async_fetch_values(get_data_callback, _WAN_REQUEST)
 
 
 def translate_state(data: Any, **kwargs: Any) -> ARWan:

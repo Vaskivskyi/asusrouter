@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from asusrouter.modules.nvram import ARNvramType
+from asusrouter.modules.nvram import ARNvramType, async_get_value
 from asusrouter.modules.source import ARDataSource
 from asusrouter.registry import ARCallableRegistry as ARCallReg
 from asusrouter.tools.identifiers.ip import IpAddress
@@ -46,14 +46,7 @@ async def get_state(
 ) -> Any:
     """Fetch the raw dns_ping_list value."""
 
-    if get_data_callback is None:
-        return {}
-
-    values = await get_data_callback(ARNvramType.DNS_PING_LIST)
-    if not isinstance(values, dict):
-        return {}
-
-    value = values.get(ARNvramType.DNS_PING_LIST)
+    value = await async_get_value(get_data_callback, ARNvramType.DNS_PING_LIST)
     return value if value is not None else {}
 
 

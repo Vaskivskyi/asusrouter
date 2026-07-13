@@ -6,6 +6,8 @@ from asusrouter.modules.nvram.enums import ARNvramIndexType, ARNvramType
 from asusrouter.modules.nvram.source import (
     ARNvramIndexSource,
     ARNvramItem,
+    async_fetch_values,
+    async_get_value,
     get_state,
     translate_state,
 )
@@ -15,6 +17,8 @@ __all__ = [
     "ARNvramIndexType",
     "ARNvramItem",
     "ARNvramType",
+    "async_fetch_values",
+    "async_get_value",
     "get_state",
     "translate_state",
 ]

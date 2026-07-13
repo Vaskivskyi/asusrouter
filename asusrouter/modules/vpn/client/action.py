@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 from asusrouter.modules.action import ARAction
-from asusrouter.modules.nvram import ARNvramType
+from asusrouter.modules.nvram import ARNvramType, async_get_value
 from asusrouter.modules.service.action import (
     ARServiceInput,
     ARServiceResult,
@@ -45,17 +45,6 @@ class ARVpnClientAction(ARAction):
         return (self.protocol, self.unit, self.state)
 
 
-async def _read_clientlist(
-    get_data_callback: ARCallbackType,
-) -> str | None:
-    """Read the raw `vpnc_clientlist`, or None on a non-Fusion device."""
-
-    values = await get_data_callback(ARNvramType.VPNC_CLIENTLIST)
-    if not isinstance(values, dict):
-        return None
-    return raw_to_str(values.get(ARNvramType.VPNC_CLIENTLIST))
-
-
 async def run_action(
     callback: ARCallbackType,
     action: ARVpnClientAction,
@@ -71,7 +60,10 @@ async def run_action(
     if get_data_callback is None:
         return ARServiceResult(success=False)
 
-    clientlist = await _read_clientlist(get_data_callback)
+    # A None clientlist means a non-Fusion device
+    clientlist = raw_to_str(
+        await async_get_value(get_data_callback, ARNvramType.VPNC_CLIENTLIST)
+    )
     payload: tuple[list[ARServiceInput], dict[str, Any]] | None
     if clientlist is not None:
         payload = fusion.build_toggle_payload(

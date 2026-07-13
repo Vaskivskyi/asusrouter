@@ -13,7 +13,7 @@ from asusrouter.modules.network.enums import (
     ARNetworkType,
 )
 from asusrouter.modules.network.handle import ARNetworkHandle
-from asusrouter.modules.nvram import ARNvramType
+from asusrouter.modules.nvram import ARNvramType, async_get_value
 from asusrouter.modules.service.action import (
     ARServiceResult,
     async_run_service,
@@ -58,17 +58,6 @@ class ARNetworkAction(ARAction):
         return (self.handle, self.state)
 
 
-async def _read_sdn_rl(get_data_callback: ARCallbackType | None) -> Any:
-    """Read the raw `sdn_rl` rule list via the NVRAM module, or None."""
-
-    if get_data_callback is None:
-        return None
-    values = await get_data_callback(ARNvramType.SDN_RL)
-    if not isinstance(values, dict):
-        return None
-    return values.get(ARNvramType.SDN_RL)
-
-
 async def _build_payload(
     get_data_callback: ARCallbackType | None,
     handle: ARNetworkHandle,
@@ -77,7 +66,9 @@ async def _build_payload(
     """Build the `(rc_service, arguments)` for the backend, or None."""
 
     if handle.backend is ARNetworkBackend.SDN:
-        raw_sdn_rl = await _read_sdn_rl(get_data_callback)
+        raw_sdn_rl = await async_get_value(
+            get_data_callback, ARNvramType.SDN_RL
+        )
         if raw_sdn_rl is None:
             return None
         return sdn.build_toggle_payload(raw_sdn_rl, handle, state)

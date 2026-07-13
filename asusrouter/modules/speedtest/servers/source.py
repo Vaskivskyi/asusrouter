@@ -5,7 +5,11 @@ from __future__ import annotations
 from typing import Any
 
 from asusrouter.modules.endpoint_v2 import AREndpoint
-from asusrouter.modules.endpoint_v2.hooks import ARHook, hook_request
+from asusrouter.modules.endpoint_v2.hooks import (
+    ARHook,
+    hook_request,
+    hook_value,
+)
 from asusrouter.modules.source import ARDataSource
 from asusrouter.modules.speedtest.models import (
     EXE_TYPE_LIST,
@@ -42,21 +46,13 @@ ARSpeedTestServersSourceUniversal: ARSpeedTestServersSource = (
 # Fetch
 
 
-def _extract(data: Any) -> Any:
-    """Pull the server list out of a hook response."""
-
-    if isinstance(data, dict):
-        return data.get(ARHook.OOKLA_SPEEDTEST_SERVERS.value)
-    return None
-
-
 async def _async_fetch(callback: ARCallbackType) -> Any:
     """Fetch the raw server list from the hook."""
 
     data = await callback(
         endpoint=AREndpoint.FETCH_DATA, request=_SERVERS_REQUEST
     )
-    return _extract(data)
+    return hook_value(data, ARHook.OOKLA_SPEEDTEST_SERVERS)
 
 
 async def get_state(

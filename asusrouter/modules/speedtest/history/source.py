@@ -6,7 +6,11 @@ import logging
 from typing import Any
 
 from asusrouter.modules.endpoint_v2 import AREndpoint
-from asusrouter.modules.endpoint_v2.hooks import ARHook, hook_request
+from asusrouter.modules.endpoint_v2.hooks import (
+    ARHook,
+    hook_request,
+    hook_value,
+)
 from asusrouter.modules.source import ARDataSource
 from asusrouter.modules.speedtest.models import (
     ARSpeedTestResult,
@@ -47,9 +51,7 @@ async def _async_fetch_history(callback: ARCallbackType) -> Any:
     data = await callback(
         endpoint=AREndpoint.FETCH_DATA, request=_HISTORY_REQUEST
     )
-    if isinstance(data, dict):
-        return data.get(ARHook.OOKLA_SPEEDTEST_HISTORY.value)
-    return None
+    return hook_value(data, ARHook.OOKLA_SPEEDTEST_HISTORY)
 
 
 async def get_state(

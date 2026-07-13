@@ -9,7 +9,7 @@ from __future__ import annotations
 from typing import Any
 
 from asusrouter.modules.endpoint_v2 import AREndpoint
-from asusrouter.modules.endpoint_v2.hooks import hook_request
+from asusrouter.modules.endpoint_v2.hooks import hook_request, hook_value
 from asusrouter.modules.network.common import (
     bandwidth_limit,
     decode,
@@ -209,9 +209,7 @@ async def fetch_sdn_rl(callback: ARCallbackType) -> Any:
 
     request = hook_request(ARNvramType.SDN_RL)
     data = await callback(endpoint=AREndpoint.FETCH_DATA, request=request)
-    return (
-        data.get(ARNvramType.SDN_RL.value) if isinstance(data, dict) else None
-    )
+    return hook_value(data, ARNvramType.SDN_RL)
 
 
 async def fetch(callback: ARCallbackType) -> Any:
