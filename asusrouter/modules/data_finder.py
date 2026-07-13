@@ -48,27 +48,12 @@ ASUSDATA_REQUEST = {
 }
 
 ASUSDATA_NVRAM = {
-    "ddns": [
-        "ddns_enable_x",
-        "ddns_hostname_x",
-        "ddns_ipaddr",
-        "ddns_old_name",
-        "ddns_replace_status",
-        "ddns_return_code",
-        "ddns_return_code_chk",
-        "ddns_server_x",
-        "ddns_updated",
-    ],
     "light": ["led_val"],
     "parental_control": HOOK_PC,
 }
 
 # A map of endptoins to get data from
 ASUSDATA_MAP: dict[AsusData, AsusData | AsusDataFinder] = {
-    AsusData.DDNS: AsusDataFinder(
-        AREndpoint.FETCH_DATA,
-        nvram=ASUSDATA_NVRAM["ddns"],
-    ),
     AsusData.LED: AsusDataFinder(
         AREndpoint.FETCH_DATA, nvram=ASUSDATA_NVRAM["light"]
     ),
