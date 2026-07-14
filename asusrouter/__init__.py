@@ -5,7 +5,6 @@ from __future__ import annotations
 from .asusrouter import AsusRouter
 from .error import AsusRouterError
 from .modules.endpoint import AREndpoint
-from .tools.dump import AsusRouterDump
 from .tools.security.log import install_log_masking
 
 # Mask sensitive values in log records emitted by this package
@@ -15,5 +14,4 @@ __all__ = [
     "AsusRouter",
     "AsusRouterError",
     "AREndpoint",
-    "AsusRouterDump",
 ]
