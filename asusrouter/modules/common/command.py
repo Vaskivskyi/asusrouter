@@ -92,6 +92,7 @@ class ARService(FromStrMixin, StrEnum):
     FIRMWARE_WEB_UPGRADE_START = "start_webs_upgrade"
 
     # LED
+    LED_CONTROL = "start_ctrl_led"  # main LED switch
     LED_RESET = "reset_led"
     LED_RESTART = "restart_leds"
 
