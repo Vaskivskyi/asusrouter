@@ -1,4 +1,4 @@
-"""Tests for the led module."""
+"""Tests for the legacy LED module."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ import pytest
 
 from asusrouter.modules.device.identity import ARDeviceIdentity
 from asusrouter.modules.firmware import ARFirmwareType
-from asusrouter.modules.led import AsusLED, keep_state, set_state
+from asusrouter.modules.led.legacy import AsusLED, keep_state, set_state
 
 _mock_empty = ARDeviceIdentity()
 
@@ -62,7 +62,7 @@ async def test_keep_state(
     # Arrange
     callback = AsyncMock(return_value=True)
     with patch(
-        "asusrouter.modules.led.set_state", new_callable=AsyncMock
+        "asusrouter.modules.led.legacy.set_state", new_callable=AsyncMock
     ) as mock_set_state:
         # Act
         result = await keep_state(callback, state, identity=identity)

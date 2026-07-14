@@ -1,4 +1,4 @@
-"""LED module."""
+"""LED module (v1, kept for Home Assistant compatibility)."""
 
 from __future__ import annotations
 
