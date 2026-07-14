@@ -187,6 +187,13 @@ class ARConfigBase:
             self._types[key] = converter
             self._options[key] = converter(None)
 
+    def ensure_notification_flag(self, key: ARConfigKeyBase) -> None:
+        """Register a notification-flag key with its default if absent."""
+
+        if key not in self:
+            self.register(key)
+            self.set(key, CONFIG_DEFAULT_ALREADY_NOTIFIED)
+
     def __contains__(self, key: ARConfigKeyBase) -> bool:
         """Check if a configuration key exists."""
 

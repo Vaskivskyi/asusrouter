@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import AsyncMock, patch
 
 import aiohttp
 import pytest
@@ -34,18 +34,16 @@ class TestCreateSession:
         with (
             patch("aiohttp.ClientSession") as mock_session,
             patch("aiohttp.TCPConnector") as mock_connector,
-            patch("asusrouter.connection.get_cookie_jar") as mock_jar_fn,
+            patch("aiohttp.CookieJar") as mock_jar_cls,
         ):
-            mock_jar = Mock()
-            mock_jar_fn.return_value = mock_jar
-
             result = conn._create_session()
 
         assert conn._manage_session is True
         mock_connector.assert_called_once_with()
+        mock_jar_cls.assert_called_once_with(unsafe=True, quote_cookie=False)
         mock_session.assert_called_once_with(
             connector=mock_connector.return_value,
-            cookie_jar=mock_jar,
+            cookie_jar=mock_jar_cls.return_value,
             timeout=aiohttp.ClientTimeout(total=timeout),
         )
         assert result is mock_session.return_value
@@ -60,7 +58,7 @@ class TestCreateSession:
         with (
             patch("aiohttp.ClientSession"),
             patch("aiohttp.TCPConnector"),
-            patch("asusrouter.connection.get_cookie_jar"),
+            patch("aiohttp.CookieJar"),
         ):
             conn._create_session()
         assert conn._manage_session is True

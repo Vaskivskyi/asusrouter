@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+import re
 from typing import TYPE_CHECKING, Any
 
 from asusrouter.modules.common.command import ARService
@@ -114,6 +115,35 @@ def server_enabled(data: dict[str, Any]) -> bool:
     """Whether the OpenVPN server is enabled (worth fetching live status)."""
 
     return raw_to_bool(data.get(ARNvramType.VPN_SERVER_ENABLE.value)) is True
+
+
+# A connected-client status line: `remote_ip:port vpn_ip name`
+_STATUS_FIELDS = 3
+
+
+def read_client_status(content: str | None) -> dict[str, Any]:
+    """Parse the connected-client status payload of the OpenVPN server.
+
+    The payload wraps plaintext lines in a `<vpnserver>` tag; each line is
+    `remote_ip:port vpn_ip name`.
+    """
+
+    content = raw_to_str(content)
+    if not content:
+        return {}
+
+    match = re.search(r"<vpnserver>(.*?)</vpnserver>", content, re.DOTALL)
+    body = match[1] if match else content
+
+    connected: list[dict[str, str]] = []
+    for line in body.splitlines():
+        fields = line.split()
+        if len(fields) != _STATUS_FIELDS:
+            continue
+        remote, vpn_ip, name = fields
+        connected.append({"name": name, "vpn_ip": vpn_ip, "remote": remote})
+
+    return {"connected": connected}
 
 
 def _is_legacy(identity: ARDeviceIdentity | None) -> bool:

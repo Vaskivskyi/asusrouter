@@ -441,6 +441,24 @@ class TestTranslateState:
         assert "500" in caplog.text
 
 
+def test_flatten_dict() -> None:
+    """Nested dicts flatten; None and non-dicts short-circuit."""
+
+    nested: dict[str, Any] = {"a": {"b": {"c": 1}}, "d": {"e": 2}}
+    assert aimesh._flatten_dict(nested) == {"a_b_c": 1, "d_e": 2}
+
+    # None input passes through as None
+    assert aimesh._flatten_dict(None) is None
+
+    # Non-dict input yields an empty dict
+    assert aimesh._flatten_dict("not a dict") == {}  # type: ignore[arg-type]
+
+    # An excluded key keeps its nested value intact
+    assert aimesh._flatten_dict(
+        {"a": {"b": {"c": 1}}, "d": 2}, exclude="b"
+    ) == {"a_b": {"c": 1}, "d": 2}
+
+
 def test_registers_callable(monkeypatch: pytest.MonkeyPatch) -> None:
     """Importing the submodule registers the AiMesh source."""
 

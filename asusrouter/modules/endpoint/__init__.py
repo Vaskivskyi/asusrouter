@@ -11,12 +11,9 @@ from typing import Any
 from asusrouter.const import UNKNOWN_MEMBER_STR, RequestType
 from asusrouter.modules.common.command import ACTION_MODE_KEY, ARActionMode
 from asusrouter.modules.endpoint.translate import read_wan_lan_status
+from asusrouter.tools.converters_v2.raw import raw_to_str
 from asusrouter.tools.enum import FromStrMixin
-from asusrouter.tools.readers import (
-    read_js_variables,
-    read_json_content,
-    read_openvpn_client_status,
-)
+from asusrouter.tools.readers import read_js_variables, read_json_content
 from asusrouter.tools.readers_v2 import read_netdev
 from asusrouter.tools.security import ARSecurityLevel
 
@@ -159,21 +156,21 @@ def build_push_request(
     return json.dumps(commands, separators=(",", ":"))
 
 
-_ENDPOINT_READER: dict[AREndpoint, Callable[[str], dict[str, Any]]] = {
+_ENDPOINT_READER: dict[AREndpoint, Callable[[str], Any]] = {
     AREndpoint.FETCH_FIRMWARE_UPDATE: read_js_variables,
     AREndpoint.FETCH_ONBOARDING: read_js_variables,
     AREndpoint.FETCH_SYSINFO: read_js_variables,
     AREndpoint.FETCH_TEMPERATURE: read_js_variables,
     AREndpoint.FETCH_PORTS_ETHERNET: read_wan_lan_status,
     AREndpoint.FETCH_UPDATE: read_netdev,
-    AREndpoint.FETCH_VPN_OPENVPN_STATUS: read_openvpn_client_status,
+    AREndpoint.FETCH_VPN_OPENVPN_STATUS: raw_to_str,
     AREndpoint.FETCH_VPN_STATUS: read_js_variables,
 }
 
 
 def get_endpoint_reader(
     endpoint: AREndpoint,
-) -> Callable[[str], dict[str, Any]]:
+) -> Callable[[str], Any]:
     """Get the content reader for the given endpoint."""
 
     return _ENDPOINT_READER.get(endpoint, read_json_content)

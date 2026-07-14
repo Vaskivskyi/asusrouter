@@ -138,37 +138,6 @@ def read_json_content(content: str | None, **kwargs: Any) -> dict[str, Any]:
         return {}
 
 
-# A connected-client status line: `remote_ip:port vpn_ip name`
-_OPENVPN_STATUS_FIELDS = 3
-
-
-def read_openvpn_client_status(
-    content: str | None, **kwargs: Any
-) -> dict[str, Any]:
-    """Read the OpenVPN server connected-client status.
-
-    The payload wraps plaintext lines in a `<vpnserver>` tag; each line is
-    `remote_ip:port vpn_ip name`.
-    """
-
-    content = raw_to_str(content)
-    if not content:
-        return {}
-
-    match = re.search(r"<vpnserver>(.*?)</vpnserver>", content, re.DOTALL)
-    body = match[1] if match else content
-
-    connected: list[dict[str, str]] = []
-    for line in body.splitlines():
-        fields = line.split()
-        if len(fields) != _OPENVPN_STATUS_FIELDS:
-            continue
-        remote, vpn_ip, name = fields
-        connected.append({"name": name, "vpn_ip": vpn_ip, "remote": remote})
-
-    return {"connected": connected}
-
-
 def read_units_as_base(
     converter: type[UnitConverterBase],
     units: Any,

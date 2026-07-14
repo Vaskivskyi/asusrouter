@@ -6,20 +6,32 @@ import concurrent.futures
 from datetime import UTC, datetime
 import random
 from typing import Any
+from unittest.mock import patch
 
 import pytest
 
 from asusrouter.config import (
+    CONFIG_DEFAULT_ALREADY_NOTIFIED,
     CONFIG_DEFAULT_BOOL,
     CONFIG_DEFAULT_INT,
     TYPES_DEFAULT,
     ARConfig,
     ARConfigBase,
     ARConfigKey as ARConfKey,
+    ARConfigKeyBase,
     safe_bool_config,
     safe_datetime_config,
     safe_int_config,
 )
+
+
+class MockKey(ARConfigKeyBase):
+    """Test-only configuration keys."""
+
+    EXISTING = "existing"
+    ANY = "any"
+    SOME = "some"
+
 
 KEYS_BOOL = [
     ARConfKey.OPTIMISTIC_DATA,
@@ -57,6 +69,48 @@ def test_boottime_default_none() -> None:
     """The seed boot time defaults to None (fetch on connect)."""
 
     assert ARConfig.get(ARConfKey.BOOTTIME) is None
+
+
+@pytest.mark.parametrize(
+    ("key", "called"),
+    [
+        (MockKey.EXISTING, False),
+        (MockKey.ANY, True),
+        (MockKey.SOME, True),
+    ],
+)
+def test_ensure_notification_flag(key: ARConfigKeyBase, called: bool) -> None:
+    """A missing key is registered and defaulted; an existing one is left."""
+
+    config = ARConfigBase()
+    config.register(MockKey.EXISTING)
+
+    with (
+        patch.object(config, "set", return_value=None) as mock_set,
+        patch.object(config, "register", return_value=None) as mock_register,
+    ):
+        config.ensure_notification_flag(key)
+
+        if called:
+            mock_register.assert_called_once_with(key)
+            mock_set.assert_called_once_with(
+                key, CONFIG_DEFAULT_ALREADY_NOTIFIED
+            )
+        else:
+            mock_register.assert_not_called()
+            mock_set.assert_not_called()
+
+
+def test_ensure_notification_flag_registers_default() -> None:
+    """Registering a fresh flag stores the already-notified default."""
+
+    config = ARConfigBase()
+    assert MockKey.SOME not in config
+
+    config.ensure_notification_flag(MockKey.SOME)
+
+    assert MockKey.SOME in config
+    assert config.get(MockKey.SOME) is CONFIG_DEFAULT_ALREADY_NOTIFIED
 
 
 class TestConfig:

@@ -51,8 +51,8 @@ async def get_state(
     # OpenVPN connected clients live in a separate endpoint; only worth
     # fetching when the server is enabled
     if isinstance(data, dict) and openvpn.server_enabled(data):
-        data[openvpn.CLIENT_STATUS_KEY] = await callback(
-            endpoint=AREndpoint.FETCH_VPN_OPENVPN_STATUS
+        data[openvpn.CLIENT_STATUS_KEY] = openvpn.read_client_status(
+            await callback(endpoint=AREndpoint.FETCH_VPN_OPENVPN_STATUS)
         )
 
     return data

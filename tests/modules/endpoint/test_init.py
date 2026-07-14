@@ -17,11 +17,8 @@ from asusrouter.modules.endpoint import (
     get_endpoint_request_type,
 )
 from asusrouter.modules.endpoint.translate import read_wan_lan_status
-from asusrouter.tools.readers import (
-    read_js_variables,
-    read_json_content,
-    read_openvpn_client_status,
-)
+from asusrouter.tools.converters_v2.raw import raw_to_str
+from asusrouter.tools.readers import read_js_variables, read_json_content
 from asusrouter.tools.readers_v2 import read_netdev
 from asusrouter.tools.security import ARSecurityLevel
 
@@ -165,7 +162,7 @@ _CUSTOM_READERS = {
     AREndpoint.FETCH_TEMPERATURE: read_js_variables,
     AREndpoint.FETCH_PORTS_ETHERNET: read_wan_lan_status,
     AREndpoint.FETCH_UPDATE: read_netdev,
-    AREndpoint.FETCH_VPN_OPENVPN_STATUS: read_openvpn_client_status,
+    AREndpoint.FETCH_VPN_OPENVPN_STATUS: raw_to_str,
     AREndpoint.FETCH_VPN_STATUS: read_js_variables,
 }
 

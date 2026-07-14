@@ -12,6 +12,69 @@ from asusrouter.modules.system_status import legacy
 _KIB = 1024
 
 
+@pytest.mark.parametrize(
+    ("used", "total", "result"),
+    [
+        (5, 10, 50.0),  # normal usage
+        (10, 10, 100.0),  # normal usage
+        (3, 9, 33.33),  # round to 2 decimals
+        (-1, 2, 0.0),  # negative usage not allowed
+        (1, -2, 0.0),  # negative usage not allowed
+        (-1, -1, 100.0),  # both negative values result in positive usage
+        (1, 0, 0.0),  # zero total usage not allowed
+        (0, 0, 0.0),  # zero total usage not allowed
+    ],
+)
+def test_safe_usage(used: float, total: float, result: float) -> None:
+    """Test _safe_usage helper."""
+
+    assert legacy._safe_usage(used, total) == result
+
+
+@pytest.mark.parametrize(
+    ("used", "total", "prev_used", "prev_total", "result"),
+    [
+        (10, 20, 5, 10, 50.0),  # normal usage
+        (10, 20, 10, 20, 0.0),  # no usage
+        (6, 18, 3, 9, 33.33),  # round to 2 decimals
+        (
+            5,
+            20,
+            10,
+            10,
+            0.0,
+        ),  # invalid case when current used is less than previous
+        (
+            10,
+            20,
+            5,
+            25,
+            0.0,
+        ),  # invalid case when current total is less than previous
+        (
+            5,
+            10,
+            10,
+            20,
+            0.0,
+        ),  # invalid case when current values are less than previous
+    ],
+)
+def test_safe_usage_historic(
+    used: float,
+    total: float,
+    prev_used: float,
+    prev_total: float,
+    result: float,
+) -> None:
+    """Test _safe_usage_historic helper."""
+
+    assert (
+        legacy._safe_usage_historic(used, total, prev_used, prev_total)
+        == result
+    )
+
+
 class TestParseCpu:
     """Tests for parse_cpu."""
 

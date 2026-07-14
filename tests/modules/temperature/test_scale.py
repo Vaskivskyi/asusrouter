@@ -7,6 +7,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from asusrouter.config import ARConfigKey as ARConfKey
 from asusrouter.modules.temperature import scale as scale_mod
 from asusrouter.modules.temperature.scale import (
     scale_temperature,
@@ -85,11 +86,11 @@ class TestWarnTemperatureScaled:
         config: Any = MagicMock()
         config.get.return_value = already_notified
 
-        with (
-            patch.object(scale_mod, "ensure_notification_flag"),
-            patch.object(scale_mod._LOGGER, "warning") as mock_warn,
-        ):
+        with patch.object(scale_mod._LOGGER, "warning") as mock_warn:
             warn_temperature_scaled(config, {"key": "val"})
 
+        config.ensure_notification_flag.assert_called_once_with(
+            ARConfKey.NOTIFIED_OPTIMISTIC_TEMPERATURE
+        )
         assert mock_warn.called is expect_warn
         assert config.set.called is expect_warn

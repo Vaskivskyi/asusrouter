@@ -48,7 +48,8 @@ class TestGetState:
         callback = AsyncMock(
             side_effect=[
                 {"VPNServer_enable": "1"},
-                {"connected": []},
+                # The status endpoint returns raw text; the source parses it
+                "<vpnserver>\n1.2.3.4:5 10.0.0.2 alice\n</vpnserver>",
             ]
         )
         result = await get_state(callback, ARVpnServerSourceUniversal)
@@ -56,7 +57,11 @@ class TestGetState:
         assert callback.call_count == 2
         second = callback.call_args_list[1].kwargs
         assert second["endpoint"] is AREndpoint.FETCH_VPN_OPENVPN_STATUS
-        assert result[CLIENT_STATUS_KEY] == {"connected": []}
+        assert result[CLIENT_STATUS_KEY] == {
+            "connected": [
+                {"name": "alice", "vpn_ip": "10.0.0.2", "remote": "1.2.3.4:5"}
+            ]
+        }
 
     async def test_non_dict_response(self) -> None:
         """A non-dict response is returned untouched, no extra call."""

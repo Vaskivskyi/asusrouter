@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 import re
 from typing import Any
 
@@ -17,7 +17,6 @@ from asusrouter.modules.common.internet import ARInternetMode
 from asusrouter.modules.common.ip import ARIPMethod
 from asusrouter.modules.device.identity import ARDeviceIdentity
 from asusrouter.modules.wifi import ARWiFiAuth, ARWiFiBand, ARWiFiFrequency
-from asusrouter.tools.converters import safe_time_from_delta
 from asusrouter.tools.converters_v2.raw import (
     raw_to_bool,
     raw_to_int,
@@ -70,11 +69,27 @@ def _since_ts(value: Any) -> datetime | None:
     return datetime.fromtimestamp(ts, UTC) if ts else None
 
 
+def _uptime_timedelta(value: str) -> timedelta:
+    """Parse a `HH:MM:SS` uptime string into a timedelta."""
+
+    part = value.split(":")
+    try:
+        return timedelta(
+            hours=int(part[-3]), minutes=int(part[-2]), seconds=int(part[-1])
+        )
+    except (ValueError, IndexError):
+        return timedelta()
+
+
 def _since_delta(value: Any) -> datetime | None:
     """Convert a `HH:MM:SS` connection duration to a datetime."""
 
     text = raw_to_str(value)
-    return safe_time_from_delta(text) if text else None
+    if not text:
+        return None
+
+    now = datetime.now(UTC).replace(microsecond=0, tzinfo=UTC)
+    return now - _uptime_timedelta(text)
 
 
 def _band_frequency(band: ARWiFiBand) -> ARWiFiFrequency:

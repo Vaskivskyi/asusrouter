@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any
+from unittest.mock import patch
 
 import pytest
 
@@ -31,6 +32,33 @@ def _identity() -> ARDeviceIdentity:
     identity = ARDeviceIdentity()
     identity._mac = MacAddress(_ROUTER)
     return identity
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        ("01:30:15   ", timedelta(hours=1, minutes=30, seconds=15)),
+        ("   30:15:27", timedelta(hours=30, minutes=15, seconds=27)),
+        ("invalid", timedelta()),
+    ],
+)
+def test_uptime_timedelta(value: str, expected: timedelta) -> None:
+    """A `HH:MM:SS` string parses into a timedelta, else zero."""
+
+    assert translate._uptime_timedelta(value) == expected
+
+
+@patch("asusrouter.modules.clients.translate.datetime")
+def test_since_delta(mock_datetime: Any) -> None:
+    """A duration is subtracted from now; empty input yields None."""
+
+    mock_datetime.now.return_value = datetime(2023, 8, 15, tzinfo=UTC)
+
+    result = translate._since_delta("48:00:15")  # 48 hours, 15 seconds
+    assert result == datetime(2023, 8, 12, 23, 59, 45, tzinfo=UTC)
+
+    assert translate._since_delta(None) is None
+    assert translate._since_delta("") is None
 
 
 class TestHelpers:

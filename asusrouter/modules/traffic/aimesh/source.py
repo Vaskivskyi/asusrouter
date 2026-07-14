@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 import logging
 from typing import Any
 
@@ -13,7 +14,6 @@ from asusrouter.modules.traffic.base import ARTrafficLink, ARTrafficSource
 from asusrouter.modules.traffic.enums import ARTrafficType
 from asusrouter.modules.wifi import ARWiFiBand
 from asusrouter.registry import ARCallableRegistry as ARCallReg
-from asusrouter.tools.converters import flatten_dict
 from asusrouter.tools.converters_v2.raw import raw_to_int
 from asusrouter.tools.identifiers import MacAddress
 from asusrouter.tools.readers import read_units_data_rate
@@ -179,10 +179,46 @@ def _is_metrics(value: Any) -> bool:
     )
 
 
+def _flatten_dict(
+    d: Any,
+    parent_key: str = "",
+    sep: str = "_",
+    exclude: str | Iterable[str] | None = None,
+) -> dict[str, Any] | None:
+    """Flatten a nested dictionary."""
+
+    if d is None:
+        return None
+
+    if not isinstance(d, dict):
+        return {}
+
+    items = []
+    exclude = (exclude,) if isinstance(exclude, str) else tuple(exclude or [])
+    for k, v in d.items():
+        new_key = (
+            f"{parent_key}{sep}{k}" if parent_key not in ("", None) else k
+        )
+        # We have a dict - check it
+        if isinstance(v, dict):
+            # This key should be skipped
+            if isinstance(new_key, str) and new_key.endswith(exclude):
+                items.append((new_key, v))
+                continue
+            # Go recursive
+            flattened = _flatten_dict(v, new_key, sep, exclude)
+            if flattened is not None:
+                items.extend(flattened.items())
+            continue
+        # Not a dict - add it
+        items.append((new_key, v))
+    return dict(items)
+
+
 def _to_metrics(raw: Any) -> dict[ARMetricType, Any]:
     """Translate a raw traffic response into metrics."""
 
-    flat = flatten_dict(raw)
+    flat = _flatten_dict(raw)
     if not flat:
         return {}
 

@@ -10,7 +10,6 @@ from typing import Any
 
 from asusrouter.modules.common.metrics import ARMetricType
 from asusrouter.modules.endpoint.hooks import ARHook, hook_request
-from asusrouter.tools.converters import safe_usage, safe_usage_historic
 from asusrouter.tools.converters_v2.raw import raw_to_int
 from asusrouter.tools.units import DataUnitConverter, UnitOfData
 
@@ -26,6 +25,39 @@ _KIB_TO_BYTES = DataUnitConverter.converter_factory(
 
 # Cumulative cpu tick counters per core: {core_index: (total, used)}
 CpuCounters = dict[int, tuple[int, int]]
+
+
+def _safe_usage(used: float, total: float) -> float:
+    """Calculate usage in percents, clamping negatives to 0.0."""
+
+    if total == 0:
+        return 0.0
+
+    usage = round(used / total * 100, 2)
+
+    # Don't allow negative usage
+    if usage < 0:
+        return 0.0
+
+    return usage
+
+
+def _safe_usage_historic(
+    used: float,
+    total: float,
+    prev_used: float,
+    prev_total: float,
+) -> float:
+    """Calculate usage in percents for the difference between two samples."""
+
+    used_diff = used - prev_used
+    total_diff = total - prev_total
+
+    # Don't allow negative differences
+    if used_diff < 0 or total_diff < 0:
+        return 0.0
+
+    return _safe_usage(used_diff, total_diff)
 
 
 def parse_cpu(raw: dict[str, Any]) -> CpuCounters:
@@ -61,7 +93,7 @@ def translate_cpu(
         if core not in prev:
             continue
         prev_total, prev_used = prev[core]
-        cores[core] = safe_usage_historic(used, total, prev_used, prev_total)
+        cores[core] = _safe_usage_historic(used, total, prev_used, prev_total)
         agg_total += total
         agg_used += used
         agg_prev_total += prev_total
@@ -70,7 +102,7 @@ def translate_cpu(
     if not cores:
         return None, {}
 
-    aggregate = safe_usage_historic(
+    aggregate = _safe_usage_historic(
         agg_used, agg_total, agg_prev_used, agg_prev_total
     )
 
@@ -92,6 +124,6 @@ def parse_ram(raw: dict[str, Any]) -> dict[ARMetricType, float]:
     if used is not None:
         ram[ARMetricType.USED] = int(_KIB_TO_BYTES(used))
     if used is not None and total is not None:
-        ram[ARMetricType.USAGE] = safe_usage(used, total)
+        ram[ARMetricType.USAGE] = _safe_usage(used, total)
 
     return ram

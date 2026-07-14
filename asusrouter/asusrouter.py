@@ -334,8 +334,8 @@ class AsusRouter:
         self,
         endpoint: AREndpoint,
         request: str | None = None,
-    ) -> dict[str, Any]:
-        """Fetch and parse content from a V2 API endpoint."""
+    ) -> Any:
+        """Fetch and parse content."""
 
         _LOGGER.debug("Triggered method async_read: %s", endpoint)
 
