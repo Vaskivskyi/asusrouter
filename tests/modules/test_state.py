@@ -8,7 +8,7 @@ from unittest import mock
 import pytest
 
 from asusrouter import AsusData
-from asusrouter.modules.parental_control import AsusParentalControl
+from asusrouter.modules.common.connection import ARConnectionState
 from asusrouter.modules.state import (
     AsusState,
     _get_module,
@@ -22,7 +22,7 @@ from asusrouter.modules.state import (
 )
 
 mock_state_map = {
-    AsusState.PARENTAL_CONTROL: AsusData.PARENTAL_CONTROL,
+    AsusState.CONNECTION: AsusData.SYSTEM,
     AsusState.NONE: None,
 }
 
@@ -56,14 +56,14 @@ class MockModule:
     ("state", "data", "success"),
     [
         # Existing values of AsusState
-        (AsusState.PARENTAL_CONTROL, AsusData.PARENTAL_CONTROL, True),
+        (AsusState.CONNECTION, AsusData.SYSTEM, True),
         # Partial data
         (AsusState.CONNECTION, None, False),
-        (None, AsusData.PARENTAL_CONTROL, False),
+        (None, AsusData.SYSTEM, False),
         # None
         (None, None, False),
         # Wrong types
-        (1, AsusData.PARENTAL_CONTROL, False),
+        (1, AsusData.SYSTEM, False),
         (AsusState.CONNECTION, 1, False),
     ],
 )
@@ -72,22 +72,25 @@ def test_add_conditional_state(
 ) -> None:
     """Test add_conditional_state."""
 
+    # Use a fresh map so each case is independent of the others
+    local_map: dict = {}
+
     # Try to add the state
-    with mock.patch("asusrouter.modules.state.AsusStateMap", mock_state_map):
+    with mock.patch("asusrouter.modules.state.AsusStateMap", local_map):
         add_conditional_state(state, data)
 
     # Check the result
     if success:
-        assert mock_state_map[state] == data
+        assert local_map[state] == data
     else:
-        assert state not in mock_state_map
+        assert state not in local_map
 
 
 @pytest.mark.parametrize(
     ("state", "expected"),
     [
         # Existing values of AsusState
-        (AsusParentalControl.ON, AsusData.PARENTAL_CONTROL),
+        (ARConnectionState.CONNECTED, AsusData.SYSTEM),
         # None
         (None, None),
         # Wrong types
@@ -112,7 +115,7 @@ def test_get_datatype(
     ("state", "expected"),
     [
         # Existing values of AsusState
-        (AsusState.PARENTAL_CONTROL, AsusData.PARENTAL_CONTROL.value),
+        (AsusState.CONNECTION, AsusData.SYSTEM.value),
         # None
         (None, None),
         # Wrong types
@@ -151,18 +154,18 @@ def test_get_module_name(
     [
         # Existing values of AsusState
         (
-            AsusState.PARENTAL_CONTROL,
-            "parental_control",
-            "parental_control",
+            AsusState.CONNECTION,
+            "system",
+            "system",
             mock.MagicMock(),
             None,
             "mock_module",
         ),
         # ModuleNotFoundError
         (
-            AsusState.PARENTAL_CONTROL,
-            "parental_control",
-            "parental_control",
+            AsusState.CONNECTION,
+            "system",
+            "system",
             None,
             ModuleNotFoundError,
             None,
@@ -249,7 +252,7 @@ async def test_set_state(
             "asusrouter.modules.state._has_method", return_value=has_method
         ),
     ):
-        result = await set_state(mock.AsyncMock(), AsusState.PARENTAL_CONTROL)
+        result = await set_state(mock.AsyncMock(), AsusState.CONNECTION)
 
     assert result == expected
 
@@ -257,8 +260,8 @@ async def test_set_state(
 @pytest.mark.parametrize(
     ("state", "datatype"),
     [
-        (AsusState.PARENTAL_CONTROL, AsusData.PARENTAL_CONTROL),
-        (AsusState.PARENTAL_CONTROL, None),
+        (AsusState.CONNECTION, AsusData.SYSTEM),
+        (AsusState.CONNECTION, None),
     ],
 )
 def test_save_state(state: AsusState, datatype: AsusData | None) -> None:
@@ -269,7 +272,7 @@ def test_save_state(state: AsusState, datatype: AsusData | None) -> None:
         "asusrouter.modules.state.get_datatype", return_value=datatype
     ):
         # Mock the AsusDataState objects
-        library = {AsusData.PARENTAL_CONTROL: MockModule()}
+        library = {AsusData.SYSTEM: MockModule()}
 
         # Call the function
         save_state(state, library)
@@ -284,9 +287,9 @@ def test_save_state(state: AsusState, datatype: AsusData | None) -> None:
 @pytest.mark.parametrize(
     ("states", "has_method", "expected"),
     [
-        ([AsusState.PARENTAL_CONTROL], True, None),
-        (AsusState.PARENTAL_CONTROL, True, None),  # Single value, not a list
-        ([AsusState.PARENTAL_CONTROL], False, None),
+        ([AsusState.CONNECTION], True, None),
+        (AsusState.CONNECTION, True, None),  # Single value, not a list
+        ([AsusState.CONNECTION], False, None),
         (None, False, None),
     ],
 )
