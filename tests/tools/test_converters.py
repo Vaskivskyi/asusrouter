@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
-from enum import Enum
 from typing import Any
 from unittest.mock import MagicMock, patch
 
@@ -31,87 +30,6 @@ def test_flatten_dict() -> None:
     assert converters.flatten_dict(nested_dict, exclude="b") == expected_output
 
 
-class EnumForTest(Enum):
-    """Enum class."""
-
-    A = 1
-    B = 2
-
-
-@pytest.mark.parametrize(
-    ("args", "kwargs", "expected_result"),
-    [
-        # Single string - should return single value
-        ("vpnc_unit", {"vpnc_unit": 1}, 1),
-        ("vpnc_unit", {"arguments": {"vpnc_unit": 1}}, 1),
-        # Tuple with single string - should return single value
-        (("vpnc_unit",), {"vpnc_unit": 1}, 1),
-        (("vpnc_unit",), {"arguments": {"vpnc_unit": 1}}, 1),
-        # Tuple with multiple strings and all are found
-        # - should return tuple with values
-        (
-            ("vpnc_unit", "vpnc_clientlist"),
-            {"vpnc_unit": 1, "vpnc_clientlist": "list"},
-            (1, "list"),
-        ),
-        # Tuple with multiple strings and not all are found
-        # - should return tuple with values, missing values should be None
-        (("vpnc_unit", "vpnc_clientlist"), {"vpnc_unit": 1}, (1, None)),
-        # Args issues - should return None
-        (None, {"vpnc_unit": 1}, None),
-        (1, {"vpnc_unit": 1}, None),
-    ],
-)
-def test_get_arguments(
-    args: str | tuple[str, ...],
-    kwargs: Any,
-    expected_result: Any | tuple[Any | None, ...],
-) -> None:
-    """Test _get_arguments."""
-
-    # Get the result
-    result = converters.get_arguments(args, **kwargs)
-
-    # Check the result
-    assert result == expected_result
-
-
-def test_get_enum_key_by_value() -> None:
-    """Test get_enum_key_by_value method."""
-
-    assert (
-        converters.get_enum_key_by_value(EnumForTest, 1, EnumForTest.B)
-        == EnumForTest.A
-    )
-    assert (
-        converters.get_enum_key_by_value(EnumForTest, 2, EnumForTest.A)
-        == EnumForTest.B
-    )
-    assert (
-        converters.get_enum_key_by_value(EnumForTest, 3, EnumForTest.A)
-        == EnumForTest.A
-    )
-    with pytest.raises(ValueError, match="Invalid value: 3"):
-        converters.get_enum_key_by_value(EnumForTest, 3)
-
-
-def test_list_from_dict() -> None:
-    """Test list_from_dict method."""
-
-    # Test with empty dict
-    assert converters.list_from_dict({}) == []
-
-    # Test with non-empty dict
-    assert converters.list_from_dict({"a": 1, "b": 2}) == ["a", "b"]
-
-    # Test with a list
-    assert converters.list_from_dict(["a", "b"]) == ["a", "b"]
-
-    # Test with non-dict input
-    assert converters.list_from_dict("not a dict") == []  # type: ignore[arg-type]
-    assert converters.list_from_dict(None) == []
-
-
 def test_nvram_get() -> None:
     """Test nvram_get method."""
 
@@ -129,43 +47,6 @@ def test_nvram_get() -> None:
 
     # Test with other input
     assert converters.nvram_get(123) == [("nvram_get", "123")]  # type: ignore[arg-type]
-
-
-def test_run_method() -> None:
-    """Test run_method method."""
-
-    # Test with empty input
-    assert converters.run_method(None, None) is None
-
-    # Test with non-list input
-    assert converters.run_method("TEST", str.lower) == "test"
-
-    # Test with list input
-    assert converters.run_method("TEST", [str.lower, str.upper]) == "TEST"
-
-    # Test with enum input
-    class TestEnum(Enum):
-        """Enum class."""
-
-        A = 1
-        B = 2
-
-    assert converters.run_method(1, TestEnum) == TestEnum.A
-    assert converters.run_method(2, TestEnum) == TestEnum.B
-    assert converters.run_method(3, TestEnum) is None
-
-    # Test with enum input with UNKNOWN
-    class TestEnumWithUnknown(Enum):
-        """Enum class."""
-
-        UNKNOWN = -999
-        A = 1
-        B = 2
-
-    assert (
-        converters.run_method(3, TestEnumWithUnknown)
-        == TestEnumWithUnknown.UNKNOWN
-    )
 
 
 @pytest.mark.parametrize(
@@ -188,60 +69,6 @@ def test_safe_datetime(content: str | None, result: datetime | None) -> None:
 
 
 @pytest.mark.parametrize(
-    ("enum", "value", "default_value", "default", "expected"),
-    [
-        (EnumForTest, 1, None, None, EnumForTest.A),
-        (EnumForTest, 2, None, None, EnumForTest.B),
-        (EnumForTest, None, 1, None, EnumForTest.A),
-        (EnumForTest, None, 2, None, EnumForTest.B),
-        (EnumForTest, None, None, EnumForTest.A, EnumForTest.A),
-        (EnumForTest, None, None, EnumForTest.B, EnumForTest.B),
-        (EnumForTest, 3, None, None, None),
-        (EnumForTest, None, None, None, None),
-        (EnumForTest, None, 2, EnumForTest.B, EnumForTest.B),
-    ],
-)
-def test_safe_enum(
-    enum: type[Enum],
-    value: int | None,
-    default_value: int | None,
-    default: Enum | None,
-    expected: Enum | None,
-) -> None:
-    """Test safe_enum method."""
-
-    assert (
-        converters.safe_enum(enum, value, default_value, default) == expected
-    )
-
-
-@pytest.mark.parametrize(
-    ("content", "result"),
-    [
-        (None, []),  # None content
-        ("test", ["test"]),  # Single value content
-        (1, [1]),
-        (1.0, [1.0]),
-        (True, [True]),
-        (False, [False]),
-        ([], []),  # List content
-        ([1, 2, 3], [1, 2, 3]),
-    ],
-)
-def test_safe_list(content: Any, result: list[Any]) -> None:
-    """Test safe_list method."""
-
-    assert converters.safe_list(content) == result
-
-
-def test_safe_list_csv() -> None:
-    """Test safe_list_csv method."""
-
-    assert converters.safe_list_csv("test") == ["test"]
-    assert converters.safe_list_csv("test1,test2") == ["test1", "test2"]
-
-
-@pytest.mark.parametrize(
     ("content", "delimiter", "result"),
     [
         (None, None, []),  # Not a string
@@ -258,28 +85,6 @@ def test_safe_list_from_string(
     """Test safe_list_from_string method."""
 
     assert converters.safe_list_from_string(content, delimiter) == result
-
-
-@pytest.mark.parametrize(
-    ("current", "previous", "time_delta", "result"),
-    [
-        (None, None, None, 0.0),
-        (1, None, None, 0.0),
-        (1, 1, None, 0.0),
-        (1, 1, 0, 0.0),
-        (1, 1, 1, 0.0),
-        (1, 1, 2, 0.0),
-        (1, 2, 1, 0.0),
-        (2, 1, 1, 1.0),
-        (4, 2, 2, 1.0),
-    ],
-)
-def test_safe_speed(
-    current: float, previous: float, time_delta: float | None, result: float
-) -> None:
-    """Test safe_speed method."""
-
-    assert converters.safe_speed(current, previous, time_delta) == result
 
 
 @patch("asusrouter.tools.converters.datetime")
@@ -312,85 +117,6 @@ def test_safe_timedelta_long() -> None:
 
     # Test with None
     assert converters.safe_timedelta_long(None) == timedelta()
-
-
-def test_safe_unpack_key() -> None:
-    """Test safe_unpack_key method."""
-
-    def test_method(content: Any) -> dict[str, Any]:
-        """Test method."""
-
-        return {"content": content}
-
-    # Test with a key only
-    result = converters.safe_unpack_key("key")
-    assert result[0] == "key"
-    assert result[1] is None
-
-    # Test with a key and a method
-    result = converters.safe_unpack_key(("key", test_method))
-    if result[1] is not None and not isinstance(result[1], list):
-        assert result[0] == "key"
-        assert result[1](10) == test_method(10)
-    elif result[1] is not None:
-        assert result[0] == "key"
-        assert result[1][0](10) == test_method(10)
-    else:
-        assert result[0] == "key"
-        assert result[1] is None
-
-    # Test with a key and a list of methods
-    result = converters.safe_unpack_key(("key", [test_method, test_method]))
-    if isinstance(result[1], list):
-        assert result[0] == "key"
-        assert result[1][0](10) == test_method(10)
-        assert result[1][1](10) == test_method(10)
-
-    # Test with a key and a non-method at index 1
-    result = converters.safe_unpack_key(("key", 123))  # type: ignore[arg-type]
-    assert result[0] == "key"
-    assert result[1] is None
-
-    # Test with a tuple of one element
-    result = converters.safe_unpack_key(("key",))
-    assert result[0] == "key"
-    assert result[1] is None
-
-
-def test_safe_unpack_keys() -> None:
-    """Test safe_unpack_keys method."""
-
-    def test_method(content: Any) -> dict[str, Any]:
-        """Test method."""
-
-        return {"content": content}
-
-    # Test with a key, key_to_use and a method
-    result = converters.safe_unpack_keys(("key", "key_to_use", test_method))
-    assert result[0] == "key"
-    assert result[1] == "key_to_use"
-    assert result[2](10) == test_method(10)
-
-    # Test with a key, key_to_use and a list of methods
-    result = converters.safe_unpack_keys(
-        ("key", "key_to_use", [test_method, test_method])
-    )
-    assert result[0] == "key"
-    assert result[1] == "key_to_use"
-    assert result[2][0](10) == test_method(10)
-    assert result[2][1](10) == test_method(10)
-
-    # Test with a key and key_to_use only
-    result = converters.safe_unpack_keys(("key", "key_to_use"))
-    assert result[0] == "key"
-    assert result[1] == "key_to_use"
-    assert result[2] is None
-
-    # Test with a key only
-    result = converters.safe_unpack_keys("key")
-    assert result[0] == "key"
-    assert result[1] == "key"
-    assert result[2] is None
 
 
 @pytest.mark.parametrize(
@@ -454,27 +180,3 @@ def test_safe_usage_historic(
         converters.safe_usage_historic(used, total, prev_used, prev_total)
         == result
     )
-
-
-@pytest.mark.parametrize(
-    ("value", "result"),
-    [
-        # Actual datetime
-        (
-            datetime(2023, 11, 20, 21, 19, 3, 689000, tzinfo=UTC),
-            1700515143.689,
-        ),
-        # None
-        (None, None),
-        # The beginning of the epoch
-        (datetime(1970, 1, 1, 0, 0, 0, tzinfo=UTC), 0),
-        # Random string
-        ("test", None),
-    ],
-)
-def test_safe_utc_to_timestamp(
-    value: datetime | None, result: float | None
-) -> None:
-    """Test safe_utc_to_timestamp method."""
-
-    assert converters.safe_utc_to_timestamp(value) == result

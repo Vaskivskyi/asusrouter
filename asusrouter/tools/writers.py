@@ -24,22 +24,6 @@ REQUEST_DELIMITER: Final[dict[RequestType, str]] = {
 }
 
 
-def nvram(content: str | list[str] | None = None) -> str | None:
-    """NVRAM writer.
-
-    This function converts a list of strings (or a single string)
-    into a string request to the NVRAM read endpoint.
-    """
-
-    if isinstance(content, str):
-        return f"nvram_get({content});"
-
-    if isinstance(content, list):
-        return "".join([f"nvram_get({item});" for item in content])
-
-    return None
-
-
 def dict_to_request(
     data: Mapping[str, Any], request_type: RequestType = RequestType.POST
 ) -> str:

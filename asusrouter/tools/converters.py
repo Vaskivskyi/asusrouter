@@ -10,14 +10,11 @@ it should be in the Readers module
 
 from __future__ import annotations
 
-from collections.abc import Callable, Iterable
+from collections.abc import Iterable
 from datetime import UTC, datetime, timedelta
-from enum import Enum
-from typing import Any, TypeVar, cast
+from typing import Any
 
 from asusrouter.tools.converters_v2.raw import raw_to_str
-
-_E = TypeVar("_E", bound=Enum)
 
 
 def flatten_dict(
@@ -56,61 +53,6 @@ def flatten_dict(
     return dict(items)
 
 
-def get_arguments(
-    args: str | tuple[str, ...], **kwargs: Any
-) -> Any | tuple[Any | None, ...]:
-    """Get the arguments from kwargs."""
-
-    # Make sure args is a tuple
-    if not isinstance(args, tuple):
-        args = (args,)
-
-    arguments = kwargs.get("arguments", {})
-
-    found_args: list[Any | None] = []
-
-    for arg in args:
-        # Skip if not a string
-        if not isinstance(arg, str):
-            continue
-        # Get the arg and save to found_args
-        arg_value = arguments.get(arg) if arguments else kwargs.get(arg)
-        found_args.append(arg_value)
-
-    if len(found_args) == 1:
-        return found_args[0]
-
-    return tuple(found_args) if found_args else None
-
-
-def get_enum_key_by_value(
-    enum: type[_E], value: Any, default: _E | None = None
-) -> _E:
-    """Get the enum key by value."""
-
-    if issubclass(enum, Enum):
-        for enum_value in enum:
-            if enum_value.value == value:
-                return enum_value
-
-    if default is not None:
-        return default
-
-    raise ValueError(f"Invalid value: {value}")
-
-
-def list_from_dict(raw: dict[Any, Any] | list[Any] | None) -> list[str]:
-    """Return dictionary keys as list."""
-
-    if isinstance(raw, list):
-        return raw
-
-    if not isinstance(raw, dict):
-        return []
-
-    return list(raw.keys())
-
-
 def nvram_get(
     content: list[str] | str | None,
 ) -> list[tuple[str, ...]] | None:
@@ -126,29 +68,6 @@ def nvram_get(
         content = [content]
 
     return [("nvram_get", value) for value in content]
-
-
-def run_method(
-    value: Any, method: Callable[..., Any] | list[Callable[..., Any]] | None
-) -> Any:
-    """Run a method or a list of methods on a value and return the result."""
-
-    if not method:
-        return value
-
-    if not isinstance(method, list):
-        method = [method]
-
-    for func in method:
-        if isinstance(func, type) and issubclass(func, Enum):
-            try:
-                value = func(value)
-            except ValueError:
-                value = func.UNKNOWN if hasattr(func, "UNKNOWN") else None
-        else:
-            value = func(value)
-
-    return value
 
 
 def safe_datetime(content: str | None) -> datetime | None:
@@ -167,55 +86,6 @@ def safe_datetime(content: str | None) -> datetime | None:
             return None
 
 
-def safe_enum(
-    enum: type[_E],
-    value: Any,
-    default_value: Any | None = None,
-    default: _E | None = None,
-) -> _E | None:
-    """Get the enum key by value."""
-
-    # Fast return
-    # Return the default enum member
-    if not default_value and not value and default is not None:
-        return default
-
-    if issubclass(enum, Enum):
-        _def_enum_value = None
-        # Go through the enum values
-        for enum_value in enum:
-            # Check for the value
-            if enum_value.value == value:
-                # Fast return
-                return enum_value
-            # Check for the default value
-            if enum_value.value == default_value:
-                _def_enum_value = enum_value
-        # Return the default value
-        if _def_enum_value is not None:
-            return _def_enum_value
-
-    return None
-
-
-def safe_list(content: Any) -> list[Any]:
-    """Read any content as a list."""
-
-    if isinstance(content, list):
-        return content
-
-    if content is None:
-        return []
-
-    return [content]
-
-
-def safe_list_csv(content: str | None) -> list[str]:
-    """Read the list as comma separated values."""
-
-    return safe_list_from_string(content, ",")
-
-
 def safe_list_from_string(
     content: str | None, delimiter: str = " "
 ) -> list[str]:
@@ -226,24 +96,6 @@ def safe_list_from_string(
         return []
 
     return content.split(delimiter)
-
-
-def safe_speed(
-    current: (float),
-    previous: (float),
-    time_delta: float | None = None,
-) -> float:
-    """Calculate speed.
-
-    Allows calculation only of positive speed, otherwise returns 0.0.
-    """
-
-    if time_delta is None or time_delta == 0.0:
-        return 0.0
-
-    diff = current - previous if current > previous else 0.0
-
-    return diff / time_delta
 
 
 def safe_time_from_delta(content: str) -> datetime:
@@ -272,58 +124,6 @@ def safe_timedelta_long(content: str | None) -> timedelta:
         )
     except (ValueError, IndexError):
         return timedelta()
-
-
-def safe_unpack_key(
-    content: tuple[str, Callable[..., Any] | None | list[Callable[..., Any]]]
-    | str
-    | tuple[str],
-) -> tuple[str, Callable[..., Any] | list[Callable[..., Any]] | None]:
-    """Unpack a (key, method) tuple, returning (key, None) for bare strings."""
-
-    if isinstance(content, tuple):
-        key = content[0]
-        if len(content) > 1:
-            content = cast(
-                tuple[
-                    str,
-                    Callable[..., Any] | None | list[Callable[..., Any]],
-                ],
-                content,
-            )
-            methods = content[1]
-            if methods is not None and not (
-                callable(methods) or isinstance(methods, Iterable)
-            ):
-                methods = None
-        else:
-            methods = None
-        return key, methods
-
-    # No method selected
-    return content, None
-
-
-def safe_unpack_keys(
-    content: tuple[str, str, Any] | tuple[str, str] | str,
-) -> tuple[Any, ...]:
-    """Unpack key/key_to_use/method tuple even if some values are missing."""
-
-    _full = 3  # (key, key_to_use, method)
-    _partial = 2  # (key, key_to_use)
-    if isinstance(content, tuple):
-        # All 3 values are present
-        if len(content) == _full:
-            return content
-
-        # No method selected
-        if len(content) == _partial:
-            return content + (None,)
-
-    # No method and key_to_use selected
-    # We need to replace key_to_use with key
-    new_content = (content, content)
-    return new_content + (None,)
 
 
 def safe_usage(used: float, total: float) -> float:
@@ -363,27 +163,3 @@ def safe_usage_historic(
         return 0.0
 
     return safe_usage(used_diff, total_diff)
-
-
-def safe_utc_to_timestamp(value: datetime | None) -> float | None:
-    """Convert UTC datetime to timestamp."""
-
-    if value is None or not isinstance(value, datetime):
-        return None
-
-    return value.timestamp()
-
-
-def scale_value_int(
-    value: int,
-    scale: int,
-    scale_from: int | None = None,
-) -> int:
-    """Scale the value from the custom scale."""
-
-    if scale_from is None or scale_from == scale:
-        return value
-
-    return (
-        min(round(value * scale / scale_from), scale) if scale_from != 0 else 0
-    )

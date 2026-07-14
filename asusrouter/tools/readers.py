@@ -50,66 +50,6 @@ def is_true_in_dict(value: str, data: dict[str, Any]) -> bool:
     return raw_to_bool(data.get(value)) is True
 
 
-def merge_dicts(
-    data: dict[Any, Any], merge_data: dict[Any, Any]
-) -> dict[Any, Any]:
-    """Merge two nested dicts into a single one.
-
-    Keep all the existing values.
-    """
-
-    # Create a new dictionary to store the merged data
-    merged_data = data.copy()
-
-    # Go through the merge data and fill the merged data
-    for key, value in merge_data.items():
-        # Check if the value is a dict
-        if isinstance(value, dict):
-            # Check if the key is in the merged data
-            if key not in merged_data or merged_data[key] is None:
-                # Add the key to the merged data
-                merged_data[key] = {}
-            # Merge the dicts
-            merged_data[key] = merge_dicts(merged_data[key], value)
-            # Continue to the next value
-            continue
-        # Check if the key is in the merged data
-        if key not in merged_data:
-            # Add the key to the merged data
-            merged_data[key] = value
-        # If the key is already in the merged data, compare the values
-        elif merged_data[key] is None:
-            # If the value in the merged data is None, take the value
-            # from the merge data
-            merged_data[key] = value
-        elif value is None:
-            # If the value in the merge data is not None
-            # and the value in the merge data is None, keep the value
-            # in the merged data
-            pass
-        else:
-            # If both values are not None, keep the value from the merged data
-            pass
-
-    # Return the merged data
-    return merged_data
-
-
-def read_as_snake_case(data: str) -> str:
-    """Convert a string to snake case."""
-
-    string = (
-        re.sub(r"(?<=[a-z])(?=[A-Z])|[^a-zA-Z]", " ", data)
-        .strip()
-        .replace(" ", "_")
-    )
-    result = "".join(string.lower())
-    while "__" in result:
-        result = result.replace("__", "_")
-
-    return result
-
-
 def read_js_variables(content: str, **kwargs: Any) -> dict[str, Any]:
     """Get all the JS variables from the content."""
 
@@ -227,18 +167,6 @@ def read_openvpn_client_status(
         connected.append({"name": name, "vpn_ip": vpn_ip, "remote": remote})
 
     return {"connected": connected}
-
-
-def readable_mac(raw: str | None) -> bool:
-    """Check if string is MAC address."""
-
-    raw = raw_to_str(raw)
-    return bool(
-        isinstance(raw, str)
-        and re.search(
-            re.compile("^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$"), raw
-        )
-    )
 
 
 def read_units_as_base(

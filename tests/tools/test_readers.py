@@ -68,47 +68,6 @@ def test_is_true_in_dict(
 
 
 @pytest.mark.parametrize(
-    ("dict1", "dict2", "expected"),
-    [
-        # Test non-nested dictionaries
-        ({"a": 1, "b": 2}, {"b": 3, "c": 4}, {"a": 1, "b": 2, "c": 4}),
-        # Test nested dictionaries
-        (
-            {"a": 1, "b": {"x": 2}},
-            {"b": {"y": 3}, "c": 4},
-            {"a": 1, "b": {"x": 2, "y": 3}, "c": 4},
-        ),
-        # Test with None values
-        ({"a": None, "b": 2}, {"a": 1, "b": None}, {"a": 1, "b": 2}),
-        ({"a": None}, {"a": {"b": 1}}, {"a": {"b": 1}}),
-    ],
-)
-def test_merge_dicts(
-    dict1: dict[str, Any], dict2: dict[str, Any], expected: dict[str, Any]
-) -> None:
-    """Test merge_dicts method."""
-
-    assert readers.merge_dicts(dict1, dict2) == expected
-
-
-@pytest.mark.parametrize(
-    ("content", "expected"),
-    [
-        ("Test string", "test_string"),  # Upper case
-        (
-            "test with  special ^$@ characters",
-            "test_with_special_characters",
-        ),  # Special characters
-        ("snake_case", "snake_case"),  # Already snake case
-    ],
-)
-def test_read_as_snake_case(content: str, expected: str) -> None:
-    """Test read_as_snake_case method."""
-
-    assert readers.read_as_snake_case(content) == expected
-
-
-@pytest.mark.parametrize(
     ("content", "expected"),
     [
         # JS from the active temperature sensors
@@ -276,28 +235,6 @@ def test_read_json_content_fail() -> None:
         "asusrouter.tools.readers.json.loads", return_value="some value"
     ):
         assert readers.read_json_content("invalid json") == {}
-
-
-@pytest.mark.parametrize(
-    ("content", "expected"),
-    [
-        # Test valid MAC addresses
-        ("01:23:45:67:89:AB", True),
-        ("01-23-45-67-89-AB", True),
-        # Test invalid MAC addresses
-        ("01:23:45:67:89-87-65", False),
-        ("01-23-45-67-89", False),
-        ("01:23:45:67:89:ZZ", False),
-        ("   ", False),
-        # Test non-string input
-        (1234567890, False),
-        (None, False),
-    ],
-)
-def test_readable_mac(content: str | None, expected: bool) -> None:
-    """Test readable_mac method."""
-
-    assert readers.readable_mac(content) == expected
 
 
 def test_read_units_as_base_wrong_converter() -> None:
