@@ -9,7 +9,7 @@ import pytest
 
 from asusrouter.const import AR_CALL_GET_STATE, AR_CALL_TRANSLATE_STATE
 from asusrouter.modules.common.connection import ARConnectionStatus
-from asusrouter.modules.endpoint_v2.hooks import ARHook
+from asusrouter.modules.endpoint.hooks import ARHook
 from asusrouter.modules.nvram import (
     ARNvramIndexSource,
     ARNvramIndexType,

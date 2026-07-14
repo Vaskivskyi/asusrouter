@@ -6,7 +6,7 @@ from typing import Any
 from unittest.mock import AsyncMock
 
 from asusrouter.const import AR_CALL_RUN_ACTION
-from asusrouter.modules.endpoint_v2 import AREndpoint
+from asusrouter.modules.endpoint import AREndpoint
 from asusrouter.modules.network.action import (
     ARNetworkAction,
     find_handle_by_ssid,

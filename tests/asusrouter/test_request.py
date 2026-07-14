@@ -9,8 +9,8 @@ import pytest
 
 from asusrouter.asusrouter import AsusRouter
 from asusrouter.error import AsusRouter404Error, AsusRouterAccessError
-from asusrouter.modules.endpoint.error import AccessError
-from asusrouter.modules.endpoint_v2 import AREndpoint
+from asusrouter.modules.endpoint import AREndpoint
+from asusrouter.modules.endpoint.error import ARAccessError
 
 _ENDPOINT = AREndpoint.FETCH_TEMPERATURE
 
@@ -83,7 +83,7 @@ class TestAsyncFetch:
     ) -> None:
         """Drops the connection, sleeps 1s, then retries exactly once."""
 
-        auth_error = AsusRouterAccessError("auth", AccessError.AUTHORIZATION)
+        auth_error = AsusRouterAccessError("auth", ARAccessError.AUTHORIZATION)
         conn.async_query = AsyncMock(
             side_effect=[auth_error, (200, {}, "retried content")]
         )
@@ -102,10 +102,10 @@ class TestAsyncFetch:
         "side_effect",
         [
             [
-                AsusRouterAccessError("auth", AccessError.AUTHORIZATION),
-                AsusRouterAccessError("auth", AccessError.AUTHORIZATION),
+                AsusRouterAccessError("auth", ARAccessError.AUTHORIZATION),
+                AsusRouterAccessError("auth", ARAccessError.AUTHORIZATION),
             ],
-            AsusRouterAccessError("other", AccessError.CREDENTIALS),
+            AsusRouterAccessError("other", ARAccessError.CREDENTIALS),
         ],
         ids=["auth_error_twice", "non_auth_access_error"],
     )

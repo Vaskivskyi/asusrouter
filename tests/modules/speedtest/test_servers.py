@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from unittest.mock import AsyncMock, patch
 
-from asusrouter.modules.endpoint_v2 import AREndpoint
-from asusrouter.modules.endpoint_v2.hooks import ARHook
+from asusrouter.modules.endpoint import AREndpoint
+from asusrouter.modules.endpoint.hooks import ARHook
 from asusrouter.modules.speedtest.servers import (
     ARSpeedTestServersSource,
     ARSpeedTestServersSourceUniversal,

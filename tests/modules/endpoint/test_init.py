@@ -1,4 +1,4 @@
-"""Tests for the endpoint_v2 module."""
+"""Tests for the endpoint module."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ import pytest
 
 from asusrouter.const import RequestType
 from asusrouter.modules.common.command import ACTION_MODE_KEY, ARActionMode
-from asusrouter.modules.endpoint_v2 import (
+from asusrouter.modules.endpoint import (
     AREndpoint,
     AREndpointMeta,
     build_push_request,
@@ -16,7 +16,7 @@ from asusrouter.modules.endpoint_v2 import (
     get_endpoint_reader,
     get_endpoint_request_type,
 )
-from asusrouter.modules.endpoint_v2.translate import read_wan_lan_status
+from asusrouter.modules.endpoint.translate import read_wan_lan_status
 from asusrouter.tools.readers import (
     read_js_variables,
     read_json_content,

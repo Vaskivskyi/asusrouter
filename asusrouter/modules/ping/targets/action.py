@@ -7,7 +7,7 @@ from typing import Any
 
 from asusrouter.modules.action import ARAction, ARActionType
 from asusrouter.modules.common.status import MODIFY_KEY
-from asusrouter.modules.endpoint_v2 import AREndpoint, build_push_request
+from asusrouter.modules.endpoint import AREndpoint, build_push_request
 from asusrouter.modules.nvram import ARNvramType, async_get_value
 from asusrouter.modules.ping.targets.source import (
     ARPingTarget,

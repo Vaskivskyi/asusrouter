@@ -6,7 +6,7 @@ from typing import Any
 
 import pytest
 
-from asusrouter.modules.endpoint_v2.hooks import ARHook, hook_request
+from asusrouter.modules.endpoint.hooks import ARHook, hook_request
 
 
 class _FakeItem:

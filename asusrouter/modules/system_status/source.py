@@ -8,10 +8,7 @@ from typing import Any, NamedTuple
 from asusrouter.config.connection import ARConnectionConfigKey as ARCCKey
 from asusrouter.modules.common.metrics import ARMetricType
 from asusrouter.modules.device.identity import ARDeviceIdentity
-from asusrouter.modules.endpoint_v2 import (
-    AREndpoint,
-    get_endpoint_request_type,
-)
+from asusrouter.modules.endpoint import AREndpoint, get_endpoint_request_type
 from asusrouter.modules.source import ARDataSource
 from asusrouter.modules.system_status import legacy
 from asusrouter.modules.system_status.enums import ARSystemType

@@ -1,4 +1,4 @@
-"""Tests for the Error endpoint module."""
+"""Tests for the endpoint error module."""
 
 from __future__ import annotations
 
@@ -13,7 +13,10 @@ from asusrouter.error import (
     AsusRouterRequestFormatError,
 )
 from asusrouter.modules.endpoint import error as endpoint_error
-from asusrouter.modules.endpoint.error import AccessError, handle_access_error
+from asusrouter.modules.endpoint.error import (
+    ARAccessError,
+    handle_access_error,
+)
 
 
 def test_handle_access_error_success(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -66,7 +69,7 @@ def test_handle_access_error_logout_raises(
     monkeypatch.setattr(
         endpoint_error,
         "read_json_content",
-        Mock(return_value={"error_status": AccessError.LOGOUT}),
+        Mock(return_value={"error_status": ARAccessError.LOGOUT}),
     )
 
     with pytest.raises(AsusRouterLogoutError):
@@ -90,7 +93,7 @@ def test_handle_access_error_try_again_includes_timeout(
         "read_json_content",
         Mock(
             return_value={
-                "error_status": AccessError.TRY_AGAIN,
+                "error_status": ARAccessError.TRY_AGAIN,
                 "remaining_lock_time": str(timeout),
             }
         ),
@@ -106,7 +109,7 @@ def test_handle_access_error_try_again_includes_timeout(
 
     ex = exinfo.value
     # raised with args: ("Access error", error_enum, attributes)
-    assert ex.args[1] == AccessError.TRY_AGAIN
+    assert ex.args[1] == ARAccessError.TRY_AGAIN
     assert isinstance(ex.args[2], dict)
     assert ex.args[2].get("timeout") == timeout
 
@@ -131,5 +134,5 @@ def test_handle_access_error_unknown_raises_access_error(
         )
 
     ex = exinfo.value
-    assert ex.args[1] == AccessError.UNKNOWN
+    assert ex.args[1] == ARAccessError.UNKNOWN
     assert ex.args[2] == {}

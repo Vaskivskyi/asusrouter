@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from asusrouter.modules.connection_v2 import ARConnection
+from asusrouter.modules.connection import ARConnection
 from asusrouter.modules.support.flag import ARSupportValue
 from asusrouter.modules.support.helpers import make_list_translator
 

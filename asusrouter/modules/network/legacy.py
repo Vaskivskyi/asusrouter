@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from asusrouter.modules.endpoint_v2 import AREndpoint
-from asusrouter.modules.endpoint_v2.hooks import hook_request
+from asusrouter.modules.endpoint import AREndpoint
+from asusrouter.modules.endpoint.hooks import hook_request
 from asusrouter.modules.network.common import (
     bandwidth_limit,
     mac_filter_mode,

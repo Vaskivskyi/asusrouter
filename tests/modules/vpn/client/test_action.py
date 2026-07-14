@@ -5,7 +5,7 @@ from __future__ import annotations
 from unittest.mock import AsyncMock
 
 from asusrouter.const import AR_CALL_RUN_ACTION
-from asusrouter.modules.endpoint_v2 import AREndpoint
+from asusrouter.modules.endpoint import AREndpoint
 from asusrouter.modules.nvram import ARNvramType
 from asusrouter.modules.service.action import ARServiceResult
 from asusrouter.modules.vpn.client.action import ARVpnClientAction, run_action

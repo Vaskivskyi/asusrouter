@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
 from asusrouter.modules.common.command import ARService
-from asusrouter.modules.endpoint_v2.hooks import ARHook
+from asusrouter.modules.endpoint.hooks import ARHook
 from asusrouter.modules.nvram import (
     ARNvramIndexSource,
     ARNvramIndexType,

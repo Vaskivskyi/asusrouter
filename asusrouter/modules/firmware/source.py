@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
-from asusrouter.modules.endpoint_v2 import AREndpoint
+from asusrouter.modules.endpoint import AREndpoint
 from asusrouter.modules.firmware.enums import (
     ARFirmwareWebError,
     ARFirmwareWebFetch,

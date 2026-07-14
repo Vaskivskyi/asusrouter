@@ -5,7 +5,7 @@ from __future__ import annotations
 from enum import StrEnum
 
 from asusrouter.const import UNKNOWN_MEMBER_STR
-from asusrouter.modules.endpoint_v2.hooks import ARHook
+from asusrouter.modules.endpoint.hooks import ARHook
 from asusrouter.modules.source import ARDataType
 from asusrouter.tools.enum import FromStrMixin
 

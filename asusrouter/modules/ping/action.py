@@ -6,7 +6,7 @@ from typing import Any
 
 from asusrouter.modules.action import ARAction
 from asusrouter.modules.common.status import STATUS_CODE_KEY, ARStatusCode
-from asusrouter.modules.endpoint_v2 import AREndpoint
+from asusrouter.modules.endpoint import AREndpoint
 from asusrouter.modules.service.action import ARServiceResult
 from asusrouter.registry import ARCallableRegistry as ARCallReg
 from asusrouter.tools.types import ARCallbackType

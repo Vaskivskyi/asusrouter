@@ -2,136 +2,178 @@
 
 from __future__ import annotations
 
-from collections.abc import Awaitable, Callable
-from concurrent.futures import ThreadPoolExecutor
-import importlib
-import logging
-from types import ModuleType
-from typing import TYPE_CHECKING, Any
+from collections.abc import Callable, Mapping
+from dataclasses import dataclass
+from enum import StrEnum
+import json
+from typing import Any
 
-from asusrouter.const import HTTPStatus
-from asusrouter.error import AsusRouter404Error, AsusRouterRequestFormatError
-from asusrouter.modules.data import AsusData, AsusDataState
-from asusrouter.modules.endpoint_v2 import AREndpoint
-from asusrouter.tools.readers import read_json_content
+from asusrouter.const import UNKNOWN_MEMBER_STR, RequestType
+from asusrouter.modules.common.command import ACTION_MODE_KEY, ARActionMode
+from asusrouter.modules.endpoint.translate import read_wan_lan_status
+from asusrouter.tools.enum import FromStrMixin
+from asusrouter.tools.readers import (
+    read_js_variables,
+    read_json_content,
+    read_openvpn_client_status,
+)
+from asusrouter.tools.readers_v2 import read_netdev
+from asusrouter.tools.security import ARSecurityLevel
 
-if TYPE_CHECKING:
-    from asusrouter.modules.device.identity import ARDeviceIdentity
 
-_LOGGER = logging.getLogger(__name__)
+class AREndpoint(FromStrMixin, StrEnum):
+    """Endpoint enum.
+
+    Values are the URL paths used to communicate with the device.
+    """
+
+    UNKNOWN = UNKNOWN_MEMBER_STR
+
+    # Read endpoints
+    FETCH_CLIENTS_UPDATE = "update_clients.asp"
+    FETCH_DATA = "appGet.cgi"
+    FETCH_DEVICEMAP = "ajax_status.xml"
+    FETCH_DIAGNOSTICS_DATA = "get_diag_content_data.cgi"
+    FETCH_FIRMWARE_UPDATE = "detect_firmware.asp"
+    FETCH_FIRMWARE_UPDATE_NOTE = "release_note0.asp"
+    FETCH_FIRMWARE_UPDATE_NOTE_AIMESH = "release_note_amas.asp"
+    FETCH_NETWORK = "netool.cgi"
+    FETCH_ONBOARDING = "ajax_onboarding.asp"
+    FETCH_PORT_STATUS = "get_port_status.cgi"
+    FETCH_PORTS_ETHERNET = "ajax_ethernet_ports.asp"
+    FETCH_SYSINFO = "ajax_sysinfo.asp"
+    FETCH_TEMPERATURE = "ajax_coretmp.asp"
+    FETCH_TRAFFIC_BACKHAUL = "get_diag_sta_traffic.cgi"
+    FETCH_TRAFFIC_ETHERNET = "get_diag_eth_traffic.cgi"
+    FETCH_TRAFFIC_WIFI = "get_diag_wifi_traffic.cgi"
+    FETCH_UPDATE = "update.cgi"
+    FETCH_VPN_OPENVPN_STATUS = "ajax_openvpn_client_status.xml"
+    FETCH_VPN_STATUS = "ajax_vpn_status.asp"
+
+    # Write endpoints
+    DDNS_CLEAN = "clean_ddns.cgi"
+    DDNS_UNREGISTER = "unreg_ASUSDDNS.cgi"
+    PUSH_DATA = "applyapp.cgi"
+    RUN_PING = "dns_ping.cgi"
+    RUN_SPEEDTEST = "ookla_speedtest_exe.cgi"
+    SET_AURA = "set_ledg.cgi"
+    SET_SPEEDTEST_START_TIME = "set_ookla_speedtest_start_time.cgi"
+    WRITE_SPEEDTEST_HISTORY = "ookla_speedtest_write_history.cgi"
+
+    # Service endpoints
+    LOGIN = "login.cgi"
+    LOGOUT = "Logout.asp"
 
 
-_SUBMODULE_MAP: dict[str, str] = {
-    AREndpoint.FETCH_DATA: "hook",
+# Endpoints not yet implemented
+#     # Control endpoints
+#     APPLY = "apply.cgi"
+
+# Known endpoints, currently unused
+#     CERT_INFO = "ajax_certinfo.asp"
+#     DDNS_CODE = "ajax_ddnscode.asp"
+#     DSL = "ajax_AdslStatus.asp"
+#     NETWORKMAPD = "update_networkmapd.asp"
+#     STATE = "state.js"
+
+
+@dataclass
+class AREndpointMeta:
+    """Metadata for an AREndpoint."""
+
+    request_type: RequestType = RequestType.POST
+    # Minimum log security level at which the request payload may be logged
+    # raw; below it the payload is redacted
+    payload_sensitivity: ARSecurityLevel = ARSecurityLevel.DEFAULT
+    raw_payload: bool = False
+
+
+_DEFAULT_META = AREndpointMeta()
+_GET_META = AREndpointMeta(request_type=RequestType.GET)
+_RAW_POST_META = AREndpointMeta(raw_payload=True)
+# Raw POST whose body carries user data (e.g. real IPs) - never log by default
+_RAW_POST_SENSITIVE_META = AREndpointMeta(
+    raw_payload=True, payload_sensitivity=ARSecurityLevel.UNSAFE
+)
+
+_ENDPOINT_META: dict[AREndpoint, AREndpointMeta] = {
+    AREndpoint.DDNS_CLEAN: _GET_META,
+    AREndpoint.DDNS_UNREGISTER: _GET_META,
+    AREndpoint.FETCH_DIAGNOSTICS_DATA: _GET_META,
+    AREndpoint.FETCH_NETWORK: _GET_META,
+    AREndpoint.FETCH_PORT_STATUS: _GET_META,
+    AREndpoint.FETCH_TRAFFIC_BACKHAUL: _GET_META,
+    AREndpoint.FETCH_TRAFFIC_ETHERNET: _GET_META,
+    AREndpoint.FETCH_TRAFFIC_WIFI: _GET_META,
+    AREndpoint.FETCH_UPDATE: _GET_META,
+    AREndpoint.FETCH_VPN_OPENVPN_STATUS: _GET_META,
+    AREndpoint.FETCH_VPN_STATUS: _GET_META,
+    AREndpoint.RUN_PING: _GET_META,
+    AREndpoint.RUN_SPEEDTEST: _RAW_POST_META,
+    AREndpoint.SET_AURA: _GET_META,
+    AREndpoint.SET_SPEEDTEST_START_TIME: _RAW_POST_META,
+    AREndpoint.WRITE_SPEEDTEST_HISTORY: _RAW_POST_SENSITIVE_META,
+    AREndpoint.LOGIN: AREndpointMeta(
+        payload_sensitivity=ARSecurityLevel.UNSAFE
+    ),
 }
 
 
-def _get_module(
+def get_endpoint_meta(endpoint: AREndpoint) -> AREndpointMeta:
+    """Get metadata for the given endpoint."""
+
+    return _ENDPOINT_META.get(endpoint, _DEFAULT_META)
+
+
+def get_endpoint_request_type(endpoint: AREndpoint) -> RequestType:
+    """Get the request type for the given endpoint."""
+
+    return get_endpoint_meta(endpoint).request_type
+
+
+def get_endpoint_payload_sensitivity(endpoint: AREndpoint) -> ARSecurityLevel:
+    """Get the payload log sensitivity for the given endpoint."""
+
+    return get_endpoint_meta(endpoint).payload_sensitivity
+
+
+def get_endpoint_raw_payload(endpoint: AREndpoint) -> bool:
+    """Check if the endpoint's POST body must be sent verbatim."""
+
+    return get_endpoint_meta(endpoint).raw_payload
+
+
+def build_push_request(
+    action_mode: ARActionMode | str = ARActionMode.APPLY,
+    payload: Mapping[str, Any] | None = None,
+) -> str:
+    """Build a PUSH_DATA (applyapp.cgi) request body.
+
+    The endpoint expects a compact JSON object with an `action_mode` and
+    optional command fields; the connection URL-encodes it on the wire.
+    """
+
+    commands: dict[str, Any] = {ACTION_MODE_KEY: str(action_mode)}
+    if payload:
+        commands.update(payload)
+    return json.dumps(commands, separators=(",", ":"))
+
+
+_ENDPOINT_READER: dict[AREndpoint, Callable[[str], dict[str, Any]]] = {
+    AREndpoint.FETCH_FIRMWARE_UPDATE: read_js_variables,
+    AREndpoint.FETCH_ONBOARDING: read_js_variables,
+    AREndpoint.FETCH_SYSINFO: read_js_variables,
+    AREndpoint.FETCH_TEMPERATURE: read_js_variables,
+    AREndpoint.FETCH_PORTS_ETHERNET: read_wan_lan_status,
+    AREndpoint.FETCH_UPDATE: read_netdev,
+    AREndpoint.FETCH_VPN_OPENVPN_STATUS: read_openvpn_client_status,
+    AREndpoint.FETCH_VPN_STATUS: read_js_variables,
+}
+
+
+def get_endpoint_reader(
     endpoint: AREndpoint,
-) -> ModuleType | None:
-    """Attempt to get the module for the endpoint."""
+) -> Callable[[str], dict[str, Any]]:
+    """Get the content reader for the given endpoint."""
 
-    try:
-        submodule = _SUBMODULE_MAP.get(endpoint) or endpoint.name.lower()
-        module_name = f"asusrouter.modules.endpoint.{submodule}"
-
-        # Import in a separate thread to avoid blocking the main thread
-        with ThreadPoolExecutor(max_workers=1) as executor:
-            future = executor.submit(importlib.import_module, module_name)
-            return future.result()
-
-    except ModuleNotFoundError:
-        _LOGGER.debug("No module found for endpoint %s", endpoint)
-        return None
-
-
-def read(
-    endpoint: AREndpoint,
-    content: str,
-    **kwargs: Any,
-) -> dict[str, Any]:
-    """Read the data from an endpoint."""
-
-    _LOGGER.debug("Reading data from endpoint %s", endpoint)
-
-    submodule = _get_module(endpoint)
-
-    if submodule and hasattr(submodule, "read"):
-        result = submodule.read(content, **kwargs)
-        if isinstance(result, dict):
-            return result
-        return {}
-
-    result = read_json_content(content)
-    return result if isinstance(result, dict) else {}
-
-
-def process(
-    endpoint: AREndpoint,
-    data: dict[str, Any],
-    history: dict[AsusData, AsusDataState] | None = None,
-    description: ARDeviceIdentity | None = None,
-) -> dict[AsusData, Any]:
-    """Process the data from an endpoint."""
-
-    _LOGGER.debug("Processing data from endpoint %s", endpoint)
-
-    submodule = _get_module(endpoint)
-
-    if submodule:
-        require_history = getattr(submodule, "REQUIRE_HISTORY", False)
-        if require_history:
-            data_set(data, history=history)
-        require_firmware = getattr(submodule, "REQUIRE_FIRMWARE", False)
-        if require_firmware:
-            data_set(
-                data,
-                firmware=description.firmware if description else None,
-            )
-        try:
-            result = submodule.process(data)
-            if isinstance(result, dict):
-                return result
-            return {}
-        except (AttributeError, ValueError) as ex:
-            _LOGGER.error(
-                "Error processing data from endpoint %s: %s",
-                endpoint,
-                ex,
-            )
-            return {}
-
-    return {}
-
-
-def data_set(data: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
-    """Append the data to the data dict."""
-
-    data.update(kwargs)
-    return data
-
-
-def data_get(data: dict[str, Any], key: str) -> Any | None:
-    """Extract value from the data dict and update the data dict."""
-
-    value = data.get(key)
-    data.pop(key, None)
-    return value
-
-
-async def check_available(
-    endpoint: AREndpoint,
-    api_query: Callable[..., Awaitable[Any]],
-) -> tuple[bool, Any | None]:
-    """Check whether the endpoint is available or returns 404."""
-
-    try:
-        status, _, content = await api_query(endpoint)
-        if status == HTTPStatus.OK:
-            return (True, content)
-    except AsusRouterRequestFormatError:
-        return (True, None)
-    except AsusRouter404Error:
-        return (False, None)
-
-    return (False, None)
+    return _ENDPOINT_READER.get(endpoint, read_json_content)

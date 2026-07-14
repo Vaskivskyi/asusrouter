@@ -1,4 +1,4 @@
-"""Endpoint-specific content translators for V2 endpoints.
+"""Endpoint-specific content translators.
 
 Readers that are tied to a single endpoint and are not meant to be
 reused elsewhere live here, next to the endpoint definitions.

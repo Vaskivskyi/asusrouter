@@ -14,7 +14,7 @@ from asusrouter.connection import (
     _log_request,
 )
 from asusrouter.error import AsusRouter404Error, AsusRouterAccessError
-from asusrouter.modules.endpoint_v2 import AREndpoint
+from asusrouter.modules.endpoint import AREndpoint
 from asusrouter.tools.security import ARSecurityLevel, Sensitive
 
 

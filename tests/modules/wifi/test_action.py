@@ -7,7 +7,7 @@ from typing import Any
 from unittest.mock import AsyncMock
 
 from asusrouter.const import AR_CALL_RUN_ACTION
-from asusrouter.modules.endpoint_v2 import AREndpoint
+from asusrouter.modules.endpoint import AREndpoint
 from asusrouter.modules.service.action import ARServiceResult
 from asusrouter.modules.wifi import ARWiFiBand
 from asusrouter.modules.wifi.action import ARWiFiAction, run_action

@@ -8,11 +8,8 @@ from typing import Any
 from asusrouter.error import AsusRouter404Error
 from asusrouter.modules.common.metrics import ARMetricType
 from asusrouter.modules.device.identity import ARDeviceIdentity
-from asusrouter.modules.endpoint_v2 import (
-    AREndpoint,
-    get_endpoint_request_type,
-)
-from asusrouter.modules.endpoint_v2.hooks import ARHook, hook_request
+from asusrouter.modules.endpoint import AREndpoint, get_endpoint_request_type
+from asusrouter.modules.endpoint.hooks import ARHook, hook_request
 from asusrouter.modules.traffic.base import ARTrafficLink, ARTrafficSource
 from asusrouter.modules.traffic.enums import ARTrafficType
 from asusrouter.modules.wifi import ARWiFiBand

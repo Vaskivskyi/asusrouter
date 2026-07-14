@@ -9,7 +9,7 @@ import pytest
 
 from asusrouter.config import ARConfig, ARConfigKey as ARConfKey
 from asusrouter.modules.device.identity import ARDeviceIdentity
-from asusrouter.modules.endpoint_v2 import AREndpoint
+from asusrouter.modules.endpoint import AREndpoint
 from asusrouter.modules.source import ARDataSource
 from asusrouter.modules.temperature import (
     ARTemperatureSource,

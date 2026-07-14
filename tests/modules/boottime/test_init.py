@@ -19,7 +19,7 @@ from asusrouter.modules.boottime import (
 )
 from asusrouter.modules.boottime.source import _extract_uptime
 from asusrouter.modules.device.identity import ARDeviceIdentity
-from asusrouter.modules.endpoint_v2 import AREndpoint
+from asusrouter.modules.endpoint import AREndpoint
 from asusrouter.modules.source import ARDataSource
 
 _WHEN = datetime(2026, 1, 1, 12, 0, 0, tzinfo=UTC)

@@ -9,10 +9,7 @@ from typing import Any
 
 from asusrouter.modules.action import async_start_run
 from asusrouter.modules.common.metrics import ARMetricType
-from asusrouter.modules.endpoint_v2 import (
-    AREndpoint,
-    get_endpoint_request_type,
-)
+from asusrouter.modules.endpoint import AREndpoint, get_endpoint_request_type
 from asusrouter.modules.nvram import ARNvramType, async_get_value
 from asusrouter.modules.ping.action import ARPingAction
 from asusrouter.modules.ping.enums import ARPingStatus

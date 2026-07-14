@@ -6,7 +6,7 @@ import time
 from typing import Any
 
 from asusrouter.modules.action import ARAction
-from asusrouter.modules.endpoint_v2 import AREndpoint
+from asusrouter.modules.endpoint import AREndpoint
 from asusrouter.modules.service.action import ARServiceResult
 from asusrouter.modules.speedtest.models import (
     EXE_TYPE_RUN,

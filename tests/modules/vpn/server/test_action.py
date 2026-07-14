@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock
 
 from asusrouter.const import AR_CALL_RUN_ACTION
 from asusrouter.modules.device.identity import ARDeviceIdentity
-from asusrouter.modules.endpoint_v2 import AREndpoint
+from asusrouter.modules.endpoint import AREndpoint
 from asusrouter.modules.firmware import ARFirmware
 from asusrouter.modules.service.action import ARServiceResult
 from asusrouter.modules.vpn.enums import ARVpnProtocol

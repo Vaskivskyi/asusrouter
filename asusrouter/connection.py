@@ -45,12 +45,12 @@ from asusrouter.error import (
     AsusRouterSSLCertificateError,
     AsusRouterTimeoutError,
 )
-from asusrouter.modules.endpoint.error import handle_access_error
-from asusrouter.modules.endpoint_v2 import (
+from asusrouter.modules.endpoint import (
     AREndpoint,
     get_endpoint_payload_sensitivity,
     get_endpoint_raw_payload,
 )
+from asusrouter.modules.endpoint.error import handle_access_error
 from asusrouter.tools.connection import get_cookie_jar
 from asusrouter.tools.converters_v2.raw import raw_to_str
 from asusrouter.tools.identifiers import Hostname

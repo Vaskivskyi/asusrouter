@@ -4,12 +4,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from asusrouter.modules.endpoint_v2 import AREndpoint
-from asusrouter.modules.endpoint_v2.hooks import (
-    ARHook,
-    hook_request,
-    hook_value,
-)
+from asusrouter.modules.endpoint import AREndpoint
+from asusrouter.modules.endpoint.hooks import ARHook, hook_request, hook_value
 from asusrouter.modules.source import ARDataSource
 from asusrouter.modules.speedtest.models import (
     EXE_TYPE_LIST,

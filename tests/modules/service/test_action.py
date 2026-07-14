@@ -10,7 +10,7 @@ import pytest
 from asusrouter.const import AR_CALL_RUN_ACTION
 from asusrouter.modules.common.command import ARService
 from asusrouter.modules.common.status import MODIFY_KEY
-from asusrouter.modules.endpoint_v2 import AREndpoint
+from asusrouter.modules.endpoint import AREndpoint
 from asusrouter.modules.service.action import (
     ARServiceAction,
     ARServiceResult,

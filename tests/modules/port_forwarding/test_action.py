@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from asusrouter.modules.endpoint_v2 import AREndpoint
+from asusrouter.modules.endpoint import AREndpoint
 from asusrouter.modules.port_forwarding.action import (
     ARPortForwardingAction,
     _spec_matches,

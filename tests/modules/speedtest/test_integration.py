@@ -8,8 +8,8 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 from asusrouter.asusrouter import AsusRouter
-from asusrouter.modules.endpoint_v2 import AREndpoint
-from asusrouter.modules.endpoint_v2.hooks import ARHook
+from asusrouter.modules.endpoint import AREndpoint
+from asusrouter.modules.endpoint.hooks import ARHook
 from asusrouter.modules.speedtest import ARSpeedTestResult, ARSpeedTestSource
 
 _RESULT_HOOK = ARHook.OOKLA_SPEEDTEST_RESULT.value

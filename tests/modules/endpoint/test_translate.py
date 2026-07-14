@@ -1,4 +1,4 @@
-"""Tests for asusrouter.modules.endpoint_v2.translate."""
+"""Tests for asusrouter.modules.endpoint.translate."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ from typing import Any
 
 import pytest
 
-from asusrouter.modules.endpoint_v2.translate import read_wan_lan_status
+from asusrouter.modules.endpoint.translate import read_wan_lan_status
 
 
 @pytest.mark.parametrize(

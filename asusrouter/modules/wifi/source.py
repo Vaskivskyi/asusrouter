@@ -5,8 +5,8 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
 
-from asusrouter.modules.endpoint_v2 import AREndpoint
-from asusrouter.modules.endpoint_v2.hooks import ARHook, hook_request
+from asusrouter.modules.endpoint import AREndpoint
+from asusrouter.modules.endpoint.hooks import ARHook, hook_request
 from asusrouter.modules.nvram import ARNvramIndexSource, ARNvramIndexType
 from asusrouter.modules.source import ARDataSource
 from asusrouter.modules.wifi.enums import (
