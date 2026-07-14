@@ -40,6 +40,11 @@ class ARSupportType(FromStrMixin, StrEnum):
     # LAN
     LAN_CAPABILITIES = "lan_capabilities"
 
+    # Parental control
+    PARENTAL_CONTROL_MAX_ENTRIES = "parental_control_max_entries"
+    PARENTAL_CONTROL_MAX_RULES = "parental_control_max_rules"
+    PARENTAL_CONTROL_SCHED_VERSION = "parental_control_sched_version"
+
     # Platform
     PLATFORM = "platform"
 
@@ -108,6 +113,11 @@ class ARSupportValue(FromStrMixin, StrEnum):
 
     # Device mode
     MODE_REPEATER = "repeater"  # TODO: use it
+
+    # Parental control
+    PARENTAL_CONTROL_MAX_ENTRIES = "MaxRule_PC_DAYTIME"
+    PARENTAL_CONTROL_MAX_RULES = "MaxRule_parentctrl"
+    PARENTAL_CONTROL_SCHED_VERSION = "PC_SCHED_V3"
 
     # Platform
     PLATFORM_BROADCOM = "bcmwifi"

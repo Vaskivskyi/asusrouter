@@ -38,6 +38,11 @@ from asusrouter.modules.support.helpers import (
     support_value as support_value,
 )
 from asusrouter.modules.support.lan import translate_lan_capabilities
+from asusrouter.modules.support.parental_control import (
+    translate_parental_control_max_entries,
+    translate_parental_control_max_rules,
+    translate_parental_control_sched_version,
+)
 from asusrouter.modules.support.platform import translate_platform
 from asusrouter.modules.support.sdn import (
     translate_sdn_awv,
@@ -91,6 +96,15 @@ _TRANSLATION_TABLE: dict[ARSupportType, ARCallableType] = {
     ARSupportType.FTP: translate_ftp,
     ARSupportType.FTP_CAPABILITIES: translate_ftp_capabilities,
     ARSupportType.LAN_CAPABILITIES: translate_lan_capabilities,
+    ARSupportType.PARENTAL_CONTROL_MAX_ENTRIES: (
+        translate_parental_control_max_entries
+    ),
+    ARSupportType.PARENTAL_CONTROL_MAX_RULES: (
+        translate_parental_control_max_rules
+    ),
+    ARSupportType.PARENTAL_CONTROL_SCHED_VERSION: (
+        translate_parental_control_sched_version
+    ),
     ARSupportType.PLATFORM: translate_platform,
     ARSupportType.SDN_AWV: translate_sdn_awv,
     ARSupportType.SDN_MAINFH: translate_sdn_mainfh,

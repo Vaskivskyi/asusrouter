@@ -132,6 +132,14 @@ class ARNvramType(ARDataType):
     MAC_LAN = "lan_hwaddr"
     MAC_WAN = "wan_hwaddr"
 
+    # Parental control (time scheduling); rules are parallel `>`-joined lists
+    PARENTAL_CONTROL_BLOCK_ALL = "MULTIFILTER_BLOCK_ALL"
+    PARENTAL_CONTROL_MAC = "MULTIFILTER_MAC"
+    PARENTAL_CONTROL_NAME = "MULTIFILTER_DEVICENAME"
+    PARENTAL_CONTROL_STATE = "MULTIFILTER_ALL"
+    PARENTAL_CONTROL_TIMEMAP = "MULTIFILTER_MACFILTER_DAYTIME_V2"
+    PARENTAL_CONTROL_TYPE = "MULTIFILTER_ENABLE"
+
     # Port forwarding
     PORT_FORWARDING_STATE = "vts_enable_x"
     PORT_FORWARDING_LIST = "vts_rulelist"
