@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from asusrouter.modules.endpoint_v2 import AREndpoint
+from asusrouter.modules.endpoint import AREndpoint
 from asusrouter.modules.ports.base import ARPortsData
 from asusrouter.modules.ports.legacy import translate_ethernet_ports
 from asusrouter.modules.ports.status import translate_port_status

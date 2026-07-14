@@ -8,8 +8,8 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 from asusrouter.modules.action import _RUN_START_DELAY
-from asusrouter.modules.endpoint_v2 import AREndpoint
-from asusrouter.modules.endpoint_v2.hooks import ARHook
+from asusrouter.modules.endpoint import AREndpoint
+from asusrouter.modules.endpoint.hooks import ARHook
 from asusrouter.modules.speedtest import (
     ARSpeedTestAction,
     ARSpeedTestResult,

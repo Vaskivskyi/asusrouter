@@ -16,7 +16,7 @@ from asusrouter.modules.ddns.enums import (
     ARDdnsServer,
 )
 from asusrouter.modules.ddns.source import DDNS_REQUEST, ARDdnsSourceUniversal
-from asusrouter.modules.endpoint_v2 import AREndpoint
+from asusrouter.modules.endpoint import AREndpoint
 from asusrouter.tools.identifiers import Hostname, Password
 
 _REG_RESULT_KEY = "asusddns_reg_result"

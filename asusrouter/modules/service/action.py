@@ -14,7 +14,7 @@ from asusrouter.modules.common.command import (
     ARService,
 )
 from asusrouter.modules.common.status import MODIFY_KEY
-from asusrouter.modules.endpoint_v2 import AREndpoint, build_push_request
+from asusrouter.modules.endpoint import AREndpoint, build_push_request
 from asusrouter.registry import ARCallableRegistry as ARCallReg
 from asusrouter.tools.converters_v2.raw import raw_to_bool, raw_to_int
 from asusrouter.tools.types import ARCallbackType

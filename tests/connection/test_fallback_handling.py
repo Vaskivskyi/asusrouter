@@ -22,7 +22,7 @@ from asusrouter.error import (
     AsusRouterFallbackForbiddenError,
     AsusRouterFallbackLoopError,
 )
-from asusrouter.modules.endpoint_v2 import AREndpoint
+from asusrouter.modules.endpoint import AREndpoint
 from tests.helpers import AsyncPatch, ConnectionFactory, SyncPatch
 
 CUSTOM_HTTP = DEFAULT_PORT_HTTP + 5

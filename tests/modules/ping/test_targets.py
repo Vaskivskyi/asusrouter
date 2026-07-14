@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock
 from asusrouter.const import AR_CALL_RUN_ACTION
 from asusrouter.modules.action import ARActionType
 from asusrouter.modules.common.status import MODIFY_KEY
-from asusrouter.modules.endpoint_v2 import AREndpoint
+from asusrouter.modules.endpoint import AREndpoint
 from asusrouter.modules.nvram import ARNvramType
 from asusrouter.modules.ping.targets import (
     ARPingTarget,

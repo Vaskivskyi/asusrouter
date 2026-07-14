@@ -9,8 +9,8 @@ from asusrouter.modules.common.connection import (
     ARConnectionMethod,
     ARConnectionStatus,
 )
-from asusrouter.modules.endpoint_v2 import AREndpoint
-from asusrouter.modules.endpoint_v2.hooks import ARHook, hook_request
+from asusrouter.modules.endpoint import AREndpoint
+from asusrouter.modules.endpoint.hooks import ARHook, hook_request
 from asusrouter.modules.nvram.enums import ARNvramIndexType, ARNvramType
 from asusrouter.modules.source import ARDataSource
 from asusrouter.registry import ARCallableRegistry as ARCallReg

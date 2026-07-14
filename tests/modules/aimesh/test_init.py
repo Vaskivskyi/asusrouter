@@ -16,7 +16,7 @@ from asusrouter.modules.aimesh import (
     source as aimesh_source,
     translate_state,
 )
-from asusrouter.modules.endpoint_v2 import AREndpoint, get_endpoint_reader
+from asusrouter.modules.endpoint import AREndpoint, get_endpoint_reader
 from asusrouter.modules.source import ARDataSource
 from asusrouter.tools.readers import read_js_variables
 

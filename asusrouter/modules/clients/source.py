@@ -8,8 +8,8 @@ from typing import Any
 from asusrouter.modules.clients.model import ARClient
 from asusrouter.modules.clients.translate import build_clients
 from asusrouter.modules.device.identity import ARDeviceIdentity
-from asusrouter.modules.endpoint_v2 import AREndpoint
-from asusrouter.modules.endpoint_v2.hooks import ARHook, hook_request
+from asusrouter.modules.endpoint import AREndpoint
+from asusrouter.modules.endpoint.hooks import ARHook, hook_request
 from asusrouter.modules.source import ARDataSource
 from asusrouter.registry import ARCallableRegistry as ARCallReg
 from asusrouter.tools.identifiers import MacAddress

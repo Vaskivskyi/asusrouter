@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock
 import pytest
 
 from asusrouter.const import AR_CALL_GET_STATE, AR_CALL_TRANSLATE_STATE
-from asusrouter.modules.endpoint_v2 import AREndpoint
+from asusrouter.modules.endpoint import AREndpoint
 from asusrouter.modules.vpn.enums import ARVpnProtocol, ARVpnServerField
 from asusrouter.modules.vpn.server.openvpn import CLIENT_STATUS_KEY
 from asusrouter.modules.vpn.server.source import (

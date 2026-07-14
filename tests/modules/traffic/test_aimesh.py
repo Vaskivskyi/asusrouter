@@ -18,7 +18,7 @@ from asusrouter.modules.aimesh.topology import (
 )
 from asusrouter.modules.common.metrics import ARMetricType as M
 from asusrouter.modules.device.identity import ARDeviceIdentity
-from asusrouter.modules.endpoint_v2 import AREndpoint
+from asusrouter.modules.endpoint import AREndpoint
 from asusrouter.modules.traffic.aimesh import (
     ARTrafficAiMeshSource,
     get_state,

@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from asusrouter.modules.endpoint_v2 import AREndpoint
-from asusrouter.modules.endpoint_v2.hooks import hook_request
+from asusrouter.modules.endpoint import AREndpoint
+from asusrouter.modules.endpoint.hooks import hook_request
 from asusrouter.modules.source import ARDataSource
 from asusrouter.modules.vpn.enums import ARVpnProtocol, ARVpnServerField
 from asusrouter.modules.vpn.server import openvpn, wireguard

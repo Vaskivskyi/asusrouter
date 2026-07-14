@@ -13,7 +13,7 @@ from asusrouter.modules.aimesh import ARAiMeshSourceUniversal
 from asusrouter.modules.boottime import ARBoottimeSourceUniversal
 from asusrouter.modules.device import ARDeviceSourceUniversal
 from asusrouter.modules.device.identity import ARDeviceIdentity
-from asusrouter.modules.endpoint_v2 import AREndpoint
+from asusrouter.modules.endpoint import AREndpoint
 from tests.helpers import MakeStateFactory
 
 

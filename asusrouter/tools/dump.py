@@ -14,7 +14,7 @@ from types import TracebackType
 from typing import Any, Self
 import zipfile
 
-from asusrouter.modules.endpoint_v2 import AREndpoint
+from asusrouter.modules.endpoint import AREndpoint
 
 
 class AsusRouterDump:

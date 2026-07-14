@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from .asusrouter import AsusRouter
 from .error import AsusRouterError
-from .modules.endpoint_v2 import AREndpoint
+from .modules.endpoint import AREndpoint
 from .tools.dump import AsusRouterDump
 from .tools.security.log import install_log_masking
 

@@ -12,8 +12,8 @@ from asusrouter.error import (
     AsusRouterLogoutError,
     AsusRouterRequestFormatError,
 )
-from asusrouter.modules.endpoint_v2 import error as endpoint_error
-from asusrouter.modules.endpoint_v2.error import (
+from asusrouter.modules.endpoint import error as endpoint_error
+from asusrouter.modules.endpoint.error import (
     ARAccessError,
     handle_access_error,
 )

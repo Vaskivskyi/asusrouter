@@ -12,7 +12,7 @@ from asusrouter.error import (
     AsusRouterLogoutError,
     AsusRouterRequestFormatError,
 )
-from asusrouter.modules.endpoint_v2 import AREndpoint
+from asusrouter.modules.endpoint import AREndpoint
 from asusrouter.tools.enum import FromIntMixin
 from asusrouter.tools.readers import read_json_content
 

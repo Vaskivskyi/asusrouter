@@ -6,8 +6,8 @@ import json
 from unittest.mock import AsyncMock
 from urllib.parse import unquote_plus
 
-from asusrouter.modules.endpoint_v2 import AREndpoint
-from asusrouter.modules.endpoint_v2.hooks import ARHook
+from asusrouter.modules.endpoint import AREndpoint
+from asusrouter.modules.endpoint.hooks import ARHook
 from asusrouter.modules.speedtest.history import (
     MAX_HISTORY,
     ARSpeedTestHistorySource,

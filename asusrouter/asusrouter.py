@@ -26,7 +26,7 @@ from asusrouter.const import (
     AR_CALL_RUN_ACTION,
     AR_CALL_TRANSLATE_ACTION,
     AR_CALL_TRANSLATE_STATE,
-    DEFAULT_CACHE_TIME_V2,
+    DEFAULT_CACHE_TIME,
     DEFAULT_TIMEOUT,
 )
 from asusrouter.error import (
@@ -40,12 +40,12 @@ from asusrouter.modules.aimesh.topology import ARAiMeshTopology
 from asusrouter.modules.boottime import ARBoottime, ARBoottimeSourceUniversal
 from asusrouter.modules.device import ARDeviceSourceUniversal
 from asusrouter.modules.device.identity import ARDeviceIdentity
-from asusrouter.modules.endpoint_v2 import (
+from asusrouter.modules.endpoint import (
     AREndpoint,
     get_endpoint_reader,
     get_endpoint_request_type,
 )
-from asusrouter.modules.endpoint_v2.error import ARAccessError
+from asusrouter.modules.endpoint.error import ARAccessError
 from asusrouter.modules.led import ARLedAction, async_recover_state
 from asusrouter.modules.source import (
     ARDataCollection,
@@ -117,7 +117,7 @@ class AsusRouter:
         # Constrain shared log masking by this instance's log level
         register_log_config(self._config)
 
-        self._cache_threshold_v2 = timedelta(seconds=DEFAULT_CACHE_TIME_V2)
+        self._cache_threshold = timedelta(seconds=DEFAULT_CACHE_TIME)
 
         self._data_states: dict[ARDataSource | ARDataType, ARDataState] = {}
 
@@ -578,7 +578,7 @@ class AsusRouter:
         """Refresh data states for all sources in the collection."""
 
         data_states = self._data_states
-        threshold = self._cache_threshold_v2
+        threshold = self._cache_threshold
 
         # Split into states to refresh here and states already being
         # refreshed by a concurrent caller (awaited instead of refetched)
@@ -656,7 +656,7 @@ class AsusRouter:
         if not data_state:
             return None
 
-        threshold = self._cache_threshold_v2
+        threshold = self._cache_threshold
         result = {
             key: state.content
             for key, state in data_state.items()

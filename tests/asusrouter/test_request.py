@@ -9,8 +9,8 @@ import pytest
 
 from asusrouter.asusrouter import AsusRouter
 from asusrouter.error import AsusRouter404Error, AsusRouterAccessError
-from asusrouter.modules.endpoint_v2 import AREndpoint
-from asusrouter.modules.endpoint_v2.error import ARAccessError
+from asusrouter.modules.endpoint import AREndpoint
+from asusrouter.modules.endpoint.error import ARAccessError
 
 _ENDPOINT = AREndpoint.FETCH_TEMPERATURE
 

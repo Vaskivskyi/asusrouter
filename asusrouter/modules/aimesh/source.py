@@ -9,7 +9,7 @@ from asusrouter.modules.aimesh.topology import (
     translate_onboarding_status,
     translate_topology,
 )
-from asusrouter.modules.endpoint_v2 import AREndpoint
+from asusrouter.modules.endpoint import AREndpoint
 from asusrouter.modules.source import ARDataSource
 from asusrouter.registry import ARCallableRegistry as ARCallReg
 from asusrouter.tools.readers_v2 import read_js_section

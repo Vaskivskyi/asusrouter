@@ -20,8 +20,8 @@ from asusrouter.modules.ddns.source import (
     ARDdnsSourceUniversal,
     read_status,
 )
-from asusrouter.modules.endpoint_v2 import AREndpoint
-from asusrouter.modules.endpoint_v2.hooks import hook_request, hook_value
+from asusrouter.modules.endpoint import AREndpoint
+from asusrouter.modules.endpoint.hooks import hook_request, hook_value
 from asusrouter.modules.nvram import ARNvramType, async_expire_values
 from asusrouter.modules.service.action import (
     ARServiceResult,

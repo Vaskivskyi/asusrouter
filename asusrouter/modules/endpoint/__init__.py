@@ -1,4 +1,4 @@
-"""Endpoint V2 module for AsusRouter."""
+"""Endpoint module for AsusRouter."""
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ from typing import Any
 
 from asusrouter.const import UNKNOWN_MEMBER_STR, RequestType
 from asusrouter.modules.common.command import ACTION_MODE_KEY, ARActionMode
-from asusrouter.modules.endpoint_v2.translate import read_wan_lan_status
+from asusrouter.modules.endpoint.translate import read_wan_lan_status
 from asusrouter.tools.enum import FromStrMixin
 from asusrouter.tools.readers import (
     read_js_variables,
@@ -65,11 +65,11 @@ class AREndpoint(FromStrMixin, StrEnum):
     LOGOUT = "Logout.asp"
 
 
-# Endpoints pending V2 migration (used in V1)
+# Endpoints not yet implemented
 #     # Control endpoints
 #     APPLY = "apply.cgi"
 
-# Endpoints defined in V1 but never used
+# Known endpoints, currently unused
 #     CERT_INFO = "ajax_certinfo.asp"
 #     DDNS_CODE = "ajax_ddnscode.asp"
 #     DSL = "ajax_AdslStatus.asp"

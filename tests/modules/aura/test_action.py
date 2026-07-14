@@ -15,7 +15,7 @@ from asusrouter.modules.aura.action import (
 )
 from asusrouter.modules.aura.enums import ARAuraField, ARAuraScheme
 from asusrouter.modules.aura.source import ARAuraSourceUniversal
-from asusrouter.modules.endpoint_v2 import AREndpoint
+from asusrouter.modules.endpoint import AREndpoint
 from asusrouter.modules.support.flag import ARSupportType
 from asusrouter.tools.color import Color
 

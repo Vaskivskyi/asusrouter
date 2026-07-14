@@ -20,10 +20,7 @@ from asusrouter.modules.aura.enums import (
 )
 from asusrouter.modules.aura.source import ARAuraSourceUniversal
 from asusrouter.modules.aura.support import aura_supported
-from asusrouter.modules.endpoint_v2 import (
-    AREndpoint,
-    get_endpoint_request_type,
-)
+from asusrouter.modules.endpoint import AREndpoint, get_endpoint_request_type
 from asusrouter.modules.nvram import ARNvramType
 from asusrouter.modules.service.action import ARServiceResult
 from asusrouter.registry import ARCallableRegistry as ARCallReg

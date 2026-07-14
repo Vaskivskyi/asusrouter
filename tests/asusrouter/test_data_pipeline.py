@@ -18,7 +18,7 @@ from asusrouter.modules.aimesh.topology import ARAiMeshTopology
 from asusrouter.modules.boottime import ARBoottime
 from asusrouter.modules.device import ARDeviceSourceUniversal
 from asusrouter.modules.device.identity import ARDeviceIdentity
-from asusrouter.modules.endpoint_v2 import AREndpoint
+from asusrouter.modules.endpoint import AREndpoint
 from asusrouter.modules.led import ARLedAction
 from asusrouter.modules.source import (
     ARDataCollection,
@@ -612,7 +612,7 @@ class TestAsyncFetchData:
             source, force=True, extra_kw="x"
         )
 
-        fake_state.is_fresh.assert_called_once_with(router._cache_threshold_v2)
+        fake_state.is_fresh.assert_called_once_with(router._cache_threshold)
         assert result == ({source: content} if is_fresh else None)
 
     def _seed_identity(

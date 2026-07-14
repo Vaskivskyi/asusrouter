@@ -13,7 +13,7 @@ from asusrouter.config.connection import (
 )
 from asusrouter.modules.common.metrics import ARMetricType as M
 from asusrouter.modules.device.identity import ARDeviceIdentity
-from asusrouter.modules.endpoint_v2 import AREndpoint
+from asusrouter.modules.endpoint import AREndpoint
 from asusrouter.modules.source import ARDataSource
 from asusrouter.modules.system_status import (
     ARSystemStatusSource,

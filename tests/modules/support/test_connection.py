@@ -6,7 +6,7 @@ from typing import Any
 
 import pytest
 
-from asusrouter.modules.connection_v2 import ARConnection
+from asusrouter.modules.connection import ARConnection
 from asusrouter.modules.support.connection import translate_connection
 from asusrouter.modules.support.flag import ARSupportValue
 

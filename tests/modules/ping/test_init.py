@@ -11,10 +11,7 @@ from asusrouter.const import AR_CALL_RUN_ACTION, RequestType
 from asusrouter.modules.action import _RUN_START_DELAY
 from asusrouter.modules.common.metrics import ARMetricType as M
 from asusrouter.modules.common.status import STATUS_CODE_KEY
-from asusrouter.modules.endpoint_v2 import (
-    AREndpoint,
-    get_endpoint_request_type,
-)
+from asusrouter.modules.endpoint import AREndpoint, get_endpoint_request_type
 from asusrouter.modules.nvram import ARNvramType
 from asusrouter.modules.ping import (
     ARPingAction,
