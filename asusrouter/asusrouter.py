@@ -40,12 +40,12 @@ from asusrouter.modules.aimesh.topology import ARAiMeshTopology
 from asusrouter.modules.boottime import ARBoottime, ARBoottimeSourceUniversal
 from asusrouter.modules.device import ARDeviceSourceUniversal
 from asusrouter.modules.device.identity import ARDeviceIdentity
-from asusrouter.modules.endpoint.error import AccessError
 from asusrouter.modules.endpoint_v2 import (
     AREndpoint,
     get_endpoint_reader,
     get_endpoint_request_type,
 )
+from asusrouter.modules.endpoint_v2.error import ARAccessError
 from asusrouter.modules.led import ARLedAction, async_recover_state
 from asusrouter.modules.source import (
     ARDataCollection,
@@ -323,7 +323,7 @@ class AsusRouter:
                 self._unavailable_endpoints.add(endpoint)
                 return None
             except AsusRouterAccessError as ex:
-                if ex.args[1] != AccessError.AUTHORIZATION or attempt > 0:
+                if ex.args[1] != ARAccessError.AUTHORIZATION or attempt > 0:
                     raise
                 self._async_drop_connection()
                 await asyncio.sleep(_AUTH_RETRY_DELAY)

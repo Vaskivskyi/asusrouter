@@ -1,1 +1,0 @@
-"""Endpoint module for AsusRouter."""

@@ -1,8 +1,4 @@
-"""Error endpoint module.
-
-This is not an actual endpoint, but rather a module that is used
-to handle errors from any endpoint.
-"""
+"""Endpoint error handling."""
 
 from __future__ import annotations
 
@@ -23,7 +19,7 @@ from asusrouter.tools.readers import read_json_content
 _LOGGER = logging.getLogger(__name__)
 
 
-class AccessError(FromIntMixin, IntEnum):
+class ARAccessError(FromIntMixin, IntEnum):
     """Access error enum."""
 
     UNKNOWN = UNKNOWN_MEMBER
@@ -62,12 +58,12 @@ def handle_access_error(
         raise AsusRouterRequestFormatError("JSON format error")
 
     try:
-        error = AccessError(error_status)
+        error = ARAccessError(error_status)
     except ValueError:
-        error = AccessError.UNKNOWN
+        error = ARAccessError.UNKNOWN
 
     # Success
-    if error == AccessError.SUCCESS:
+    if error == ARAccessError.SUCCESS:
         return
 
     _LOGGER.debug("Access error message: %s", message)
@@ -76,11 +72,11 @@ def handle_access_error(
     attributes: dict[str, Any] = {}
 
     # Handle logout code (even though it's not an error)
-    if error == AccessError.LOGOUT:
+    if error == ARAccessError.LOGOUT:
         raise AsusRouterLogoutError("Session is logged out")
 
     # Try again later error
-    if error == AccessError.TRY_AGAIN:
+    if error == ARAccessError.TRY_AGAIN:
         timeout = message.get("remaining_lock_time")
         if timeout:
             attributes["timeout"] = int(timeout)
