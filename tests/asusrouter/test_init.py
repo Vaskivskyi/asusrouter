@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from datetime import timedelta
 from unittest.mock import Mock
 
 import aiohttp
@@ -12,11 +11,7 @@ from asusrouter.asusrouter import AsusRouter
 from asusrouter.config import ARInstanceConfig
 from asusrouter.config.connection import ARConnectionConfigKey as ARCCKey
 from asusrouter.connection import Connection
-from asusrouter.const import (
-    DEFAULT_CACHE_TIME,
-    DEFAULT_PORT_HTTP,
-    DEFAULT_PORT_HTTPS,
-)
+from asusrouter.const import DEFAULT_PORT_HTTP, DEFAULT_PORT_HTTPS
 from asusrouter.modules.device.identity import ARDeviceIdentity
 from tests.helpers import TCONST_HOST, TCONST_PASS, TCONST_USER
 
@@ -110,7 +105,6 @@ def test_init_connection_no_session_deferred() -> None:
 def test_init_state_empty(router: AsusRouter) -> None:
     """State dicts start empty."""
 
-    assert router._state == {}
     assert router._data_states == {}
 
 
@@ -118,31 +112,6 @@ def test_init_description(router: AsusRouter) -> None:
     """Description returns empty ARDeviceIdentity before any data is loaded."""
 
     assert isinstance(router.description, ARDeviceIdentity)
-
-
-def test_init_flags_none(router: AsusRouter) -> None:
-    """_needed_time and _last_id start as None."""
-
-    assert router._needed_time is None
-    assert router._last_id is None
-
-
-def test_init_cache_default(router: AsusRouter) -> None:
-    """Default cache time equals DEFAULT_CACHE_TIME."""
-
-    assert router._cache_threshold == timedelta(seconds=DEFAULT_CACHE_TIME)
-
-
-def test_init_cache_custom() -> None:
-    """Custom cache_time is stored and threshold set accordingly."""
-
-    router = AsusRouter(
-        hostname=TCONST_HOST,
-        username=TCONST_USER,
-        password=TCONST_PASS,
-        cache_time=60.0,
-    )
-    assert router._cache_threshold == timedelta(seconds=60.0)
 
 
 def test_init_config_instance(router: AsusRouter) -> None:

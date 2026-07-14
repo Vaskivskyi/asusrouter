@@ -8,9 +8,8 @@ from __future__ import annotations
 import asyncio
 from collections import defaultdict
 from collections.abc import Awaitable, Callable, Iterable
-from datetime import UTC, datetime, timedelta
+from datetime import timedelta
 from functools import partial
-import json
 import logging
 from typing import Any, Self
 
@@ -27,26 +26,20 @@ from asusrouter.const import (
     AR_CALL_RUN_ACTION,
     AR_CALL_TRANSLATE_ACTION,
     AR_CALL_TRANSLATE_STATE,
-    DEFAULT_CACHE_TIME,
     DEFAULT_CACHE_TIME_V2,
     DEFAULT_TIMEOUT,
 )
 from asusrouter.error import (
     AsusRouter404Error,
     AsusRouterAccessError,
-    AsusRouterConnectionError,
-    AsusRouterDataError,
     AsusRouterError,
 )
 from asusrouter.modules.action import ARAction
 from asusrouter.modules.aimesh import ARAiMeshSourceUniversal
 from asusrouter.modules.aimesh.topology import ARAiMeshTopology
 from asusrouter.modules.boottime import ARBoottime, ARBoottimeSourceUniversal
-from asusrouter.modules.data import AsusData, AsusDataState
-from asusrouter.modules.data_finder import ASUSDATA_MAP, AsusDataFinder
 from asusrouter.modules.device import ARDeviceSourceUniversal
 from asusrouter.modules.device.identity import ARDeviceIdentity
-from asusrouter.modules.endpoint import process, read
 from asusrouter.modules.endpoint.error import AccessError
 from asusrouter.modules.endpoint_v2 import (
     AREndpoint,
@@ -54,7 +47,6 @@ from asusrouter.modules.endpoint_v2 import (
     get_endpoint_request_type,
 )
 from asusrouter.modules.led import ARLedAction, async_recover_state
-from asusrouter.modules.service import async_call_service
 from asusrouter.modules.source import (
     ARDataCollection,
     ARDataSource,
@@ -63,17 +55,10 @@ from asusrouter.modules.source import (
     ARDataStateStatic,
     ARDataType,
 )
-from asusrouter.modules.state import (
-    AsusState,
-    get_datatype,
-    save_state,
-    set_state,
-)
 from asusrouter.modules.support.flag import ARSupportType
 from asusrouter.registry import ARCallableRegistry as ARCallReg
 from asusrouter.tools.converters_v2.raw import raw_to_str
 from asusrouter.tools.identifiers import Hostname
-from asusrouter.tools.readers import merge_dicts
 from asusrouter.tools.security.log import register_log_config
 from asusrouter.tools.types import ARCallableType
 
@@ -87,23 +72,6 @@ _REBOOT_RECOVERY_TIMEOUT: int = 300
 _REBOOT_RECOVERY_INTERVAL: int = 10
 
 ARDataRequest = ARDataSource | ARDataType | Iterable[ARDataSource | ARDataType]
-
-
-def _where_to_get_data(datatype: AsusData) -> AsusDataFinder | None:
-    """Get the list of endpoints to get data from."""
-
-    _LOGGER.debug("Triggered method _where_to_get_data")
-
-    data_map = ASUSDATA_MAP.get(datatype)
-    while isinstance(data_map, AsusData):
-        data_map = ASUSDATA_MAP.get(data_map)
-    if not isinstance(data_map, AsusDataFinder):
-        _LOGGER.debug("No map found for %s", datatype)
-        return None
-
-    _LOGGER.debug("Endpoints to check: %s", data_map.endpoint)
-
-    return data_map
 
 
 def _get_call_matrix(
@@ -132,7 +100,6 @@ class AsusRouter:
         password: str,
         port: int | None = None,
         use_ssl: bool = False,
-        cache_time: float | None = None,
         session: aiohttp.ClientSession | None = None,
         dumpback: Callable[..., Awaitable[None]] | None = None,
         config: dict[ARConfKey, Any] | None = None,
@@ -150,12 +117,8 @@ class AsusRouter:
         # Constrain shared log masking by this instance's log level
         register_log_config(self._config)
 
-        self._cache_threshold = timedelta(
-            seconds=cache_time or DEFAULT_CACHE_TIME
-        )
         self._cache_threshold_v2 = timedelta(seconds=DEFAULT_CACHE_TIME_V2)
 
-        self._state: dict[AsusData, AsusDataState] = {}
         self._data_states: dict[ARDataSource | ARDataType, ARDataState] = {}
 
         # Endpoints that returned 404
@@ -165,11 +128,6 @@ class AsusRouter:
         self._reboot_recovery: asyncio.Task[None] | None = None
         # Last commanded LED state, reasserted after a reboot (for Merlin)
         self._led_state: bool | None = None
-
-        # Time for change to take effect before available to fetch
-        self._needed_time: int | None = None
-        # ID from the last called service
-        self._last_id: int | None = None
 
         self._connection: Connection = Connection(
             hostname=hostname,
@@ -804,277 +762,4 @@ class AsusRouter:
 
     # ---------------------------
     # <-- Data pipeline
-    # ---------------------------
-
-    # ---------------------------
-    # V1 methods -->
-    # ---------------------------
-
-    async def async_api_query(
-        self, endpoint: AREndpoint, payload: str | None = None
-    ) -> tuple[int, dict[str, str], str]:
-        """Query the API endpoint."""
-
-        _LOGGER.debug(
-            "Triggered method async_api_query: %s | %s", endpoint, payload
-        )
-
-        return await self._connection.async_query(
-            endpoint, payload, request_type=get_endpoint_request_type(endpoint)
-        )
-
-    async def async_api_load(
-        self,
-        endpoint: AREndpoint,
-        request: str = "",
-        retry: int = 0,
-    ) -> dict[str, Any]:
-        """Load API endpoint with optional request."""
-
-        _LOGGER.debug("Triggered method async_api_load: %s", endpoint)
-
-        try:
-            status, _, content = await self.async_api_query(endpoint, request)
-        except AsusRouter404Error:
-            _LOGGER.debug("Endpoint %s not found", endpoint)
-            return {}
-        except AsusRouterAccessError as ex:
-            if ex.args[1] == AccessError.AUTHORIZATION:
-                self._async_drop_connection()
-                await asyncio.sleep(1 + retry * 3)
-                return await self.async_api_load(endpoint, request, 1)
-            raise
-
-        _LOGGER.debug("Response %s received from %s", status, endpoint)
-
-        try:
-            result = read(endpoint, content, config=self.config)
-        except json.JSONDecodeError as ex:
-            _LOGGER.debug(
-                "Failed to read content from %s: %s", endpoint, content
-            )
-            if not retry:
-                return await self.async_api_load(endpoint, request, 1)
-            raise AsusRouterDataError(
-                "Something went wrong while reading the content"
-            ) from ex
-
-        if result.get("run_service") in ("restart_httpd", "reboot"):
-            self._async_drop_connection()
-
-        return result
-
-    async def async_api_hook(self, request: str) -> dict[str, Any]:
-        """Perform a hook to the device API."""
-
-        _LOGGER.debug("Triggered method async_api_hook: %s", request)
-
-        return await self.async_api_load(
-            endpoint=AREndpoint.FETCH_DATA,
-            request=f"hook={request}",
-        )
-
-    async def async_api_command(
-        self,
-        commands: dict[str, str] | None,
-        endpoint: AREndpoint = AREndpoint.PUSH_DATA,
-    ) -> dict[str, Any]:
-        """Send a command to the device."""
-
-        _LOGGER.debug(
-            "Triggered method async_api_command: %s | %s", endpoint, commands
-        )
-
-        return await self.async_api_load(
-            endpoint=endpoint,
-            request=str(commands),
-        )
-
-    def _check_state(self, datatype: AsusData | None) -> None:
-        """Make sure the state object is available."""
-
-        _LOGGER.debug("Triggered method _check_state")
-
-        if datatype is None:
-            return
-
-        if datatype not in self._state:
-            self._state[datatype] = AsusDataState(
-                timestamp=datetime.now(UTC) - 2 * self._cache_threshold
-            )
-
-    def _return_state(self, datatype: AsusData, **kwargs: Any) -> Any:
-        """Return a proper state."""
-
-        _LOGGER.debug("Triggered method _return_state")
-
-        return self._state[datatype].data
-
-    async def async_get_data(  # noqa: C901, PLR0912, PLR0915
-        self, datatype: AsusData, force: bool = False, **kwargs: Any
-    ) -> Any:
-        """Get data from the device."""
-
-        # --- V2 COMPATIBILITY ---
-        if isinstance(datatype, ARDataSource | ARDataType):
-            return await self.async_fetch_data(
-                source=datatype, force=force, **kwargs
-            )
-
-        self._check_state(datatype)
-        _state = self._state
-        state_dt = _state[datatype]
-
-        if state_dt.active:
-            try:
-                _LOGGER.debug(
-                    "Already in progress. Waiting for data to be fetched"
-                )
-                await asyncio.wait_for(
-                    state_dt.inactive_event.wait(),
-                    DEFAULT_TIMEOUT,
-                )
-            except TimeoutError:
-                _LOGGER.debug(
-                    "Timeout while waiting for data. Will try fetching again"
-                )
-
-        if state_dt.data and not force:
-            if datetime.now(UTC) - state_dt.timestamp < self._cache_threshold:
-                _LOGGER.debug(
-                    "Using cached data for `%s`: %s",
-                    datatype,
-                    state_dt.data,
-                )
-                return state_dt.data
-            _LOGGER.debug("Data for %s is too old. Fetching", datatype)
-
-        state_dt.start()
-
-        data_finder = _where_to_get_data(datatype)
-
-        if not data_finder:
-            _LOGGER.debug("No data finder for %s", datatype)
-            return {}
-
-        result: dict[AsusData, Any] = {}
-
-        df_request = data_finder.request
-        df_method = data_finder.method
-        description = self.description
-
-        kw_raw = kwargs.get("request", {})
-        kw_extra = (
-            ";".join(f"{k}={v}" for k, v in kw_raw.items())
-            if isinstance(kw_raw, dict) and kw_raw
-            else ""
-        )
-
-        try:
-            for endpoint in data_finder.endpoint:
-                request = "hook=" if endpoint == AREndpoint.FETCH_DATA else ""
-                request += "".join(f"{k}({v});" for k, v in df_request)
-                if df_method and (method_result := df_method(description)):
-                    request += method_result
-                if kw_extra:
-                    request += kw_extra
-
-                data = await self.async_api_load(endpoint, request)
-
-                processed = process(
-                    endpoint,
-                    data,
-                    _state,
-                    description=description,
-                )
-
-                result = merge_dicts(result, processed)
-
-                if result:
-                    break
-
-            for key, value in result.items():
-                state = _state.get(key)
-                if state is None:
-                    state = AsusDataState()
-                    _state[key] = state
-                state.update(value)
-        except (AsusRouterConnectionError, AsusRouterDataError):
-            return self._return_state(datatype, **kwargs)
-
-        _LOGGER.debug(
-            "Returning data for `%s` with object type `%s`",
-            datatype,
-            type(state_dt.data),
-        )
-        return self._return_state(datatype, **kwargs)
-
-    async def async_run_service(
-        self,
-        service: str | None,
-        arguments: dict[str, Any] | None = None,
-        apply: bool = False,
-        expect_modify: bool = True,
-        drop_connection: bool = False,
-    ) -> bool:
-        """Run a service."""
-
-        _LOGGER.debug("Triggered method async_run_service")
-
-        result, self._needed_time, self._last_id = await async_call_service(
-            self.async_api_command,
-            service,
-            arguments,
-            apply,
-            expect_modify,
-        )
-
-        if drop_connection:
-            self._async_drop_connection()
-
-        return result
-
-    async def async_set_state(
-        self,
-        state: AsusState,
-        expect_modify: bool = False,
-        **kwargs: Any,
-    ) -> bool:
-        """Set the state."""
-
-        _LOGGER.debug(
-            "Triggered method async_set_state: `%s` with arguments `%s`."
-            " Expecting modify: `%s`",
-            state,
-            kwargs,
-            expect_modify,
-        )
-
-        result = await set_state(
-            callback=self.async_run_service,
-            state=state,
-            expect_modify=expect_modify,
-            router_state=self._state,
-            identity=self.description,
-            **kwargs,
-        )
-
-        if result is True:
-            datatype = get_datatype(state)
-
-            self._check_state(datatype)
-            _LOGGER.debug(
-                "Saving state `%s` for `%s` s with id=`%s`",
-                state,
-                self._needed_time,
-                self._last_id,
-            )
-            save_state(state, self._state, self._needed_time, self._last_id)
-            self._needed_time = None
-            self._last_id = None
-
-        return result
-
-    # ---------------------------
-    # <-- V1 methods
     # ---------------------------

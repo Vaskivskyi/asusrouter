@@ -1,5 +1,2 @@
 [run]
 source = asusrouter
-omit = 
-    # Constants modules
-    asusrouter/modules/endpoint/devicemap_const.py

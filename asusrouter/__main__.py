@@ -8,8 +8,7 @@ import logging
 
 import aiohttp
 
-from asusrouter import AsusRouter, AsusRouterDump, AsusRouterError
-from asusrouter.modules.data import AsusData
+from asusrouter import AREndpoint, AsusRouter, AsusRouterDump, AsusRouterError
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -46,8 +45,11 @@ async def _connect_and_dump(args: argparse.Namespace) -> None:
 
             _LOGGER.debug("Checking all known data...")
 
-            for datatype in AsusData:
-                await router.async_get_data(datatype)
+            # Read every fetchable endpoint so the dumpback captures its
+            # raw content; push/utility endpoints are skipped
+            for endpoint in AREndpoint:
+                if endpoint.name.startswith("FETCH_"):
+                    await router.async_read(endpoint)
 
             _LOGGER.debug("Finished checking all known data")
 
