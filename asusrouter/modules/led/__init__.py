@@ -8,7 +8,6 @@ from asusrouter.modules.led.action import (
     run_action,
 )
 from asusrouter.modules.led.enums import ARLedField
-from asusrouter.modules.led.legacy import AsusLED, keep_state, set_state
 from asusrouter.modules.led.source import (
     LED_REQUEST,
     ARLedSource,
@@ -23,11 +22,8 @@ __all__ = [
     "ARLedField",
     "ARLedSource",
     "ARLedSourceUniversal",
-    "AsusLED",
     "async_recover_state",
     "get_state",
-    "keep_state",
     "run_action",
-    "set_state",
     "translate_state",
 ]

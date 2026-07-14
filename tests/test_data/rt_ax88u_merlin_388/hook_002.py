@@ -2,7 +2,4 @@
 
 from __future__ import annotations
 
-from asusrouter import AsusData
-from asusrouter.modules.led import AsusLED
-
-expected_result = {AsusData.LED: {"state": AsusLED.OFF}}
+expected_result: dict = {}

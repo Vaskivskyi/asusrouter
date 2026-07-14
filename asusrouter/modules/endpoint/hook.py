@@ -6,7 +6,6 @@ import logging
 from typing import Any
 
 from asusrouter.modules.data import AsusData
-from asusrouter.modules.led import AsusLED
 from asusrouter.modules.parental_control import (
     KEY_PC_BLOCK_ALL,
     KEY_PC_STATE,
@@ -29,13 +28,6 @@ def process(data: dict[str, Any]) -> dict[AsusData, Any]:
     # Otherwise, we can accidentally overwrite the data with empty values.
 
     state: dict[AsusData, Any] = {}
-
-    # LED
-    if "led_val" in data:
-        _led = raw_to_int(data.get("led_val"))
-        state[AsusData.LED] = {
-            "state": AsusLED(_led if _led is not None else -999)
-        }
 
     # Parental control
     if KEY_PC_STATE in data:

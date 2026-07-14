@@ -18,8 +18,6 @@ from asusrouter.modules.parental_control import (
 )
 from asusrouter.tools.converters import get_enum_key_by_value
 
-from .led import AsusLED
-
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -35,7 +33,6 @@ class AsusState(Enum):
     NONE = AsusStateNone
     BLOCK_ALL = AsusBlockAll
     CONNECTION = ARConnectionState
-    LED = AsusLED
     PARENTAL_CONTROL = AsusParentalControl
     PC_RULE = ParentalControlRule
 
@@ -44,7 +41,6 @@ AsusStateMap: dict[AsusState, AsusData | None] = {
     AsusState.NONE: None,
     AsusState.BLOCK_ALL: AsusData.PARENTAL_CONTROL,
     AsusState.CONNECTION: None,
-    AsusState.LED: AsusData.LED,
     AsusState.PARENTAL_CONTROL: AsusData.PARENTAL_CONTROL,
     AsusState.PC_RULE: AsusData.PARENTAL_CONTROL,
 }
