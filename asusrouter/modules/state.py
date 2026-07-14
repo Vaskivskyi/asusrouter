@@ -11,11 +11,6 @@ from typing import Any
 
 from asusrouter.modules.common.connection import ARConnectionState
 from asusrouter.modules.data import AsusData, AsusDataState
-from asusrouter.modules.parental_control import (
-    AsusBlockAll,
-    AsusParentalControl,
-    ParentalControlRule,
-)
 from asusrouter.tools.converters import get_enum_key_by_value
 
 _LOGGER = logging.getLogger(__name__)
@@ -31,18 +26,12 @@ class AsusState(Enum):
     """Asus state."""
 
     NONE = AsusStateNone
-    BLOCK_ALL = AsusBlockAll
     CONNECTION = ARConnectionState
-    PARENTAL_CONTROL = AsusParentalControl
-    PC_RULE = ParentalControlRule
 
 
 AsusStateMap: dict[AsusState, AsusData | None] = {
     AsusState.NONE: None,
-    AsusState.BLOCK_ALL: AsusData.PARENTAL_CONTROL,
     AsusState.CONNECTION: None,
-    AsusState.PARENTAL_CONTROL: AsusData.PARENTAL_CONTROL,
-    AsusState.PC_RULE: AsusData.PARENTAL_CONTROL,
 }
 
 

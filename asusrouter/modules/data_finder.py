@@ -7,7 +7,6 @@ import logging
 
 from asusrouter.modules.data import AsusData
 from asusrouter.modules.endpoint_v2 import AREndpoint
-from asusrouter.modules.parental_control import HOOK_PC
 from asusrouter.tools import converters
 
 _LOGGER = logging.getLogger(__name__)
@@ -47,16 +46,10 @@ ASUSDATA_REQUEST = {
     ],
 }
 
-ASUSDATA_NVRAM = {
-    "parental_control": HOOK_PC,
-}
+ASUSDATA_NVRAM: dict[str, list[str]] = {}
 
 # A map of endptoins to get data from
-ASUSDATA_MAP: dict[AsusData, AsusData | AsusDataFinder] = {
-    AsusData.PARENTAL_CONTROL: AsusDataFinder(
-        AREndpoint.FETCH_DATA, nvram=ASUSDATA_NVRAM["parental_control"]
-    ),
-}
+ASUSDATA_MAP: dict[AsusData, AsusData | AsusDataFinder] = {}
 
 
 def add_conditional_data_rule(data: AsusData, rule: AsusDataFinder) -> None:

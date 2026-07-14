@@ -71,7 +71,6 @@ from asusrouter.modules.state import (
 )
 from asusrouter.modules.support.flag import ARSupportType
 from asusrouter.registry import ARCallableRegistry as ARCallReg
-from asusrouter.tools.converters import get_enum_key_by_value
 from asusrouter.tools.converters_v2.raw import raw_to_str
 from asusrouter.tools.identifiers import Hostname
 from asusrouter.tools.readers import merge_dicts
@@ -1063,24 +1062,16 @@ class AsusRouter:
         if result is True:
             datatype = get_datatype(state)
 
-            if (
-                get_enum_key_by_value(
-                    AsusState, type(state), default=AsusState.NONE
-                )
-                != AsusState.PC_RULE
-            ):
-                self._check_state(datatype)
-                _LOGGER.debug(
-                    "Saving state `%s` for `%s` s with id=`%s`",
-                    state,
-                    self._needed_time,
-                    self._last_id,
-                )
-                save_state(
-                    state, self._state, self._needed_time, self._last_id
-                )
-                self._needed_time = None
-                self._last_id = None
+            self._check_state(datatype)
+            _LOGGER.debug(
+                "Saving state `%s` for `%s` s with id=`%s`",
+                state,
+                self._needed_time,
+                self._last_id,
+            )
+            save_state(state, self._state, self._needed_time, self._last_id)
+            self._needed_time = None
+            self._last_id = None
 
         return result
 
