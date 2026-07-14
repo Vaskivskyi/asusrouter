@@ -19,6 +19,7 @@ from asusrouter.modules.boottime import ARBoottime
 from asusrouter.modules.device import ARDeviceSourceUniversal
 from asusrouter.modules.device.identity import ARDeviceIdentity
 from asusrouter.modules.endpoint_v2 import AREndpoint
+from asusrouter.modules.led import ARLedAction
 from asusrouter.modules.source import (
     ARDataCollection,
     ARDataSource,
@@ -666,6 +667,28 @@ class TestAsyncFetchData:
 
         assert identity.rebooted is False
 
+    @pytest.mark.asyncio
+    async def test_handle_reboot_recovers_led(
+        self,
+        router: AsusRouter,
+        make_state: MakeStateFactory,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """The reboot handler reasserts the last commanded LED state."""
+
+        self._seed_identity(router, make_state, rebooted=True)
+        router._led_state = False
+        recover = AsyncMock()
+        monkeypatch.setattr(
+            "asusrouter.asusrouter.async_recover_state", recover
+        )
+
+        await router._async_handle_reboot()
+
+        recover.assert_awaited_once_with(
+            router.async_run_action, False, identity=router.description
+        )
+
 
 class TestAsyncRunAction:
     """Tests for AsusRouter.async_run_action."""
@@ -710,6 +733,32 @@ class TestAsyncRunAction:
         assert callback.keywords == {"force": True}
         # Action results are never stored
         assert router._data_states == {}
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("raw", "state", "expected"),
+        [("ok", True, True), ("ok", False, False), ("", True, None)],
+    )
+    async def test_records_led_state(
+        self,
+        router: AsusRouter,
+        monkeypatch: pytest.MonkeyPatch,
+        raw: str,
+        state: bool,
+        expected: bool | None,
+    ) -> None:
+        """A successful LED action records the state; a failed one does not."""
+
+        run = AsyncMock(return_value=raw)
+
+        def get_callable(action: Any, name: str) -> Any:
+            return run if name == AR_CALL_RUN_ACTION else None
+
+        monkeypatch.setattr(ARCallReg, "get_callable", get_callable)
+
+        await router.async_run_action(ARLedAction(state=state))
+
+        assert router._led_state is expected
 
     @pytest.mark.asyncio
     async def test_translate_applied(

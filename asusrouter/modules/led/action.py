@@ -4,10 +4,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import logging
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from asusrouter.modules.action import ARAction
 from asusrouter.modules.common.command import ARService
+from asusrouter.modules.firmware import AR_FW_MERLIN_LIKE
 from asusrouter.modules.led.enums import ARLedField
 from asusrouter.modules.led.source import LED_REQUEST, ARLedSourceUniversal
 from asusrouter.modules.nvram import ARNvramType, async_expire_values
@@ -18,6 +19,9 @@ from asusrouter.modules.service.action import (
 from asusrouter.registry import ARCallableRegistry as ARCallReg
 from asusrouter.tools.poll import async_poll_until
 from asusrouter.tools.types import ARCallbackType
+
+if TYPE_CHECKING:
+    from asusrouter.modules.device.identity import ARDeviceIdentity
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -93,10 +97,37 @@ async def run_action(
     return result
 
 
+async def async_recover_state(
+    run_action_callback: ARCallbackType,
+    desired: bool | None,
+    *,
+    identity: ARDeviceIdentity | None = None,
+) -> bool:
+    """Reassert a user-set LED off-state after a reboot.
+
+    Merlin-like firmware turns the LED back on at boot, so an off-state is
+    lost on reboot. Only an off-state needs recovery, and only there: the
+    fix is a quick on/off toggle, which is what re-applies the off-state.
+    """
+
+    if desired is not False:
+        return False
+
+    firmware_type = identity.firmware.firmware_type if identity else None
+    if firmware_type not in AR_FW_MERLIN_LIKE:
+        return False
+
+    _LOGGER.debug("Recovering the LED off-state after a reboot")
+    await run_action_callback(ARLedAction(state=True))
+    await run_action_callback(ARLedAction(state=False))
+    return True
+
+
 ARCallReg.register_action(ARLedAction, run_action=run_action)
 
 
 __all__ = [
     "ARLedAction",
+    "async_recover_state",
     "run_action",
 ]

@@ -4,16 +4,30 @@ from __future__ import annotations
 
 import json
 from typing import Any
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
+from asusrouter.modules.device.identity import ARDeviceIdentity
 from asusrouter.modules.endpoint_v2 import AREndpoint
+from asusrouter.modules.firmware import ARFirmwareType
 from asusrouter.modules.led import action as action_module
-from asusrouter.modules.led.action import ARLedAction, run_action
+from asusrouter.modules.led.action import (
+    ARLedAction,
+    async_recover_state,
+    run_action,
+)
 from asusrouter.modules.led.enums import ARLedField
 from asusrouter.modules.led.source import ARLedSourceUniversal
 from asusrouter.modules.nvram import ARNvramType
+
+
+def _identity(firmware_type: ARFirmwareType) -> MagicMock:
+    """Build an identity mock reporting the given firmware type."""
+
+    identity = MagicMock(spec=ARDeviceIdentity)
+    identity.firmware.firmware_type = firmware_type
+    return identity
 
 
 @pytest.fixture(autouse=True)
@@ -140,6 +154,57 @@ class TestRunAction:
         assert result.success is False
         get_data.assert_not_awaited()
         expire.assert_not_awaited()
+
+
+class TestRecoverState:
+    """Post-reboot LED recovery."""
+
+    async def test_merlin_off_toggles(self) -> None:
+        """On Merlin with a desired off-state, recovery toggles on then off."""
+
+        run_action = AsyncMock()
+        identity = _identity(ARFirmwareType.MERLIN)
+
+        recovered = await async_recover_state(
+            run_action, False, identity=identity
+        )
+
+        assert recovered is True
+        states = [call.args[0].state for call in run_action.await_args_list]
+        assert states == [True, False]
+
+    @pytest.mark.parametrize(
+        ("desired", "firmware"),
+        [
+            (False, ARFirmwareType.STOCK),  # not Merlin: boot keeps the state
+            (True, ARFirmwareType.MERLIN),  # on-state survives a reboot
+            (None, ARFirmwareType.MERLIN),  # never commanded
+        ],
+    )
+    async def test_no_recovery(
+        self, desired: bool | None, firmware: ARFirmwareType
+    ) -> None:
+        """Recovery is a no-op unless a Merlin off-state must be reasserted."""
+
+        run_action = AsyncMock()
+        identity = _identity(firmware)
+
+        recovered = await async_recover_state(
+            run_action, desired, identity=identity
+        )
+
+        assert recovered is False
+        run_action.assert_not_awaited()
+
+    async def test_no_identity(self) -> None:
+        """Without an identity the firmware cannot be checked, so no-op."""
+
+        run_action = AsyncMock()
+
+        recovered = await async_recover_state(run_action, False, identity=None)
+
+        assert recovered is False
+        run_action.assert_not_awaited()
 
 
 class TestEquality:

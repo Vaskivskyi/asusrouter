@@ -53,6 +53,7 @@ from asusrouter.modules.endpoint_v2 import (
     get_endpoint_reader,
     get_endpoint_request_type,
 )
+from asusrouter.modules.led import ARLedAction, async_recover_state
 from asusrouter.modules.service import async_call_service
 from asusrouter.modules.source import (
     ARDataCollection,
@@ -163,6 +164,8 @@ class AsusRouter:
 
         # In-flight reboot recovery; holds all requests until it finishes
         self._reboot_recovery: asyncio.Task[None] | None = None
+        # Last commanded LED state, reasserted after a reboot (for Merlin)
+        self._led_state: bool | None = None
 
         # Time for change to take effect before available to fetch
         self._needed_time: int | None = None
@@ -724,6 +727,10 @@ class AsusRouter:
             self.async_read, action, identity=self.description, **kwargs
         )
 
+        # Remember the last commanded LED state
+        if isinstance(action, ARLedAction) and raw:
+            self._led_state = action.state
+
         # An action may have triggered a reboot
         if self.description.rebooted:
             self._async_drop_connection()
@@ -753,9 +760,12 @@ class AsusRouter:
 
         _LOGGER.debug("Triggered method _async_handle_reboot")
 
-        # TODO: Add LED recovery for v2
-
         self.description.clear_rebooted()
+
+        # Recover LED off for Merlin
+        await async_recover_state(
+            self.async_run_action, self._led_state, identity=self.description
+        )
 
     async def _async_recover_after_reboot(self) -> None:
         """Hold requests while the device reboots, until it is back online."""
