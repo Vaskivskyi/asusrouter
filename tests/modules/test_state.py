@@ -14,9 +14,7 @@ from asusrouter.modules.state import (
     _get_module,
     _get_module_name,
     _has_method,
-    add_conditional_state,
     get_datatype,
-    keep_state,
     save_state,
     set_state,
 )
@@ -45,45 +43,6 @@ class MockModule:
         """Set the state."""
 
         return True
-
-    async def keep_state(self, *_: Any, **__: Any) -> None:
-        """Keep the state."""
-
-        return
-
-
-@pytest.mark.parametrize(
-    ("state", "data", "success"),
-    [
-        # Existing values of AsusState
-        (AsusState.CONNECTION, AsusData.SYSTEM, True),
-        # Partial data
-        (AsusState.CONNECTION, None, False),
-        (None, AsusData.SYSTEM, False),
-        # None
-        (None, None, False),
-        # Wrong types
-        (1, AsusData.SYSTEM, False),
-        (AsusState.CONNECTION, 1, False),
-    ],
-)
-def test_add_conditional_state(
-    state: AsusState, data: AsusData | None, success: bool
-) -> None:
-    """Test add_conditional_state."""
-
-    # Use a fresh map so each case is independent of the others
-    local_map: dict = {}
-
-    # Try to add the state
-    with mock.patch("asusrouter.modules.state.AsusStateMap", local_map):
-        add_conditional_state(state, data)
-
-    # Check the result
-    if success:
-        assert local_map[state] == data
-    else:
-        assert state not in local_map
 
 
 @pytest.mark.parametrize(
@@ -281,32 +240,3 @@ def test_save_state(state: AsusState, datatype: AsusData | None) -> None:
     if datatype is not None:
         library[datatype].update_state.assert_called_once_with(state, None)
         library[datatype].offset_time.assert_called_once_with(None)
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize(
-    ("states", "has_method", "expected"),
-    [
-        ([AsusState.CONNECTION], True, None),
-        (AsusState.CONNECTION, True, None),  # Single value, not a list
-        ([AsusState.CONNECTION], False, None),
-        (None, False, None),
-    ],
-)
-async def test_keep_state(
-    states: list[AsusState] | None, has_method: bool, expected: bool | None
-) -> None:
-    """Test keep_state."""
-
-    # Mock the _get_module function and _has_method function
-    with (
-        mock.patch(
-            "asusrouter.modules.state._get_module", return_value=MockModule()
-        ),
-        mock.patch(
-            "asusrouter.modules.state._has_method", return_value=has_method
-        ),
-    ):
-        result = await keep_state(mock.AsyncMock(), states)
-
-    assert result == expected

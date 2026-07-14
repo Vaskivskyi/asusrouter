@@ -3,13 +3,10 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-import logging
 
 from asusrouter.modules.data import AsusData
 from asusrouter.modules.endpoint_v2 import AREndpoint
 from asusrouter.tools import converters
-
-_LOGGER = logging.getLogger(__name__)
 
 
 class AsusDataFinder:
@@ -39,35 +36,5 @@ class AsusDataFinder:
         self.method = method
 
 
-# A constant list of requests for fetching data
-ASUSDATA_REQUEST = {
-    "devices": [
-        ("get_clientlist", ""),
-    ],
-}
-
-ASUSDATA_NVRAM: dict[str, list[str]] = {}
-
-# A map of endptoins to get data from
+# A map of endpoints to get data from
 ASUSDATA_MAP: dict[AsusData, AsusData | AsusDataFinder] = {}
-
-
-def add_conditional_data_rule(data: AsusData, rule: AsusDataFinder) -> None:
-    """Add or change rule for ASUSDATA_MAP."""
-
-    ASUSDATA_MAP[data] = rule
-    _LOGGER.debug("Added conditional data rule: %s -> %s", data, rule)
-
-
-def add_conditional_data_alias(data: AsusData, origin: AsusData) -> None:
-    """Add or change rule for ASUSDATA_MAP."""
-
-    ASUSDATA_MAP[data] = origin
-    _LOGGER.debug("Added data alias: %s -> %s", origin, data)
-
-
-def remove_data_rule(data: AsusData) -> None:
-    """Remove rule for ASUSDATA_MAP."""
-
-    ASUSDATA_MAP.pop(data, None)
-    _LOGGER.debug("Removed data rule: %s", data)

@@ -35,17 +35,6 @@ AsusStateMap: dict[AsusState, AsusData | None] = {
 }
 
 
-def add_conditional_state(state: AsusState, data: AsusData) -> None:
-    """Add or change AsusStateMap."""
-
-    if not isinstance(state, AsusState) or not isinstance(data, AsusData):
-        _LOGGER.debug("Invalid state or data type: %s -> %s", state, data)
-        return
-
-    AsusStateMap[state] = data
-    _LOGGER.debug("Added conditional state rule: %s -> %s", state, data)
-
-
 def get_datatype(state: Any | None) -> AsusData | None:
     """Get the datatype."""
 
@@ -146,29 +135,3 @@ def save_state(
     # Save the state
     library[datatype].update_state(state, last_id)
     library[datatype].offset_time(needed_time)
-
-
-async def keep_state(
-    callback: Callable[..., Awaitable[Any]],
-    states: AsusState | list[AsusState] | None,
-    **kwargs: Any,
-) -> None:
-    """Keep the state."""
-
-    if states is None:
-        return
-
-    # Make sure the state is a list
-    states = [states] if not isinstance(states, list) else states
-
-    # Process each state
-    awaitables = [
-        submodule.keep_state(callback, state, **kwargs)
-        for state in states
-        if (submodule := _get_module(state))
-        and _has_method(submodule, "keep_state")
-    ]
-
-    # Execute all awaitables
-    for awaitable in awaitables:
-        await awaitable
