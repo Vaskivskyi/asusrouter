@@ -48,15 +48,11 @@ ASUSDATA_REQUEST = {
 }
 
 ASUSDATA_NVRAM = {
-    "light": ["led_val"],
     "parental_control": HOOK_PC,
 }
 
 # A map of endptoins to get data from
 ASUSDATA_MAP: dict[AsusData, AsusData | AsusDataFinder] = {
-    AsusData.LED: AsusDataFinder(
-        AREndpoint.FETCH_DATA, nvram=ASUSDATA_NVRAM["light"]
-    ),
     AsusData.PARENTAL_CONTROL: AsusDataFinder(
         AREndpoint.FETCH_DATA, nvram=ASUSDATA_NVRAM["parental_control"]
     ),

@@ -8,7 +8,7 @@ from unittest import mock
 import pytest
 
 from asusrouter import AsusData
-from asusrouter.modules.led import AsusLED
+from asusrouter.modules.parental_control import AsusParentalControl
 from asusrouter.modules.state import (
     AsusState,
     _get_module,
@@ -22,7 +22,6 @@ from asusrouter.modules.state import (
 )
 
 mock_state_map = {
-    AsusState.LED: AsusData.LED,
     AsusState.PARENTAL_CONTROL: AsusData.PARENTAL_CONTROL,
     AsusState.NONE: None,
 }
@@ -57,15 +56,14 @@ class MockModule:
     ("state", "data", "success"),
     [
         # Existing values of AsusState
-        (AsusState.LED, AsusData.LED, True),
         (AsusState.PARENTAL_CONTROL, AsusData.PARENTAL_CONTROL, True),
         # Partial data
         (AsusState.CONNECTION, None, False),
-        (None, AsusData.LED, False),
+        (None, AsusData.PARENTAL_CONTROL, False),
         # None
         (None, None, False),
         # Wrong types
-        (1, AsusData.LED, False),
+        (1, AsusData.PARENTAL_CONTROL, False),
         (AsusState.CONNECTION, 1, False),
     ],
 )
@@ -89,7 +87,7 @@ def test_add_conditional_state(
     ("state", "expected"),
     [
         # Existing values of AsusState
-        (AsusLED.ON, AsusData.LED),
+        (AsusParentalControl.ON, AsusData.PARENTAL_CONTROL),
         # None
         (None, None),
         # Wrong types
@@ -114,7 +112,6 @@ def test_get_datatype(
     ("state", "expected"),
     [
         # Existing values of AsusState
-        (AsusState.LED, AsusData.LED.value),
         (AsusState.PARENTAL_CONTROL, AsusData.PARENTAL_CONTROL.value),
         # None
         (None, None),
@@ -154,14 +151,6 @@ def test_get_module_name(
     [
         # Existing values of AsusState
         (
-            AsusState.LED,
-            "led",
-            "led",
-            mock.MagicMock(),
-            None,
-            "mock_module",
-        ),
-        (
             AsusState.PARENTAL_CONTROL,
             "parental_control",
             "parental_control",
@@ -171,9 +160,9 @@ def test_get_module_name(
         ),
         # ModuleNotFoundError
         (
-            AsusState.LED,
-            "led",
-            "led",
+            AsusState.PARENTAL_CONTROL,
+            "parental_control",
+            "parental_control",
             None,
             ModuleNotFoundError,
             None,
@@ -260,7 +249,7 @@ async def test_set_state(
             "asusrouter.modules.state._has_method", return_value=has_method
         ),
     ):
-        result = await set_state(mock.AsyncMock(), AsusState.LED)
+        result = await set_state(mock.AsyncMock(), AsusState.PARENTAL_CONTROL)
 
     assert result == expected
 
@@ -295,9 +284,9 @@ def test_save_state(state: AsusState, datatype: AsusData | None) -> None:
 @pytest.mark.parametrize(
     ("states", "has_method", "expected"),
     [
-        ([AsusState.LED], True, None),
-        (AsusState.LED, True, None),  # Single value, not a list
-        ([AsusState.LED], False, None),
+        ([AsusState.PARENTAL_CONTROL], True, None),
+        (AsusState.PARENTAL_CONTROL, True, None),  # Single value, not a list
+        ([AsusState.PARENTAL_CONTROL], False, None),
         (None, False, None),
     ],
 )
