@@ -63,7 +63,7 @@ async def test_set_state(
     """Test set_state."""
 
     with mock.patch(
-        "asusrouter.modules.parental_control.set_rule"
+        "asusrouter.modules.parental_control.legacy.set_rule"
     ) as mock_set_rule:
         # Call the set_state function
         await set_state(

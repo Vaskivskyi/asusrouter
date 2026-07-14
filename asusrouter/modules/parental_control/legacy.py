@@ -1,4 +1,4 @@
-"""Parental control module."""
+"""Legacy parental control module."""
 
 from __future__ import annotations
 
