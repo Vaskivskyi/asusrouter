@@ -120,6 +120,9 @@ def server_enabled(data: dict[str, Any]) -> bool:
 # A connected-client status line: `remote_ip:port vpn_ip name`
 _STATUS_FIELDS = 3
 
+# Wrapper tag around the plaintext status body
+_VPNSERVER_RE = re.compile(r"<vpnserver>(.*?)</vpnserver>", re.DOTALL)
+
 
 def read_client_status(content: str | None) -> dict[str, Any]:
     """Parse the connected-client status payload of the OpenVPN server.
@@ -132,7 +135,7 @@ def read_client_status(content: str | None) -> dict[str, Any]:
     if not content:
         return {}
 
-    match = re.search(r"<vpnserver>(.*?)</vpnserver>", content, re.DOTALL)
+    match = _VPNSERVER_RE.search(content)
     body = match[1] if match else content
 
     connected: list[dict[str, str]] = []

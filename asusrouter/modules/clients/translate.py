@@ -88,7 +88,7 @@ def _since_delta(value: Any) -> datetime | None:
     if not text:
         return None
 
-    now = datetime.now(UTC).replace(microsecond=0, tzinfo=UTC)
+    now = datetime.now(UTC).replace(microsecond=0)
     return now - _uptime_timedelta(text)
 
 

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterable
 import logging
 from typing import Any
 
@@ -179,40 +178,21 @@ def _is_metrics(value: Any) -> bool:
     )
 
 
-def _flatten_dict(
-    d: Any,
-    parent_key: str = "",
-    sep: str = "_",
-    exclude: str | Iterable[str] | None = None,
-) -> dict[str, Any] | None:
-    """Flatten a nested dictionary."""
-
-    if d is None:
-        return None
+def _flatten_dict(d: Any, parent_key: str = "") -> dict[str, Any]:
+    """Flatten a nested dict, joining nested keys with `_`."""
 
     if not isinstance(d, dict):
         return {}
 
-    items = []
-    exclude = (exclude,) if isinstance(exclude, str) else tuple(exclude or [])
-    for k, v in d.items():
-        new_key = (
-            f"{parent_key}{sep}{k}" if parent_key not in ("", None) else k
-        )
-        # We have a dict - check it
-        if isinstance(v, dict):
-            # This key should be skipped
-            if isinstance(new_key, str) and new_key.endswith(exclude):
-                items.append((new_key, v))
-                continue
-            # Go recursive
-            flattened = _flatten_dict(v, new_key, sep, exclude)
-            if flattened is not None:
-                items.extend(flattened.items())
-            continue
-        # Not a dict - add it
-        items.append((new_key, v))
-    return dict(items)
+    flat: dict[str, Any] = {}
+    for key, value in d.items():
+        new_key = f"{parent_key}_{key}" if parent_key else str(key)
+        if isinstance(value, dict):
+            flat.update(_flatten_dict(value, new_key))
+        else:
+            flat[new_key] = value
+
+    return flat
 
 
 def _to_metrics(raw: Any) -> dict[ARMetricType, Any]:
