@@ -14,8 +14,11 @@ from asusrouter.modules.endpoint.hooks import ARHook, hook_request
 from asusrouter.modules.nvram.enums import ARNvramIndexType, ARNvramType
 from asusrouter.modules.source import ARDataSource
 from asusrouter.registry import ARCallableRegistry as ARCallReg
-from asusrouter.tools.converters import safe_list_from_string
-from asusrouter.tools.converters_v2.raw import raw_to_bool, raw_to_int
+from asusrouter.tools.converters_v2.raw import (
+    raw_to_bool,
+    raw_to_int,
+    raw_to_str_list,
+)
 from asusrouter.tools.identifiers import MacAddress
 from asusrouter.tools.identifiers.ip import IpAddress, read_ip_list
 from asusrouter.tools.types import ARCallableType, ARCallbackType
@@ -73,8 +76,8 @@ _TRANSLATION: dict[ARNvramType | ARNvramIndexType, ARCallableType] = {
     ARNvramType.MAC_LAN: read_mac,
     ARNvramType.MAC_WAN: read_mac,
     # WAN globals
-    ARNvramType.DUAL_WAN_CAPABILITY: safe_list_from_string,
-    ARNvramType.DUAL_WAN_CONFIG: safe_list_from_string,
+    ARNvramType.DUAL_WAN_CAPABILITY: raw_to_str_list,
+    ARNvramType.DUAL_WAN_CONFIG: raw_to_str_list,
     ARNvramType.DUAL_WAN_EXTWAN: raw_to_bool,
     ARNvramType.DUAL_WAN_LANPORT: raw_to_int,
     ARNvramType.DUAL_WAN_ROUTING: raw_to_bool,
@@ -84,7 +87,7 @@ _TRANSLATION: dict[ARNvramType | ARNvramIndexType, ARCallableType] = {
     ARNvramType.LINK_WAN0: raw_to_bool,
     ARNvramType.LINK_WAN1: raw_to_bool,
     ARNvramType.WAN_AGGREGATION: raw_to_bool,
-    ARNvramType.WAN_AGGREGATION_PORTS: safe_list_from_string,
+    ARNvramType.WAN_AGGREGATION_PORTS: raw_to_str_list,
     ARNvramType.WAN_AUTODETECT: raw_to_bool,
     ARNvramType.WAN_S46_AFTR: IpAddress.from_value_safe,
     ARNvramType.WAN_S46_B4ADDR: IpAddress.from_value_safe,

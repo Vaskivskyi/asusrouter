@@ -11,8 +11,7 @@ from asusrouter.modules.endpoint import AREndpoint
 from asusrouter.modules.endpoint.hooks import ARHook, hook_request
 from asusrouter.modules.source import ARDataSource
 from asusrouter.registry import ARCallableRegistry as ARCallReg
-from asusrouter.tools.converters import safe_datetime
-from asusrouter.tools.converters_v2.raw import raw_to_int
+from asusrouter.tools.converters_v2.raw import raw_to_datetime, raw_to_int
 from asusrouter.tools.types import ARCallbackType
 
 # Boot times within this many seconds are the same boot (1s counter
@@ -74,7 +73,7 @@ def read_uptime(uptime: str) -> ARBoottime | None:
     if match is None:
         return None
     seconds = raw_to_int(match.group())
-    when = safe_datetime(parts[0])
+    when = raw_to_datetime(parts[0])
     if when is None or seconds is None:
         return None
     return _as_boottime(when - timedelta(seconds=seconds))

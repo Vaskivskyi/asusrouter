@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from datetime import datetime
 from typing import Any
 
 _BOM = "﻿"  # This is a literal BOM character. Don't edit it!
@@ -94,3 +95,30 @@ def raw_to_int(value: Any, base: int = 10) -> int | None:
             except (ValueError, OverflowError):
                 pass
     return None
+
+
+def raw_to_datetime(value: Any) -> datetime | None:
+    """Convert raw value to datetime or None."""
+
+    cleaned = raw_to_str(value)
+    if cleaned is None:
+        return None
+
+    try:
+        return datetime.fromisoformat(cleaned)
+    except ValueError:
+        pass
+    try:
+        return datetime.strptime(cleaned, "%a, %d %b %Y %H:%M:%S %z")
+    except ValueError:
+        return None
+
+
+def raw_to_str_list(value: Any, delimiter: str = " ") -> list[str]:
+    """Split a raw value into a list of strings by delimiter."""
+
+    cleaned = raw_to_str(value)
+    if cleaned is None:
+        return []
+
+    return cleaned.split(delimiter)

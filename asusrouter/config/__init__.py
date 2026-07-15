@@ -8,8 +8,11 @@ from enum import StrEnum
 import threading
 from typing import Any
 
-from asusrouter.tools.converters import safe_datetime
-from asusrouter.tools.converters_v2.raw import raw_to_bool, raw_to_int
+from asusrouter.tools.converters_v2.raw import (
+    raw_to_bool,
+    raw_to_datetime,
+    raw_to_int,
+)
 from asusrouter.tools.security import ARSecurityLevel
 
 # Sentinel for distinguishing "missing" from a stored None value.
@@ -71,7 +74,7 @@ def safe_datetime_config(value: Any) -> datetime | None:
     if isinstance(value, datetime):
         return value
     if isinstance(value, str):
-        return safe_datetime(value)
+        return raw_to_datetime(value)
     return None
 
 

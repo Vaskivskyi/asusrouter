@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from typing import Any
 
 import pytest
@@ -11,9 +12,11 @@ from asusrouter.tools.converters_v2.raw import (
     _STR_TO_BOOL,
     raw_convert,
     raw_to_bool,
+    raw_to_datetime,
     raw_to_float,
     raw_to_int,
     raw_to_str,
+    raw_to_str_list,
 )
 
 
@@ -222,3 +225,51 @@ def test_raw_to_str(value: Any, expected: str | None) -> None:
     """Test raw_to_str."""
 
     assert raw_to_str(value) == expected
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        ("2021-01-01   ", datetime(2021, 1, 1)),  # ISO date, trailing space
+        ("2021-01-01 00:00:00", datetime(2021, 1, 1)),  # ISO with time
+        # RFC-1123 style (fromisoformat fails, strptime path)
+        (
+            "Mon, 01 Jan 2021 00:00:00 +0000",
+            datetime(2021, 1, 1, tzinfo=UTC),
+        ),
+        # No value -> None
+        (None, None),
+        ("", None),
+        ("  ", None),
+        # Non-datetime content -> None
+        ("unknown", None),
+        ("test", None),
+        ("  test  ", None),
+    ],
+)
+def test_raw_to_datetime(value: Any, expected: datetime | None) -> None:
+    """Test raw_to_datetime."""
+
+    assert raw_to_datetime(value) == expected
+
+
+@pytest.mark.parametrize(
+    ("value", "delimiter", "expected"),
+    [
+        (None, " ", []),  # No value
+        (1, " ", []),  # Non-string
+        ({1: 2}, " ", []),
+        ("", " ", []),  # Empty string cleaned to None
+        ("   ", " ", []),
+        ("test", " ", ["test"]),  # Single token
+        ("test1 test2", " ", ["test1", "test2"]),  # Default delimiter
+        ("a&#60b&#60c", "&#60", ["a", "b", "c"]),  # Custom delimiter
+        ("test1 test2", ";", ["test1 test2"]),  # Delimiter not present
+    ],
+)
+def test_raw_to_str_list(
+    value: Any, delimiter: str, expected: list[str]
+) -> None:
+    """Test raw_to_str_list."""
+
+    assert raw_to_str_list(value, delimiter) == expected

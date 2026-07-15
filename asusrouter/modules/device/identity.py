@@ -17,8 +17,7 @@ from asusrouter.modules.nvram import (
 from asusrouter.modules.support import ARSupportSourceUniversal
 from asusrouter.modules.support.flag import ARSupportType
 from asusrouter.modules.wifi import ARWiFiBand
-from asusrouter.tools.converters import safe_list_from_string
-from asusrouter.tools.converters_v2.raw import raw_to_str
+from asusrouter.tools.converters_v2.raw import raw_to_str, raw_to_str_list
 from asusrouter.tools.identifiers import MacAddress
 
 IdentityData = Mapping[Any, Any]
@@ -51,9 +50,7 @@ def _wifi_from_bands(
 ) -> dict[ARWiFiBand, int]:
     """Map bands via `WIRELESS_BANDS` nvram and the `WIFI_UNITS` support."""
 
-    bands = safe_list_from_string(
-        data.get(ARNvramType.WIRELESS_BANDS, ""), "&#60"
-    )
+    bands = raw_to_str_list(data.get(ARNvramType.WIRELESS_BANDS, ""), "&#60")
     bands_ids = support.get(ARSupportType.WIFI_UNITS, ())
 
     result: dict[ARWiFiBand, int] = {}
