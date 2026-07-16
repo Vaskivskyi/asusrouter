@@ -1,4 +1,4 @@
-"""Tests for the unit tools."""
+"""Tests for the base unit converter."""
 
 from __future__ import annotations
 
@@ -9,10 +9,8 @@ from unittest.mock import patch
 import pytest
 
 from asusrouter.error import AsusRouterError
-from asusrouter.tools.units import (
-    TimeUnitConverter,
+from asusrouter.tools.units.base import (
     UnitConverterBase,
-    UnitOfTime,
     is_non_negative,
     read_as_base,
 )
@@ -52,7 +50,7 @@ class TestUnitConverter(UnitConverterBase):
         unit2 = MockUnits.MEGABASE
 
         with patch(
-            "asusrouter.tools.units.UnitConverterBase.get_unit_ratio",
+            "asusrouter.tools.units.base.UnitConverterBase.get_unit_ratio",
             return_value=0.5,
         ) as mock_get_unit_ratio:
             result = self.convert(2.0, unit1, unit2)
@@ -156,38 +154,6 @@ class TestUnitConverter(UnitConverterBase):
         r1 = self.get_unit_ratio(MockUnits.BASE, MockUnits.MEGABASE)
         r2 = self.get_unit_ratio(MockUnits.BASE, MockUnits.MEGABASE)
         assert r1 == r2
-
-
-@pytest.mark.parametrize(
-    ("value", "from_unit", "to_unit", "expected"),
-    [
-        (1000.0, UnitOfTime.MILLISECOND, UnitOfTime.SECOND, 1.0),
-        (1e6, UnitOfTime.MICROSECOND, UnitOfTime.SECOND, 1.0),
-        (1e9, UnitOfTime.NANOSECOND, UnitOfTime.SECOND, 1.0),
-        (2.0, UnitOfTime.MINUTE, UnitOfTime.SECOND, 120.0),
-        (1.0, UnitOfTime.HOUR, UnitOfTime.MINUTE, 60.0),
-        (1.0, UnitOfTime.DAY, UnitOfTime.HOUR, 24.0),
-        (1.0, UnitOfTime.WEEK, UnitOfTime.DAY, 7.0),
-    ],
-)
-def test_time_unit_converter(
-    value: float,
-    from_unit: UnitOfTime,
-    to_unit: UnitOfTime,
-    expected: float,
-) -> None:
-    """Time conversions produce the expected value."""
-
-    TimeUnitConverter.get_unit_ratio.cache_clear()
-    result = TimeUnitConverter.convert(value, from_unit, to_unit)
-    assert result == pytest.approx(expected)
-
-
-def test_time_unit_convert_to_base() -> None:
-    """convert_to_base returns the value in seconds."""
-
-    result = TimeUnitConverter.convert_to_base(500.0, UnitOfTime.MILLISECOND)
-    assert result == pytest.approx(0.5)
 
 
 @pytest.mark.parametrize(
