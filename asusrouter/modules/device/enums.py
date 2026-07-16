@@ -8,9 +8,8 @@ from asusrouter.const import UNKNOWN_MEMBER
 from asusrouter.tools.enum import FromIntMixin
 
 
-# TODO: Redo this legacy class
-class DeviceOperationMode(FromIntMixin, IntEnum):
-    """Types of device operation modes."""
+class AROperationMode(FromIntMixin, IntEnum):
+    """Device operation mode."""
 
     UNKNOWN = UNKNOWN_MEMBER
 
@@ -22,5 +21,5 @@ class DeviceOperationMode(FromIntMixin, IntEnum):
 
 
 __all__ = [
-    "DeviceOperationMode",
+    "AROperationMode",
 ]

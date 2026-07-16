@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from asusrouter.modules.device.enums import DeviceOperationMode
+from asusrouter.modules.device.enums import AROperationMode
 from asusrouter.modules.device.source import (
     DEVICE_REQUEST,
     ARDeviceSource,
@@ -12,10 +12,10 @@ from asusrouter.modules.device.source import (
 )
 
 __all__ = [
+    "DEVICE_REQUEST",
     "ARDeviceSource",
     "ARDeviceSourceUniversal",
-    "DEVICE_REQUEST",
-    "DeviceOperationMode",
+    "AROperationMode",
     "get_state",
     "translate_state",
 ]
