@@ -15,6 +15,8 @@ from asusrouter.modules.nvram import (
     ARNvramIndexType,
     ARNvramType,
     async_expire_values,
+    async_fetch_values,
+    async_get_value,
     get_state,
     translate_state,
 )
@@ -284,6 +286,50 @@ class TestAsyncExpireValues:
         """Without a callback nothing happens."""
 
         await async_expire_values(None, ARNvramType.MAC)
+
+
+class TestAsyncFetchValues:
+    """Tests for async_fetch_values."""
+
+    @pytest.mark.asyncio
+    async def test_no_callback(self) -> None:
+        """Without a callback an empty dict is returned."""
+
+        assert await async_fetch_values(None, ARNvramType.MAC) == {}
+
+    @pytest.mark.asyncio
+    async def test_returns_dict(self) -> None:
+        """A dict result is passed through."""
+
+        callback = AsyncMock(return_value={ARNvramType.MAC: "x"})
+        result = await async_fetch_values(callback, ARNvramType.MAC)
+        assert result == {ARNvramType.MAC: "x"}
+
+    @pytest.mark.parametrize("response", [None, "string", 42, []])
+    @pytest.mark.asyncio
+    async def test_non_dict_returns_empty(self, response: Any) -> None:
+        """A non-dict result yields an empty dict."""
+
+        callback = AsyncMock(return_value=response)
+        assert await async_fetch_values(callback, ARNvramType.MAC) == {}
+
+
+class TestAsyncGetValue:
+    """Tests for async_get_value."""
+
+    @pytest.mark.asyncio
+    async def test_returns_item_value(self) -> None:
+        """The value for the requested item is returned."""
+
+        callback = AsyncMock(return_value={ARNvramType.MAC: "aa:bb"})
+        assert await async_get_value(callback, ARNvramType.MAC) == "aa:bb"
+
+    @pytest.mark.asyncio
+    async def test_missing_item_returns_none(self) -> None:
+        """A missing item yields None."""
+
+        callback = AsyncMock(return_value={})
+        assert await async_get_value(callback, ARNvramType.MAC) is None
 
 
 @pytest.mark.parametrize("cls", [ARNvramType, ARNvramIndexSource])
