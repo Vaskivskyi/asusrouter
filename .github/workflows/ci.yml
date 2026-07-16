@@ -16,6 +16,8 @@ on:
       - "tests/**/*.py"
       - "pyproject.toml"
       - "uv.lock"
+      - ".github/workflows/**"
+      - ".github/dependabot.yml"
   schedule:
     - cron: "0 0 * * *"
 
