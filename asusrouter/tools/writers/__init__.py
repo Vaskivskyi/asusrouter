@@ -1,8 +1,4 @@
-"""Writers module.
-
-This module contains the writers for AsusRouter,
-which prepare data to be sent to the router.
-"""
+"""Writers tools for AsusRouter."""
 
 from __future__ import annotations
 
@@ -19,6 +15,16 @@ REQUEST_DELIMITER: Final[dict[RequestType, str]] = {
 }
 
 
+def _value_to_str(value: Any) -> str:
+    """Render a request value as a device-friendly string."""
+
+    if isinstance(value, MacAddress):
+        return value.as_asus()
+    if isinstance(value, bool):
+        return "1" if value else "0"
+    return "" if value is None else str(value)
+
+
 def dict_to_request(
     data: Mapping[str, Any], request_type: RequestType = RequestType.POST
 ) -> str:
@@ -29,32 +35,27 @@ def dict_to_request(
     - For RequestType.POST keys and values are escaped for single-quotes and
       pairs are joined with ';'.
     """
+
     if not data:
         return ""
 
-    delimiter = REQUEST_DELIMITER.get(
-        request_type, REQUEST_DELIMITER[RequestType.GET]
-    )
+    is_get = request_type == RequestType.GET
     parts: list[str] = []
 
     for key, value in data.items():
-        # Normalize value (handle MacAddress specially)
-        if isinstance(value, MacAddress):
-            val_str = value.as_asus()
-        elif isinstance(value, bool):
-            # Device-friendly boolean representation
-            val_str = "1" if value else "0"
+        val_str = _value_to_str(value)
+        if is_get:
+            parts.append(f"{quote_plus(str(key))}={quote_plus(val_str)}")
         else:
-            val_str = "" if value is None else str(value)
-
-        if request_type == RequestType.GET:
-            k = quote_plus(str(key))
-            v = quote_plus(val_str)
-            parts.append(f"{k}={v}")
-        else:  # POST
             # Escape single quotes to avoid breaking the 'key':'value' syntax
             esc_k = str(key).replace("'", "\\'")
             esc_v = val_str.replace("'", "\\'")
             parts.append(f"'{esc_k}':'{esc_v}'")
 
-    return delimiter.join(parts) if parts else ""
+    return REQUEST_DELIMITER[request_type].join(parts)
+
+
+__all__ = [
+    "REQUEST_DELIMITER",
+    "dict_to_request",
+]

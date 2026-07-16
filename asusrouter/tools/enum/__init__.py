@@ -1,10 +1,23 @@
-"""Enum utilities."""
+"""Enum tools for AsusRouter."""
 
 from __future__ import annotations
 
 from typing import Any, Self, cast
 
 from asusrouter.tools.converters_v2.raw import raw_to_int, raw_to_str
+
+
+def _unknown_or_raise(cls: type, value: Any) -> Any:
+    """Return the enum's `UNKNOWN` member, or raise when it is undefined."""
+
+    unknown = getattr(cls, "UNKNOWN", None)
+    if unknown is not None:
+        return unknown
+
+    raise ValueError(
+        f"{cls.__name__}.from_value: cannot resolve {value!r} "
+        "and no `UNKNOWN` member is defined"
+    )
 
 
 class FromIntMixin:
@@ -37,14 +50,7 @@ class FromIntMixin:
                 return cast(Self, member)
 
         # Fallback to UNKNOWN member if defined on the enum class
-        unknown = getattr(cls, "UNKNOWN", None)
-        if unknown is not None:
-            return cast(Self, unknown)
-
-        raise ValueError(
-            f"{cls.__name__}.from_value: cannot resolve {value!r} "
-            "and no `UNKNOWN` member is defined"
-        )
+        return cast(Self, _unknown_or_raise(cls, value))
 
 
 class FromStrMixin:
@@ -75,11 +81,10 @@ class FromStrMixin:
                 return cast(Self, member)
 
         # Fallback to UNKNOWN member if defined on the enum class
-        unknown = getattr(cls, "UNKNOWN", None)
-        if unknown is not None:
-            return cast(Self, unknown)
+        return cast(Self, _unknown_or_raise(cls, value))
 
-        raise ValueError(
-            f"{cls.__name__}.from_value: cannot resolve {value!r} "
-            "and no `UNKNOWN` member is defined"
-        )
+
+__all__ = [
+    "FromIntMixin",
+    "FromStrMixin",
+]
