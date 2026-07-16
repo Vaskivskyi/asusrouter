@@ -9,7 +9,7 @@ import pytest
 from asusrouter.const import UNKNOWN_MEMBER
 from asusrouter.modules.device import (
     DEVICE_REQUEST,
-    DeviceOperationMode,
+    AROperationMode,
     get_state,
     translate_state,
 )
@@ -17,8 +17,8 @@ from asusrouter.modules.device.identity import ARDeviceIdentity
 from asusrouter.modules.nvram import ARNvramType
 
 
-class TestDeviceOperationMode:
-    """Tests for the DeviceOperationMode enum."""
+class TestAROperationMode:
+    """Tests for the AROperationMode enum."""
 
     @pytest.mark.parametrize(
         ("name", "value"),
@@ -34,7 +34,7 @@ class TestDeviceOperationMode:
     def test_enum_members_and_values(self, name: str, value: int) -> None:
         """Enum members exist and have the expected integer values."""
 
-        member = getattr(DeviceOperationMode, name)
+        member = getattr(AROperationMode, name)
         assert member.name == name
         assert member.value == value
 

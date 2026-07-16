@@ -16,9 +16,10 @@ from asusrouter.modules.nvram import (
 )
 from asusrouter.modules.support import ARSupportSourceUniversal
 from asusrouter.modules.support.flag import ARSupportType
-from asusrouter.modules.wifi import ARWiFiBand
-from asusrouter.tools.converters.raw import raw_to_str, raw_to_str_list
+from asusrouter.modules.wifi import AR_WIFI_MAX_UNITS, ARWiFiBand
+from asusrouter.tools.converters.raw import raw_to_str
 from asusrouter.tools.identifiers import MacAddress
+from asusrouter.tools.readers import split_rows
 
 IdentityData = Mapping[Any, Any]
 
@@ -33,24 +34,12 @@ def _translate_firmware(data: IdentityData) -> ARFirmware:
     )
 
 
-# Number of wireless units to probe for the nband fallback
-_MAX_WIFI_UNITS = 4
-
-# Broadcom `wl{}_nband` code -> band, for the fallback on firmware that does
-# not report `WIRELESS_BANDS` (2 = 2.4GHz, 1 = 5GHz, 4 = 6GHz)
-_NBAND_TO_BAND: dict[str, ARWiFiBand] = {
-    "2": ARWiFiBand.BAND_2G1,
-    "1": ARWiFiBand.BAND_5G1,
-    "4": ARWiFiBand.BAND_6G1,
-}
-
-
 def _wifi_from_bands(
     data: IdentityData, support: dict[ARSupportType, Any]
 ) -> dict[ARWiFiBand, int]:
     """Map bands via `WIRELESS_BANDS` nvram and the `WIFI_UNITS` support."""
 
-    bands = raw_to_str_list(data.get(ARNvramType.WIRELESS_BANDS, ""), "&#60")
+    bands = split_rows(data.get(ARNvramType.WIRELESS_BANDS))
     bands_ids = support.get(ARSupportType.WIFI_UNITS, ())
 
     result: dict[ARWiFiBand, int] = {}
@@ -70,18 +59,18 @@ def _wifi_from_nband(data: IdentityData) -> dict[ARWiFiBand, int]:
     """Derive bands from per-radio `wl{}_nband` (older firmware fallback)."""
 
     result: dict[ARWiFiBand, int] = {}
-    for unit in range(_MAX_WIFI_UNITS):
-        nband = raw_to_str(
-            data.get(ARNvramIndexSource(ARNvramIndexType.WL_NBAND, unit))
+    for unit in range(AR_WIFI_MAX_UNITS):
+        band = ARWiFiBand.from_nband(
+            raw_to_str(
+                data.get(ARNvramIndexSource(ARNvramIndexType.WL_NBAND, unit))
+            )
         )
-        band = _NBAND_TO_BAND.get(nband) if nband is not None else None
-        if band is not None and band not in result:
+        if band is not ARWiFiBand.UNKNOWN and band not in result:
             result[band] = unit
 
     return result
 
 
-# TODO: Redo this part
 def _translate_wifi(
     data: IdentityData, support: dict[ARSupportType, Any]
 ) -> dict[ARWiFiBand, int]:

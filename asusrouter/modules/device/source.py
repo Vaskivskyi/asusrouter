@@ -12,6 +12,7 @@ from asusrouter.modules.nvram import (
 )
 from asusrouter.modules.source import ARDataSource, ARDataType
 from asusrouter.modules.support import ARSupportSourceUniversal
+from asusrouter.modules.wifi import AR_WIFI_MAX_UNITS
 from asusrouter.registry import ARCallableRegistry as ARCallReg
 from asusrouter.tools.types import ARCallbackType
 
@@ -33,7 +34,10 @@ DEVICE_REQUEST: tuple[ARDataType | ARDataSource, ...] = (
     ARNvramType.SERIAL,
     ARNvramType.WIRELESS_BANDS,
     # Per-radio band type, for the wifi fallback when WIRELESS_BANDS is empty
-    *(ARNvramIndexSource(ARNvramIndexType.WL_NBAND, i) for i in range(4)),
+    *(
+        ARNvramIndexSource(ARNvramIndexType.WL_NBAND, i)
+        for i in range(AR_WIFI_MAX_UNITS)
+    ),
     # Firmware information
     ARNvramType.FW_MAJOR,
     ARNvramType.FW_MINOR,

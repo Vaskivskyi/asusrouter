@@ -59,6 +59,22 @@ class ARWiFiBand(FromStrMixin, StrEnum):
     BAND_6G1 = "6g1"
     BAND_6G2 = "6g2"
 
+    @classmethod
+    def from_nband(cls, code: str | None) -> ARWiFiBand:
+        """Map a Broadcom `wl{}_nband` radio code to a band."""
+
+        return _NBAND_TO_BAND.get(code, cls.UNKNOWN) if code else cls.UNKNOWN
+
+
+# Broadcom `wl{}_nband` radio code -> band, for firmware without
+# `WIRELESS_BANDS` (2 = 2.4GHz, 1 = 5GHz, 4 = 6GHz); the first band of
+# each frequency is used
+_NBAND_TO_BAND: dict[str, ARWiFiBand] = {
+    "1": ARWiFiBand.BAND_5G1,
+    "2": ARWiFiBand.BAND_2G1,
+    "4": ARWiFiBand.BAND_6G1,
+}
+
 
 class ARWiFiBandwidth(FromIntMixin, IntEnum):
     """WiFi channel bandwidth in MHz (`AUTO` lets the radio decide)."""
@@ -136,6 +152,9 @@ class ARWiFiMultiBand(FromIntMixin, IntEnum):
     TRIBAND = 3
     QUADBAND = 4
 
+
+# Number of wireless units to probe when deriving bands from per-radio nvram
+AR_WIFI_MAX_UNITS = 4
 
 # Fallback wireless unit index -> band, for devices with unknown bands
 # (`identity.wifi_by_unit` gives the live device-specific map)
