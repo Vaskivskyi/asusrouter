@@ -18,7 +18,7 @@ from asusrouter.modules.aimesh import (
 )
 from asusrouter.modules.endpoint import AREndpoint, get_endpoint_reader
 from asusrouter.modules.source import ARDataSource
-from asusrouter.tools.readers import read_js_variables
+from asusrouter.tools.readers_v2 import read_js_variables
 
 _RAW = (
     'get_cfg_clientlist = [[{"mac":"AA:00:00:00:00:00","online":"1",'

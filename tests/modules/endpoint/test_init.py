@@ -18,8 +18,11 @@ from asusrouter.modules.endpoint import (
 )
 from asusrouter.modules.endpoint.translate import read_wan_lan_status
 from asusrouter.tools.converters_v2.raw import raw_to_str
-from asusrouter.tools.readers import read_js_variables, read_json_content
-from asusrouter.tools.readers_v2 import read_netdev
+from asusrouter.tools.readers_v2 import (
+    read_js_variables,
+    read_json_content,
+    read_netdev,
+)
 from asusrouter.tools.security import ARSecurityLevel
 
 GET_ENDPOINTS = (

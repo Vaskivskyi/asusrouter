@@ -5,6 +5,12 @@ from __future__ import annotations
 import re
 from typing import Any
 
+from asusrouter.tools.readers_v2.raw import (
+    is_true_in_dict,
+    read_js_variables,
+    read_json_content,
+)
+
 # Nested `'IFACE':{rx:0x..,tx:0x..}` from `update.cgi?output=netdev`
 _NETDEV_NESTED_RE = re.compile(
     r"'(\w+)'\s*:\s*\{\s*rx\s*:\s*(0x[0-9a-fA-F]+)\s*,"
@@ -47,3 +53,12 @@ def read_js_section(data: Any, key: str) -> Any:
         return None
     value = data.get(key)
     return value[0] if isinstance(value, list) and value else None
+
+
+__all__ = [
+    "is_true_in_dict",
+    "read_js_section",
+    "read_js_variables",
+    "read_json_content",
+    "read_netdev",
+]
