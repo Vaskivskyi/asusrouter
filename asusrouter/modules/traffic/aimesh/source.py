@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from asusrouter.modules.aimesh.topology import ARAiMeshMedium
+from asusrouter.modules.aimesh import ARAiMeshMedium
 from asusrouter.modules.common.metrics import ARMetricType
 from asusrouter.modules.device.identity import ARDeviceIdentity
 from asusrouter.modules.endpoint import AREndpoint, get_endpoint_request_type
