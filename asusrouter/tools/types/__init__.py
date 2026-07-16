@@ -1,4 +1,4 @@
-"""Types tools."""
+"""Types tools for AsusRouter."""
 
 from __future__ import annotations
 
@@ -9,3 +9,8 @@ from typing import Any
 ARCallableType = Callable[..., Any]
 # Universal async callback
 ARCallbackType = Callable[..., Awaitable[Any]]
+
+__all__ = [
+    "ARCallableType",
+    "ARCallbackType",
+]

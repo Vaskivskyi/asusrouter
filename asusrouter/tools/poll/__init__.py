@@ -1,4 +1,4 @@
-"""Polling tools."""
+"""Polling tools for AsusRouter."""
 
 from __future__ import annotations
 
@@ -27,3 +27,8 @@ async def async_poll_until(
             await asyncio.sleep(interval)
 
     return None
+
+
+__all__ = [
+    "async_poll_until",
+]

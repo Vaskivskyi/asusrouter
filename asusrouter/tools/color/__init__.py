@@ -1,4 +1,4 @@
-"""Color tools."""
+"""Color tools for AsusRouter."""
 
 from __future__ import annotations
 
@@ -16,6 +16,9 @@ COLOR_SCALE_ASUS_DAY: Final[int] = 128
 COLOR_DELIMITER: Final[str] = ","
 
 _CHANNELS: Final[int] = 3
+
+# Canonical scale squared, used to re-embed brightness before rescaling
+_COLOR_SCALE_SQ: Final[int] = COLOR_SCALE * COLOR_SCALE
 
 
 def _clamp(value: int, high: int, low: int = 0) -> int:
@@ -79,7 +82,7 @@ class Color:
 
         # Re-embed brightness on the canonical scale, then rescale to target
         embedded = tuple(
-            _rescale(ch * self.brightness, scale, COLOR_SCALE * COLOR_SCALE)
+            _rescale(ch * self.brightness, scale, _COLOR_SCALE_SQ)
             for ch in (self.red, self.green, self.blue)
         )
 
