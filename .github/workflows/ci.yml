@@ -98,11 +98,37 @@ jobs:
       - name: Run Ruff Check
         run: uv run prek run ruff-check --all-files --show-diff-on-failure
 
+  mypy:
+    name: Mypy
+    needs: prepare
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up UV and Python
+        uses: astral-sh/setup-uv@v7
+        with:
+          python-version: 3.14
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      - name: Install the project
+        run: uv sync --all-groups
+
+      - name: Run Mypy
+        run: uv run prek run mypy --all-files
+
   unit-tests:
     name: Unit Tests
     needs:
       - ruff-format
       - ruff-check
+      - mypy
     runs-on: ubuntu-latest
 
     permissions:
