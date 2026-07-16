@@ -11,9 +11,9 @@ from typing import Any
 from asusrouter.const import UNKNOWN_MEMBER_STR, RequestType
 from asusrouter.modules.common.command import ACTION_MODE_KEY, ARActionMode
 from asusrouter.modules.endpoint.translate import read_wan_lan_status
-from asusrouter.tools.converters_v2.raw import raw_to_str
+from asusrouter.tools.converters.raw import raw_to_str
 from asusrouter.tools.enum import FromStrMixin
-from asusrouter.tools.readers_v2 import (
+from asusrouter.tools.readers import (
     read_js_variables,
     read_json_content,
     read_netdev,

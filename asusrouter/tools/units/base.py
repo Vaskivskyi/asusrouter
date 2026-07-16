@@ -8,7 +8,7 @@ from functools import cache
 from typing import Any, ClassVar
 
 from asusrouter.error import AsusRouterError
-from asusrouter.tools.converters_v2.raw import raw_to_float
+from asusrouter.tools.converters.raw import raw_to_float
 from asusrouter.tools.types import ARCallableType
 
 

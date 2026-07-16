@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable, Iterable, Mapping
 from typing import Any, TypeVar
 
-from asusrouter.tools.converters_v2.raw import raw_convert
+from asusrouter.tools.converters.raw import raw_convert
 
 _K = TypeVar("_K")
 _F = TypeVar("_F")

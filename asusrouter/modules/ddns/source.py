@@ -13,11 +13,7 @@ from asusrouter.modules.ddns.enums import (
 from asusrouter.modules.nvram import ARNvramType, async_fetch_values
 from asusrouter.modules.source import ARDataSource
 from asusrouter.registry import ARCallableRegistry as ARCallReg
-from asusrouter.tools.converters_v2.raw import (
-    raw_to_bool,
-    raw_to_int,
-    raw_to_str,
-)
+from asusrouter.tools.converters.raw import raw_to_bool, raw_to_int, raw_to_str
 from asusrouter.tools.identifiers import Hostname, IpAddress, Password
 from asusrouter.tools.types import ARCallbackType
 

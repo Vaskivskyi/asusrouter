@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 
 from asusrouter.modules.firmware.note import read_firmware_note
-from asusrouter.tools.converters_v2.raw import _BOM
+from asusrouter.tools.converters.raw import _BOM
 
 
 class TestReadFirmwareNote:

@@ -35,17 +35,6 @@ def raw_convert(raw: Any, converter: Callable[[Any], Any]) -> Any:
     return None if value == [] else value
 
 
-def raw_to_str(value: Any) -> str | None:
-    """Convert raw value to a clean string or None."""
-
-    if not isinstance(value, str):
-        return None
-    clean = value.lstrip(_BOM).strip()
-    if not clean:
-        return None
-    return clean
-
-
 def raw_to_bool(value: Any) -> bool | None:
     """Convert raw value to bool or None."""
 
@@ -57,6 +46,23 @@ def raw_to_bool(value: Any) -> bool | None:
     if cleaned is None:
         return None
     return _STR_TO_BOOL.get(cleaned.lower())
+
+
+def raw_to_datetime(value: Any) -> datetime | None:
+    """Convert raw value to datetime or None."""
+
+    cleaned = raw_to_str(value)
+    if cleaned is None:
+        return None
+
+    try:
+        return datetime.fromisoformat(cleaned)
+    except ValueError:
+        pass
+    try:
+        return datetime.strptime(cleaned, "%a, %d %b %Y %H:%M:%S %z")
+    except ValueError:
+        return None
 
 
 def raw_to_float(value: Any) -> float | None:
@@ -97,21 +103,15 @@ def raw_to_int(value: Any, base: int = 10) -> int | None:
     return None
 
 
-def raw_to_datetime(value: Any) -> datetime | None:
-    """Convert raw value to datetime or None."""
+def raw_to_str(value: Any) -> str | None:
+    """Convert raw value to a clean string or None."""
 
-    cleaned = raw_to_str(value)
-    if cleaned is None:
+    if not isinstance(value, str):
         return None
-
-    try:
-        return datetime.fromisoformat(cleaned)
-    except ValueError:
-        pass
-    try:
-        return datetime.strptime(cleaned, "%a, %d %b %Y %H:%M:%S %z")
-    except ValueError:
+    clean = value.lstrip(_BOM).strip()
+    if not clean:
         return None
+    return clean
 
 
 def raw_to_str_list(value: Any, delimiter: str = " ") -> list[str]:

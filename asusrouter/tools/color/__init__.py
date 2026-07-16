@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, replace
 from typing import Final
 
-from asusrouter.tools.converters_v2.raw import raw_to_int, raw_to_str
+from asusrouter.tools.converters.raw import raw_to_int, raw_to_str
 
 # Canonical full-brightness scale for a stored color
 COLOR_SCALE: Final[int] = 255

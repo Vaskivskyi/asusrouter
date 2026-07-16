@@ -16,7 +16,7 @@ from asusrouter.modules.firmware.note import read_firmware_note
 from asusrouter.modules.firmware.version import ARFirmware
 from asusrouter.modules.source import ARDataSource
 from asusrouter.registry import ARCallableRegistry as ARCallReg
-from asusrouter.tools.converters_v2.raw import raw_to_int, raw_to_str
+from asusrouter.tools.converters.raw import raw_to_int, raw_to_str
 from asusrouter.tools.types import ARCallbackType
 
 if TYPE_CHECKING:

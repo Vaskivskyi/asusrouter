@@ -14,7 +14,7 @@ from asusrouter.modules.endpoint.hooks import ARHook, hook_request
 from asusrouter.modules.nvram.enums import ARNvramIndexType, ARNvramType
 from asusrouter.modules.source import ARDataSource
 from asusrouter.registry import ARCallableRegistry as ARCallReg
-from asusrouter.tools.converters_v2.raw import (
+from asusrouter.tools.converters.raw import (
     raw_to_bool,
     raw_to_int,
     raw_to_str_list,

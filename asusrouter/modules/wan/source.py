@@ -19,7 +19,7 @@ from asusrouter.modules.nvram import (
 from asusrouter.modules.source import ARDataSource
 from asusrouter.modules.wan.enums import ARDualWanMode
 from asusrouter.registry import ARCallableRegistry as ARCallReg
-from asusrouter.tools.converters_v2.raw import raw_to_int, raw_to_str
+from asusrouter.tools.converters.raw import raw_to_int, raw_to_str
 from asusrouter.tools.identifiers import MacAddress
 from asusrouter.tools.identifiers.ip import IpAddress
 from asusrouter.tools.types import ARCallbackType

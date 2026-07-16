@@ -7,7 +7,7 @@ from enum import IntEnum, StrEnum
 from typing import Any
 
 from asusrouter.const import UNKNOWN_MEMBER, UNKNOWN_MEMBER_STR
-from asusrouter.tools.converters_v2.raw import raw_to_int, raw_to_str
+from asusrouter.tools.converters.raw import raw_to_int, raw_to_str
 from asusrouter.tools.enum import FromIntMixin, FromStrMixin
 from asusrouter.tools.units import DataUnitConverter, UnitOfData
 

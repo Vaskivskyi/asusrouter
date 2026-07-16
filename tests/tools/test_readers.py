@@ -1,4 +1,4 @@
-"""Tests for the readers V2 tools."""
+"""Tests for the readers tools."""
 
 from __future__ import annotations
 
@@ -7,20 +7,16 @@ from unittest.mock import patch
 
 import pytest
 
-from asusrouter.tools.converters_v2.raw import raw_to_int, raw_to_str
-from asusrouter.tools.readers_v2 import (
+from asusrouter.tools.converters.raw import raw_to_int, raw_to_str
+from asusrouter.tools.readers import (
     is_true_in_dict,
     read_js_section,
     read_js_variables,
     read_json_content,
     read_netdev,
 )
-from asusrouter.tools.readers_v2.nvram_list import (
-    decode,
-    get_field,
-    split_rows,
-)
-from asusrouter.tools.readers_v2.table import read_table
+from asusrouter.tools.readers.nvram_list import decode, get_field, split_rows
+from asusrouter.tools.readers.table import read_table
 
 
 @pytest.mark.parametrize(
@@ -373,6 +369,6 @@ def test_read_json_content_fail() -> None:
     """read_json_content returns empty on a non-dict json result."""
 
     with patch(
-        "asusrouter.tools.readers_v2.raw.json.loads", return_value="some value"
+        "asusrouter.tools.readers.raw.json.loads", return_value="some value"
     ):
         assert read_json_content("invalid json") == {}

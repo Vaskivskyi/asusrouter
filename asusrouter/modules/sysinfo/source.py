@@ -18,7 +18,7 @@ from asusrouter.modules.sysinfo.enums import (
 )
 from asusrouter.modules.wifi import AR_WIFI_UNIT_FALLBACK, ARWiFiBand
 from asusrouter.registry import ARCallableRegistry as ARCallReg
-from asusrouter.tools.converters_v2.raw import raw_to_float, raw_to_int
+from asusrouter.tools.converters.raw import raw_to_float, raw_to_int
 from asusrouter.tools.types import ARCallbackType
 from asusrouter.tools.units import DataUnitConverter, UnitOfData
 

@@ -18,8 +18,8 @@ from asusrouter.modules.ports.enums import (
     ARPortType,
 )
 from asusrouter.modules.usb import ARUSBSpeed
-from asusrouter.tools.converters_v2.int import int_to_bits
-from asusrouter.tools.converters_v2.raw import raw_to_int
+from asusrouter.tools.converters.int import int_to_bits
+from asusrouter.tools.converters.raw import raw_to_int
 
 
 @dataclass(frozen=True)

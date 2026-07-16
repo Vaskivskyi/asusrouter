@@ -15,14 +15,14 @@ from asusrouter.modules.wifi.enums import (
     ARWiFiField,
 )
 from asusrouter.registry import ARCallableRegistry as ARCallReg
-from asusrouter.tools.converters_v2.raw import (
+from asusrouter.tools.converters.raw import (
     raw_convert,
     raw_to_bool,
     raw_to_int,
     raw_to_str,
 )
 from asusrouter.tools.identifiers import MacAddress
-from asusrouter.tools.readers_v2.table import read_table
+from asusrouter.tools.readers.table import read_table
 from asusrouter.tools.types import ARCallbackType
 
 if TYPE_CHECKING:

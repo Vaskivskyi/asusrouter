@@ -14,7 +14,7 @@ from asusrouter.error import (
 )
 from asusrouter.modules.endpoint import AREndpoint
 from asusrouter.tools.enum import FromIntMixin
-from asusrouter.tools.readers_v2 import read_json_content
+from asusrouter.tools.readers import read_json_content
 
 _LOGGER = logging.getLogger(__name__)
 

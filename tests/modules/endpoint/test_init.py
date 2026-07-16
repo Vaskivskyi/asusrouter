@@ -17,8 +17,8 @@ from asusrouter.modules.endpoint import (
     get_endpoint_request_type,
 )
 from asusrouter.modules.endpoint.translate import read_wan_lan_status
-from asusrouter.tools.converters_v2.raw import raw_to_str
-from asusrouter.tools.readers_v2 import (
+from asusrouter.tools.converters.raw import raw_to_str
+from asusrouter.tools.readers import (
     read_js_variables,
     read_json_content,
     read_netdev,

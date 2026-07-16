@@ -9,7 +9,7 @@ from asusrouter.modules.nvram import ARNvramType, async_get_value
 from asusrouter.modules.source import ARDataSource
 from asusrouter.registry import ARCallableRegistry as ARCallReg
 from asusrouter.tools.identifiers.ip import IpAddress
-from asusrouter.tools.readers_v2.nvram_list import split_rows
+from asusrouter.tools.readers.nvram_list import split_rows
 from asusrouter.tools.types import ARCallbackType
 
 # Data model

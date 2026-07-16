@@ -10,7 +10,7 @@ from typing import Any
 
 from asusrouter.modules.common.metrics import ARMetricType
 from asusrouter.modules.endpoint.hooks import ARHook, hook_request
-from asusrouter.tools.converters_v2.raw import raw_to_int
+from asusrouter.tools.converters.raw import raw_to_int
 from asusrouter.tools.units import DataUnitConverter, UnitOfData
 
 # appGet hook request for legacy cpu/ram data (connected router only)

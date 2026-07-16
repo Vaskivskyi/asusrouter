@@ -22,11 +22,7 @@ from asusrouter.modules.ports.enums import (
     ARPortType,
 )
 from asusrouter.modules.usb import ARUSBDevice, ARUSBSpeed
-from asusrouter.tools.converters_v2.raw import (
-    raw_to_bool,
-    raw_to_int,
-    raw_to_str,
-)
+from asusrouter.tools.converters.raw import raw_to_bool, raw_to_int, raw_to_str
 from asusrouter.tools.identifiers import MacAddress
 
 if TYPE_CHECKING:

@@ -15,7 +15,7 @@ from asusrouter.modules.temperature.scale import (
 )
 from asusrouter.modules.wifi import AR_WIFI_UNIT_FALLBACK, ARWiFiBand
 from asusrouter.registry import ARCallableRegistry as ARCallReg
-from asusrouter.tools.converters_v2.raw import raw_to_float
+from asusrouter.tools.converters.raw import raw_to_float
 from asusrouter.tools.types import ARCallbackType
 
 # The temperature data can be presented in the following JS variables:

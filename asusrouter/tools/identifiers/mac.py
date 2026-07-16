@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 from typing import Any, Final
 
-from asusrouter.tools.converters_v2.raw import raw_to_int
+from asusrouter.tools.converters.raw import raw_to_int
 from asusrouter.tools.security import ARSecurityLevel, ARSensitive, hmac_digest
 
 MAC_CLEAN_RE: Final[re.Pattern[str]] = re.compile(r"[^0-9a-fA-F]")

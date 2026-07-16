@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any, Self, cast
 
-from asusrouter.tools.converters_v2.raw import raw_to_int, raw_to_str
+from asusrouter.tools.converters.raw import raw_to_int, raw_to_str
 
 
 def _unknown_or_raise(cls: type, value: Any) -> Any:

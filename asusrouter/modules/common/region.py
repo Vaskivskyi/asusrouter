@@ -8,7 +8,7 @@ import threading
 from typing import Any
 
 from asusrouter.const import UNKNOWN_MEMBER_STR
-from asusrouter.tools.converters_v2.raw import raw_to_int
+from asusrouter.tools.converters.raw import raw_to_int
 from asusrouter.tools.enum import FromStrMixin
 
 _LOGGER = logging.getLogger(__name__)

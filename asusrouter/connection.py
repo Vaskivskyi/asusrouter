@@ -51,7 +51,7 @@ from asusrouter.modules.endpoint import (
     get_endpoint_raw_payload,
 )
 from asusrouter.modules.endpoint.error import handle_access_error
-from asusrouter.tools.converters_v2.raw import raw_to_str
+from asusrouter.tools.converters.raw import raw_to_str
 from asusrouter.tools.identifiers import Hostname
 from asusrouter.tools.security import Sensitive
 from asusrouter.tools.security.log import render_for_log

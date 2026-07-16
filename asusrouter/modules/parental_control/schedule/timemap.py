@@ -21,7 +21,7 @@ from asusrouter.modules.parental_control.enums import (
     ARParentalControlScheduleMode,
     ARWeekday,
 )
-from asusrouter.tools.readers_v2.nvram_list import decode
+from asusrouter.tools.readers.nvram_list import decode
 
 _LOGGER = logging.getLogger(__name__)
 

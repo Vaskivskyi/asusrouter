@@ -15,7 +15,7 @@ from asusrouter.modules.ping.action import ARPingAction
 from asusrouter.modules.ping.enums import ARPingStatus
 from asusrouter.modules.source import ARDataSource
 from asusrouter.registry import ARCallableRegistry as ARCallReg
-from asusrouter.tools.converters_v2.raw import (
+from asusrouter.tools.converters.raw import (
     raw_to_bool,
     raw_to_float,
     raw_to_int,

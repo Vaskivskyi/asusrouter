@@ -1,10 +1,10 @@
-"""Tests for asusrouter.tools.converters_v2.int."""
+"""Tests for asusrouter.tools.converters.int."""
 
 from __future__ import annotations
 
 import pytest
 
-from asusrouter.tools.converters_v2.int import int_to_bits
+from asusrouter.tools.converters.int import int_to_bits
 
 
 @pytest.mark.parametrize(

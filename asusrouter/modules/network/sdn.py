@@ -28,13 +28,9 @@ from asusrouter.modules.nvram import (
     ARNvramType,
 )
 from asusrouter.modules.wifi import ARWiFiAuthMode, ARWiFiBand
-from asusrouter.tools.converters_v2.raw import (
-    raw_to_bool,
-    raw_to_int,
-    raw_to_str,
-)
+from asusrouter.tools.converters.raw import raw_to_bool, raw_to_int, raw_to_str
 from asusrouter.tools.identifiers import Password, Ssid
-from asusrouter.tools.readers_v2.nvram_list import split_rows
+from asusrouter.tools.readers.nvram_list import split_rows
 from asusrouter.tools.types import ARCallbackType
 
 # `sdn_rl` column indices (see `set_sdn_profile` in the firmware)

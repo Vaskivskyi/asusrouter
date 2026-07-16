@@ -7,7 +7,7 @@ from typing import Any
 from asusrouter.modules.support.flag import ARSupportValue
 from asusrouter.modules.support.helpers import make_enum_translator
 from asusrouter.modules.wifi import ARWiFiGeneration, ARWiFiMultiBand
-from asusrouter.tools.readers_v2 import is_true_in_dict
+from asusrouter.tools.readers import is_true_in_dict
 
 # First match wins
 translate_wifi_generation = make_enum_translator(

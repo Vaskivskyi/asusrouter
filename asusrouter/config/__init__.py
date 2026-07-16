@@ -8,7 +8,7 @@ from enum import StrEnum
 import threading
 from typing import Any
 
-from asusrouter.tools.converters_v2.raw import (
+from asusrouter.tools.converters.raw import (
     raw_to_bool,
     raw_to_datetime,
     raw_to_int,

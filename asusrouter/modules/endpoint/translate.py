@@ -8,8 +8,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from asusrouter.tools.converters_v2.raw import raw_to_str
-from asusrouter.tools.readers_v2 import read_json_content
+from asusrouter.tools.converters.raw import raw_to_str
+from asusrouter.tools.readers import read_json_content
 
 
 def read_wan_lan_status(content: str, **kwargs: Any) -> dict[str, Any]:

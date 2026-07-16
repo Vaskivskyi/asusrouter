@@ -1,4 +1,4 @@
-"""Tests for asusrouter.tools.converters_v2.raw."""
+"""Tests for asusrouter.tools.converters.raw."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ from typing import Any
 
 import pytest
 
-from asusrouter.tools.converters_v2.raw import (
+from asusrouter.tools.converters.raw import (
     _BOM,
     _STR_TO_BOOL,
     raw_convert,

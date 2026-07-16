@@ -13,7 +13,7 @@ from asusrouter.modules.traffic.base import ARTrafficLink, ARTrafficSource
 from asusrouter.modules.traffic.enums import ARTrafficType
 from asusrouter.modules.wifi import ARWiFiBand
 from asusrouter.registry import ARCallableRegistry as ARCallReg
-from asusrouter.tools.converters_v2.raw import raw_to_int
+from asusrouter.tools.converters.raw import raw_to_int
 from asusrouter.tools.identifiers import MacAddress
 from asusrouter.tools.types import ARCallableType, ARCallbackType
 from asusrouter.tools.units import UnitOfDataRate, read_data_rate

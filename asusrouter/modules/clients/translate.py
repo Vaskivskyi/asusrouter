@@ -17,11 +17,7 @@ from asusrouter.modules.common.internet import ARInternetMode
 from asusrouter.modules.common.ip import ARIPMethod
 from asusrouter.modules.device.identity import ARDeviceIdentity
 from asusrouter.modules.wifi import ARWiFiAuth, ARWiFiBand, ARWiFiFrequency
-from asusrouter.tools.converters_v2.raw import (
-    raw_to_bool,
-    raw_to_int,
-    raw_to_str,
-)
+from asusrouter.tools.converters.raw import raw_to_bool, raw_to_int, raw_to_str
 from asusrouter.tools.identifiers import IpAddress, MacAddress
 from asusrouter.tools.units import UnitOfDataRate, read_data_rate
 

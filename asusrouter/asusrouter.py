@@ -57,7 +57,7 @@ from asusrouter.modules.source import (
 )
 from asusrouter.modules.support.flag import ARSupportType
 from asusrouter.registry import ARCallableRegistry as ARCallReg
-from asusrouter.tools.converters_v2.raw import raw_to_str
+from asusrouter.tools.converters.raw import raw_to_str
 from asusrouter.tools.identifiers import Hostname
 from asusrouter.tools.security.log import register_log_config
 from asusrouter.tools.types import ARCallableType

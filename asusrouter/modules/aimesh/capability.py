@@ -7,7 +7,7 @@ import threading
 from typing import Any
 
 from asusrouter.modules.aimesh.enums import ARAiMeshFeature
-from asusrouter.tools.converters_v2.raw import raw_to_int
+from asusrouter.tools.converters.raw import raw_to_int
 
 _LOGGER = logging.getLogger(__name__)
 

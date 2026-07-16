@@ -17,7 +17,7 @@ from asusrouter.modules.nvram import (
 from asusrouter.modules.support import ARSupportSourceUniversal
 from asusrouter.modules.support.flag import ARSupportType
 from asusrouter.modules.wifi import ARWiFiBand
-from asusrouter.tools.converters_v2.raw import raw_to_str, raw_to_str_list
+from asusrouter.tools.converters.raw import raw_to_str, raw_to_str_list
 from asusrouter.tools.identifiers import MacAddress
 
 IdentityData = Mapping[Any, Any]

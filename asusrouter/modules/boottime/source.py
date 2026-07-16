@@ -11,7 +11,7 @@ from asusrouter.modules.endpoint import AREndpoint
 from asusrouter.modules.endpoint.hooks import ARHook, hook_request
 from asusrouter.modules.source import ARDataSource
 from asusrouter.registry import ARCallableRegistry as ARCallReg
-from asusrouter.tools.converters_v2.raw import raw_to_datetime, raw_to_int
+from asusrouter.tools.converters.raw import raw_to_datetime, raw_to_int
 from asusrouter.tools.types import ARCallbackType
 
 # Boot times within this many seconds are the same boot (1s counter
