@@ -6,15 +6,213 @@ coverage:
   round: down
   range: "0...100"
 
+  status:
+    # Whole-repo status is informational only: a brand-new module legitimately
+    # lowers the overall number, so it must not block the PR
+    project:
+      default:
+        informational: true
+    # New/changed code is reported but not required to be fully covered
+    patch:
+      default:
+        informational: true
+
 comment:
-  layout: "reach, diff, flags, files"
+  layout: "reach, diff, flags, components, files"
   behavior: default
   require_changes: no
 
-status:
-  project:
-    default:
-      threshold: 1%
-  patch:
-    default:
-      threshold: 1%
+# One project status per module/tool: an existing component losing coverage
+# turns its status red (threshold 0 = no drop tolerated). A module added in a
+# PR has no base coverage, so it is exempt until it lands and becomes the base
+component_management:
+  default_rules:
+    statuses:
+      - type: project
+        threshold: 0%
+  individual_components:
+    - component_id: core
+      name: core
+      paths:
+        - asusrouter/*.py
+        - asusrouter/config/**
+    - component_id: mod_action
+      name: modules/action
+      paths:
+        - asusrouter/modules/action/**
+    - component_id: mod_ai
+      name: modules/ai
+      paths:
+        - asusrouter/modules/ai/**
+    - component_id: mod_aimesh
+      name: modules/aimesh
+      paths:
+        - asusrouter/modules/aimesh/**
+    - component_id: mod_aura
+      name: modules/aura
+      paths:
+        - asusrouter/modules/aura/**
+    - component_id: mod_boottime
+      name: modules/boottime
+      paths:
+        - asusrouter/modules/boottime/**
+    - component_id: mod_clients
+      name: modules/clients
+      paths:
+        - asusrouter/modules/clients/**
+    - component_id: mod_common
+      name: modules/common
+      paths:
+        - asusrouter/modules/common/**
+    - component_id: mod_connection
+      name: modules/connection
+      paths:
+        - asusrouter/modules/connection/**
+    - component_id: mod_ddns
+      name: modules/ddns
+      paths:
+        - asusrouter/modules/ddns/**
+    - component_id: mod_device
+      name: modules/device
+      paths:
+        - asusrouter/modules/device/**
+    - component_id: mod_dsl
+      name: modules/dsl
+      paths:
+        - asusrouter/modules/dsl/**
+    - component_id: mod_endpoint
+      name: modules/endpoint
+      paths:
+        - asusrouter/modules/endpoint/**
+    - component_id: mod_firmware
+      name: modules/firmware
+      paths:
+        - asusrouter/modules/firmware/**
+    - component_id: mod_ftp
+      name: modules/ftp
+      paths:
+        - asusrouter/modules/ftp/**
+    - component_id: mod_lan
+      name: modules/lan
+      paths:
+        - asusrouter/modules/lan/**
+    - component_id: mod_led
+      name: modules/led
+      paths:
+        - asusrouter/modules/led/**
+    - component_id: mod_network
+      name: modules/network
+      paths:
+        - asusrouter/modules/network/**
+    - component_id: mod_nvram
+      name: modules/nvram
+      paths:
+        - asusrouter/modules/nvram/**
+    - component_id: mod_parental_control
+      name: modules/parental_control
+      paths:
+        - asusrouter/modules/parental_control/**
+    - component_id: mod_ping
+      name: modules/ping
+      paths:
+        - asusrouter/modules/ping/**
+    - component_id: mod_platform
+      name: modules/platform
+      paths:
+        - asusrouter/modules/platform/**
+    - component_id: mod_port_forwarding
+      name: modules/port_forwarding
+      paths:
+        - asusrouter/modules/port_forwarding/**
+    - component_id: mod_ports
+      name: modules/ports
+      paths:
+        - asusrouter/modules/ports/**
+    - component_id: mod_service
+      name: modules/service
+      paths:
+        - asusrouter/modules/service/**
+    - component_id: mod_source
+      name: modules/source
+      paths:
+        - asusrouter/modules/source/**
+    - component_id: mod_speedtest
+      name: modules/speedtest
+      paths:
+        - asusrouter/modules/speedtest/**
+    - component_id: mod_support
+      name: modules/support
+      paths:
+        - asusrouter/modules/support/**
+    - component_id: mod_sysinfo
+      name: modules/sysinfo
+      paths:
+        - asusrouter/modules/sysinfo/**
+    - component_id: mod_system_status
+      name: modules/system_status
+      paths:
+        - asusrouter/modules/system_status/**
+    - component_id: mod_temperature
+      name: modules/temperature
+      paths:
+        - asusrouter/modules/temperature/**
+    - component_id: mod_traffic
+      name: modules/traffic
+      paths:
+        - asusrouter/modules/traffic/**
+    - component_id: mod_usb
+      name: modules/usb
+      paths:
+        - asusrouter/modules/usb/**
+    - component_id: mod_vpn
+      name: modules/vpn
+      paths:
+        - asusrouter/modules/vpn/**
+    - component_id: mod_wan
+      name: modules/wan
+      paths:
+        - asusrouter/modules/wan/**
+    - component_id: mod_wifi
+      name: modules/wifi
+      paths:
+        - asusrouter/modules/wifi/**
+    - component_id: tool_color
+      name: tools/color
+      paths:
+        - asusrouter/tools/color/**
+    - component_id: tool_converters
+      name: tools/converters
+      paths:
+        - asusrouter/tools/converters/**
+    - component_id: tool_enum
+      name: tools/enum
+      paths:
+        - asusrouter/tools/enum/**
+    - component_id: tool_identifiers
+      name: tools/identifiers
+      paths:
+        - asusrouter/tools/identifiers/**
+    - component_id: tool_poll
+      name: tools/poll
+      paths:
+        - asusrouter/tools/poll/**
+    - component_id: tool_readers
+      name: tools/readers
+      paths:
+        - asusrouter/tools/readers/**
+    - component_id: tool_security
+      name: tools/security
+      paths:
+        - asusrouter/tools/security/**
+    - component_id: tool_types
+      name: tools/types
+      paths:
+        - asusrouter/tools/types/**
+    - component_id: tool_units
+      name: tools/units
+      paths:
+        - asusrouter/tools/units/**
+    - component_id: tool_writers
+      name: tools/writers
+      paths:
+        - asusrouter/tools/writers/**

@@ -6,7 +6,7 @@ from typing import Any
 
 import pytest
 
-from asusrouter.modules.endpoint.hooks import ARHook, hook_request
+from asusrouter.modules.endpoint.hooks import ARHook, hook_request, hook_value
 
 
 class _FakeItem:
@@ -65,3 +65,24 @@ class TestHookRequest:
         """Requests join `name(args)` parts under a single `hook=`."""
 
         assert hook_request(*hooks) == expected
+
+
+class TestHookValue:
+    """Tests for hook_value."""
+
+    def test_non_dict_returns_none(self) -> None:
+        """A non-dict response yields None."""
+
+        assert hook_value(None, ARHook.UPTIME) is None
+
+    def test_plain_hook_keyed_by_value(self) -> None:
+        """Plain hooks read the response by their name."""
+
+        assert hook_value({"uptime": 42}, ARHook.UPTIME) == 42
+        assert hook_value({}, ARHook.UPTIME) is None
+
+    def test_item_keyed_by_argument(self) -> None:
+        """Argument-carrying items read the response by their argument."""
+
+        assert hook_value({"some_key": "v"}, _FakeItem()) == "v"
+        assert hook_value({}, _FakeItem()) is None

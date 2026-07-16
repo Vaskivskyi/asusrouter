@@ -328,6 +328,7 @@ class AsusRouter:
                 self._async_drop_connection()
                 await asyncio.sleep(_AUTH_RETRY_DELAY)
 
+        # Unreachable: the retry loop always returns or raises
         return None
 
     async def async_read(

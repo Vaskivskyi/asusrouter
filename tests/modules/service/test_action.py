@@ -192,6 +192,16 @@ class TestReadServiceResult:
         assert read_service_result({}, ARService.DNS_RESTART).success is True
 
 
+class TestARServiceResult:
+    """Tests for ARServiceResult."""
+
+    @pytest.mark.parametrize("success", [True, False])
+    def test_bool_follows_success(self, success: bool) -> None:
+        """Truthiness mirrors the success flag."""
+
+        assert bool(ARServiceResult(success=success)) is success
+
+
 class TestARServiceAction:
     """Tests for ARServiceAction."""
 

@@ -15,3 +15,13 @@ repos:
         args:
           - --branch=dev
           - --branch=main
+
+  - repo: local
+    hooks:
+      - id: pytest
+        name: pytest
+        entry: uv run pytest -q
+        language: system
+        types: [python]
+        pass_filenames: false
+        stages: [pre-commit]

@@ -151,6 +151,23 @@ class TestARDataCollection:
         assert repr(collection) == expected_repr
 
 
+class TestARDataSource:
+    """Class for testing ARDataSource."""
+
+    def test_equal_by_type(self) -> None:
+        """Sources are equal and hash alike by exact type."""
+
+        assert ARDataSource() == ARDataSource()
+        assert ARDataSource() != _AltSource()
+        assert hash(ARDataSource()) == hash(ARDataSource())
+
+    def test_equality_other_type(self) -> None:
+        """Comparison with a non-source returns NotImplemented / False."""
+
+        assert ARDataSource().__eq__("x") is NotImplemented
+        assert (ARDataSource() == "x") is False
+
+
 class TestARDataState:
     """Class for testing ARDataState."""
 
@@ -298,6 +315,8 @@ class TestARDataState:
         instance._callback = mock_async_callback
         instance._state_caller = mock_async_callable
         instance._translate_caller = mock_async_translate
+        instance._state_caller_multi = True
+        instance._translate_caller_multi = True
 
         assert instance.source == source
         assert instance.content == "content"
@@ -305,6 +324,8 @@ class TestARDataState:
         assert instance.callback == mock_async_callback
         assert instance.state_caller == mock_async_callable
         assert instance.translate_caller == mock_async_translate
+        assert instance.state_caller_multi is True
+        assert instance.translate_caller_multi is True
 
     def test_setters(self) -> None:
         """Test the setters for the properties."""
@@ -323,10 +344,14 @@ class TestARDataState:
         instance.callback = mock_async_callback
         instance.state_caller = mock_async_callable
         instance.translate_caller = mock_async_translate
+        instance.state_caller_multi = 1
+        instance.translate_caller_multi = 1
 
         assert instance.callback == mock_async_callback
         assert instance.state_caller == mock_async_callable
         assert instance.translate_caller == mock_async_translate
+        assert instance.state_caller_multi is True
+        assert instance.translate_caller_multi is True
 
 
 class TestARDataStateRefresh:
