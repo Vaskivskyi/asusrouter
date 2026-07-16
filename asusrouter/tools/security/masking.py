@@ -65,13 +65,9 @@ def configure_key(key: bytes | str | None) -> None:
 def hmac_digest(data: bytes, key: bytes | None = None) -> bytes:
     """Compute an HMAC-SHA256 digest of the data."""
 
-    # Use the provided key or the loaded mask key
-    if key is not None:
-        k = key
-    else:
-        # Read the module key under lock to ensure a consistent view
-        with _key_lock:
-            k = _key
+    # `_key` is rebound atomically by configure_key, so reading it without
+    # the lock always sees a whole key (never a torn value)
+    k = key if key is not None else _key
 
     return hmac.new(k, data, hashlib.sha256).digest()
 

@@ -75,20 +75,26 @@ class SensitiveFilter(logging.Filter):
     def filter(self, record: logging.LogRecord) -> bool:
         """Mask sensitive message and arguments in place."""
 
+        args = record.args
+        msg_sensitive = isinstance(record.msg, ARSensitive)
+        args_tuple = isinstance(args, tuple) and any(
+            isinstance(arg, ARSensitive) for arg in args
+        )
+        args_dict = isinstance(args, dict) and any(
+            isinstance(val, ARSensitive) for val in args.values()
+        )
+
+        # Most records carry nothing sensitive; skip the level lookup then
+        if not (msg_sensitive or args_tuple or args_dict):
+            return True
+
         level = effective_log_level()
 
-        # A sensitive value logged directly as the message
-        if isinstance(record.msg, ARSensitive):
+        if msg_sensitive:
             record.msg = render(record.msg, level)
-
-        args = record.args
-        if isinstance(args, tuple) and any(
-            isinstance(arg, ARSensitive) for arg in args
-        ):
+        if isinstance(args, tuple) and args_tuple:
             record.args = tuple(render(arg, level) for arg in args)
-        elif isinstance(args, dict) and any(
-            isinstance(val, ARSensitive) for val in args.values()
-        ):
+        elif isinstance(args, dict) and args_dict:
             record.args = {
                 key: render(val, level) for key, val in args.items()
             }
