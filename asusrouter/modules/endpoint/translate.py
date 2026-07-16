@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from asusrouter.tools.converters_v2.raw import raw_to_str
+from asusrouter.tools.converters.raw import raw_to_str
 from asusrouter.tools.readers import read_json_content
 
 

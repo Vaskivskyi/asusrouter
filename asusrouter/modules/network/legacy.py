@@ -19,11 +19,7 @@ from asusrouter.modules.network.enums import (
 from asusrouter.modules.network.handle import ARNetworkHandle
 from asusrouter.modules.nvram import ARNvramIndexSource, ARNvramIndexType
 from asusrouter.modules.wifi import ARWiFiAuthMode, ARWiFiBand
-from asusrouter.tools.converters_v2.raw import (
-    raw_to_bool,
-    raw_to_int,
-    raw_to_str,
-)
+from asusrouter.tools.converters.raw import raw_to_bool, raw_to_int, raw_to_str
 from asusrouter.tools.identifiers import Password, Ssid
 from asusrouter.tools.types import ARCallbackType
 

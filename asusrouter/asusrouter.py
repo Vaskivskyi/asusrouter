@@ -57,7 +57,7 @@ from asusrouter.modules.source import (
 )
 from asusrouter.modules.support.flag import ARSupportType
 from asusrouter.registry import ARCallableRegistry as ARCallReg
-from asusrouter.tools.converters_v2.raw import raw_to_str
+from asusrouter.tools.converters.raw import raw_to_str
 from asusrouter.tools.identifiers import Hostname
 from asusrouter.tools.security.log import register_log_config
 from asusrouter.tools.types import ARCallableType
@@ -334,8 +334,8 @@ class AsusRouter:
         self,
         endpoint: AREndpoint,
         request: str | None = None,
-    ) -> dict[str, Any]:
-        """Fetch and parse content from a V2 API endpoint."""
+    ) -> Any:
+        """Fetch and parse content."""
 
         _LOGGER.debug("Triggered method async_read: %s", endpoint)
 

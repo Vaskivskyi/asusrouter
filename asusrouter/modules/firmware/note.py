@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from asusrouter.tools.converters_v2.raw import _BOM, raw_to_str
+from asusrouter.tools.converters.raw import _BOM, raw_to_str
 
 # Header lines that are not part of the actual change list
 _NOTE_HEADERS = ("Firmware version", "Release Note")

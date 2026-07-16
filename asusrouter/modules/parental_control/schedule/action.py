@@ -29,7 +29,7 @@ from asusrouter.modules.service.action import (
 from asusrouter.modules.support.flag import ARSupportType
 from asusrouter.modules.support.helpers import support_value
 from asusrouter.registry import ARCallableRegistry as ARCallReg
-from asusrouter.tools.converters_v2.raw import raw_to_int
+from asusrouter.tools.converters.raw import raw_to_int
 from asusrouter.tools.identifiers import MacAddress
 from asusrouter.tools.types import ARCallbackType
 

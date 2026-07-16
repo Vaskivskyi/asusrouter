@@ -6,7 +6,7 @@ from collections.abc import Callable
 from typing import Any, TypeVar
 
 from asusrouter.modules.support.flag import ARSupportType
-from asusrouter.tools.converters_v2.raw import raw_to_int
+from asusrouter.tools.converters.raw import raw_to_int
 from asusrouter.tools.readers import is_true_in_dict
 
 _T = TypeVar("_T")

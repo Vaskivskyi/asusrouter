@@ -9,7 +9,7 @@ from asusrouter.modules.led.enums import ARLedField
 from asusrouter.modules.nvram import ARNvramType, async_fetch_values
 from asusrouter.modules.source import ARDataSource
 from asusrouter.registry import ARCallableRegistry as ARCallReg
-from asusrouter.tools.converters_v2.raw import raw_to_bool
+from asusrouter.tools.converters.raw import raw_to_bool
 from asusrouter.tools.types import ARCallbackType
 
 if TYPE_CHECKING:

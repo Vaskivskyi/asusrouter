@@ -28,7 +28,7 @@ from asusrouter.modules.service.action import (
     async_run_service,
 )
 from asusrouter.registry import ARCallableRegistry as ARCallReg
-from asusrouter.tools.converters_v2.raw import raw_to_bool, raw_to_int
+from asusrouter.tools.converters.raw import raw_to_bool, raw_to_int
 from asusrouter.tools.identifiers import Password
 from asusrouter.tools.poll import async_poll_until
 from asusrouter.tools.types import ARCallbackType

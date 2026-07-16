@@ -441,6 +441,20 @@ class TestTranslateState:
         assert "500" in caplog.text
 
 
+def test_flatten_dict() -> None:
+    """Nested dicts flatten with `_`-joined keys; non-dicts yield empty."""
+
+    nested: dict[str, Any] = {"a": {"b": {"c": 1}}, "d": {"e": 2}}
+    assert aimesh._flatten_dict(nested) == {"a_b_c": 1, "d_e": 2}
+
+    # None and other non-dict inputs yield an empty dict
+    assert aimesh._flatten_dict(None) == {}
+    assert aimesh._flatten_dict("not a dict") == {}
+
+    # A non-dict value is kept as-is under its flattened key
+    assert aimesh._flatten_dict({"a": {"b": 1}, "d": 2}) == {"a_b": 1, "d": 2}
+
+
 def test_registers_callable(monkeypatch: pytest.MonkeyPatch) -> None:
     """Importing the submodule registers the AiMesh source."""
 

@@ -12,7 +12,7 @@ from asusrouter.modules.aimesh.topology import (
 from asusrouter.modules.endpoint import AREndpoint
 from asusrouter.modules.source import ARDataSource
 from asusrouter.registry import ARCallableRegistry as ARCallReg
-from asusrouter.tools.readers_v2 import read_js_section
+from asusrouter.tools.readers import read_js_section
 from asusrouter.tools.types import ARCallbackType
 
 

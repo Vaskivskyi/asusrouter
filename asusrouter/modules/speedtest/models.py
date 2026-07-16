@@ -9,7 +9,7 @@ from typing import Any
 from asusrouter.const import RequestType
 from asusrouter.modules.common.metrics import ARMetricType
 from asusrouter.modules.speedtest.enums import ARSpeedTestEventType
-from asusrouter.tools.converters_v2.raw import (
+from asusrouter.tools.converters.raw import (
     raw_to_float,
     raw_to_int,
     raw_to_str,

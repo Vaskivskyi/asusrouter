@@ -7,9 +7,9 @@ from typing import Any
 
 from asusrouter.modules.network.enums import ARNetworkField
 from asusrouter.modules.wifi import ARWiFiMacFilterMode
-from asusrouter.tools.converters_v2.raw import raw_to_bool, raw_to_int
+from asusrouter.tools.converters.raw import raw_to_bool, raw_to_int
 from asusrouter.tools.identifiers.mac import MacAddress
-from asusrouter.tools.readers_v2.nvram_list import decode
+from asusrouter.tools.readers.nvram_list import decode
 from asusrouter.tools.units import DataRateUnitConverter, UnitOfDataRate
 
 # Matches a colon-separated MAC address anywhere in a string

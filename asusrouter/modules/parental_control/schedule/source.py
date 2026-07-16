@@ -20,9 +20,9 @@ from asusrouter.modules.parental_control.schedule.timemap import (
 )
 from asusrouter.modules.source import ARDataSource
 from asusrouter.registry import ARCallableRegistry as ARCallReg
-from asusrouter.tools.converters_v2.raw import raw_to_bool, raw_to_str
+from asusrouter.tools.converters.raw import raw_to_bool, raw_to_str
 from asusrouter.tools.identifiers import MacAddress
-from asusrouter.tools.readers_v2.nvram_list import decode
+from asusrouter.tools.readers.nvram_list import decode
 from asusrouter.tools.types import ARCallbackType
 
 if TYPE_CHECKING:

@@ -19,7 +19,7 @@ from asusrouter.modules.vpn.enums import (
     ARVpnProtocol,
     ARVpnState,
 )
-from asusrouter.tools.converters_v2.raw import (
+from asusrouter.tools.converters.raw import (
     raw_convert,
     raw_to_bool,
     raw_to_int,
@@ -27,8 +27,8 @@ from asusrouter.tools.converters_v2.raw import (
 )
 from asusrouter.tools.identifiers import IpAddress, IpInterface, Password
 from asusrouter.tools.identifiers.ip import read_ip_interface_list
-from asusrouter.tools.readers_v2.nvram_list import get_field, split_rows
-from asusrouter.tools.readers_v2.table import read_table
+from asusrouter.tools.readers.nvram_list import get_field, split_rows
+from asusrouter.tools.readers.table import read_table
 
 if TYPE_CHECKING:
     from asusrouter.modules.service.action import ARServiceInput

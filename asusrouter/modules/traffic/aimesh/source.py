@@ -13,18 +13,16 @@ from asusrouter.modules.traffic.base import ARTrafficLink, ARTrafficSource
 from asusrouter.modules.traffic.enums import ARTrafficType
 from asusrouter.modules.wifi import ARWiFiBand
 from asusrouter.registry import ARCallableRegistry as ARCallReg
-from asusrouter.tools.converters import flatten_dict
-from asusrouter.tools.converters_v2.raw import raw_to_int
+from asusrouter.tools.converters.raw import raw_to_int
 from asusrouter.tools.identifiers import MacAddress
-from asusrouter.tools.readers import read_units_data_rate
 from asusrouter.tools.types import ARCallableType, ARCallbackType
-from asusrouter.tools.units import UnitOfDataRate
+from asusrouter.tools.units import UnitOfDataRate, read_data_rate
 from asusrouter.tools.writers import dict_to_request
 
 _LOGGER = logging.getLogger(__name__)
 
-_read_kibps = read_units_data_rate(UnitOfDataRate.KIBIBIT_PER_SECOND)
-_read_Mibps = read_units_data_rate(UnitOfDataRate.MEBIBIT_PER_SECOND)  # noqa: N816
+_read_kibps = read_data_rate(UnitOfDataRate.KIBIBIT_PER_SECOND)
+_read_Mibps = read_data_rate(UnitOfDataRate.MEBIBIT_PER_SECOND)  # noqa: N816
 
 _OK_STATUS = 200
 
@@ -179,10 +177,27 @@ def _is_metrics(value: Any) -> bool:
     )
 
 
+def _flatten_dict(d: Any, parent_key: str = "") -> dict[str, Any]:
+    """Flatten a nested dict, joining nested keys with `_`."""
+
+    if not isinstance(d, dict):
+        return {}
+
+    flat: dict[str, Any] = {}
+    for key, value in d.items():
+        new_key = f"{parent_key}_{key}" if parent_key else str(key)
+        if isinstance(value, dict):
+            flat.update(_flatten_dict(value, new_key))
+        else:
+            flat[new_key] = value
+
+    return flat
+
+
 def _to_metrics(raw: Any) -> dict[ARMetricType, Any]:
     """Translate a raw traffic response into metrics."""
 
-    flat = flatten_dict(raw)
+    flat = _flatten_dict(raw)
     if not flat:
         return {}
 

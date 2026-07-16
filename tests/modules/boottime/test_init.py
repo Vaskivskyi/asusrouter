@@ -33,7 +33,7 @@ class TestReadUptime:
         """Boot time = parsed `when` minus uptime, tagged as ARBoottime."""
 
         with patch.object(
-            boottime_source, "safe_datetime", return_value=_WHEN
+            boottime_source, "raw_to_datetime", return_value=_WHEN
         ):
             result = read_uptime("Jan 1 12:00:00 2026(100 secs)")
 
@@ -53,7 +53,9 @@ class TestReadUptime:
     def test_bad_datetime(self) -> None:
         """An unparseable `when` yields None."""
 
-        with patch.object(boottime_source, "safe_datetime", return_value=None):
+        with patch.object(
+            boottime_source, "raw_to_datetime", return_value=None
+        ):
             assert read_uptime("bad(100 secs)") is None
 
 

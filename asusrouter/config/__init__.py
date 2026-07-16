@@ -8,8 +8,11 @@ from enum import StrEnum
 import threading
 from typing import Any
 
-from asusrouter.tools.converters import safe_datetime
-from asusrouter.tools.converters_v2.raw import raw_to_bool, raw_to_int
+from asusrouter.tools.converters.raw import (
+    raw_to_bool,
+    raw_to_datetime,
+    raw_to_int,
+)
 from asusrouter.tools.security import ARSecurityLevel
 
 # Sentinel for distinguishing "missing" from a stored None value.
@@ -71,7 +74,7 @@ def safe_datetime_config(value: Any) -> datetime | None:
     if isinstance(value, datetime):
         return value
     if isinstance(value, str):
-        return safe_datetime(value)
+        return raw_to_datetime(value)
     return None
 
 
@@ -186,6 +189,13 @@ class ARConfigBase:
         with self._lock:
             self._types[key] = converter
             self._options[key] = converter(None)
+
+    def ensure_notification_flag(self, key: ARConfigKeyBase) -> None:
+        """Register a notification-flag key with its default if absent."""
+
+        if key not in self:
+            self.register(key)
+            self.set(key, CONFIG_DEFAULT_ALREADY_NOTIFIED)
 
     def __contains__(self, key: ARConfigKeyBase) -> bool:
         """Check if a configuration key exists."""

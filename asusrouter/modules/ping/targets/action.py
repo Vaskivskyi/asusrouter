@@ -16,7 +16,7 @@ from asusrouter.modules.ping.targets.source import (
 )
 from asusrouter.modules.service.action import ARServiceResult
 from asusrouter.registry import ARCallableRegistry as ARCallReg
-from asusrouter.tools.converters_v2.raw import raw_to_bool
+from asusrouter.tools.converters.raw import raw_to_bool
 from asusrouter.tools.identifiers.ip import IpAddress
 from asusrouter.tools.types import ARCallbackType
 

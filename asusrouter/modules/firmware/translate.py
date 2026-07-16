@@ -6,7 +6,7 @@ import logging
 import re
 
 from asusrouter.modules.firmware.enums import ARFirmwareType
-from asusrouter.tools.converters_v2.raw import raw_to_int, raw_to_str
+from asusrouter.tools.converters.raw import raw_to_int, raw_to_str
 
 _LOGGER = logging.getLogger(__name__)
 

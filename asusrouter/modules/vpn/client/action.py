@@ -14,7 +14,7 @@ from asusrouter.modules.service.action import (
 from asusrouter.modules.vpn.client import classic, fusion
 from asusrouter.modules.vpn.enums import ARVpnProtocol
 from asusrouter.registry import ARCallableRegistry as ARCallReg
-from asusrouter.tools.converters_v2.raw import raw_to_str
+from asusrouter.tools.converters.raw import raw_to_str
 from asusrouter.tools.types import ARCallbackType
 
 if TYPE_CHECKING:

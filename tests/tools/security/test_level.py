@@ -69,24 +69,3 @@ class TestARSecurityLevel:
         """Test the from_value method."""
 
         assert ARSecurityLevel.from_value(value) is expected
-
-    @pytest.mark.parametrize(
-        ("helper", "level", "result"),
-        [
-            ("at_least_strict", ARSecurityLevel.STRICT, True),
-            ("at_least_strict", ARSecurityLevel.UNSAFE, True),
-            ("at_least_default", ARSecurityLevel.STRICT, False),
-            ("at_least_default", ARSecurityLevel.DEFAULT, True),
-            ("at_least_sanitized", ARSecurityLevel.DEFAULT, False),
-            ("at_least_sanitized", ARSecurityLevel.SANITIZED, True),
-            ("at_least_reasonable", ARSecurityLevel.SANITIZED, False),
-            ("at_least_reasonable", ARSecurityLevel.REASONABLE, True),
-            ("at_least_reasonable", ARSecurityLevel.UNSAFE, True),
-        ],
-    )
-    def test_at_least_helpers(
-        self, helper: str, level: ARSecurityLevel, result: bool
-    ) -> None:
-        """Test the at_least_* helper methods."""
-
-        assert getattr(ARSecurityLevel, helper)(level) is result

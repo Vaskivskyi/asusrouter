@@ -19,7 +19,7 @@ from asusrouter.modules.firmware import ARFirmware
 from asusrouter.modules.ports.enums import ARPortSpeed
 from asusrouter.modules.ports.legacy import read_ethernet_port_speed
 from asusrouter.modules.wifi import ARWiFiBand
-from asusrouter.tools.converters_v2.raw import raw_to_bool, raw_to_int
+from asusrouter.tools.converters.raw import raw_to_bool, raw_to_int
 from asusrouter.tools.identifiers import IpAddress, MacAddress
 
 # === Radio ===

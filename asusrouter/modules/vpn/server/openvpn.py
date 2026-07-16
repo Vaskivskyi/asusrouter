@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+import re
 from typing import TYPE_CHECKING, Any
 
 from asusrouter.modules.common.command import ARService
@@ -22,15 +23,15 @@ from asusrouter.modules.vpn.enums import (
     ARVpnServerField,
     ARVpnState,
 )
-from asusrouter.tools.converters_v2.raw import (
+from asusrouter.tools.converters.raw import (
     raw_convert,
     raw_to_bool,
     raw_to_int,
     raw_to_str,
 )
 from asusrouter.tools.identifiers import IpAddress, IpInterface, Password
-from asusrouter.tools.readers_v2.nvram_list import get_field, split_rows
-from asusrouter.tools.readers_v2.table import read_table
+from asusrouter.tools.readers.nvram_list import get_field, split_rows
+from asusrouter.tools.readers.table import read_table
 
 if TYPE_CHECKING:
     from asusrouter.modules.device.identity import ARDeviceIdentity
@@ -114,6 +115,38 @@ def server_enabled(data: dict[str, Any]) -> bool:
     """Whether the OpenVPN server is enabled (worth fetching live status)."""
 
     return raw_to_bool(data.get(ARNvramType.VPN_SERVER_ENABLE.value)) is True
+
+
+# A connected-client status line: `remote_ip:port vpn_ip name`
+_STATUS_FIELDS = 3
+
+# Wrapper tag around the plaintext status body
+_VPNSERVER_RE = re.compile(r"<vpnserver>(.*?)</vpnserver>", re.DOTALL)
+
+
+def read_client_status(content: str | None) -> dict[str, Any]:
+    """Parse the connected-client status payload of the OpenVPN server.
+
+    The payload wraps plaintext lines in a `<vpnserver>` tag; each line is
+    `remote_ip:port vpn_ip name`.
+    """
+
+    content = raw_to_str(content)
+    if not content:
+        return {}
+
+    match = _VPNSERVER_RE.search(content)
+    body = match[1] if match else content
+
+    connected: list[dict[str, str]] = []
+    for line in body.splitlines():
+        fields = line.split()
+        if len(fields) != _STATUS_FIELDS:
+            continue
+        remote, vpn_ip, name = fields
+        connected.append({"name": name, "vpn_ip": vpn_ip, "remote": remote})
+
+    return {"connected": connected}
 
 
 def _is_legacy(identity: ARDeviceIdentity | None) -> bool:

@@ -11,7 +11,6 @@ import threading
 from typing import Any, TypeVar
 
 from asusrouter.config import ARConfigKey as ARConfKey
-from asusrouter.tools.writers import ensure_notification_flag
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -69,7 +68,7 @@ def warn_temperature_scaled(
 ) -> None:
     """Issue a one-time warning when temperature values are rescaled."""
 
-    ensure_notification_flag(config, ARConfKey.NOTIFIED_OPTIMISTIC_TEMPERATURE)
+    config.ensure_notification_flag(ARConfKey.NOTIFIED_OPTIMISTIC_TEMPERATURE)
     with _temperature_warned_lock:
         if config.get(ARConfKey.NOTIFIED_OPTIMISTIC_TEMPERATURE) is False:
             _LOGGER.warning(
