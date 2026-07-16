@@ -13,7 +13,13 @@ from asusrouter.tools.units import (
     TimeUnitConverter,
     UnitConverterBase,
     UnitOfTime,
+    is_non_negative,
+    read_as_base,
 )
+
+
+class MockConverter(UnitConverterBase):
+    """Mock converter for the reader tests."""
 
 
 class MockUnits(StrEnum):
@@ -38,33 +44,6 @@ class TestUnitConverter(UnitConverterBase):
 
     UNIT_CLASS = MOCK_UNIT_CLASS
     _UNIT_RATIO = MOCK_UNIT_RATIOS
-
-    @pytest.mark.parametrize(
-        "unit",
-        [
-            MockUnits.BASE,
-            MockUnits.MEGABASE,
-            MockUnits.TERABASE,
-        ],
-    )
-    def test_validate_unit(self, unit: MockUnits) -> None:
-        """Test valid units pass validation."""
-
-        self._validate_unit(unit)
-
-    @pytest.mark.parametrize(
-        "unit",
-        [
-            "not_a_unit",
-            None,
-            1.123,
-        ],
-    )
-    def test_invalid_unit(self, unit: Any) -> None:
-        """Test invalid units raise validation errors."""
-
-        with pytest.raises(AsusRouterError, match="Unknown unit"):
-            self._validate_unit(unit)
 
     def test_convert(self) -> None:
         """Test the convert method."""
@@ -209,3 +188,90 @@ def test_time_unit_convert_to_base() -> None:
 
     result = TimeUnitConverter.convert_to_base(500.0, UnitOfTime.MILLISECOND)
     assert result == pytest.approx(0.5)
+
+
+@pytest.mark.parametrize(
+    ("value", "result"),
+    [
+        # Any float-compatible value should pass if not smaller than zero
+        (1.0, True),
+        ("0", True),
+        (123132, True),
+        # Negatives should fail
+        (-1.0, False),
+        ("-1", False),
+        # Non-comparable types pass, since not negative
+        (None, True),
+        (object(), True),
+        ({}, True),
+    ],
+)
+def test_is_non_negative(value: Any, result: bool) -> None:
+    """Test is_non_negative."""
+
+    assert is_non_negative(value) is result
+
+
+def test_read_as_base_wrong_converter() -> None:
+    """read_as_base rejects a non-converter."""
+
+    with pytest.raises(TypeError, match="Converter must be"):
+        read_as_base("not a converter", "some_units")  # type: ignore[arg-type]
+
+
+@pytest.mark.parametrize("mode", ["none", "single", "list"])
+def test_read_as_base_checks_pass(mode: str) -> None:
+    """The reader calls convert_to_base when checks pass."""
+
+    check_calls: Any
+
+    with patch.object(
+        MockConverter, "convert_to_base", return_value=1
+    ) as mock_convert_to_base:
+        if mode == "none":
+            check_calls = None
+        elif mode == "single":
+
+            def is_positive(v: float) -> bool:
+                return v > 0
+
+            check_calls = is_positive
+        else:
+
+            def is_positive(v: float) -> bool:
+                return v > 0
+
+            def less_than_1(v: float) -> bool:
+                return v < 1
+
+            check_calls = [is_positive, less_than_1]
+
+        reader = read_as_base(
+            MockConverter, "u", check_calls=check_calls, fallback_value=0.0
+        )
+
+        result = reader(0.5)
+        mock_convert_to_base.assert_called_once_with(0.5, "u")
+        assert result == 1
+
+
+def test_read_as_base_checks_fail() -> None:
+    """The reader returns the fallback when checks fail."""
+
+    fallback_value = 0.0
+
+    with patch.object(
+        MockConverter, "convert_to_base", return_value=1
+    ) as mock_convert_to_base:
+        check_calls = [lambda v: v > 0, lambda v: v < 1]
+
+        reader = read_as_base(
+            MockConverter,
+            "u",
+            check_calls=check_calls,
+            fallback_value=fallback_value,
+        )
+
+        result = reader(1.5)
+        mock_convert_to_base.assert_not_called()
+        assert result == fallback_value

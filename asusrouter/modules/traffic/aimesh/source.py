@@ -15,15 +15,14 @@ from asusrouter.modules.wifi import ARWiFiBand
 from asusrouter.registry import ARCallableRegistry as ARCallReg
 from asusrouter.tools.converters_v2.raw import raw_to_int
 from asusrouter.tools.identifiers import MacAddress
-from asusrouter.tools.readers import read_units_data_rate
 from asusrouter.tools.types import ARCallableType, ARCallbackType
-from asusrouter.tools.units import UnitOfDataRate
+from asusrouter.tools.units import UnitOfDataRate, read_data_rate
 from asusrouter.tools.writers import dict_to_request
 
 _LOGGER = logging.getLogger(__name__)
 
-_read_kibps = read_units_data_rate(UnitOfDataRate.KIBIBIT_PER_SECOND)
-_read_Mibps = read_units_data_rate(UnitOfDataRate.MEBIBIT_PER_SECOND)  # noqa: N816
+_read_kibps = read_data_rate(UnitOfDataRate.KIBIBIT_PER_SECOND)
+_read_Mibps = read_data_rate(UnitOfDataRate.MEBIBIT_PER_SECOND)  # noqa: N816
 
 _OK_STATUS = 200
 

@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from typing import Any
+from unittest.mock import patch
+
 import pytest
 
 from asusrouter.tools.units import (
@@ -9,6 +12,8 @@ from asusrouter.tools.units import (
     DataUnitConverter,
     UnitOfData,
     UnitOfDataRate,
+    is_non_negative,
+    read_data_rate,
 )
 
 
@@ -75,3 +80,28 @@ def test_data_rate_unit_factors(
         == factor
     )
     assert DataRateUnitConverter.convert_to_base(1.0, unit_from) == factor
+
+
+def test_read_data_rate() -> None:
+    """read_data_rate wires the data-rate converter into read_as_base."""
+
+    input_value = 42.0
+
+    def return_function(x: Any) -> Any:
+        """Return the input value."""
+
+        return x
+
+    with patch(
+        "asusrouter.tools.units.data_rate.read_as_base",
+        return_value=return_function,
+    ) as mock_read_as_base:
+        result = read_data_rate(UnitOfDataRate.MEBIBIT_PER_SECOND)
+
+        assert input_value == result(input_value)
+        mock_read_as_base.assert_called_once_with(
+            DataRateUnitConverter,
+            UnitOfDataRate.MEBIBIT_PER_SECOND,
+            is_non_negative,
+            0.0,
+        )

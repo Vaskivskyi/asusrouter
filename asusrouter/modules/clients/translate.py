@@ -23,11 +23,10 @@ from asusrouter.tools.converters_v2.raw import (
     raw_to_str,
 )
 from asusrouter.tools.identifiers import IpAddress, MacAddress
-from asusrouter.tools.readers import read_units_data_rate
-from asusrouter.tools.units import UnitOfDataRate
+from asusrouter.tools.units import UnitOfDataRate, read_data_rate
 
 # Link rates come as binary Mibit/s; read them as bits/s
-_read_mibps = read_units_data_rate(UnitOfDataRate.MEBIBIT_PER_SECOND)
+_read_mibps = read_data_rate(UnitOfDataRate.MEBIBIT_PER_SECOND)
 
 # Raw hook keys that are not clients
 _SKIP_KEYS = frozenset({"maclist", "ClientAPILevel"})
