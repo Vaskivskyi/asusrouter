@@ -26,15 +26,11 @@ class ARConfigKeyBase(StrEnum):
 class ARConfigKey(ARConfigKeyBase):
     """Configuration keys for AsusRouter."""
 
-    # Optimistic data
-    OPTIMISTIC_DATA = "optimistic_data"
     # Optimistic temperature
     OPTIMISTIC_TEMPERATURE = "optimistic_temperature"
     NOTIFIED_OPTIMISTIC_TEMPERATURE = "notified_optimistic_temperature"
     # Seed boot time; when set it anchors stabilization instead of fetching
     BOOTTIME = "boottime"
-    # Robust boottime
-    ROBUST_BOOTTIME = "robust_boottime"
     # Security level applied to logged data
     SECURITY_LEVEL_LOG = "security_level_log"
     # Security level applied to data exposed to consumers
@@ -79,7 +75,6 @@ def safe_datetime_config(value: Any) -> datetime | None:
 
 
 CONFIG_DEFAULT: dict[ARConfigKey, Any] = {
-    ARConfigKey.OPTIMISTIC_DATA: CONFIG_DEFAULT_BOOL,
     # If set, the temperature will be automatically adjusted
     # to fit the expected range
     ARConfigKey.OPTIMISTIC_TEMPERATURE: CONFIG_DEFAULT_BOOL,
@@ -87,9 +82,6 @@ CONFIG_DEFAULT: dict[ARConfigKey, Any] = {
     # If set, this boot time is used as the stabilization anchor instead
     # of fetching it on connect
     ARConfigKey.BOOTTIME: None,
-    # If set, the boottime will be processed with 2 seconds
-    # precision to avoid +- 1 second uncertainty in the raw data
-    ARConfigKey.ROBUST_BOOTTIME: CONFIG_DEFAULT_BOOL,
     # Logs sanitize sensitive data by default
     ARConfigKey.SECURITY_LEVEL_LOG: ARSecurityLevel.SANITIZED,
     # Data exposes reasonably-sensitive values (MAC, IP) but not secrets
@@ -97,15 +89,11 @@ CONFIG_DEFAULT: dict[ARConfigKey, Any] = {
 }
 
 TYPES_DEFAULT: dict[ARConfigKey, Callable[[Any], Any]] = {
-    # Optimistic data
-    ARConfigKey.OPTIMISTIC_DATA: safe_bool_config,
     # Optimistic temperature
     ARConfigKey.OPTIMISTIC_TEMPERATURE: safe_bool_config,
     ARConfigKey.NOTIFIED_OPTIMISTIC_TEMPERATURE: safe_bool_config,
     # Seed boot time
     ARConfigKey.BOOTTIME: safe_datetime_config,
-    # Robust boottime
-    ARConfigKey.ROBUST_BOOTTIME: safe_bool_config,
     # Security levels
     ARConfigKey.SECURITY_LEVEL_LOG: ARSecurityLevel.from_value,
     ARConfigKey.SECURITY_LEVEL_DATA: ARSecurityLevel.from_value,

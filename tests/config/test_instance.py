@@ -23,9 +23,10 @@ TEST_INSTANCE_DEFAULTS = {
 def reset_global() -> None:
     """Reset the configuration before each test."""
 
-    ARConfig.set(ARConfKey.OPTIMISTIC_DATA, CONFIG_DEFAULT_BOOL)
     ARConfig.set(ARConfKey.OPTIMISTIC_TEMPERATURE, CONFIG_DEFAULT_BOOL)
-    ARConfig.set(ARConfKey.ROBUST_BOOTTIME, CONFIG_DEFAULT_BOOL)
+    ARConfig.set(
+        ARConfKey.NOTIFIED_OPTIMISTIC_TEMPERATURE, CONFIG_DEFAULT_BOOL
+    )
 
 
 class TestInstance:

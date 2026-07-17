@@ -34,9 +34,8 @@ class MockKey(ARConfigKeyBase):
 
 
 KEYS_BOOL = [
-    ARConfKey.OPTIMISTIC_DATA,
     ARConfKey.OPTIMISTIC_TEMPERATURE,
-    ARConfKey.ROBUST_BOOTTIME,
+    ARConfKey.NOTIFIED_OPTIMISTIC_TEMPERATURE,
 ]
 
 
@@ -44,9 +43,10 @@ KEYS_BOOL = [
 def reset_config() -> None:
     """Reset the configuration before each test."""
 
-    ARConfig.set(ARConfKey.OPTIMISTIC_DATA, CONFIG_DEFAULT_BOOL)
     ARConfig.set(ARConfKey.OPTIMISTIC_TEMPERATURE, CONFIG_DEFAULT_BOOL)
-    ARConfig.set(ARConfKey.ROBUST_BOOTTIME, CONFIG_DEFAULT_BOOL)
+    ARConfig.set(
+        ARConfKey.NOTIFIED_OPTIMISTIC_TEMPERATURE, CONFIG_DEFAULT_BOOL
+    )
 
 
 @pytest.mark.parametrize(
@@ -119,9 +119,9 @@ class TestConfig:
     def test_custom_defaults(self) -> None:
         """Test that custom defaults can be set and retrieved correctly."""
 
-        custom = {ARConfKey.OPTIMISTIC_DATA: True}
+        custom = {ARConfKey.OPTIMISTIC_TEMPERATURE: True}
         config = type(ARConfig)(custom)
-        assert config.get(ARConfKey.OPTIMISTIC_DATA) is True
+        assert config.get(ARConfKey.OPTIMISTIC_TEMPERATURE) is True
 
     @pytest.mark.parametrize(
         "wrong_key",
@@ -154,7 +154,7 @@ class TestConfig:
 
         empty = ARConfigBase()
         with pytest.raises(KeyError, match="Unknown configuration option"):
-            empty.get(ARConfKey.OPTIMISTIC_DATA)
+            empty.get(ARConfKey.OPTIMISTIC_TEMPERATURE)
 
     def test_keys(self) -> None:
         """Test that we can get the full list of configuration keys."""
@@ -213,14 +213,14 @@ class TestRegister:
 
             return bool(int(val))
 
-        ARConfig.register(ARConfKey.OPTIMISTIC_DATA, int_to_bool)
-        ARConfig.set(ARConfKey.OPTIMISTIC_DATA, 1)
-        assert ARConfig.get(ARConfKey.OPTIMISTIC_DATA) is True
-        ARConfig.set(ARConfKey.OPTIMISTIC_DATA, 0)
-        assert ARConfig.get(ARConfKey.OPTIMISTIC_DATA) is False
+        ARConfig.register(ARConfKey.OPTIMISTIC_TEMPERATURE, int_to_bool)
+        ARConfig.set(ARConfKey.OPTIMISTIC_TEMPERATURE, 1)
+        assert ARConfig.get(ARConfKey.OPTIMISTIC_TEMPERATURE) is True
+        ARConfig.set(ARConfKey.OPTIMISTIC_TEMPERATURE, 0)
+        assert ARConfig.get(ARConfKey.OPTIMISTIC_TEMPERATURE) is False
 
         # Restore original converter for cleanliness
-        ARConfig.register(ARConfKey.OPTIMISTIC_DATA, safe_bool_config)
+        ARConfig.register(ARConfKey.OPTIMISTIC_TEMPERATURE, safe_bool_config)
 
     def test_register_overwrites_existing(self) -> None:
         """Test that register overwrites an existing converter."""
@@ -231,16 +231,16 @@ class TestRegister:
         def always_false(val: Any) -> bool:
             return False
 
-        ARConfig.register(ARConfKey.OPTIMISTIC_DATA, always_true)
-        ARConfig.set(ARConfKey.OPTIMISTIC_DATA, "anything")
-        assert ARConfig.get(ARConfKey.OPTIMISTIC_DATA) is True
+        ARConfig.register(ARConfKey.OPTIMISTIC_TEMPERATURE, always_true)
+        ARConfig.set(ARConfKey.OPTIMISTIC_TEMPERATURE, "anything")
+        assert ARConfig.get(ARConfKey.OPTIMISTIC_TEMPERATURE) is True
 
-        ARConfig.register(ARConfKey.OPTIMISTIC_DATA, always_false)
-        ARConfig.set(ARConfKey.OPTIMISTIC_DATA, "anything")
-        assert ARConfig.get(ARConfKey.OPTIMISTIC_DATA) is False
+        ARConfig.register(ARConfKey.OPTIMISTIC_TEMPERATURE, always_false)
+        ARConfig.set(ARConfKey.OPTIMISTIC_TEMPERATURE, "anything")
+        assert ARConfig.get(ARConfKey.OPTIMISTIC_TEMPERATURE) is False
 
         # Restore original converter
-        ARConfig.register(ARConfKey.OPTIMISTIC_DATA, safe_bool_config)
+        ARConfig.register(ARConfKey.OPTIMISTIC_TEMPERATURE, safe_bool_config)
 
     def test_register_unknown_key(self) -> None:
         """Test that register raises KeyError for unknown keys."""
@@ -254,11 +254,11 @@ class TestRegister:
     def test_register_no_converter(self) -> None:
         """Test that register with no converter uses boolean conversion."""
 
-        ARConfig.register(ARConfKey.OPTIMISTIC_DATA, None)
-        ARConfig.set(ARConfKey.OPTIMISTIC_DATA, 1)
-        assert ARConfig.get(ARConfKey.OPTIMISTIC_DATA) is True
-        ARConfig.set(ARConfKey.OPTIMISTIC_DATA, 0)
-        assert ARConfig.get(ARConfKey.OPTIMISTIC_DATA) is False
+        ARConfig.register(ARConfKey.OPTIMISTIC_TEMPERATURE, None)
+        ARConfig.set(ARConfKey.OPTIMISTIC_TEMPERATURE, 1)
+        assert ARConfig.get(ARConfKey.OPTIMISTIC_TEMPERATURE) is True
+        ARConfig.set(ARConfKey.OPTIMISTIC_TEMPERATURE, 0)
+        assert ARConfig.get(ARConfKey.OPTIMISTIC_TEMPERATURE) is False
 
 
 class TestReset:
@@ -318,7 +318,9 @@ class TestThreadSafety:
 
         def register() -> None:
             """Register a type."""
-            ARConfig.register(ARConfKey.OPTIMISTIC_DATA, safe_bool_config)
+            ARConfig.register(
+                ARConfKey.OPTIMISTIC_TEMPERATURE, safe_bool_config
+            )
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
             futures = [executor.submit(register) for _ in range(20)]
