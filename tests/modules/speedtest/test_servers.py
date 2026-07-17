@@ -9,7 +9,7 @@ from asusrouter.modules.endpoint.hooks import ARHook
 from asusrouter.modules.speedtest.servers import (
     ARSpeedTestServersSource,
     ARSpeedTestServersSourceUniversal,
-    get_state,
+    fetch_state,
     translate_state,
 )
 from asusrouter.registry import ARCallableRegistry as ARCallReg
@@ -22,24 +22,24 @@ class TestSource:
     """Tests for the servers source."""
 
     def test_registered(self) -> None:
-        """The source resolves to the module get_state callable."""
+        """The source resolves to the module fetch_state callable."""
 
         assert (
             ARCallReg.get_callable(
-                ARSpeedTestServersSourceUniversal, "get_state"
+                ARSpeedTestServersSourceUniversal, "fetch_state"
             )
-            is get_state
+            is fetch_state
         )
 
 
 class TestGetState:
-    """Tests for get_state."""
+    """Tests for fetch_state."""
 
     async def test_default_reads_list(self) -> None:
         """Without refresh the server list is read directly."""
 
         callback = AsyncMock(return_value={_HOOK: _SERVERS})
-        result = await get_state(callback, ARSpeedTestServersSourceUniversal)
+        result = await fetch_state(callback, ARSpeedTestServersSourceUniversal)
 
         assert result == _SERVERS
         call = callback.await_args.kwargs
@@ -49,7 +49,7 @@ class TestGetState:
         """A non-dict hook reply yields no data."""
 
         callback = AsyncMock(return_value=None)
-        result = await get_state(callback, ARSpeedTestServersSourceUniversal)
+        result = await fetch_state(callback, ARSpeedTestServersSourceUniversal)
 
         assert result == {}
 
@@ -60,7 +60,7 @@ class TestGetState:
         callback = AsyncMock(side_effect=[None, {_HOOK: full}])
 
         with patch("asusrouter.tools.poll.asyncio.sleep", AsyncMock()):
-            result = await get_state(
+            result = await fetch_state(
                 callback,
                 ARSpeedTestServersSourceUniversal,
                 refresh=True,

@@ -12,7 +12,7 @@ from asusrouter.modules.common.metrics import ARMetricType
 from asusrouter.modules.device.identity import ARDeviceIdentity
 from asusrouter.modules.dsl import (
     ARDSLSource,
-    get_state,
+    fetch_state,
     source as dsl_source,
     translate_state,
 )
@@ -76,7 +76,7 @@ class TestSource:
 
 
 class TestGetState:
-    """Tests for get_state."""
+    """Tests for fetch_state."""
 
     async def test_fetches_when_supported(self) -> None:
         """A DSL-capable device requests the rates from the NVRAM module."""
@@ -85,7 +85,7 @@ class TestGetState:
         get_data = AsyncMock(return_value=values)
         callback = AsyncMock()
 
-        result = await get_state(
+        result = await fetch_state(
             callback,
             ARDSLSource(),
             get_data_callback=get_data,
@@ -104,7 +104,7 @@ class TestGetState:
 
         get_data = AsyncMock(return_value=None)
 
-        result = await get_state(
+        result = await fetch_state(
             AsyncMock(),
             ARDSLSource(),
             get_data_callback=get_data,
@@ -118,7 +118,7 @@ class TestGetState:
 
         callback = AsyncMock()
 
-        result = await get_state(
+        result = await fetch_state(
             callback, ARDSLSource(), identity=_identity(dsl_support=True)
         )
 
@@ -137,7 +137,7 @@ class TestGetState:
 
         get_data = AsyncMock()
 
-        result = await get_state(
+        result = await fetch_state(
             AsyncMock(),
             ARDSLSource(),
             get_data_callback=get_data,
@@ -193,6 +193,6 @@ def test_registers_callable(monkeypatch: pytest.MonkeyPatch) -> None:
 
     mock_register.assert_called_once_with(
         module.ARDSLSource,
-        get_state=module.get_state,
+        fetch_state=module.fetch_state,
         translate_state=module.translate_state,
     )

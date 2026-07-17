@@ -51,7 +51,7 @@ async def _async_fetch(callback: ARCallbackType) -> Any:
     return hook_value(data, ARHook.OOKLA_SPEEDTEST_SERVERS)
 
 
-async def get_state(
+async def fetch_state(
     callback: ARCallbackType,
     source: ARSpeedTestServersSource,
     *,
@@ -90,7 +90,7 @@ def translate_state(data: Any, **kwargs: Any) -> list[ARSpeedTestServer]:
 
 ARCallReg.register_module(
     ARSpeedTestServersSource,
-    get_state=get_state,
+    fetch_state=fetch_state,
     translate_state=translate_state,
 )
 
@@ -98,6 +98,6 @@ ARCallReg.register_module(
 __all__ = [
     "ARSpeedTestServersSource",
     "ARSpeedTestServersSourceUniversal",
-    "get_state",
+    "fetch_state",
     "translate_state",
 ]

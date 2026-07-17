@@ -19,7 +19,7 @@ from asusrouter.modules.wifi.enums import (
 from asusrouter.modules.wifi.source import (
     ARWiFiSource,
     ARWiFiSourceUniversal,
-    get_state,
+    fetch_state,
     translate_state,
 )
 
@@ -38,7 +38,7 @@ __all__ = [
     "ARWiFiMultiBand",
     "ARWiFiSource",
     "ARWiFiSourceUniversal",
-    "get_state",
+    "fetch_state",
     "run_action",
     "translate_state",
 ]

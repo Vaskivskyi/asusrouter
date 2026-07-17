@@ -13,7 +13,7 @@ from asusrouter.modules.parental_control.schedule.action import (
 from asusrouter.modules.parental_control.schedule.source import (
     ARParentalControlSource,
     ARParentalControlSourceUniversal,
-    get_state,
+    fetch_state,
     rule_entry_count,
     rule_schedule_mode,
     serialize_rules,
@@ -43,7 +43,7 @@ __all__ = [
     "ARParentalControlSource",
     "ARParentalControlSourceUniversal",
     "ARScheduleEntry",
-    "get_state",
+    "fetch_state",
     "parse_timemap",
     "rule_entry_count",
     "rule_schedule_mode",

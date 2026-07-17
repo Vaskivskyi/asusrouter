@@ -15,7 +15,7 @@ from asusrouter.modules.wan.source import (
     ARWanUnit,
     ARWanVlan,
     ARWanWatchdog,
-    get_state,
+    fetch_state,
     translate_state,
 )
 
@@ -33,6 +33,6 @@ __all__ = [
     "ARWanUnit",
     "ARWanVlan",
     "ARWanWatchdog",
-    "get_state",
+    "fetch_state",
     "translate_state",
 ]

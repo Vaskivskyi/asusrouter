@@ -184,7 +184,7 @@ class ARSysInfoSource(ARDataSource):
 ARSysInfoSourceUniversal: ARSysInfoSource = ARSysInfoSource()
 
 
-async def get_state(
+async def fetch_state(
     callback: ARCallbackType,
     source: ARSysInfoSource,
     **kwargs: Any,
@@ -229,13 +229,13 @@ def translate_state(
 
 
 ARCallReg.register_module(
-    ARSysInfoSource, get_state=get_state, translate_state=translate_state
+    ARSysInfoSource, fetch_state=fetch_state, translate_state=translate_state
 )
 
 
 __all__ = [
     "ARSysInfoSource",
     "ARSysInfoSourceUniversal",
-    "get_state",
+    "fetch_state",
     "translate_state",
 ]

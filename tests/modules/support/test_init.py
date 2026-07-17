@@ -13,7 +13,7 @@ import asusrouter.modules.support as support_mod
 from asusrouter.modules.support import (
     ARSupportSource,
     ARSupportSourceUniversal,
-    get_state,
+    fetch_state,
     translate_state,
 )
 from asusrouter.modules.support.flag import ARSupportType
@@ -48,11 +48,11 @@ def test_translation_table_covers_all_support_types() -> None:
 
 
 @pytest.mark.asyncio
-async def test_get_state_returns_ui_support() -> None:
-    """get_state returns the ui_support dict when present."""
+async def test_fetch_state_returns_ui_support() -> None:
+    """fetch_state returns the ui_support dict when present."""
 
     callback = AsyncMock(return_value={"get_ui_support": {"foo": "bar"}})
-    result = await get_state(callback, MagicMock())
+    result = await fetch_state(callback, MagicMock())
     assert result == {"foo": "bar"}
 
 
@@ -66,16 +66,16 @@ async def test_get_state_returns_ui_support() -> None:
     ],
 )
 @pytest.mark.asyncio
-async def test_get_state_returns_empty(response: Any) -> None:
-    """get_state returns empty dict when response has no usable ui_support."""
+async def test_fetch_state_returns_empty(response: Any) -> None:
+    """fetch_state returns empty dict when response lacks ui_support."""
 
     callback = AsyncMock(return_value=response)
-    result = await get_state(callback, MagicMock())
+    result = await fetch_state(callback, MagicMock())
     assert result == {}
 
 
 @pytest.mark.asyncio
-async def test_get_state_rc_support_fallback() -> None:
+async def test_fetch_state_rc_support_fallback() -> None:
     """Empty ui_support falls back to the rc_support token list."""
 
     callback = AsyncMock(
@@ -84,7 +84,7 @@ async def test_get_state_rc_support_fallback() -> None:
             {"rc_support": "2.4G 5G usbX"},
         ]
     )
-    result = await get_state(callback, MagicMock())
+    result = await fetch_state(callback, MagicMock())
 
     assert result == {"2.4G": True, "5G": True, "usbX": True}
     assert callback.await_count == 2
@@ -111,5 +111,5 @@ def test_module_registers_callables(monkeypatch: pytest.MonkeyPatch) -> None:
     mock_register.assert_called_once()
     args, kwargs = mock_register.call_args
     assert args[0] is support_mod.ARSupportSource
-    assert kwargs["get_state"] is support_mod.get_state
+    assert kwargs["fetch_state"] is support_mod.fetch_state
     assert kwargs["translate_state"] is support_mod.translate_state

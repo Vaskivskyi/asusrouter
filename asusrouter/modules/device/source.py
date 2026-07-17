@@ -49,7 +49,7 @@ DEVICE_REQUEST: tuple[ARDataType | ARDataSource, ...] = (
 )
 
 
-async def get_state(
+async def fetch_state(
     callback: ARCallbackType,
     source: ARDeviceSource,
     get_data_callback: ARCallbackType,
@@ -73,7 +73,7 @@ def translate_state(
 
 
 ARCallReg.register_module(
-    ARDeviceSource, get_state=get_state, translate_state=translate_state
+    ARDeviceSource, fetch_state=fetch_state, translate_state=translate_state
 )
 
 
@@ -81,6 +81,6 @@ __all__ = [
     "ARDeviceSource",
     "ARDeviceSourceUniversal",
     "DEVICE_REQUEST",
-    "get_state",
+    "fetch_state",
     "translate_state",
 ]

@@ -53,7 +53,7 @@ DEFAULT_PORT_HTTP = 80
 DEFAULT_PORT_HTTPS = 8443
 
 # AsusRouter definitions
-AR_CALL_GET_STATE = "get_state"
+AR_CALL_FETCH_STATE = "fetch_state"
 AR_CALL_RUN_ACTION = "run_action"
 AR_CALL_TRANSLATE_ACTION = "translate_action"
 AR_CALL_TRANSLATE_STATE = "translate_state"

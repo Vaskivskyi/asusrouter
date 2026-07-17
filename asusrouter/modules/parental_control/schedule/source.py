@@ -56,7 +56,7 @@ ARParentalControlSourceUniversal: ARParentalControlSource = (
 )
 
 
-async def get_state(
+async def fetch_state(
     callback: ARCallbackType,
     source: ARParentalControlSource,
     *,
@@ -209,7 +209,7 @@ def translate_state(
 
 ARCallReg.register_module(
     ARParentalControlSource,
-    get_state=get_state,
+    fetch_state=fetch_state,
     translate_state=translate_state,
 )
 
@@ -218,7 +218,7 @@ __all__ = [
     "ARParentalControlSource",
     "ARParentalControlSourceUniversal",
     "DEFAULT_TIMEMAP",
-    "get_state",
+    "fetch_state",
     "rule_entry_count",
     "rule_schedule_mode",
     "serialize_rules",

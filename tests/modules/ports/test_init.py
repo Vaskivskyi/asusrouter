@@ -14,7 +14,7 @@ from asusrouter.modules.ports import (
     ARPortsSource,
     ARPortsSourceUniversal,
     ARPortType,
-    get_state,
+    fetch_state,
     translate_state,
 )
 from asusrouter.modules.source import ARDataSource
@@ -62,7 +62,7 @@ class TestARPortsSource:
 
 
 class TestGetState:
-    """Tests for get_state."""
+    """Tests for fetch_state."""
 
     @staticmethod
     def _callback(mapping: dict[AREndpoint, Any]) -> AsyncMock:
@@ -80,7 +80,7 @@ class TestGetState:
 
         callback = self._callback({AREndpoint.FETCH_PORT_STATUS: _PORT_STATUS})
 
-        result = await get_state(
+        result = await fetch_state(
             callback, ARPortsSourceUniversal, identity=_identity()
         )
 
@@ -94,7 +94,7 @@ class TestGetState:
 
         callback = self._callback({AREndpoint.FETCH_PORTS_ETHERNET: _ETHERNET})
 
-        result = await get_state(
+        result = await fetch_state(
             callback, ARPortsSourceUniversal, identity=_identity()
         )
 
@@ -106,7 +106,7 @@ class TestGetState:
 
         callback = self._callback({})
 
-        result = await get_state(
+        result = await fetch_state(
             callback, ARPortsSourceUniversal, identity=_identity()
         )
 

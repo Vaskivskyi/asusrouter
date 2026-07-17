@@ -12,7 +12,7 @@ from asusrouter.modules.aimesh import (
     ARAiMeshSource,
     ARAiMeshSourceUniversal,
     ARAiMeshTopology,
-    get_state,
+    fetch_state,
     source as aimesh_source,
     translate_state,
 )
@@ -53,14 +53,14 @@ class TestARAiMeshSource:
 
 
 class TestGetState:
-    """Tests for get_state."""
+    """Tests for fetch_state."""
 
     async def test_fetches_onboarding(self) -> None:
-        """get_state fetches the onboarding endpoint and returns the dict."""
+        """fetch_state fetches the onboarding endpoint and returns the dict."""
 
         callback = AsyncMock(return_value={"get_cfg_clientlist": [[]]})
 
-        result = await get_state(callback, ARAiMeshSourceUniversal)
+        result = await fetch_state(callback, ARAiMeshSourceUniversal)
 
         callback.assert_awaited_once_with(endpoint=AREndpoint.FETCH_ONBOARDING)
         assert result == {"get_cfg_clientlist": [[]]}
@@ -70,7 +70,7 @@ class TestGetState:
 
         callback = AsyncMock(return_value="not-a-dict")
 
-        assert await get_state(callback, ARAiMeshSourceUniversal) == {}
+        assert await fetch_state(callback, ARAiMeshSourceUniversal) == {}
 
 
 class TestTranslateState:
@@ -141,6 +141,6 @@ def test_registers_callables(monkeypatch: pytest.MonkeyPatch) -> None:
     args, kwargs = mock_register.call_args
     assert args[0] is module.ARAiMeshSource
     assert kwargs == {
-        "get_state": module.get_state,
+        "fetch_state": module.fetch_state,
         "translate_state": module.translate_state,
     }

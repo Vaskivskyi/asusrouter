@@ -150,7 +150,7 @@ async def _get_all(
     return merged
 
 
-async def get_state(
+async def fetch_state(
     callback: ARCallbackType,
     source: ARTrafficAiMeshSource,
     *,
@@ -229,6 +229,6 @@ def translate_state(
 
 ARCallReg.register_module(
     ARTrafficAiMeshSource,
-    get_state=get_state,
+    fetch_state=fetch_state,
     translate_state=translate_state,
 )

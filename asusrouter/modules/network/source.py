@@ -1,7 +1,7 @@
 """Network data source for AsusRouter.
 
 The wireless networks (main + guest/IoT). On modern firmware they live in
-SDN; on legacy firmware they come from per-band nvram. `get_state` picks the
+SDN; on legacy firmware they come from per-band nvram. `fetch_state` picks the
 backend by the `MaxRule_SDN` support flag; `translate_state` picks the parser
 by the shape of the fetched data. Both yield the same output: networks grouped
 by type -> list of network profiles.
@@ -41,7 +41,7 @@ def _sdn_supported(identity: ARDeviceIdentity | None) -> bool:
     return rules is not None and rules > 0
 
 
-async def get_state(
+async def fetch_state(
     callback: ARCallbackType,
     source: ARNetworkSource,
     *,
@@ -77,13 +77,13 @@ def translate_state(
 
 
 ARCallReg.register_module(
-    ARNetworkSource, get_state=get_state, translate_state=translate_state
+    ARNetworkSource, fetch_state=fetch_state, translate_state=translate_state
 )
 
 
 __all__ = [
     "ARNetworkSource",
     "ARNetworkSourceUniversal",
-    "get_state",
+    "fetch_state",
     "translate_state",
 ]

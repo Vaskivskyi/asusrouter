@@ -18,7 +18,7 @@ from asusrouter.modules.ddns.source import (
     DDNS_REQUEST,
     ARDdnsSource,
     ARDdnsSourceUniversal,
-    get_state,
+    fetch_state,
     read_status,
     translate_state,
 )
@@ -34,7 +34,7 @@ __all__ = [
     "ARDdnsSource",
     "ARDdnsSourceUniversal",
     "ARDdnsStatus",
-    "get_state",
+    "fetch_state",
     "read_status",
     "run_action",
     "translate_state",

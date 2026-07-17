@@ -10,7 +10,7 @@ from asusrouter.modules.sysinfo.enums import (
 from asusrouter.modules.sysinfo.source import (
     ARSysInfoSource,
     ARSysInfoSourceUniversal,
-    get_state,
+    fetch_state,
     translate_state,
 )
 
@@ -20,6 +20,6 @@ __all__ = [
     "ARSysInfoSourceUniversal",
     "ARSysInfoType",
     "ARWlanClientCount",
-    "get_state",
+    "fetch_state",
     "translate_state",
 ]

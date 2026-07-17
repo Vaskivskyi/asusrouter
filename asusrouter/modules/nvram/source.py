@@ -168,7 +168,7 @@ def _as_items(
     return list(request)
 
 
-async def get_state(
+async def fetch_state(
     callback: ARCallbackType,
     source: ARNvramItem | Iterable[ARNvramItem],
     **kwargs: Any,
@@ -254,13 +254,13 @@ def translate_state(
 
 ARCallReg.register_module(
     ARNvramType,
-    get_state=get_state,
+    fetch_state=fetch_state,
     translate_state=translate_state,
     multi=True,
 )
 ARCallReg.register_module(
     ARNvramIndexSource,
-    get_state=get_state,
+    fetch_state=fetch_state,
     translate_state=translate_state,
     multi=True,
 )

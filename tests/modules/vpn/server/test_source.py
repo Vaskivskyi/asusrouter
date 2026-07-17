@@ -7,27 +7,27 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from asusrouter.const import AR_CALL_GET_STATE, AR_CALL_TRANSLATE_STATE
+from asusrouter.const import AR_CALL_FETCH_STATE, AR_CALL_TRANSLATE_STATE
 from asusrouter.modules.endpoint import AREndpoint
 from asusrouter.modules.vpn.enums import ARVpnProtocol, ARVpnServerField
 from asusrouter.modules.vpn.server.openvpn import CLIENT_STATUS_KEY
 from asusrouter.modules.vpn.server.source import (
     ARVpnServerSource,
     ARVpnServerSourceUniversal,
-    get_state,
+    fetch_state,
     translate_state,
 )
 from asusrouter.registry import ARCallableRegistry as ARCallReg
 
 
 class TestGetState:
-    """Tests for get_state."""
+    """Tests for fetch_state."""
 
     async def test_fetches_appget(self) -> None:
         """The request carries the WG hook and nvram keys."""
 
         callback = AsyncMock(return_value={"VPNServer_enable": "0"})
-        await get_state(callback, ARVpnServerSourceUniversal)
+        await fetch_state(callback, ARVpnServerSourceUniversal)
 
         args = callback.call_args.kwargs
         assert args["endpoint"] is AREndpoint.FETCH_DATA
@@ -38,7 +38,7 @@ class TestGetState:
         """A disabled OpenVPN server skips the extra status fetch."""
 
         callback = AsyncMock(return_value={"VPNServer_enable": "0"})
-        await get_state(callback, ARVpnServerSourceUniversal)
+        await fetch_state(callback, ARVpnServerSourceUniversal)
 
         assert callback.call_count == 1
 
@@ -52,7 +52,7 @@ class TestGetState:
                 "<vpnserver>\n1.2.3.4:5 10.0.0.2 alice\n</vpnserver>",
             ]
         )
-        result = await get_state(callback, ARVpnServerSourceUniversal)
+        result = await fetch_state(callback, ARVpnServerSourceUniversal)
 
         assert callback.call_count == 2
         second = callback.call_args_list[1].kwargs
@@ -67,7 +67,7 @@ class TestGetState:
         """A non-dict response is returned untouched, no extra call."""
 
         callback = AsyncMock(return_value=None)
-        result = await get_state(callback, ARVpnServerSourceUniversal)
+        result = await fetch_state(callback, ARVpnServerSourceUniversal)
 
         assert result is None
         assert callback.call_count == 1
@@ -104,11 +104,11 @@ class TestTranslateState:
 
 
 def test_source_is_registered() -> None:
-    """The source registers get_state and translate_state."""
+    """The source registers fetch_state and translate_state."""
 
     assert (
-        ARCallReg.get_callable(ARVpnServerSourceUniversal, AR_CALL_GET_STATE)
-        is get_state
+        ARCallReg.get_callable(ARVpnServerSourceUniversal, AR_CALL_FETCH_STATE)
+        is fetch_state
     )
     assert (
         ARCallReg.get_callable(ARVpnServerSource, AR_CALL_TRANSLATE_STATE)

@@ -33,7 +33,7 @@ _MAX_CORES = 8
 
 
 class _LegacyPayload(NamedTuple):
-    """Transient legacy cpu/ram transport from get_state to translate."""
+    """Transient legacy cpu/ram transport from fetch_state to translate."""
 
     now: CpuCounters
     prev: CpuCounters | None
@@ -172,7 +172,7 @@ async def _get_legacy(
     return {mac.as_asus(): _LegacyPayload(now, source.stash_cpu(now), ram)}
 
 
-async def get_state(
+async def fetch_state(
     callback: ARCallbackType,
     source: ARSystemStatusSource,
     *,
@@ -264,13 +264,15 @@ def translate_state(
 
 
 ARCallReg.register_module(
-    ARSystemStatusSource, get_state=get_state, translate_state=translate_state
+    ARSystemStatusSource,
+    fetch_state=fetch_state,
+    translate_state=translate_state,
 )
 
 
 __all__ = [
     "ARSystemStatusSource",
     "ARSystemStatusSourceUniversal",
-    "get_state",
+    "fetch_state",
     "translate_state",
 ]

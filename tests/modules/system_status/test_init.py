@@ -19,7 +19,7 @@ from asusrouter.modules.system_status import (
     ARSystemStatusSource,
     ARSystemStatusSourceUniversal,
     ARSystemType as T,
-    get_state,
+    fetch_state,
     legacy,
     translate_state,
 )
@@ -130,14 +130,14 @@ class TestARSystemStatusSource:
 
 
 class TestGetState:
-    """Tests for get_state."""
+    """Tests for fetch_state."""
 
     async def test_uses_identity_mac_without_target(self) -> None:
         """Without a target the request filters on the device MAC."""
 
         callback = AsyncMock(return_value={"contents": [["5", "26"]]})
 
-        result = await get_state(
+        result = await fetch_state(
             callback, ARSystemStatusSourceUniversal, identity=_identity()
         )
 
@@ -154,7 +154,7 @@ class TestGetState:
         node = "AA:BB:CC:DD:EE:FF"
         callback = AsyncMock(return_value={"contents": [["1", "2"]]})
 
-        result = await get_state(
+        result = await fetch_state(
             callback, ARSystemStatusSource(node), identity=_identity()
         )
 
@@ -165,7 +165,7 @@ class TestGetState:
 
         callback = AsyncMock(return_value={"contents": [["5", "26"]]})
 
-        result = await get_state(
+        result = await fetch_state(
             callback,
             ARSystemStatusSourceUniversal,
             identity=_identity(mac=None),
@@ -184,7 +184,7 @@ class TestGetState:
 
         callback = AsyncMock(return_value=response)
 
-        result = await get_state(
+        result = await fetch_state(
             callback, ARSystemStatusSourceUniversal, identity=_identity()
         )
 
@@ -263,7 +263,7 @@ class TestLegacyGetState:
             {"cpu1_total": "100", "cpu1_usage": "10"}, _MEM
         )
 
-        result = await get_state(
+        result = await fetch_state(
             callback,
             ARSystemStatusSource(),
             identity=_identity(),
@@ -287,7 +287,7 @@ class TestLegacyGetState:
             {"cpu1_total": "100", "cpu1_usage": "10"}, _MEM
         )
 
-        result = await get_state(
+        result = await fetch_state(
             callback, ARSystemStatusSource(), identity=_identity()
         )
 
@@ -300,7 +300,7 @@ class TestLegacyGetState:
         source = ARSystemStatusSource()
         config = _force_config()
 
-        await get_state(
+        await fetch_state(
             _legacy_callback(
                 {
                     "cpu1_total": "100",
@@ -314,7 +314,7 @@ class TestLegacyGetState:
             identity=_identity(),
             connection_config=config,
         )
-        result = await get_state(
+        result = await fetch_state(
             _legacy_callback(
                 {
                     "cpu1_total": "200",
@@ -346,13 +346,13 @@ class TestLegacyGetState:
         second = {f"cpu{i}_total": "200" for i in cores}
         second.update({f"cpu{i}_usage": "60" for i in cores})
 
-        await get_state(
+        await fetch_state(
             _legacy_callback(first, _MEM),
             source,
             identity=_identity(),
             connection_config=config,
         )
-        result = await get_state(
+        result = await fetch_state(
             _legacy_callback(second, _MEM),
             source,
             identity=_identity(),
@@ -371,7 +371,7 @@ class TestLegacyGetState:
             {"cpu1_total": "100", "cpu1_usage": "10"}, _MEM
         )
 
-        result = await get_state(
+        result = await fetch_state(
             callback,
             ARSystemStatusSource("AA:BB:CC:DD:EE:FF"),
             identity=_identity(),
@@ -387,7 +387,7 @@ class TestLegacyGetState:
         async def call(*, endpoint: AREndpoint, request: str) -> Any:
             return "not-a-dict"
 
-        result = await get_state(
+        result = await fetch_state(
             AsyncMock(side_effect=call),
             ARSystemStatusSource(),
             identity=_identity(),
@@ -399,7 +399,7 @@ class TestLegacyGetState:
     async def test_empty_data(self) -> None:
         """Empty cpu and ram data yields an empty result."""
 
-        result = await get_state(
+        result = await fetch_state(
             _legacy_callback({}, {}),
             ARSystemStatusSource(),
             identity=_identity(),
@@ -415,7 +415,7 @@ class TestLegacyGetState:
         config.get.side_effect = KeyError
         callback = AsyncMock(return_value={"contents": [["5", "26"]]})
 
-        result = await get_state(
+        result = await fetch_state(
             callback,
             ARSystemStatusSourceUniversal,
             identity=_identity(),

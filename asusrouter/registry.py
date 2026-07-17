@@ -6,7 +6,7 @@ import threading
 from typing import Any
 
 from asusrouter.const import (
-    AR_CALL_GET_STATE,
+    AR_CALL_FETCH_STATE,
     AR_CALL_RUN_ACTION,
     AR_CALL_TRANSLATE_ACTION,
     AR_CALL_TRANSLATE_STATE,
@@ -47,7 +47,7 @@ class ARCallableRegistryBase:
         self,
         source_cls: type,
         *,
-        get_state: ARCallableType | None = None,
+        fetch_state: ARCallableType | None = None,
         translate_state: ARCallableType | None = None,
         multi: bool = False,
     ) -> None:
@@ -56,7 +56,7 @@ class ARCallableRegistryBase:
         callables: dict[str, ARCallableEntry] = {
             name: (func, True) if multi else func
             for name, func in (
-                (AR_CALL_GET_STATE, get_state),
+                (AR_CALL_FETCH_STATE, fetch_state),
                 (AR_CALL_TRANSLATE_STATE, translate_state),
             )
             if func is not None

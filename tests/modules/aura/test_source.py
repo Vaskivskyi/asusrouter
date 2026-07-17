@@ -11,7 +11,7 @@ import pytest
 from asusrouter.modules.aura.enums import ARAuraField, ARAuraScheme
 from asusrouter.modules.aura.source import (
     ARAuraSourceUniversal,
-    get_state,
+    fetch_state,
     translate_state,
 )
 from asusrouter.modules.nvram import (
@@ -40,20 +40,20 @@ def _identity(*, aura: bool = True, night: bool = False) -> SimpleNamespace:
 
 
 class TestGetState:
-    """Tests for get_state."""
+    """Tests for fetch_state."""
 
     async def test_no_identity(self) -> None:
         """No identity means Aura is not supported."""
 
         callback = AsyncMock()
-        assert await get_state(callback, ARAuraSourceUniversal) == {}
+        assert await fetch_state(callback, ARAuraSourceUniversal) == {}
         callback.assert_not_awaited()
 
     async def test_unsupported(self) -> None:
         """An identity without Aura support fetches nothing."""
 
         callback = AsyncMock()
-        result = await get_state(
+        result = await fetch_state(
             callback, ARAuraSourceUniversal, identity=_identity(aura=False)
         )
         assert result == {}
@@ -66,7 +66,7 @@ class TestGetState:
         get_data = AsyncMock(return_value=values)
         callback = AsyncMock()
 
-        result = await get_state(
+        result = await fetch_state(
             callback,
             ARAuraSourceUniversal,
             get_data_callback=get_data,
@@ -88,7 +88,7 @@ class TestGetState:
         """Without a data callback nothing is fetched."""
 
         callback = AsyncMock()
-        result = await get_state(
+        result = await fetch_state(
             callback, ARAuraSourceUniversal, identity=_identity()
         )
         assert result == {}
@@ -98,7 +98,7 @@ class TestGetState:
         """A non-dict response is normalized to an empty dict."""
 
         get_data = AsyncMock(return_value=None)
-        result = await get_state(
+        result = await fetch_state(
             AsyncMock(),
             ARAuraSourceUniversal,
             get_data_callback=get_data,

@@ -22,7 +22,7 @@ class ARBlockAllSource(ARDataSource):
 ARBlockAllSourceUniversal: ARBlockAllSource = ARBlockAllSource()
 
 
-async def get_state(
+async def fetch_state(
     callback: ARCallbackType,
     source: ARBlockAllSource,
     *,
@@ -44,7 +44,7 @@ def translate_state(data: Any, **kwargs: Any) -> bool:
 
 ARCallReg.register_module(
     ARBlockAllSource,
-    get_state=get_state,
+    fetch_state=fetch_state,
     translate_state=translate_state,
 )
 
@@ -52,6 +52,6 @@ ARCallReg.register_module(
 __all__ = [
     "ARBlockAllSource",
     "ARBlockAllSourceUniversal",
-    "get_state",
+    "fetch_state",
     "translate_state",
 ]

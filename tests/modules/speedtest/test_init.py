@@ -15,7 +15,7 @@ from asusrouter.modules.speedtest import (
     ARSpeedTestResult,
     ARSpeedTestSource,
     ARSpeedTestSourceUniversal,
-    get_state,
+    fetch_state,
     run_action,
     translate_state,
 )
@@ -90,16 +90,16 @@ class TestSource:
         assert ARSpeedTestSource() != object()
 
     def test_registered(self) -> None:
-        """Any source instance resolves to the module get_state callable."""
+        """Any source instance resolves to the module fetch_state callable."""
 
         assert (
-            ARCallReg.get_callable(ARSpeedTestSource(54112), "get_state")
-            is get_state
+            ARCallReg.get_callable(ARSpeedTestSource(54112), "fetch_state")
+            is fetch_state
         )
 
 
 class TestGetState:
-    """Tests for get_state."""
+    """Tests for fetch_state."""
 
     @pytest.fixture(autouse=True)
     def mock_sleep(self) -> Iterator[AsyncMock]:
@@ -114,7 +114,7 @@ class TestGetState:
         """Without refresh the last result is read, no run triggered."""
 
         callback = AsyncMock(return_value={_HOOK: _EVENTS})
-        result = await get_state(callback, ARSpeedTestSourceUniversal)
+        result = await fetch_state(callback, ARSpeedTestSourceUniversal)
 
         assert result == _EVENTS
         call = callback.await_args.kwargs
@@ -124,7 +124,7 @@ class TestGetState:
         """A non-dict hook reply yields no data."""
 
         callback = AsyncMock(return_value=None)
-        result = await get_state(callback, ARSpeedTestSourceUniversal)
+        result = await fetch_state(callback, ARSpeedTestSourceUniversal)
 
         assert result == {}
 
@@ -134,7 +134,7 @@ class TestGetState:
         events = _events_srv("r", 54112)
         callback = AsyncMock(return_value={_HOOK: events})
 
-        result = await get_state(callback, ARSpeedTestSource(54112))
+        result = await fetch_state(callback, ARSpeedTestSource(54112))
 
         assert result == events
 
@@ -153,7 +153,7 @@ class TestGetState:
             ]
         )
 
-        result = await get_state(callback, ARSpeedTestSource(54112))
+        result = await fetch_state(callback, ARSpeedTestSource(54112))
 
         assert result == [entry]
 
@@ -167,7 +167,7 @@ class TestGetState:
             ]
         )
 
-        result = await get_state(callback, ARSpeedTestSource(54112))
+        result = await fetch_state(callback, ARSpeedTestSource(54112))
 
         assert result == {}
 
@@ -175,7 +175,7 @@ class TestGetState:
         """Refresh without a run-action callback fetches nothing."""
 
         callback = AsyncMock()
-        result = await get_state(
+        result = await fetch_state(
             callback, ARSpeedTestSourceUniversal, refresh=True
         )
 
@@ -187,7 +187,7 @@ class TestGetState:
 
         # The prior-id read happens first, then the failed trigger
         callback = AsyncMock(return_value=_reply("old"))
-        result = await get_state(
+        result = await fetch_state(
             callback,
             ARSpeedTestSourceUniversal,
             run_action_callback=AsyncMock(return_value=False),
@@ -203,7 +203,7 @@ class TestGetState:
         # Every read returns the same old result, so it never looks fresh
         callback = AsyncMock(return_value=_reply("old"))
         with patch("asusrouter.tools.poll.asyncio.sleep", AsyncMock()):
-            result = await get_state(
+            result = await fetch_state(
                 callback,
                 ARSpeedTestSourceUniversal,
                 run_action_callback=AsyncMock(return_value=True),
@@ -223,7 +223,7 @@ class TestGetState:
         run_action_callback = AsyncMock(return_value=True)
 
         with patch("asusrouter.tools.poll.asyncio.sleep", AsyncMock()):
-            result = await get_state(
+            result = await fetch_state(
                 callback,
                 ARSpeedTestSourceUniversal,
                 run_action_callback=run_action_callback,
@@ -242,7 +242,7 @@ class TestGetState:
         callback = AsyncMock(side_effect=[_reply("old"), {_HOOK: fresh}])
         run_action_callback = AsyncMock(return_value=True)
 
-        result = await get_state(
+        result = await fetch_state(
             callback,
             ARSpeedTestSourceUniversal,
             run_action_callback=run_action_callback,
@@ -260,7 +260,7 @@ class TestGetState:
         callback = AsyncMock(side_effect=[_reply("old"), {_HOOK: fresh}])
         run_action_callback = AsyncMock(return_value=True)
 
-        await get_state(
+        await fetch_state(
             callback,
             ARSpeedTestSource(54112, "tun11"),
             run_action_callback=run_action_callback,
@@ -293,7 +293,7 @@ class TestGetState:
             patch("asusrouter.tools.poll.asyncio.sleep", AsyncMock()),
             caplog.at_level("DEBUG"),
         ):
-            result = await get_state(
+            result = await fetch_state(
                 callback,
                 ARSpeedTestSourceUniversal,
                 run_action_callback=AsyncMock(return_value=True),
@@ -313,7 +313,7 @@ class TestGetState:
             "asusrouter.modules.speedtest.source.async_save_result",
             AsyncMock(return_value=True),
         ) as save:
-            result = await get_state(
+            result = await fetch_state(
                 callback,
                 ARSpeedTestSourceUniversal,
                 run_action_callback=AsyncMock(return_value=True),
@@ -339,7 +339,7 @@ class TestGetState:
             ),
             caplog.at_level("DEBUG"),
         ):
-            result = await get_state(
+            result = await fetch_state(
                 callback,
                 ARSpeedTestSourceUniversal,
                 run_action_callback=AsyncMock(return_value=True),
@@ -359,7 +359,7 @@ class TestGetState:
             "asusrouter.modules.speedtest.source.async_save_result",
             AsyncMock(),
         ) as save:
-            result = await get_state(
+            result = await fetch_state(
                 callback, ARSpeedTestSourceUniversal, save=True
             )
 

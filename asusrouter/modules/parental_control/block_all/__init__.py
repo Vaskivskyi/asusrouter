@@ -9,7 +9,7 @@ from asusrouter.modules.parental_control.block_all.action import (
 from asusrouter.modules.parental_control.block_all.source import (
     ARBlockAllSource,
     ARBlockAllSourceUniversal,
-    get_state,
+    fetch_state,
     translate_state,
 )
 
@@ -17,7 +17,7 @@ __all__ = [
     "ARBlockAllAction",
     "ARBlockAllSource",
     "ARBlockAllSourceUniversal",
-    "get_state",
+    "fetch_state",
     "run_action",
     "translate_state",
 ]

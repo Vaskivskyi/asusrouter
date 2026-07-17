@@ -24,7 +24,7 @@ class ARLedSource(ARDataSource):
 ARLedSourceUniversal: ARLedSource = ARLedSource()
 
 
-async def get_state(
+async def fetch_state(
     callback: ARCallbackType,
     source: ARLedSource,
     *,
@@ -64,7 +64,7 @@ def translate_state(
 
 ARCallReg.register_module(
     ARLedSource,
-    get_state=get_state,
+    fetch_state=fetch_state,
     translate_state=translate_state,
 )
 
@@ -73,6 +73,6 @@ __all__ = [
     "ARLedSource",
     "ARLedSourceUniversal",
     "LED_REQUEST",
-    "get_state",
+    "fetch_state",
     "translate_state",
 ]

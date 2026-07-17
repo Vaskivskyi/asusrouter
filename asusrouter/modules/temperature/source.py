@@ -103,7 +103,7 @@ class ARTemperatureSource(ARDataSource):
 ARTemperatureSourceUniversal: ARTemperatureSource = ARTemperatureSource()
 
 
-async def get_state(
+async def fetch_state(
     callback: ARCallbackType,
     source: ARTemperatureSource,
     *,
@@ -158,13 +158,15 @@ def translate_state(
 
 
 ARCallReg.register_module(
-    ARTemperatureSource, get_state=get_state, translate_state=translate_state
+    ARTemperatureSource,
+    fetch_state=fetch_state,
+    translate_state=translate_state,
 )
 
 
 __all__ = [
     "ARTemperatureSource",
     "ARTemperatureSourceUniversal",
-    "get_state",
+    "fetch_state",
     "translate_state",
 ]

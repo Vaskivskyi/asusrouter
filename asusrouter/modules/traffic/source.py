@@ -15,7 +15,7 @@ from asusrouter.tools.types import ARCallbackType
 
 __all__ = [
     "ARTrafficSource",
-    "get_state",
+    "fetch_state",
 ]
 
 # Links served only by the interface submodule (no AiMesh fetch for them)
@@ -37,7 +37,7 @@ def _content(value: Any) -> dict[ARTrafficLink, Any]:
     return value if isinstance(value, dict) else {}
 
 
-async def get_state(
+async def fetch_state(
     callback: ARCallbackType,
     source: ARTrafficSource,
     *,
@@ -92,4 +92,4 @@ async def get_state(
     return merged
 
 
-ARCallReg.register_module(ARTrafficSource, get_state=get_state)
+ARCallReg.register_module(ARTrafficSource, fetch_state=fetch_state)

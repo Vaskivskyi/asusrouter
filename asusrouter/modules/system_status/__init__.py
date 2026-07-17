@@ -6,7 +6,7 @@ from asusrouter.modules.system_status.enums import ARSystemType
 from asusrouter.modules.system_status.source import (
     ARSystemStatusSource,
     ARSystemStatusSourceUniversal,
-    get_state,
+    fetch_state,
     translate_state,
 )
 
@@ -14,6 +14,6 @@ __all__ = [
     "ARSystemStatusSource",
     "ARSystemStatusSourceUniversal",
     "ARSystemType",
-    "get_state",
+    "fetch_state",
     "translate_state",
 ]

@@ -8,7 +8,7 @@ from asusrouter.modules.speedtest.history.source import (
     ARSpeedTestHistorySourceUniversal,
     async_latest_for_server,
     async_save_result,
-    get_state,
+    fetch_state,
     translate_state,
 )
 
@@ -18,6 +18,6 @@ __all__ = [
     "MAX_HISTORY",
     "async_latest_for_server",
     "async_save_result",
-    "get_state",
+    "fetch_state",
     "translate_state",
 ]

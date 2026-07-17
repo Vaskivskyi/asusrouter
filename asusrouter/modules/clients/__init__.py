@@ -10,7 +10,7 @@ from asusrouter.modules.clients.model import (
 from asusrouter.modules.clients.source import (
     ARClientsSource,
     ARClientsSourceUniversal,
-    get_state,
+    fetch_state,
 )
 
 __all__ = [
@@ -19,5 +19,5 @@ __all__ = [
     "ARClientLink",
     "ARClientsSource",
     "ARClientsSourceUniversal",
-    "get_state",
+    "fetch_state",
 ]

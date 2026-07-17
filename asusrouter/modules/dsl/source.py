@@ -49,7 +49,7 @@ class ARDSLSource(ARDataSource):
 ARDSLSourceUniversal: ARDSLSource = ARDSLSource()
 
 
-async def get_state(
+async def fetch_state(
     callback: ARCallbackType,
     source: ARDSLSource,
     *,
@@ -88,13 +88,13 @@ def translate_state(
 
 
 ARCallReg.register_module(
-    ARDSLSource, get_state=get_state, translate_state=translate_state
+    ARDSLSource, fetch_state=fetch_state, translate_state=translate_state
 )
 
 
 __all__ = [
     "ARDSLSource",
     "ARDSLSourceUniversal",
-    "get_state",
+    "fetch_state",
     "translate_state",
 ]

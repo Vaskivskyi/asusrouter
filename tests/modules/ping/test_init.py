@@ -19,7 +19,7 @@ from asusrouter.modules.ping import (
     ARPingSource,
     ARPingSourceUniversal,
     ARPingStatus,
-    get_state,
+    fetch_state,
     run_action,
     translate_state,
 )
@@ -72,11 +72,11 @@ class TestSource:
         assert hash(ARPingSource()) == hash(ARPingSourceUniversal)
 
     def test_registered(self) -> None:
-        """The source resolves to the module get_state callable."""
+        """The source resolves to the module fetch_state callable."""
 
         assert (
-            ARCallReg.get_callable(ARPingSourceUniversal, "get_state")
-            is get_state
+            ARCallReg.get_callable(ARPingSourceUniversal, "fetch_state")
+            is fetch_state
         )
 
 
@@ -93,7 +93,7 @@ class TestBuildRequest:
 
 
 class TestGetState:
-    """Tests for get_state."""
+    """Tests for fetch_state."""
 
     @pytest.fixture(autouse=True)
     def mock_sleep(self) -> Iterator[AsyncMock]:
@@ -108,7 +108,7 @@ class TestGetState:
         """Without a data callback nothing is fetched."""
 
         callback = AsyncMock()
-        result = await get_state(callback, ARPingSourceUniversal)
+        result = await fetch_state(callback, ARPingSourceUniversal)
 
         assert result == {}
         callback.assert_not_awaited()
@@ -122,7 +122,7 @@ class TestGetState:
         run_action_callback = AsyncMock(return_value=True)
         get_data_callback = _status_callback("3")
 
-        result = await get_state(
+        result = await fetch_state(
             callback,
             ARPingSourceUniversal,
             get_data_callback=get_data_callback,
@@ -143,7 +143,7 @@ class TestGetState:
         callback = AsyncMock()
         get_data_callback = _status_callback("1")
         with patch("asusrouter.tools.poll.asyncio.sleep", AsyncMock()):
-            result = await get_state(
+            result = await fetch_state(
                 callback,
                 ARPingSourceUniversal,
                 get_data_callback=get_data_callback,
@@ -160,7 +160,7 @@ class TestGetState:
 
         get_data_callback = AsyncMock(return_value=None)
         with patch("asusrouter.tools.poll.asyncio.sleep", AsyncMock()):
-            result = await get_state(
+            result = await fetch_state(
                 AsyncMock(),
                 ARPingSourceUniversal,
                 get_data_callback=get_data_callback,
@@ -172,7 +172,7 @@ class TestGetState:
         """Empty rows yield no data."""
 
         callback = AsyncMock(return_value={"contents": []})
-        result = await get_state(
+        result = await fetch_state(
             callback,
             ARPingSourceUniversal,
             get_data_callback=_status_callback("3"),
@@ -184,7 +184,7 @@ class TestGetState:
         """A non-dict diagnostics reply yields no data."""
 
         callback = AsyncMock(return_value=None)
-        result = await get_state(
+        result = await fetch_state(
             callback,
             ARPingSourceUniversal,
             get_data_callback=_status_callback("3"),
@@ -196,7 +196,7 @@ class TestGetState:
         """Refresh without a run-action callback fetches nothing."""
 
         callback = AsyncMock()
-        result = await get_state(
+        result = await fetch_state(
             callback,
             ARPingSourceUniversal,
             get_data_callback=_status_callback("3"),
@@ -212,7 +212,7 @@ class TestGetState:
         callback = AsyncMock()
         get_data_callback = _status_callback("3")
 
-        result = await get_state(
+        result = await fetch_state(
             callback,
             ARPingSourceUniversal,
             get_data_callback=get_data_callback,
@@ -232,7 +232,7 @@ class TestGetState:
         callback = AsyncMock(return_value={"contents": [_ROW]})
         run_action_callback = AsyncMock(return_value=True)
 
-        result = await get_state(
+        result = await fetch_state(
             callback,
             ARPingSourceUniversal,
             get_data_callback=_status_callback("3"),

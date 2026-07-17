@@ -49,7 +49,7 @@ ARPortForwardingSourceUniversal: ARPortForwardingSource = (
 )
 
 
-async def get_state(
+async def fetch_state(
     callback: ARCallbackType,
     source: ARPortForwardingSource,
     *,
@@ -172,7 +172,7 @@ def translate_state(
 
 ARCallReg.register_module(
     ARPortForwardingSource,
-    get_state=get_state,
+    fetch_state=fetch_state,
     translate_state=translate_state,
 )
 
@@ -180,7 +180,7 @@ ARCallReg.register_module(
 __all__ = [
     "ARPortForwardingSource",
     "ARPortForwardingSourceUniversal",
-    "get_state",
+    "fetch_state",
     "serialize_rules",
     "translate_state",
 ]

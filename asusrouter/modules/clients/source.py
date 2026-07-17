@@ -43,7 +43,7 @@ class ARClientsSource(ARDataSource):
 ARClientsSourceUniversal: ARClientsSource = ARClientsSource()
 
 
-async def get_state(
+async def fetch_state(
     callback: ARCallbackType,
     source: ARClientsSource,
     *,
@@ -59,4 +59,4 @@ async def get_state(
     return source.merge_history(build_clients(raw, identity))
 
 
-ARCallReg.register_module(ARClientsSource, get_state=get_state)
+ARCallReg.register_module(ARClientsSource, fetch_state=fetch_state)

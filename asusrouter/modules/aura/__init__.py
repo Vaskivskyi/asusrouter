@@ -7,7 +7,7 @@ from asusrouter.modules.aura.enums import ARAuraField, ARAuraScheme
 from asusrouter.modules.aura.source import (
     ARAuraSource,
     ARAuraSourceUniversal,
-    get_state,
+    fetch_state,
     translate_state,
 )
 
@@ -17,6 +17,6 @@ __all__ = [
     "ARAuraScheme",
     "ARAuraSource",
     "ARAuraSourceUniversal",
-    "get_state",
+    "fetch_state",
     "translate_state",
 ]

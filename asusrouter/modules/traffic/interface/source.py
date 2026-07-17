@@ -103,7 +103,7 @@ async def _fetch(
     return read_netdev(legacy) if isinstance(legacy, str) else {}
 
 
-async def get_state(
+async def fetch_state(
     callback: ARCallbackType,
     source: ARTrafficInterfaceSource,
     *,
@@ -227,6 +227,6 @@ def translate_state(
 
 ARCallReg.register_module(
     ARTrafficInterfaceSource,
-    get_state=get_state,
+    fetch_state=fetch_state,
     translate_state=translate_state,
 )

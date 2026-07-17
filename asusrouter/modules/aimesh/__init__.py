@@ -12,7 +12,7 @@ from asusrouter.modules.aimesh.enums import (
 from asusrouter.modules.aimesh.source import (
     ARAiMeshSource,
     ARAiMeshSourceUniversal,
-    get_state,
+    fetch_state,
     translate_state,
 )
 from asusrouter.modules.aimesh.topology import (
@@ -42,7 +42,7 @@ __all__ = [
     "ARAiMeshSourceUniversal",
     "ARAiMeshTopology",
     "ARAiMeshVif",
-    "get_state",
+    "fetch_state",
     "translate_onboarding_status",
     "translate_topology",
     "translate_state",

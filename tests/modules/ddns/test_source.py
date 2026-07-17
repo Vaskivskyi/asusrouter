@@ -14,7 +14,7 @@ from asusrouter.modules.ddns.enums import (
 )
 from asusrouter.modules.ddns.source import (
     ARDdnsSourceUniversal,
-    get_state,
+    fetch_state,
     read_status,
     translate_state,
 )
@@ -42,7 +42,7 @@ _FULL_DATA = {
 
 
 class TestGetState:
-    """Tests for get_state."""
+    """Tests for fetch_state."""
 
     async def test_fetches_via_nvram(self) -> None:
         """The DDNS items are requested from the NVRAM module."""
@@ -51,7 +51,7 @@ class TestGetState:
         get_data = AsyncMock(return_value=values)
         callback = AsyncMock()
 
-        result = await get_state(
+        result = await fetch_state(
             callback, ARDdnsSourceUniversal, get_data_callback=get_data
         )
 
@@ -82,7 +82,7 @@ class TestGetState:
         """Without a data callback nothing is fetched."""
 
         callback = AsyncMock()
-        result = await get_state(callback, ARDdnsSourceUniversal)
+        result = await fetch_state(callback, ARDdnsSourceUniversal)
         assert result == {}
         callback.assert_not_awaited()
 
@@ -90,7 +90,7 @@ class TestGetState:
         """A non-dict response is normalized to an empty dict."""
 
         get_data = AsyncMock(return_value=None)
-        result = await get_state(
+        result = await fetch_state(
             AsyncMock(), ARDdnsSourceUniversal, get_data_callback=get_data
         )
         assert result == {}

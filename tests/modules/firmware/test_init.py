@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from asusrouter.const import AR_CALL_GET_STATE, AR_CALL_TRANSLATE_STATE
+from asusrouter.const import AR_CALL_FETCH_STATE, AR_CALL_TRANSLATE_STATE
 from asusrouter.modules.firmware import (
     ARFirmware,
     ARFirmwareSignature,
@@ -21,7 +21,7 @@ from asusrouter.modules.firmware import (
     ARFirmwareWebFetch,
     ARFirmwareWebNotify,
     ARFirmwareWebUpgrade,
-    get_state,
+    fetch_state,
     translate_state,
 )
 from asusrouter.modules.firmware.source import (
@@ -217,7 +217,7 @@ class TestFetchNote:
 
 
 class TestGetState:
-    """Tests for get_state."""
+    """Tests for fetch_state."""
 
     @pytest.mark.asyncio
     async def test_stable_update_fetches_note(self) -> None:
@@ -225,7 +225,7 @@ class TestGetState:
 
         callback = AsyncMock(return_value={"webs_state_info": _NEWER})
         raw_callback = AsyncMock(return_value="Release Note\n- Fix\n")
-        result = await get_state(
+        result = await fetch_state(
             callback,
             ARFirmwareSourceUniversal,
             identity=_identity(_OLDER),
@@ -242,7 +242,7 @@ class TestGetState:
 
         callback = AsyncMock(return_value={"webs_state_info": _OLDER})
         raw_callback = AsyncMock()
-        result = await get_state(
+        result = await fetch_state(
             callback,
             ARFirmwareSourceUniversal,
             identity=_identity(_NEWER),
@@ -256,7 +256,7 @@ class TestGetState:
         """Without a raw callback the note is never fetched."""
 
         callback = AsyncMock(return_value={"webs_state_info": _NEWER})
-        result = await get_state(
+        result = await fetch_state(
             callback,
             ARFirmwareSourceUniversal,
             identity=_identity(_OLDER),
@@ -268,7 +268,7 @@ class TestGetState:
         """A non-dict response degrades to an empty update."""
 
         callback = AsyncMock(return_value=None)
-        result = await get_state(
+        result = await fetch_state(
             callback,
             ARFirmwareSourceUniversal,
             identity=_identity(),
@@ -341,8 +341,8 @@ def test_module_registers_source() -> None:
     """The firmware source resolves to the module callables."""
 
     assert (
-        ARCallReg.get_callable(ARFirmwareSourceUniversal, AR_CALL_GET_STATE)
-        is get_state
+        ARCallReg.get_callable(ARFirmwareSourceUniversal, AR_CALL_FETCH_STATE)
+        is fetch_state
     )
     assert (
         ARCallReg.get_callable(
@@ -352,7 +352,7 @@ def test_module_registers_source() -> None:
     )
     assert (
         ARCallReg.get_callable_flag(
-            ARFirmwareSourceUniversal, AR_CALL_GET_STATE
+            ARFirmwareSourceUniversal, AR_CALL_FETCH_STATE
         )
         is False
     )

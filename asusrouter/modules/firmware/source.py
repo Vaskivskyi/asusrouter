@@ -29,7 +29,7 @@ __all__ = [
     "ARFirmwareState",
     "ARFirmwareSync",
     "ARFirmwareWeb",
-    "get_state",
+    "fetch_state",
     "translate_state",
 ]
 
@@ -127,7 +127,7 @@ async def _fetch_note(raw_callback: ARCallbackType) -> str | None:
     return None
 
 
-async def get_state(
+async def fetch_state(
     callback: ARCallbackType,
     source: ARFirmwareSource,
     *,
@@ -164,7 +164,7 @@ def translate_state(
     update: dict[str, Any] = data.get("update") or {}
     current = identity.firmware
 
-    # Reuse the available firmware parsed by `get_state` when present
+    # Reuse the available firmware parsed by `fetch_state` when present
     available = data.get("available")
     if available is None:
         available = _available(update.get("webs_state_info"))
@@ -206,5 +206,5 @@ def translate_state(
 
 
 ARCallReg.register_module(
-    ARFirmwareSource, get_state=get_state, translate_state=translate_state
+    ARFirmwareSource, fetch_state=fetch_state, translate_state=translate_state
 )

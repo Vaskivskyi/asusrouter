@@ -38,7 +38,7 @@ class ARPingTargetsSource(ARDataSource):
 ARPingTargetsSourceUniversal: ARPingTargetsSource = ARPingTargetsSource()
 
 
-async def get_state(
+async def fetch_state(
     callback: ARCallbackType,
     source: ARPingTargetsSource,
     *,
@@ -77,7 +77,7 @@ def _parse_targets(raw: str) -> list[ARPingTarget]:
 
 ARCallReg.register_module(
     ARPingTargetsSource,
-    get_state=get_state,
+    fetch_state=fetch_state,
     translate_state=translate_state,
 )
 
@@ -87,6 +87,6 @@ __all__ = [
     "ARPingTargetInput",
     "ARPingTargetsSource",
     "ARPingTargetsSourceUniversal",
-    "get_state",
+    "fetch_state",
     "translate_state",
 ]

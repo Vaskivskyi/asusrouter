@@ -36,7 +36,7 @@ __all__ = [
     "ARWanUnit",
     "ARWanVlan",
     "ARWanWatchdog",
-    "get_state",
+    "fetch_state",
     "translate_state",
 ]
 
@@ -564,7 +564,7 @@ def _build_watchdog(values: dict[Any, Any]) -> ARWanWatchdog | None:
     )
 
 
-async def get_state(
+async def fetch_state(
     callback: ARCallbackType,
     source: ARWanSource,
     *,
@@ -605,5 +605,5 @@ def translate_state(data: Any, **kwargs: Any) -> ARWan:
 
 
 ARCallReg.register_module(
-    ARWanSource, get_state=get_state, translate_state=translate_state
+    ARWanSource, fetch_state=fetch_state, translate_state=translate_state
 )

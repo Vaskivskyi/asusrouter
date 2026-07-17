@@ -17,7 +17,7 @@ from asusrouter.modules.sysinfo import (
     ARSysInfoSourceUniversal,
     ARSysInfoType,
     ARWlanClientCount,
-    get_state,
+    fetch_state,
     translate_state,
 )
 from asusrouter.modules.wifi import ARWiFiBand
@@ -69,7 +69,7 @@ class TestARSysInfoSource:
 
 
 class TestGetState:
-    """Tests for get_state."""
+    """Tests for fetch_state."""
 
     async def test_returns_response_dict(self) -> None:
         """Returns the callback dict and queries the right endpoint."""
@@ -77,7 +77,7 @@ class TestGetState:
         expected = {"conn_stats_arr": ["1", "2"]}
         callback = AsyncMock(return_value=expected)
 
-        result = await get_state(callback, MagicMock())
+        result = await fetch_state(callback, MagicMock())
 
         callback.assert_called_once_with(endpoint=AREndpoint.FETCH_SYSINFO)
         assert result == expected
@@ -91,14 +91,14 @@ class TestGetState:
         """Returns {} when the callback yields a non-dict."""
 
         callback = AsyncMock(return_value=response)
-        result = await get_state(callback, MagicMock())
+        result = await fetch_state(callback, MagicMock())
         assert result == {}
 
     async def test_accepts_extra_kwargs(self) -> None:
         """Extra kwargs are accepted without error."""
 
         callback = AsyncMock(return_value={"conn_stats_arr": ["1", "2"]})
-        result = await get_state(callback, MagicMock(), extra="ignored")
+        result = await fetch_state(callback, MagicMock(), extra="ignored")
         assert result == {"conn_stats_arr": ["1", "2"]}
 
 

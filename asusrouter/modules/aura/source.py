@@ -57,7 +57,7 @@ class ARAuraSource(ARDataSource):
 ARAuraSourceUniversal: ARAuraSource = ARAuraSource()
 
 
-async def get_state(
+async def fetch_state(
     callback: ARCallbackType,
     source: ARAuraSource,
     *,
@@ -138,13 +138,13 @@ def translate_state(
 
 
 ARCallReg.register_module(
-    ARAuraSource, get_state=get_state, translate_state=translate_state
+    ARAuraSource, fetch_state=fetch_state, translate_state=translate_state
 )
 
 
 __all__ = [
     "ARAuraSource",
     "ARAuraSourceUniversal",
-    "get_state",
+    "fetch_state",
     "translate_state",
 ]

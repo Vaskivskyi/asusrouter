@@ -10,19 +10,19 @@ import pytest
 from asusrouter.modules.nvram import ARNvramType
 from asusrouter.modules.parental_control.block_all.source import (
     ARBlockAllSourceUniversal,
-    get_state,
+    fetch_state,
     translate_state,
 )
 
 
 class TestGetState:
-    """Tests for get_state."""
+    """Tests for fetch_state."""
 
     async def test_fetches_via_nvram(self) -> None:
         """The block-all key is requested from the NVRAM module."""
 
         get_data = AsyncMock(return_value={"MULTIFILTER_BLOCK_ALL": "1"})
-        result = await get_state(
+        result = await fetch_state(
             AsyncMock(),
             ARBlockAllSourceUniversal,
             get_data_callback=get_data,
@@ -37,7 +37,7 @@ class TestGetState:
     async def test_no_get_data_callback(self) -> None:
         """Without a data callback nothing is fetched."""
 
-        result = await get_state(AsyncMock(), ARBlockAllSourceUniversal)
+        result = await fetch_state(AsyncMock(), ARBlockAllSourceUniversal)
         assert result == {}
 
 

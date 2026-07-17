@@ -106,7 +106,7 @@ def _build_request(identity: ARDeviceIdentity | None) -> str | None:
     return hook_request(*_WIFI_HOOKS, *items)
 
 
-async def get_state(
+async def fetch_state(
     callback: ARCallbackType,
     source: ARWiFiSource,
     *,
@@ -173,13 +173,13 @@ def translate_state(
 
 
 ARCallReg.register_module(
-    ARWiFiSource, get_state=get_state, translate_state=translate_state
+    ARWiFiSource, fetch_state=fetch_state, translate_state=translate_state
 )
 
 
 __all__ = [
     "ARWiFiSource",
     "ARWiFiSourceUniversal",
-    "get_state",
+    "fetch_state",
     "translate_state",
 ]

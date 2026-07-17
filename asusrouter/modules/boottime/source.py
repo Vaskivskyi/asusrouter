@@ -102,7 +102,7 @@ class ARBoottimeSource(ARDataSource):
 ARBoottimeSourceUniversal: ARBoottimeSource = ARBoottimeSource()
 
 
-async def get_state(
+async def fetch_state(
     callback: ARCallbackType,
     source: ARBoottimeSource,
     *,
@@ -133,14 +133,14 @@ async def get_state(
     return stabilize(candidate, prev)
 
 
-ARCallReg.register_module(ARBoottimeSource, get_state=get_state)
+ARCallReg.register_module(ARBoottimeSource, fetch_state=fetch_state)
 
 
 __all__ = [
     "ARBoottime",
     "ARBoottimeSource",
     "ARBoottimeSourceUniversal",
-    "get_state",
+    "fetch_state",
     "read_uptime",
     "stabilize",
 ]

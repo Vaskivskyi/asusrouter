@@ -6,7 +6,7 @@ from asusrouter.modules.boottime.source import (
     ARBoottime,
     ARBoottimeSource,
     ARBoottimeSourceUniversal,
-    get_state,
+    fetch_state,
     read_uptime,
     stabilize,
 )
@@ -15,7 +15,7 @@ __all__ = [
     "ARBoottime",
     "ARBoottimeSource",
     "ARBoottimeSourceUniversal",
-    "get_state",
+    "fetch_state",
     "read_uptime",
     "stabilize",
 ]

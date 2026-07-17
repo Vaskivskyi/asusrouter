@@ -11,7 +11,7 @@ from asusrouter.modules.clients import (
     ARClient,
     ARClientConnection,
     ARClientsSource,
-    get_state,
+    fetch_state,
     source as clients_source,
 )
 from asusrouter.modules.device.identity import ARDeviceIdentity
@@ -80,7 +80,7 @@ class TestSource:
 
 
 class TestGetState:
-    """Tests for get_state."""
+    """Tests for fetch_state."""
 
     async def test_fetches_and_builds(self) -> None:
         """The two hooks are fetched and the clients built."""
@@ -93,7 +93,7 @@ class TestGetState:
             }
         )
 
-        result = await get_state(
+        result = await fetch_state(
             callback, ARClientsSource(), identity=_identity()
         )
 
@@ -116,7 +116,7 @@ class TestGetState:
             }
         )
 
-        result = await get_state(callback, ARClientsSource())
+        result = await fetch_state(callback, ARClientsSource())
 
         assert MacAddress(_C1) in result
 
@@ -134,5 +134,5 @@ def test_registers_callable(monkeypatch: pytest.MonkeyPatch) -> None:
 
     mock_register.assert_called_once_with(
         module.ARClientsSource,
-        get_state=module.get_state,
+        fetch_state=module.fetch_state,
     )

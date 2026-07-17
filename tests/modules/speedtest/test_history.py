@@ -14,7 +14,7 @@ from asusrouter.modules.speedtest.history import (
     ARSpeedTestHistorySourceUniversal,
     async_latest_for_server,
     async_save_result,
-    get_state,
+    fetch_state,
     translate_state,
 )
 from asusrouter.registry import ARCallableRegistry as ARCallReg
@@ -41,13 +41,13 @@ class TestSource:
     """Tests for the history source."""
 
     def test_registered(self) -> None:
-        """The source resolves to the module get_state callable."""
+        """The source resolves to the module fetch_state callable."""
 
         assert (
             ARCallReg.get_callable(
-                ARSpeedTestHistorySourceUniversal, "get_state"
+                ARSpeedTestHistorySourceUniversal, "fetch_state"
             )
-            is get_state
+            is fetch_state
         )
 
     def test_equal_by_type(self) -> None:
@@ -57,13 +57,13 @@ class TestSource:
 
 
 class TestGetState:
-    """Tests for get_state."""
+    """Tests for fetch_state."""
 
     async def test_reads_history(self) -> None:
         """The history hook is read and returned raw."""
 
         callback = AsyncMock(return_value={_HOOK: _HISTORY})
-        result = await get_state(callback, ARSpeedTestHistorySourceUniversal)
+        result = await fetch_state(callback, ARSpeedTestHistorySourceUniversal)
 
         assert result == _HISTORY
         call = callback.await_args.kwargs
@@ -73,7 +73,7 @@ class TestGetState:
         """A non-dict hook reply yields no data."""
 
         callback = AsyncMock(return_value=None)
-        result = await get_state(callback, ARSpeedTestHistorySourceUniversal)
+        result = await fetch_state(callback, ARSpeedTestHistorySourceUniversal)
 
         assert result == {}
 

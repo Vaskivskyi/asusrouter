@@ -15,7 +15,7 @@ from asusrouter.modules.port_forwarding.enums import (
 from asusrouter.modules.port_forwarding.source import (
     ARPortForwardingSource,
     ARPortForwardingSourceUniversal,
-    get_state,
+    fetch_state,
     serialize_rules,
     translate_state,
 )
@@ -28,7 +28,7 @@ __all__ = [
     "ARPortForwardingRule",
     "ARPortForwardingSource",
     "ARPortForwardingSourceUniversal",
-    "get_state",
+    "fetch_state",
     "run_action",
     "serialize_rules",
     "translate_state",

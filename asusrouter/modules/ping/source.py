@@ -125,7 +125,7 @@ async def _async_wait_finished(get_data_callback: ARCallbackType) -> bool:
     return status is ARPingStatus.FINISHED
 
 
-async def get_state(
+async def fetch_state(
     callback: ARCallbackType,
     source: ARPingSource,
     *,
@@ -207,7 +207,7 @@ def translate_state(data: Any, **kwargs: Any) -> dict[IpAddress, ARPingResult]:
 # Registration
 
 ARCallReg.register_module(
-    ARPingSource, get_state=get_state, translate_state=translate_state
+    ARPingSource, fetch_state=fetch_state, translate_state=translate_state
 )
 
 
@@ -215,6 +215,6 @@ __all__ = [
     "ARPingResult",
     "ARPingSource",
     "ARPingSourceUniversal",
-    "get_state",
+    "fetch_state",
     "translate_state",
 ]

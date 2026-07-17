@@ -153,7 +153,7 @@ async def _async_bare_read(
     return [stored] if stored is not None else None
 
 
-async def get_state(
+async def fetch_state(
     callback: ARCallbackType,
     source: ARSpeedTestSource,
     *,
@@ -203,13 +203,13 @@ def translate_state(data: Any, **kwargs: Any) -> ARSpeedTestResult | None:
 # Registration
 
 ARCallReg.register_module(
-    ARSpeedTestSource, get_state=get_state, translate_state=translate_state
+    ARSpeedTestSource, fetch_state=fetch_state, translate_state=translate_state
 )
 
 
 __all__ = [
     "ARSpeedTestSource",
     "ARSpeedTestSourceUniversal",
-    "get_state",
+    "fetch_state",
     "translate_state",
 ]

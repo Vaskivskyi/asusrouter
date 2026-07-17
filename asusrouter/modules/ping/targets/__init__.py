@@ -11,7 +11,7 @@ from asusrouter.modules.ping.targets.source import (
     ARPingTargetInput,
     ARPingTargetsSource,
     ARPingTargetsSourceUniversal,
-    get_state,
+    fetch_state,
     translate_state,
 )
 
@@ -21,7 +21,7 @@ __all__ = [
     "ARPingTargetsAction",
     "ARPingTargetsSource",
     "ARPingTargetsSourceUniversal",
-    "get_state",
+    "fetch_state",
     "run_action",
     "translate_state",
 ]

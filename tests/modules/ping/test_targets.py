@@ -14,7 +14,7 @@ from asusrouter.modules.ping.targets import (
     ARPingTargetsAction,
     ARPingTargetsSource,
     ARPingTargetsSourceUniversal,
-    get_state,
+    fetch_state,
     run_action,
     translate_state,
 )
@@ -198,26 +198,28 @@ class TestSource:
         assert ARPingTargetsSource() == ARPingTargetsSourceUniversal
 
     def test_registered(self) -> None:
-        """The source resolves to the module get_state callable."""
+        """The source resolves to the module fetch_state callable."""
 
         assert (
-            ARCallReg.get_callable(ARPingTargetsSourceUniversal, "get_state")
-            is get_state
+            ARCallReg.get_callable(ARPingTargetsSourceUniversal, "fetch_state")
+            is fetch_state
         )
 
 
 class TestGetState:
-    """Tests for get_state."""
+    """Tests for fetch_state."""
 
     async def test_no_data_callback(self) -> None:
         """Without a data callback nothing is fetched."""
 
-        assert await get_state(AsyncMock(), ARPingTargetsSourceUniversal) == {}
+        assert (
+            await fetch_state(AsyncMock(), ARPingTargetsSourceUniversal) == {}
+        )
 
     async def test_returns_raw(self) -> None:
         """The raw dns_ping_list value is returned."""
 
-        result = await get_state(
+        result = await fetch_state(
             AsyncMock(),
             ARPingTargetsSourceUniversal,
             get_data_callback=_list_callback(_RAW),
@@ -227,7 +229,7 @@ class TestGetState:
     async def test_non_dict_values(self) -> None:
         """A non-dict nvram reply yields no data."""
 
-        result = await get_state(
+        result = await fetch_state(
             AsyncMock(),
             ARPingTargetsSourceUniversal,
             get_data_callback=AsyncMock(return_value=None),

@@ -14,7 +14,7 @@ from asusrouter.modules.port_forwarding.enums import (
 )
 from asusrouter.modules.port_forwarding.source import (
     ARPortForwardingSourceUniversal,
-    get_state,
+    fetch_state,
     serialize_rules,
     translate_state,
 )
@@ -26,7 +26,7 @@ _RULE_SOURCE = "&#60&#62443&#62192.168.1.30&#62&#62UDP&#6210.0.0.0/24"
 
 
 class TestGetState:
-    """Tests for get_state."""
+    """Tests for fetch_state."""
 
     async def test_fetches_via_nvram(self) -> None:
         """The port forwarding items are requested from the NVRAM module."""
@@ -35,7 +35,7 @@ class TestGetState:
         get_data = AsyncMock(return_value=values)
         callback = AsyncMock()
 
-        result = await get_state(
+        result = await fetch_state(
             callback,
             ARPortForwardingSourceUniversal,
             get_data_callback=get_data,
@@ -53,7 +53,7 @@ class TestGetState:
         """Without a data callback nothing is fetched."""
 
         callback = AsyncMock()
-        result = await get_state(callback, ARPortForwardingSourceUniversal)
+        result = await fetch_state(callback, ARPortForwardingSourceUniversal)
         assert result == {}
         callback.assert_not_awaited()
 
@@ -61,7 +61,7 @@ class TestGetState:
         """A non-dict response is normalized to an empty dict."""
 
         get_data = AsyncMock(return_value=None)
-        result = await get_state(
+        result = await fetch_state(
             AsyncMock(),
             ARPortForwardingSourceUniversal,
             get_data_callback=get_data,

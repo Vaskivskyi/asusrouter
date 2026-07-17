@@ -10,14 +10,14 @@ import pytest
 from asusrouter.modules.led.enums import ARLedField
 from asusrouter.modules.led.source import (
     ARLedSourceUniversal,
-    get_state,
+    fetch_state,
     translate_state,
 )
 from asusrouter.modules.nvram import ARNvramType
 
 
 class TestGetState:
-    """Tests for get_state."""
+    """Tests for fetch_state."""
 
     async def test_fetches_via_nvram(self) -> None:
         """The LED item is requested from the NVRAM module."""
@@ -26,7 +26,7 @@ class TestGetState:
         get_data = AsyncMock(return_value=values)
         callback = AsyncMock()
 
-        result = await get_state(
+        result = await fetch_state(
             callback, ARLedSourceUniversal, get_data_callback=get_data
         )
 
@@ -39,7 +39,7 @@ class TestGetState:
         """Without a data callback nothing is fetched."""
 
         callback = AsyncMock()
-        result = await get_state(callback, ARLedSourceUniversal)
+        result = await fetch_state(callback, ARLedSourceUniversal)
         assert result == {}
         callback.assert_not_awaited()
 
@@ -47,7 +47,7 @@ class TestGetState:
         """A non-dict response is normalized to an empty dict."""
 
         get_data = AsyncMock(return_value=None)
-        result = await get_state(
+        result = await fetch_state(
             AsyncMock(), ARLedSourceUniversal, get_data_callback=get_data
         )
         assert result == {}
