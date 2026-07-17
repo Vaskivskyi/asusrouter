@@ -33,3 +33,11 @@ repos:
         types: [python]
         pass_filenames: false
         stages: [pre-commit]
+
+      - id: readme
+        name: build README
+        entry: uv run python scripts/build_readme.py
+        language: system
+        files: ^(readme/|scripts/build_readme\.py$)
+        pass_filenames: false
+        stages: [pre-commit]
