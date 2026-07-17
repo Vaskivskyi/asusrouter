@@ -78,7 +78,9 @@ CONFIG_DEFAULT: dict[ARConfigKey, Any] = {
     # If set, the temperature will be automatically adjusted
     # to fit the expected range
     ARConfigKey.OPTIMISTIC_TEMPERATURE: CONFIG_DEFAULT_BOOL,
-    ARConfigKey.NOTIFIED_OPTIMISTIC_TEMPERATURE: CONFIG_DEFAULT_ALREADY_NOTIFIED,  # noqa: E501
+    ARConfigKey.NOTIFIED_OPTIMISTIC_TEMPERATURE: (
+        CONFIG_DEFAULT_ALREADY_NOTIFIED
+    ),
     # If set, this boot time is used as the stabilization anchor instead
     # of fetching it on connect
     ARConfigKey.BOOTTIME: None,

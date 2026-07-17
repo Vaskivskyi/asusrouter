@@ -20,7 +20,7 @@ repos:
     hooks:
       - id: mypy
         name: mypy
-        entry: uv run mypy asusrouter tools
+        entry: uv run mypy asusrouter scripts
         language: system
         types: [python]
         pass_filenames: false

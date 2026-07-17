@@ -60,23 +60,8 @@ AR_CALL_TRANSLATE_STATE = "translate_state"
 
 # Library defaults
 DEFAULT_CACHE_TIME = 2.0
-DEFAULT_SLEEP_TIME = 0.1
 DEFAULT_TIMEOUT = 15
 DEFAULT_TIMEOUT_FALLBACK = 5
 
 # Other defaults
 DEFAULT_IDENTITY_BRAND = "ASUSTek"
-
-
-DEFAULT_RESULT_SUCCESS = {"statusCode": "200"}
-
-# --------------------
-# Value maps -->
-# --------------------
-# These maps are used to read data from the device
-# into the correct variables and apply a converter if needed
-
-
-# --------------------
-# <-- Value maps
-# --------------------

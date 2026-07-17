@@ -112,7 +112,7 @@ split-on-trailing-comma = false
 "**/enums.py" = [
     "S105",    # Enum members are field-name keys, not hardcoded secrets
 ]
-"tools/*" = [
+"scripts/*" = [
     "BLE001",  # Do not catch blind exception: `Exception`
     "PLR2004", # Magic value used in comparison
     "S603",    # `subprocess` call: check for execution of untrusted input
