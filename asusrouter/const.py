@@ -53,30 +53,15 @@ DEFAULT_PORT_HTTP = 80
 DEFAULT_PORT_HTTPS = 8443
 
 # AsusRouter definitions
-AR_CALL_GET_STATE = "get_state"
+AR_CALL_FETCH_STATE = "fetch_state"
 AR_CALL_RUN_ACTION = "run_action"
 AR_CALL_TRANSLATE_ACTION = "translate_action"
 AR_CALL_TRANSLATE_STATE = "translate_state"
 
 # Library defaults
 DEFAULT_CACHE_TIME = 2.0
-DEFAULT_SLEEP_TIME = 0.1
 DEFAULT_TIMEOUT = 15
 DEFAULT_TIMEOUT_FALLBACK = 5
 
 # Other defaults
 DEFAULT_IDENTITY_BRAND = "ASUSTek"
-
-
-DEFAULT_RESULT_SUCCESS = {"statusCode": "200"}
-
-# --------------------
-# Value maps -->
-# --------------------
-# These maps are used to read data from the device
-# into the correct variables and apply a converter if needed
-
-
-# --------------------
-# <-- Value maps
-# --------------------

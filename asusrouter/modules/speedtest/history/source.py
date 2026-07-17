@@ -50,7 +50,7 @@ async def _async_fetch_history(callback: ARCallbackType) -> Any:
     return hook_value(data, ARHook.OOKLA_SPEEDTEST_HISTORY)
 
 
-async def get_state(
+async def fetch_state(
     callback: ARCallbackType,
     source: ARSpeedTestHistorySource,
     **kwargs: Any,
@@ -122,9 +122,9 @@ async def async_save_result(
 
 # Registration
 
-ARCallReg.register_module(
+ARCallReg.register_source(
     ARSpeedTestHistorySource,
-    get_state=get_state,
+    fetch_state=fetch_state,
     translate_state=translate_state,
 )
 
@@ -134,6 +134,6 @@ __all__ = [
     "ARSpeedTestHistorySourceUniversal",
     "async_latest_for_server",
     "async_save_result",
-    "get_state",
+    "fetch_state",
     "translate_state",
 ]

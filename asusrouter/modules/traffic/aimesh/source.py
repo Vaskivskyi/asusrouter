@@ -126,11 +126,11 @@ async def _get_one(
 async def _get_all(
     node_mac: MacAddress,
     identity: ARDeviceIdentity,
-    get_data_callback: ARCallbackType | None,
+    fetch_data_callback: ARCallbackType | None,
 ) -> dict[ARTrafficLink, Any]:
     """Fetch all of a node's links via the cached pipeline, merged."""
 
-    if get_data_callback is None:
+    if fetch_data_callback is None:
         return {}
 
     node = identity.aimesh.get(node_mac)
@@ -140,7 +140,7 @@ async def _get_all(
         links.append(ARTrafficType.BACKHAUL)
 
     sources = [ARTrafficAiMeshSource(link, node_mac) for link in links]
-    results = await get_data_callback(sources)
+    results = await fetch_data_callback(sources)
 
     merged: dict[ARTrafficLink, Any] = {}
     if isinstance(results, dict):
@@ -150,12 +150,12 @@ async def _get_all(
     return merged
 
 
-async def get_state(
+async def fetch_state(
     callback: ARCallbackType,
     source: ARTrafficAiMeshSource,
     *,
     identity: ARDeviceIdentity,
-    get_data_callback: ARCallbackType | None = None,
+    fetch_data_callback: ARCallbackType | None = None,
     **kwargs: Any,
 ) -> dict[ARTrafficLink, Any]:
     """Fetch AiMesh traffic for the source's link (or all links)."""
@@ -165,7 +165,7 @@ async def get_state(
         return {}
 
     if source.link is None:
-        return await _get_all(node_mac, identity, get_data_callback)
+        return await _get_all(node_mac, identity, fetch_data_callback)
     return await _get_one(callback, source.link, node_mac, identity)
 
 
@@ -227,8 +227,8 @@ def translate_state(
     }
 
 
-ARCallReg.register_module(
+ARCallReg.register_source(
     ARTrafficAiMeshSource,
-    get_state=get_state,
+    fetch_state=fetch_state,
     translate_state=translate_state,
 )

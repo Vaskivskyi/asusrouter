@@ -23,7 +23,7 @@ from asusrouter.modules.speedtest.servers import (
 from asusrouter.modules.speedtest.source import (
     ARSpeedTestSource,
     ARSpeedTestSourceUniversal,
-    get_state,
+    fetch_state,
     translate_state,
 )
 
@@ -40,7 +40,7 @@ __all__ = [
     "ARSpeedTestSource",
     "ARSpeedTestSourceUniversal",
     "ARSpeedTestState",
-    "get_state",
+    "fetch_state",
     "run_action",
     "translate_state",
 ]

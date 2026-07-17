@@ -10,7 +10,7 @@ from asusrouter.const import UNKNOWN_MEMBER
 from asusrouter.modules.device import (
     DEVICE_REQUEST,
     AROperationMode,
-    get_state,
+    fetch_state,
     translate_state,
 )
 from asusrouter.modules.device.identity import ARDeviceIdentity
@@ -40,25 +40,27 @@ class TestAROperationMode:
 
 
 class TestGetState:
-    """Tests for get_state."""
+    """Tests for fetch_state."""
 
     @pytest.mark.asyncio
     async def test_calls_get_data_callback_with_device_request(self) -> None:
-        """get_state delegates to get_data_callback with DEVICE_REQUEST."""
+        """fetch_state delegates to fetch_data_callback with DEVICE_REQUEST."""
 
         expected = {"key": "value"}
-        get_data_callback = AsyncMock(return_value=expected)
-        result = await get_state(MagicMock(), MagicMock(), get_data_callback)
-        get_data_callback.assert_called_once_with(DEVICE_REQUEST)
+        fetch_data_callback = AsyncMock(return_value=expected)
+        result = await fetch_state(
+            MagicMock(), MagicMock(), fetch_data_callback
+        )
+        fetch_data_callback.assert_called_once_with(DEVICE_REQUEST)
         assert result == expected
 
     @pytest.mark.asyncio
     async def test_ignores_callback_and_source(self) -> None:
-        """get_state ignores the callback and source arguments."""
+        """fetch_state ignores the callback and source arguments."""
 
-        get_data_callback = AsyncMock(return_value=None)
-        await get_state(None, None, get_data_callback)
-        get_data_callback.assert_called_once_with(DEVICE_REQUEST)
+        fetch_data_callback = AsyncMock(return_value=None)
+        await fetch_state(None, None, fetch_data_callback)
+        fetch_data_callback.assert_called_once_with(DEVICE_REQUEST)
 
 
 class TestTranslateState:

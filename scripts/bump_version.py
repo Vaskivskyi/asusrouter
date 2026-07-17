@@ -1,4 +1,5 @@
 """Bump version tool for AsusRouter."""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -72,7 +73,7 @@ def main() -> None:
     """Bump version."""
 
     if len(sys.argv) != 4:
-        print("Usage: python tools/bump_version.py <MAJOR> <MINOR> <PATCH>")
+        print("Usage: python scripts/bump_version.py <MAJOR> <MINOR> <PATCH>")
         sys.exit(1)
 
     major, minor, patch = sys.argv[1:4]

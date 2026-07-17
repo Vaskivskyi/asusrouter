@@ -33,16 +33,16 @@ def test_register_and_get_callable_by_instance_and_class() -> None:
         return "base"
 
     # register using kwargs API
-    ARCallReg.register(Base, get_state=base_get)
+    ARCallReg.register(Base, fetch_state=base_get)
 
     # lookup by instance
-    fn = ARCallReg.get_callable(Child(), "get_state")
+    fn = ARCallReg.get_callable(Child(), "fetch_state")
     assert fn is base_get
     assert fn is not None
     assert fn(Child()) == "base"
 
     # lookup by class
-    fn2 = ARCallReg.get_callable(Child, "get_state")
+    fn2 = ARCallReg.get_callable(Child, "fetch_state")
     assert fn2 is base_get
 
 
@@ -64,12 +64,12 @@ def test_get_all_for_merges_mro_correctly() -> None:
     def a_set(s: Any, v: Any) -> tuple[str, Any]:
         return ("a-set", v)
 
-    ARCallReg.register(A, get_state=a_get, set_state=a_set)
-    ARCallReg.register(B, get_state=b_get)
+    ARCallReg.register(A, fetch_state=a_get, set_state=a_set)
+    ARCallReg.register(B, fetch_state=b_get)
 
     merged = ARCallReg.get_all_for(B())
-    # B overrides get_state, but inherits set_state from A
-    assert merged["get_state"] is b_get
+    # B overrides fetch_state, but inherits set_state from A
+    assert merged["fetch_state"] is b_get
     assert merged["set_state"] is a_set
 
 
@@ -79,7 +79,7 @@ def test_register_with_callable_flag_tuple() -> None:
     class A:
         pass
 
-    def get_state(s: Any) -> str:
+    def fetch_state(s: Any) -> str:
         return "state"
 
     def set_state(s: Any, v: Any) -> str:
@@ -87,20 +87,20 @@ def test_register_with_callable_flag_tuple() -> None:
 
     ARCallReg.register(
         A,
-        get_state=(get_state, True),
+        fetch_state=(fetch_state, True),
         set_state=set_state,
     )
 
-    callable_result = ARCallReg.get_callable(A(), "get_state")
-    assert callable_result is get_state
+    callable_result = ARCallReg.get_callable(A(), "fetch_state")
+    assert callable_result is fetch_state
 
-    assert ARCallReg.get_callable_flag(A(), "get_state") is True
+    assert ARCallReg.get_callable_flag(A(), "fetch_state") is True
     assert ARCallReg.get_callable_flag(A(), "set_state") is False
-    assert ARCallReg.get_callable_flag(get_state) is True
+    assert ARCallReg.get_callable_flag(fetch_state) is True
     assert ARCallReg.get_callable_flag(set_state) is False
 
     all_map = ARCallReg.get_all_for(A())
-    assert all_map["get_state"] == (get_state, True)
+    assert all_map["fetch_state"] == (fetch_state, True)
     assert all_map["set_state"] is set_state
 
 
@@ -110,15 +110,15 @@ def test_register_plain_callable_resets_flag_to_false() -> None:
     class A:
         pass
 
-    def get_state(s: Any) -> str:
+    def fetch_state(s: Any) -> str:
         return "state"
 
-    ARCallReg.register(A, get_state=(get_state, True))
-    assert ARCallReg.get_callable_flag(get_state) is True
+    ARCallReg.register(A, fetch_state=(fetch_state, True))
+    assert ARCallReg.get_callable_flag(fetch_state) is True
 
-    ARCallReg.register(A, get_state=get_state)
-    assert ARCallReg.get_callable_flag(get_state) is False
-    assert ARCallReg.get_callable(A(), "get_state") is get_state
+    ARCallReg.register(A, fetch_state=fetch_state)
+    assert ARCallReg.get_callable_flag(fetch_state) is False
+    assert ARCallReg.get_callable(A(), "fetch_state") is fetch_state
 
 
 def test_register_action_registers_both_callables() -> None:
@@ -180,22 +180,22 @@ def test_unregister_rebuilds_flags_for_tuple_entries() -> None:
     class B:
         pass
 
-    def get_state_a(s: Any) -> str:
+    def fetch_state_a(s: Any) -> str:
         return "state-a"
 
-    def get_state_b(s: Any) -> str:
+    def fetch_state_b(s: Any) -> str:
         return "state-b"
 
-    ARCallReg.register(A, get_state=(get_state_a, True))
-    ARCallReg.register(B, get_state=(get_state_b, False))
+    ARCallReg.register(A, fetch_state=(fetch_state_a, True))
+    ARCallReg.register(B, fetch_state=(fetch_state_b, False))
 
-    assert ARCallReg.get_callable_flag(get_state_a) is True
-    assert ARCallReg.get_callable_flag(get_state_b) is False
+    assert ARCallReg.get_callable_flag(fetch_state_a) is True
+    assert ARCallReg.get_callable_flag(fetch_state_b) is False
 
     ARCallReg.unregister(A)
 
-    assert ARCallReg.get_callable_flag(get_state_a) is False
-    assert ARCallReg.get_callable_flag(get_state_b) is False
+    assert ARCallReg.get_callable_flag(fetch_state_a) is False
+    assert ARCallReg.get_callable_flag(fetch_state_b) is False
 
 
 def test_unregister_and_clear() -> None:
@@ -207,16 +207,16 @@ def test_unregister_and_clear() -> None:
     def fn(s: Any) -> str:
         return "ok"
 
-    ARCallReg.register(S, get_state=fn)
-    assert ARCallReg.get_callable(S(), "get_state") is fn
+    ARCallReg.register(S, fetch_state=fn)
+    assert ARCallReg.get_callable(S(), "fetch_state") is fn
 
     ARCallReg.unregister(S)
-    assert ARCallReg.get_callable(S(), "get_state") is None
+    assert ARCallReg.get_callable(S(), "fetch_state") is None
 
     # re-register and then clear everything
-    ARCallReg.register(S, get_state=fn)
+    ARCallReg.register(S, fetch_state=fn)
     ARCallReg.clear()
-    assert ARCallReg.get_callable(S(), "get_state") is None
+    assert ARCallReg.get_callable(S(), "fetch_state") is None
 
 
 def test_get_callable_returns_none_when_missing() -> None:

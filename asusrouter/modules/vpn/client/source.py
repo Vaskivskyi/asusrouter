@@ -32,7 +32,7 @@ def _is_fusion(data: dict[str, Any]) -> bool:
     return raw_to_str(data.get(ARNvramType.VPNC_CLIENTLIST.value)) is not None
 
 
-async def get_state(
+async def fetch_state(
     callback: ARCallbackType,
     source: ARVpnClientSource,
     *,
@@ -70,14 +70,14 @@ def translate_state(
     return classic.translate(data)
 
 
-ARCallReg.register_module(
-    ARVpnClientSource, get_state=get_state, translate_state=translate_state
+ARCallReg.register_source(
+    ARVpnClientSource, fetch_state=fetch_state, translate_state=translate_state
 )
 
 
 __all__ = [
     "ARVpnClientSource",
     "ARVpnClientSourceUniversal",
-    "get_state",
+    "fetch_state",
     "translate_state",
 ]

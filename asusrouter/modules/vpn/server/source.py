@@ -30,7 +30,7 @@ class ARVpnServerSource(ARDataSource):
 ARVpnServerSourceUniversal: ARVpnServerSource = ARVpnServerSource()
 
 
-async def get_state(
+async def fetch_state(
     callback: ARCallbackType,
     source: ARVpnServerSource,
     *,
@@ -78,14 +78,14 @@ def translate_state(
     return result
 
 
-ARCallReg.register_module(
-    ARVpnServerSource, get_state=get_state, translate_state=translate_state
+ARCallReg.register_source(
+    ARVpnServerSource, fetch_state=fetch_state, translate_state=translate_state
 )
 
 
 __all__ = [
     "ARVpnServerSource",
     "ARVpnServerSourceUniversal",
-    "get_state",
+    "fetch_state",
     "translate_state",
 ]

@@ -192,13 +192,13 @@ def _modes_supported(
 
 
 async def _fetch_rules(
-    get_data_callback: ARCallbackType | None,
+    fetch_data_callback: ARCallbackType | None,
 ) -> list[ARParentalControlRule] | None:
     """Read the current rules, or None when they cannot be fetched."""
 
-    if get_data_callback is None:
+    if fetch_data_callback is None:
         return None
-    fetched = await get_data_callback(ARParentalControlSourceUniversal)
+    fetched = await fetch_data_callback(ARParentalControlSourceUniversal)
     if not isinstance(fetched, dict):
         return None
     data = fetched.get(ARParentalControlSourceUniversal) or {}
@@ -218,7 +218,7 @@ def _resolve_set(
 
 async def _resolve_add(
     action: ARParentalControlAction,
-    get_data_callback: ARCallbackType | None,
+    fetch_data_callback: ARCallbackType | None,
 ) -> list[ARParentalControlRule] | None:
     """Return current rules with the new ones prepended, or None to reject."""
 
@@ -227,7 +227,7 @@ async def _resolve_add(
     ):
         _LOGGER.debug("ADD rejected: no rules or an incomplete one given")
         return None
-    current = await _fetch_rules(get_data_callback)
+    current = await _fetch_rules(fetch_data_callback)
     if current is None:
         return None
     # An added MAC replaces the existing rule for that MAC
@@ -236,7 +236,7 @@ async def _resolve_add(
 
 async def _resolve_remove(
     action: ARParentalControlAction,
-    get_data_callback: ARCallbackType | None,
+    fetch_data_callback: ARCallbackType | None,
 ) -> list[ARParentalControlRule] | None:
     """Return current rules minus those matching a spec, or None to reject."""
 
@@ -244,7 +244,7 @@ async def _resolve_remove(
     if not specs:
         _LOGGER.debug("REMOVE rejected: no match specs given")
         return None
-    current = await _fetch_rules(get_data_callback)
+    current = await _fetch_rules(fetch_data_callback)
     if current is None:
         return None
     return [
@@ -256,25 +256,25 @@ async def _resolve_remove(
 
 async def _resolve_rules(
     action: ARParentalControlAction,
-    get_data_callback: ARCallbackType | None,
+    fetch_data_callback: ARCallbackType | None,
 ) -> list[ARParentalControlRule] | None:
     """Resolve the final rule list for an add/remove/set, or None to reject."""
 
     if action.command is ARParentalControlCommand.SET:
         return _resolve_set(action)
     if action.command is ARParentalControlCommand.ADD:
-        return await _resolve_add(action, get_data_callback)
-    return await _resolve_remove(action, get_data_callback)
+        return await _resolve_add(action, fetch_data_callback)
+    return await _resolve_remove(action, fetch_data_callback)
 
 
 async def _rules_arguments(
     action: ARParentalControlAction,
-    get_data_callback: ARCallbackType | None,
+    fetch_data_callback: ARCallbackType | None,
     identity: ARDeviceIdentity | None,
 ) -> dict[str, Any] | None:
     """Build the arguments for an add/remove/set of rules."""
 
-    resolved = await _resolve_rules(action, get_data_callback)
+    resolved = await _resolve_rules(action, fetch_data_callback)
     if resolved is None:
         return None
 
@@ -322,8 +322,8 @@ async def run_action(
     callback: ARCallbackType,
     action: ARParentalControlAction,
     *,
-    get_data_callback: ARCallbackType | None = None,
-    raw_callback: ARCallbackType | None = None,
+    fetch_data_callback: ARCallbackType | None = None,
+    fetch_raw_callback: ARCallbackType | None = None,
     expire_callback: ARCallbackType | None = None,
     **kwargs: Any,
 ) -> ARServiceResult:
@@ -338,7 +338,9 @@ async def run_action(
         ARParentalControlCommand.REMOVE,
         ARParentalControlCommand.SET,
     ):
-        arguments = await _rules_arguments(action, get_data_callback, identity)
+        arguments = await _rules_arguments(
+            action, fetch_data_callback, identity
+        )
     else:
         _LOGGER.debug("Unknown parental control command: %s", action.command)
         return ARServiceResult(success=False)
@@ -350,7 +352,7 @@ async def run_action(
         callback,
         ARService.FIREWALL_RESTART,
         arguments=arguments,
-        raw_callback=raw_callback,
+        fetch_raw_callback=fetch_raw_callback,
     )
 
     # Drop the now-stale cached rules/state so the next read refetches

@@ -140,7 +140,7 @@ async def _fetch_rc_support(callback: ARCallbackType) -> dict[str, Any]:
     return {}
 
 
-async def get_state(
+async def fetch_state(
     callback: ARCallbackType,
     source: ARSupportSource,
     **kwargs: Any,
@@ -172,6 +172,6 @@ def translate_state(
     }
 
 
-ARCallReg.register_module(
-    ARSupportSource, get_state=get_state, translate_state=translate_state
+ARCallReg.register_source(
+    ARSupportSource, fetch_state=fetch_state, translate_state=translate_state
 )

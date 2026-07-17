@@ -14,7 +14,7 @@ from asusrouter.modules.device.identity import ARDeviceIdentity
 from asusrouter.modules.traffic.base import ARTrafficSource, ARTrafficType as T
 from asusrouter.modules.traffic.interface import (
     ARTrafficInterfaceSource,
-    get_state,
+    fetch_state,
     source as interface,
     translate_state,
 )
@@ -85,13 +85,13 @@ class TestFetch:
         """A non-empty update.cgi result is used without fallback."""
 
         callback = AsyncMock(return_value={"WIRED": {"rx": 1, "tx": 2}})
-        raw_callback = AsyncMock()
+        fetch_raw_callback = AsyncMock()
 
-        result = await interface._fetch(callback, raw_callback)
+        result = await interface._fetch(callback, fetch_raw_callback)
 
         assert result == {"WIRED": {"rx": 1, "tx": 2}}
         callback.assert_awaited_once()
-        raw_callback.assert_not_awaited()
+        fetch_raw_callback.assert_not_awaited()
 
     @pytest.mark.parametrize(
         "modern_outcome",
@@ -109,14 +109,14 @@ class TestFetch:
             return {}
 
         # Raw appGet content with the duplicate INTERNET keys preserved
-        raw_callback = AsyncMock(
+        fetch_raw_callback = AsyncMock(
             return_value=(
                 '{"netdev":{"INTERNET_rx":"0x0a","INTERNET_tx":"0x14",'
                 '"INTERNET_rx":"0x01","INTERNET_tx":"0x02"}}'
             )
         )
 
-        result = await interface._fetch(callback, raw_callback)
+        result = await interface._fetch(callback, fetch_raw_callback)
 
         assert result == {"INTERNET": {"rx": 11, "tx": 22}}
 
@@ -131,13 +131,13 @@ class TestFetch:
         """A non-string raw fallback response yields empty counters."""
 
         callback = AsyncMock(return_value={})
-        raw_callback = AsyncMock(return_value=None)
+        fetch_raw_callback = AsyncMock(return_value=None)
 
-        assert await interface._fetch(callback, raw_callback) == {}
+        assert await interface._fetch(callback, fetch_raw_callback) == {}
 
 
 class TestGetState:
-    """Tests for get_state."""
+    """Tests for fetch_state."""
 
     async def test_first_then_second_sample(self) -> None:
         """First call has no previous; the second carries the first."""
@@ -145,12 +145,12 @@ class TestGetState:
         source = ARTrafficInterfaceSource()
         callback = AsyncMock(return_value={"WIRED": {"rx": 1, "tx": 2}})
 
-        first = await get_state(callback, source, identity=None)
+        first = await fetch_state(callback, source, identity=None)
         assert first["now"] == {"WIRED": {"rx": 1, "tx": 2}}
         assert first["prev"] is None
         assert first["delta_time"] is None
 
-        second = await get_state(callback, source, identity=None)
+        second = await fetch_state(callback, source, identity=None)
         assert second["prev"] == {"WIRED": {"rx": 1, "tx": 2}}
         assert isinstance(second["delta_time"], float)
         assert second["delta_time"] >= 0
@@ -325,7 +325,7 @@ def test_registers_callable(monkeypatch: pytest.MonkeyPatch) -> None:
 
     mock_register = Mock()
     monkeypatch.setattr(
-        "asusrouter.registry.ARCallableRegistry.register_module",
+        "asusrouter.registry.ARCallableRegistry.register_source",
         mock_register,
     )
 
@@ -333,6 +333,6 @@ def test_registers_callable(monkeypatch: pytest.MonkeyPatch) -> None:
 
     mock_register.assert_called_once_with(
         interface.ARTrafficInterfaceSource,
-        get_state=interface.get_state,
+        fetch_state=interface.fetch_state,
         translate_state=interface.translate_state,
     )

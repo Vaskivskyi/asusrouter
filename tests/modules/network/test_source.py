@@ -8,13 +8,13 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from asusrouter.const import AR_CALL_GET_STATE, AR_CALL_TRANSLATE_STATE
+from asusrouter.const import AR_CALL_FETCH_STATE, AR_CALL_TRANSLATE_STATE
 from asusrouter.modules.network.enums import ARNetworkField, ARNetworkType
 from asusrouter.modules.network.source import (
     ARNetworkSource,
     ARNetworkSourceUniversal,
     _sdn_supported,
-    get_state,
+    fetch_state,
     translate_state,
 )
 from asusrouter.modules.support.flag import ARSupportType
@@ -56,13 +56,13 @@ class TestSdnSupported:
 
 
 class TestGetState:
-    """Tests for get_state backend selection."""
+    """Tests for fetch_state backend selection."""
 
     async def test_sdn_backend(self) -> None:
         """An SDN device fetches sdn_rl first."""
 
         callback = AsyncMock(return_value={})
-        await get_state(
+        await fetch_state(
             callback,
             ARNetworkSourceUniversal,
             identity=_identity(sdn_rules=19),
@@ -74,7 +74,7 @@ class TestGetState:
         """A non-SDN device fetches per-band nvram."""
 
         callback = AsyncMock(return_value={})
-        await get_state(
+        await fetch_state(
             callback,
             ARNetworkSourceUniversal,
             identity=_identity(wifi={ARWiFiBand.BAND_2G1: 0}),
@@ -115,11 +115,11 @@ class TestTranslateState:
 
 
 def test_source_is_registered() -> None:
-    """The source registers get_state and translate_state."""
+    """The source registers fetch_state and translate_state."""
 
     assert (
-        ARCallReg.get_callable(ARNetworkSourceUniversal, AR_CALL_GET_STATE)
-        is get_state
+        ARCallReg.get_callable(ARNetworkSourceUniversal, AR_CALL_FETCH_STATE)
+        is fetch_state
     )
     assert (
         ARCallReg.get_callable(ARNetworkSource, AR_CALL_TRANSLATE_STATE)

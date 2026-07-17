@@ -189,7 +189,7 @@ class TestSet:
             command=ARDdnsCommand.SET,
             config={ARDdnsField.HOSTNAME: "new.example.com"},
         )
-        await run_action(callback, action, get_data_callback=get_data)
+        await run_action(callback, action, fetch_data_callback=get_data)
 
         assert _payload(callback)["ddns_replace_status"] == 0
 
@@ -202,7 +202,7 @@ class TestSet:
             command=ARDdnsCommand.SET,
             config={ARDdnsField.HOSTNAME: "same.example.com"},
         )
-        await run_action(callback, action, get_data_callback=get_data)
+        await run_action(callback, action, fetch_data_callback=get_data)
 
         assert "ddns_replace_status" not in _payload(callback)
 
@@ -218,7 +218,7 @@ class TestSet:
             command=ARDdnsCommand.SET,
             config={ARDdnsField.HOSTNAME: "new.example.com"},
         )
-        await run_action(callback, action, get_data_callback=get_data)
+        await run_action(callback, action, fetch_data_callback=get_data)
 
         assert "ddns_replace_status" not in _payload(callback)
 
@@ -275,7 +275,9 @@ class TestDeregister:
         callback = _deregister_callback(["unregister,200"])
         get_data = _data({ARDdnsField.TOKEN_STATE: True})
         action = ARDdnsAction(command=ARDdnsCommand.DEREGISTER)
-        result = await run_action(callback, action, get_data_callback=get_data)
+        result = await run_action(
+            callback, action, fetch_data_callback=get_data
+        )
 
         assert result.success is False
         callback.assert_not_awaited()
@@ -382,7 +384,7 @@ class TestCommon:
         callback = AsyncMock()
         raw = _poster()
         action = ARDdnsAction(command=ARDdnsCommand.STATE, state=True)
-        result = await run_action(callback, action, raw_callback=raw)
+        result = await run_action(callback, action, fetch_raw_callback=raw)
 
         assert result.success is True
         callback.assert_not_awaited()

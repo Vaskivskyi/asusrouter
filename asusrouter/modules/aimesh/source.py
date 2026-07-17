@@ -24,7 +24,7 @@ class ARAiMeshSource(ARDataSource):
 ARAiMeshSourceUniversal: ARAiMeshSource = ARAiMeshSource()
 
 
-async def get_state(
+async def fetch_state(
     callback: ARCallbackType,
     source: ARAiMeshSource,
     **kwargs: Any,
@@ -58,14 +58,14 @@ def translate_state(
     )
 
 
-ARCallReg.register_module(
-    ARAiMeshSource, get_state=get_state, translate_state=translate_state
+ARCallReg.register_source(
+    ARAiMeshSource, fetch_state=fetch_state, translate_state=translate_state
 )
 
 
 __all__ = [
     "ARAiMeshSource",
     "ARAiMeshSourceUniversal",
-    "get_state",
+    "fetch_state",
     "translate_state",
 ]

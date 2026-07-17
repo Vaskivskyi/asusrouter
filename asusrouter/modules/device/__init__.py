@@ -7,7 +7,7 @@ from asusrouter.modules.device.source import (
     DEVICE_REQUEST,
     ARDeviceSource,
     ARDeviceSourceUniversal,
-    get_state,
+    fetch_state,
     translate_state,
 )
 
@@ -16,6 +16,6 @@ __all__ = [
     "ARDeviceSource",
     "ARDeviceSourceUniversal",
     "AROperationMode",
-    "get_state",
+    "fetch_state",
     "translate_state",
 ]

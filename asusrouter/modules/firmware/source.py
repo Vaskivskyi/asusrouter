@@ -29,7 +29,7 @@ __all__ = [
     "ARFirmwareState",
     "ARFirmwareSync",
     "ARFirmwareWeb",
-    "get_state",
+    "fetch_state",
     "translate_state",
 ]
 
@@ -114,11 +114,11 @@ def _is_stable_update(
     return True
 
 
-async def _fetch_note(raw_callback: ARCallbackType) -> str | None:
+async def _fetch_note(fetch_raw_callback: ARCallbackType) -> str | None:
     """Fetch the release note from the first endpoint that returns one."""
 
     for endpoint in _NOTE_ENDPOINTS:
-        content = raw_to_str(await raw_callback(endpoint))
+        content = raw_to_str(await fetch_raw_callback(endpoint))
         if not content:
             continue
         note = read_firmware_note(content)
@@ -127,7 +127,7 @@ async def _fetch_note(raw_callback: ARCallbackType) -> str | None:
     return None
 
 
-async def get_state(
+async def fetch_state(
     callback: ARCallbackType,
     source: ARFirmwareSource,
     *,
@@ -141,11 +141,13 @@ async def get_state(
         update = {}
 
     note: str | None = None
-    raw_callback = kwargs.get("raw_callback")
+    fetch_raw_callback = kwargs.get("fetch_raw_callback")
     current = identity.firmware
     available = _available(update.get("webs_state_info"))
-    if raw_callback is not None and _is_stable_update(current, available):
-        note = await _fetch_note(raw_callback)
+    if fetch_raw_callback is not None and _is_stable_update(
+        current, available
+    ):
+        note = await _fetch_note(fetch_raw_callback)
 
     return {"update": update, "note": note, "available": available}
 
@@ -164,7 +166,7 @@ def translate_state(
     update: dict[str, Any] = data.get("update") or {}
     current = identity.firmware
 
-    # Reuse the available firmware parsed by `get_state` when present
+    # Reuse the available firmware parsed by `fetch_state` when present
     available = data.get("available")
     if available is None:
         available = _available(update.get("webs_state_info"))
@@ -205,6 +207,6 @@ def translate_state(
     )
 
 
-ARCallReg.register_module(
-    ARFirmwareSource, get_state=get_state, translate_state=translate_state
+ARCallReg.register_source(
+    ARFirmwareSource, fetch_state=fetch_state, translate_state=translate_state
 )

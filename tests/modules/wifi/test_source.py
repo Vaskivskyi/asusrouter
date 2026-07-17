@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from asusrouter.const import AR_CALL_GET_STATE, AR_CALL_TRANSLATE_STATE
+from asusrouter.const import AR_CALL_FETCH_STATE, AR_CALL_TRANSLATE_STATE
 from asusrouter.modules.endpoint import AREndpoint
 from asusrouter.modules.wifi import ARWiFiBand, ARWiFiBandwidth, ARWiFiField
 from asusrouter.modules.wifi.source import (
@@ -16,7 +16,7 @@ from asusrouter.modules.wifi.source import (
     ARWiFiSourceUniversal,
     _array_at,
     _build_request,
-    get_state,
+    fetch_state,
     translate_state,
 )
 from asusrouter.registry import ARCallableRegistry as ARCallReg
@@ -99,13 +99,13 @@ class TestBuildRequest:
 
 
 class TestGetState:
-    """Tests for get_state."""
+    """Tests for fetch_state."""
 
     async def test_no_identity(self) -> None:
         """No identity yields no data without calling back."""
 
         callback = AsyncMock()
-        result = await get_state(callback, ARWiFiSourceUniversal)
+        result = await fetch_state(callback, ARWiFiSourceUniversal)
 
         assert result == {}
         callback.assert_not_called()
@@ -114,7 +114,7 @@ class TestGetState:
         """The built request is sent to the appGet endpoint."""
 
         callback = AsyncMock(return_value={"ok": True})
-        result = await get_state(
+        result = await fetch_state(
             callback,
             ARWiFiSourceUniversal,
             identity=_identity({ARWiFiBand.BAND_2G1: 0}),
@@ -191,11 +191,11 @@ class TestTranslateState:
 
 
 def test_source_is_registered() -> None:
-    """The source registers get_state and translate_state."""
+    """The source registers fetch_state and translate_state."""
 
     assert (
-        ARCallReg.get_callable(ARWiFiSourceUniversal, AR_CALL_GET_STATE)
-        is get_state
+        ARCallReg.get_callable(ARWiFiSourceUniversal, AR_CALL_FETCH_STATE)
+        is fetch_state
     )
     assert (
         ARCallReg.get_callable(ARWiFiSource, AR_CALL_TRANSLATE_STATE)

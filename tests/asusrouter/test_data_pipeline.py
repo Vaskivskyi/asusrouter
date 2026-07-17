@@ -572,12 +572,12 @@ class TestAsyncFetchData:
         assert call.kwargs["force"] is True
         assert call.kwargs["extra_kw"] == "x"
         # Sub-fetch callback is bound to this call's force
-        callback = call.kwargs["get_data_callback"]
+        callback = call.kwargs["fetch_data_callback"]
         assert isinstance(callback, partial)
         assert callback.func == router.async_fetch_data
         assert callback.keywords == {"force": True}
         # Raw fetch is injected for readers that need unparsed content
-        assert call.kwargs["raw_callback"] == router.async_fetch
+        assert call.kwargs["fetch_raw_callback"] == router.async_fetch
         # Action trigger is injected so a fetch module can run an action
         assert call.kwargs["run_action_callback"] == router.async_run_action
         assert result is None
@@ -724,10 +724,10 @@ class TestAsyncRunAction:
         assert call.args == (router.async_read, action)
         kw = call.kwargs
         assert isinstance(kw["identity"], ARDeviceIdentity)
-        assert kw["raw_callback"] == router.async_fetch
+        assert kw["fetch_raw_callback"] == router.async_fetch
         assert kw["run_action_callback"] == router.async_run_action
         assert kw["extra_kw"] == "x"
-        callback = kw["get_data_callback"]
+        callback = kw["fetch_data_callback"]
         assert isinstance(callback, partial)
         assert callback.func == router.async_fetch_data
         assert callback.keywords == {"force": True}

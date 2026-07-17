@@ -31,7 +31,7 @@ async def run_action(
     callback: ARCallbackType,
     action: ARBlockAllAction,
     *,
-    raw_callback: ARCallbackType | None = None,
+    fetch_raw_callback: ARCallbackType | None = None,
     expire_callback: ARCallbackType | None = None,
     **kwargs: Any,
 ) -> ARServiceResult:
@@ -41,7 +41,7 @@ async def run_action(
         callback,
         ARService.FIREWALL_RESTART,
         arguments={KEY_BLOCK_ALL.value: int(action.state)},
-        raw_callback=raw_callback,
+        fetch_raw_callback=fetch_raw_callback,
     )
 
     # Drop the now-stale cached switch so the next read refetches

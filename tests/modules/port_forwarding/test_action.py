@@ -157,7 +157,7 @@ class TestRules:
             command=ARPortForwardingCommand.ADD, rules=[RULE_B]
         )
         result = await run_action(
-            callback, action, get_data_callback=_data([RULE_A])
+            callback, action, fetch_data_callback=_data([RULE_A])
         )
 
         assert _payload(callback)["vts_rulelist"] == serialize_rules(
@@ -185,7 +185,7 @@ class TestRules:
             command=ARPortForwardingCommand.ADD, rules=[RULE_A]
         )
         result = await run_action(
-            callback, action, get_data_callback=AsyncMock(return_value="x")
+            callback, action, fetch_data_callback=AsyncMock(return_value="x")
         )
 
         assert result.success is False
@@ -199,7 +199,7 @@ class TestRules:
             command=ARPortForwardingCommand.ADD, rules=[RULE_A]
         )
         result = await run_action(
-            callback, action, get_data_callback=_data(None)
+            callback, action, fetch_data_callback=_data(None)
         )
 
         assert _payload(callback)["vts_rulelist"] == serialize_rules([RULE_A])
@@ -211,7 +211,7 @@ class TestRules:
         callback = _poster()
         action = ARPortForwardingAction(command=ARPortForwardingCommand.ADD)
         result = await run_action(
-            callback, action, get_data_callback=_data([])
+            callback, action, fetch_data_callback=_data([])
         )
 
         assert result.success is False
@@ -226,7 +226,7 @@ class TestRules:
             command=ARPortForwardingCommand.ADD,
             rules=[{ARPortForwardingField.INTERNAL_IP: "192.168.1.10"}],
         )
-        result = await run_action(callback, action, get_data_callback=data)
+        result = await run_action(callback, action, fetch_data_callback=data)
 
         assert result.success is False
         callback.assert_not_awaited()
@@ -241,7 +241,7 @@ class TestRules:
             rules=[{_F.PROTOCOL: _P.OTHER, _F.INTERNAL_IP: "192.168.1.10"}],
         )
         result = await run_action(
-            callback, action, get_data_callback=_data([])
+            callback, action, fetch_data_callback=_data([])
         )
 
         assert result.success is False
@@ -256,7 +256,7 @@ class TestRules:
             rules=[{_F.PROTOCOL: _P.TCP, _F.EXTERNAL_PORT: "80"}],
         )
         result = await run_action(
-            callback, action, get_data_callback=_data([])
+            callback, action, fetch_data_callback=_data([])
         )
 
         assert result.success is False
@@ -271,7 +271,7 @@ class TestRules:
             rules=[{_F.INTERNAL_IP: "192.168.1.10"}],
         )
         result = await run_action(
-            callback, action, get_data_callback=AsyncMock(return_value="x")
+            callback, action, fetch_data_callback=AsyncMock(return_value="x")
         )
 
         assert result.success is False
@@ -314,7 +314,7 @@ class TestRules:
         action = ARPortForwardingAction(
             command=ARPortForwardingCommand.ADD, rules=[RULE_A_DUP]
         )
-        await run_action(callback, action, get_data_callback=_data([RULE_A]))
+        await run_action(callback, action, fetch_data_callback=_data([RULE_A]))
 
         # First occurrence (the saved rule) wins; the duplicate is dropped
         assert _payload(callback)["vts_rulelist"] == serialize_rules([RULE_A])
@@ -327,7 +327,7 @@ class TestRules:
             command=ARPortForwardingCommand.ADD, rules=[RULE_B]
         )
         await run_action(
-            callback, action, get_data_callback=_data([RULE_A, RULE_A_DUP])
+            callback, action, fetch_data_callback=_data([RULE_A, RULE_A_DUP])
         )
 
         assert _payload(callback)["vts_rulelist"] == serialize_rules(
@@ -373,7 +373,7 @@ class TestRules:
             command=ARPortForwardingCommand.REMOVE, rules=[RULE_A]
         )
         result = await run_action(
-            callback, action, get_data_callback=_data([RULE_A, RULE_B])
+            callback, action, fetch_data_callback=_data([RULE_A, RULE_B])
         )
 
         assert _payload(callback)["vts_rulelist"] == serialize_rules([RULE_B])
@@ -388,7 +388,7 @@ class TestRules:
             rules=[{ARPortForwardingField.EXTERNAL_PORT: "80"}],
         )
         result = await run_action(
-            callback, action, get_data_callback=_data([RULE_A, RULE_B])
+            callback, action, fetch_data_callback=_data([RULE_A, RULE_B])
         )
 
         assert _payload(callback)["vts_rulelist"] == serialize_rules([RULE_B])
@@ -405,7 +405,9 @@ class TestRules:
             ],
         )
         result = await run_action(
-            callback, action, get_data_callback=_data([RULE_A, RULE_C, RULE_B])
+            callback,
+            action,
+            fetch_data_callback=_data([RULE_A, RULE_C, RULE_B]),
         )
 
         assert _payload(callback)["vts_rulelist"] == serialize_rules([RULE_B])
@@ -425,7 +427,7 @@ class TestRules:
             ],
         )
         result = await run_action(
-            callback, action, get_data_callback=_data([RULE_A, RULE_C])
+            callback, action, fetch_data_callback=_data([RULE_A, RULE_C])
         )
 
         assert _payload(callback)["vts_rulelist"] == serialize_rules([RULE_C])
@@ -440,7 +442,7 @@ class TestRules:
             rules=[{ARPortForwardingField.SOURCE_IP: "10.0.0.0/24"}],
         )
         result = await run_action(
-            callback, action, get_data_callback=_data([RULE_SRC, RULE_B])
+            callback, action, fetch_data_callback=_data([RULE_SRC, RULE_B])
         )
 
         assert _payload(callback)["vts_rulelist"] == serialize_rules([RULE_B])
@@ -454,7 +456,7 @@ class TestRules:
             command=ARPortForwardingCommand.REMOVE, rules=[{}]
         )
         result = await run_action(
-            callback, action, get_data_callback=_data([RULE_A, RULE_B])
+            callback, action, fetch_data_callback=_data([RULE_A, RULE_B])
         )
 
         assert result.success is False
@@ -468,7 +470,7 @@ class TestRules:
             command=ARPortForwardingCommand.REMOVE, rules=[RULE_OTHER]
         )
         result = await run_action(
-            callback, action, get_data_callback=_data([RULE_OTHER, RULE_B])
+            callback, action, fetch_data_callback=_data([RULE_OTHER, RULE_B])
         )
 
         assert _payload(callback)["vts_rulelist"] == serialize_rules([RULE_B])
@@ -483,7 +485,7 @@ class TestRules:
             rules=[{_F.INTERNAL_IP: "192.168.1.10"}],
         )
         result = await run_action(
-            callback, action, get_data_callback=_data([RULE_A, RULE_B])
+            callback, action, fetch_data_callback=_data([RULE_A, RULE_B])
         )
 
         assert _payload(callback)["vts_rulelist"] == serialize_rules([RULE_B])
@@ -498,7 +500,7 @@ class TestRules:
             rules=[{_F.INTERNAL_IP: IpAddress("192.168.1.10")}],
         )
         result = await run_action(
-            callback, action, get_data_callback=_data([RULE_A, RULE_B])
+            callback, action, fetch_data_callback=_data([RULE_A, RULE_B])
         )
 
         assert _payload(callback)["vts_rulelist"] == serialize_rules([RULE_B])
@@ -513,7 +515,7 @@ class TestRules:
             rules=[RULE_A, {_F.INTERNAL_IP: "192.168.1.11"}],
         )
         result = await run_action(
-            callback, action, get_data_callback=_data([RULE_A, RULE_B])
+            callback, action, fetch_data_callback=_data([RULE_A, RULE_B])
         )
 
         assert _payload(callback)["vts_rulelist"] == ""
@@ -562,7 +564,7 @@ class TestRules:
         action = ARPortForwardingAction(
             command=ARPortForwardingCommand.STATE, state=True
         )
-        await run_action(callback, action, raw_callback=raw)
+        await run_action(callback, action, fetch_raw_callback=raw)
 
         raw.assert_awaited_once()
         callback.assert_not_awaited()

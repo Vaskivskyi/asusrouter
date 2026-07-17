@@ -56,17 +56,17 @@ ARParentalControlSourceUniversal: ARParentalControlSource = (
 )
 
 
-async def get_state(
+async def fetch_state(
     callback: ARCallbackType,
     source: ARParentalControlSource,
     *,
-    get_data_callback: ARCallbackType | None = None,
+    fetch_data_callback: ARCallbackType | None = None,
     identity: ARDeviceIdentity | None = None,
     **kwargs: Any,
 ) -> dict[Any, Any]:
     """Fetch the parental control configuration through the NVRAM module."""
 
-    return await async_fetch_values(get_data_callback, PC_REQUEST)
+    return await async_fetch_values(fetch_data_callback, PC_REQUEST)
 
 
 def _split_list(raw: Any) -> list[str]:
@@ -207,9 +207,9 @@ def translate_state(
     }
 
 
-ARCallReg.register_module(
+ARCallReg.register_source(
     ARParentalControlSource,
-    get_state=get_state,
+    fetch_state=fetch_state,
     translate_state=translate_state,
 )
 
@@ -218,7 +218,7 @@ __all__ = [
     "ARParentalControlSource",
     "ARParentalControlSourceUniversal",
     "DEFAULT_TIMEMAP",
-    "get_state",
+    "fetch_state",
     "rule_entry_count",
     "rule_schedule_mode",
     "serialize_rules",

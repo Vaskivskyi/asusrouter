@@ -73,7 +73,7 @@ class ARTrafficInterfaceSource(ARTrafficSource):
 
 async def _fetch(
     callback: ARCallbackType,
-    raw_callback: ARCallbackType | None,
+    fetch_raw_callback: ARCallbackType | None,
 ) -> _Counters:
     """Fetch counters from `update.cgi`, falling back to appGet.
 
@@ -95,25 +95,25 @@ async def _fetch(
     if isinstance(modern, dict) and modern:
         return modern
 
-    if raw_callback is None:
+    if fetch_raw_callback is None:
         return {}
-    legacy = await raw_callback(
+    legacy = await fetch_raw_callback(
         endpoint=AREndpoint.FETCH_DATA, request=_APPGET_NETDEV_REQUEST
     )
     return read_netdev(legacy) if isinstance(legacy, str) else {}
 
 
-async def get_state(
+async def fetch_state(
     callback: ARCallbackType,
     source: ARTrafficInterfaceSource,
     *,
     identity: ARDeviceIdentity | None = None,
-    raw_callback: ARCallbackType | None = None,
+    fetch_raw_callback: ARCallbackType | None = None,
     **kwargs: Any,
 ) -> dict[str, Any]:
     """Fetch interface counters and stash them for the next speed delta."""
 
-    now = await _fetch(callback, raw_callback)
+    now = await _fetch(callback, fetch_raw_callback)
     now_ts = datetime.now(UTC)
     prev, prev_ts = source.stash(now, now_ts)
     delta_time = (
@@ -225,8 +225,8 @@ def translate_state(
     return result
 
 
-ARCallReg.register_module(
+ARCallReg.register_source(
     ARTrafficInterfaceSource,
-    get_state=get_state,
+    fetch_state=fetch_state,
     translate_state=translate_state,
 )

@@ -28,7 +28,7 @@ class ARPortsSource(ARDataSource):
 ARPortsSourceUniversal: ARPortsSource = ARPortsSource()
 
 
-async def get_state(
+async def fetch_state(
     callback: ARCallbackType,
     source: ARPortsSource,
     *,
@@ -66,14 +66,14 @@ def translate_state(
     return {}
 
 
-ARCallReg.register_module(
-    ARPortsSource, get_state=get_state, translate_state=translate_state
+ARCallReg.register_source(
+    ARPortsSource, fetch_state=fetch_state, translate_state=translate_state
 )
 
 
 __all__ = [
     "ARPortsSource",
     "ARPortsSourceUniversal",
-    "get_state",
+    "fetch_state",
     "translate_state",
 ]

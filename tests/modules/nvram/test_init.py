@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from asusrouter.const import AR_CALL_GET_STATE, AR_CALL_TRANSLATE_STATE
+from asusrouter.const import AR_CALL_FETCH_STATE, AR_CALL_TRANSLATE_STATE
 from asusrouter.modules.common.connection import ARConnectionStatus
 from asusrouter.modules.endpoint.hooks import ARHook
 from asusrouter.modules.nvram import (
@@ -17,7 +17,7 @@ from asusrouter.modules.nvram import (
     async_expire_values,
     async_fetch_values,
     async_get_value,
-    get_state,
+    fetch_state,
     translate_state,
 )
 from asusrouter.registry import ARCallableRegistry as ARCallReg
@@ -25,7 +25,7 @@ from asusrouter.tools.identifiers import IpAddress, MacAddress
 
 
 class TestGetState:
-    """Tests for get_state."""
+    """Tests for fetch_state."""
 
     @pytest.mark.asyncio
     async def test_filters_invalid_keys(self) -> None:
@@ -34,7 +34,7 @@ class TestGetState:
         callback = AsyncMock(
             return_value={"label_mac": "00:11:22:33:44:55", "bad_key": "x"}
         )
-        result = await get_state(callback, ARNvramType.MAC)
+        result = await fetch_state(callback, ARNvramType.MAC)
         assert result == {ARNvramType.MAC: "00:11:22:33:44:55"}
         callback.assert_awaited_once()
 
@@ -45,7 +45,7 @@ class TestGetState:
         callback = AsyncMock(
             return_value={"label_mac": "00:11:22:33:44:55", "unknown": "x"}
         )
-        result = await get_state(callback, ARNvramType.MAC)
+        result = await fetch_state(callback, ARNvramType.MAC)
         assert ARNvramType.UNKNOWN not in result
         assert result == {ARNvramType.MAC: "00:11:22:33:44:55"}
 
@@ -57,12 +57,12 @@ class TestGetState:
         """Non-dict response returns an empty dict."""
 
         callback = AsyncMock(return_value=response)
-        result = await get_state(callback, ARNvramType.MAC)
+        result = await fetch_state(callback, ARNvramType.MAC)
         assert result == {}
 
     @pytest.mark.asyncio
     async def test_list_source(self) -> None:
-        """get_state accepts an iterable of ARNvramType (multicall mode)."""
+        """fetch_state accepts an iterable of ARNvramType (multicall mode)."""
 
         callback = AsyncMock(
             return_value={
@@ -70,7 +70,7 @@ class TestGetState:
                 "productid": "RT-AX88U",
             }
         )
-        result = await get_state(
+        result = await fetch_state(
             callback, [ARNvramType.MAC, ARNvramType.MODEL]
         )
         assert result == {
@@ -83,7 +83,7 @@ class TestGetState:
         """The request renders each item as an `nvram_get` hook call."""
 
         callback = AsyncMock(return_value={})
-        await get_state(callback, [ARNvramType.MAC, ARNvramType.MODEL])
+        await fetch_state(callback, [ARNvramType.MAC, ARNvramType.MODEL])
         kwargs = callback.await_args.kwargs
         assert (
             kwargs["request"]
@@ -184,7 +184,7 @@ class TestARNvramIndexSource:
 
 
 class TestGetStateIndexed:
-    """Tests for get_state with indexed sources."""
+    """Tests for fetch_state with indexed sources."""
 
     @pytest.mark.asyncio
     async def test_single_indexed(self) -> None:
@@ -192,7 +192,7 @@ class TestGetStateIndexed:
 
         source = ARNvramIndexSource(ARNvramIndexType.WAN_IPADDR, 0)
         callback = AsyncMock(return_value={"wan0_ipaddr": "1.2.3.4"})
-        result = await get_state(callback, source)
+        result = await fetch_state(callback, source)
         assert result == {source: "1.2.3.4"}
 
     @pytest.mark.asyncio
@@ -207,7 +207,7 @@ class TestGetStateIndexed:
                 "wan1_state_t": "2",
             }
         )
-        result = await get_state(callback, [flat, indexed])
+        result = await fetch_state(callback, [flat, indexed])
         assert result == {flat: "00:11:22:33:44:55", indexed: "2"}
 
     @pytest.mark.asyncio
@@ -218,7 +218,7 @@ class TestGetStateIndexed:
         callback = AsyncMock(
             return_value={"wan0_ipaddr": "1.2.3.4", "other": "x"}
         )
-        result = await get_state(callback, source)
+        result = await fetch_state(callback, source)
         assert result == {source: "1.2.3.4"}
 
 
@@ -336,9 +336,9 @@ class TestAsyncGetValue:
 def test_module_registers_callables(cls: type) -> None:
     """Both source classes register the batched callables on import."""
 
-    assert ARCallReg.get_callable(cls, AR_CALL_GET_STATE) is get_state
+    assert ARCallReg.get_callable(cls, AR_CALL_FETCH_STATE) is fetch_state
     assert (
         ARCallReg.get_callable(cls, AR_CALL_TRANSLATE_STATE) is translate_state
     )
-    assert ARCallReg.get_callable_flag(cls, AR_CALL_GET_STATE) is True
+    assert ARCallReg.get_callable_flag(cls, AR_CALL_FETCH_STATE) is True
     assert ARCallReg.get_callable_flag(cls, AR_CALL_TRANSLATE_STATE) is True

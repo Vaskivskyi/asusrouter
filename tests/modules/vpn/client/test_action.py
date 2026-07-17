@@ -68,22 +68,24 @@ class TestRunAction:
     async def test_fusion_rewrites_clientlist(self) -> None:
         """A Fusion device flips the activate flag and runs restart_vpnc."""
 
-        get_data_callback = AsyncMock(
+        fetch_data_callback = AsyncMock(
             return_value={ARNvramType.VPNC_CLIENTLIST: _CLIENTLIST}
         )
-        raw_callback = AsyncMock(return_value="NOT MODIFIED")
+        fetch_raw_callback = AsyncMock(return_value="NOT MODIFIED")
         action = ARVpnClientAction(ARVpnProtocol.WIREGUARD, False, unit=5)
 
         result = await run_action(
             AsyncMock(),
             action,
-            get_data_callback=get_data_callback,
-            raw_callback=raw_callback,
+            fetch_data_callback=fetch_data_callback,
+            fetch_raw_callback=fetch_raw_callback,
         )
 
         assert result.success is True
-        get_data_callback.assert_awaited_once_with(ARNvramType.VPNC_CLIENTLIST)
-        push = raw_callback.await_args.kwargs
+        fetch_data_callback.assert_awaited_once_with(
+            ARNvramType.VPNC_CLIENTLIST
+        )
+        push = fetch_raw_callback.await_args.kwargs
         assert push["endpoint"] is AREndpoint.PUSH_DATA
         assert '"rc_service":"stop_vpnc"' in push["request"]
         assert '"vpnc_unit":0' in push["request"]
@@ -91,65 +93,65 @@ class TestRunAction:
     async def test_classic_openvpn(self) -> None:
         """Without a clientlist, OpenVPN uses the per-unit service."""
 
-        get_data_callback = AsyncMock(return_value={})
-        raw_callback = AsyncMock(return_value="NOT MODIFIED")
+        fetch_data_callback = AsyncMock(return_value={})
+        fetch_raw_callback = AsyncMock(return_value="NOT MODIFIED")
         action = ARVpnClientAction(ARVpnProtocol.OPENVPN, True, unit=2)
 
         result = await run_action(
             AsyncMock(),
             action,
-            get_data_callback=get_data_callback,
-            raw_callback=raw_callback,
+            fetch_data_callback=fetch_data_callback,
+            fetch_raw_callback=fetch_raw_callback,
         )
 
         assert result.success is True
-        request = raw_callback.await_args.kwargs["request"]
+        request = fetch_raw_callback.await_args.kwargs["request"]
         assert '"rc_service":"start_vpnclient2"' in request
 
     async def test_classic_wireguard(self) -> None:
         """Classic WireGuard flips the enable flag with `start_wgc`."""
 
-        get_data_callback = AsyncMock(return_value={})
-        raw_callback = AsyncMock(return_value="NOT MODIFIED")
+        fetch_data_callback = AsyncMock(return_value={})
+        fetch_raw_callback = AsyncMock(return_value="NOT MODIFIED")
         action = ARVpnClientAction(ARVpnProtocol.WIREGUARD, True, unit=3)
 
         await run_action(
             AsyncMock(),
             action,
-            get_data_callback=get_data_callback,
-            raw_callback=raw_callback,
+            fetch_data_callback=fetch_data_callback,
+            fetch_raw_callback=fetch_raw_callback,
         )
 
-        request = raw_callback.await_args.kwargs["request"]
+        request = fetch_raw_callback.await_args.kwargs["request"]
         assert '"rc_service":"start_wgc 3"' in request
         assert '"wgc_enable":1' in request
 
     async def test_unknown_client_fails(self) -> None:
         """A Fusion device without the target profile fails without a push."""
 
-        get_data_callback = AsyncMock(
+        fetch_data_callback = AsyncMock(
             return_value={ARNvramType.VPNC_CLIENTLIST: _CLIENTLIST}
         )
-        raw_callback = AsyncMock()
+        fetch_raw_callback = AsyncMock()
         result = await run_action(
             AsyncMock(),
             ARVpnClientAction(ARVpnProtocol.WIREGUARD, True, unit=9),
-            get_data_callback=get_data_callback,
-            raw_callback=raw_callback,
+            fetch_data_callback=fetch_data_callback,
+            fetch_raw_callback=fetch_raw_callback,
         )
 
         assert result == ARServiceResult(success=False)
-        raw_callback.assert_not_awaited()
+        fetch_raw_callback.assert_not_awaited()
 
     async def test_non_dict_read_uses_classic(self) -> None:
         """A non-dict clientlist read falls back to the classic backend."""
 
-        get_data_callback = AsyncMock(return_value="not-a-dict")
+        fetch_data_callback = AsyncMock(return_value="not-a-dict")
         callback = AsyncMock(return_value="NOT MODIFIED")
         action = ARVpnClientAction(ARVpnProtocol.OPENVPN, True, unit=1)
 
         result = await run_action(
-            callback, action, get_data_callback=get_data_callback
+            callback, action, fetch_data_callback=fetch_data_callback
         )
 
         assert result.success is True
@@ -172,27 +174,27 @@ class TestRunAction:
     async def test_unsupported_protocol_fails(self) -> None:
         """A classic protocol without a toggle fails without a push."""
 
-        get_data_callback = AsyncMock(return_value={})
-        raw_callback = AsyncMock()
+        fetch_data_callback = AsyncMock(return_value={})
+        fetch_raw_callback = AsyncMock()
         result = await run_action(
             AsyncMock(),
             ARVpnClientAction(ARVpnProtocol.PPTP, True),
-            get_data_callback=get_data_callback,
-            raw_callback=raw_callback,
+            fetch_data_callback=fetch_data_callback,
+            fetch_raw_callback=fetch_raw_callback,
         )
 
         assert result == ARServiceResult(success=False)
-        raw_callback.assert_not_awaited()
+        fetch_raw_callback.assert_not_awaited()
 
     async def test_falls_back_to_callback(self) -> None:
         """Without a raw callback the plain callback posts the request."""
 
-        get_data_callback = AsyncMock(return_value={})
+        fetch_data_callback = AsyncMock(return_value={})
         callback = AsyncMock(return_value="NOT MODIFIED")
         action = ARVpnClientAction(ARVpnProtocol.OPENVPN, False, unit=1)
 
         result = await run_action(
-            callback, action, get_data_callback=get_data_callback
+            callback, action, fetch_data_callback=fetch_data_callback
         )
 
         assert result.success is True

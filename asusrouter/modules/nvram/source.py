@@ -168,7 +168,7 @@ def _as_items(
     return list(request)
 
 
-async def get_state(
+async def fetch_state(
     callback: ARCallbackType,
     source: ARNvramItem | Iterable[ARNvramItem],
     **kwargs: Any,
@@ -196,26 +196,26 @@ async def get_state(
 
 
 async def async_fetch_values(
-    get_data_callback: ARCallbackType | None,
+    fetch_data_callback: ARCallbackType | None,
     request: ARNvramItem | Iterable[ARNvramItem],
     **kwargs: Any,
 ) -> dict[Any, Any]:
     """Fetch NVRAM values through the data pipeline, or {} if unavailable."""
 
-    if get_data_callback is None:
+    if fetch_data_callback is None:
         return {}
-    values = await get_data_callback(request, **kwargs)
+    values = await fetch_data_callback(request, **kwargs)
     return values if isinstance(values, dict) else {}
 
 
 async def async_get_value(
-    get_data_callback: ARCallbackType | None,
+    fetch_data_callback: ARCallbackType | None,
     item: ARNvramItem,
     **kwargs: Any,
 ) -> Any:
     """Fetch a single NVRAM value through the data pipeline, or None."""
 
-    values = await async_fetch_values(get_data_callback, item, **kwargs)
+    values = await async_fetch_values(fetch_data_callback, item, **kwargs)
     return values.get(item)
 
 
@@ -252,15 +252,15 @@ def translate_state(
     return result
 
 
-ARCallReg.register_module(
+ARCallReg.register_source(
     ARNvramType,
-    get_state=get_state,
+    fetch_state=fetch_state,
     translate_state=translate_state,
     multi=True,
 )
-ARCallReg.register_module(
+ARCallReg.register_source(
     ARNvramIndexSource,
-    get_state=get_state,
+    fetch_state=fetch_state,
     translate_state=translate_state,
     multi=True,
 )

@@ -31,7 +31,7 @@ _ID = _identity()
 
 
 def _fetch(aura: dict[ARAuraField, Any]) -> AsyncMock:
-    """Mock get_data_callback returning the source-keyed fetch result."""
+    """Mock fetch_data_callback returning the source-keyed fetch result."""
 
     return AsyncMock(return_value={ARAuraSourceUniversal: aura})
 
@@ -90,7 +90,7 @@ class TestRunActionScheme:
         action = ARAuraAction(scheme=ARAuraScheme.STATIC)
 
         result = await run_action(
-            callback, action, get_data_callback=get_data, identity=_ID
+            callback, action, fetch_data_callback=get_data, identity=_ID
         )
 
         assert result.success is True
@@ -106,7 +106,7 @@ class TestRunActionScheme:
         action = ARAuraAction(scheme=ARAuraScheme.STATIC, night_mode=True)
 
         await run_action(
-            callback, action, get_data_callback=get_data, identity=_ID
+            callback, action, fetch_data_callback=get_data, identity=_ID
         )
         assert "ledg_night_mode=1" in _query(callback)
 
@@ -118,7 +118,7 @@ class TestRunActionScheme:
         action = ARAuraAction(night_mode=False)
 
         await run_action(
-            callback, action, get_data_callback=get_data, identity=_ID
+            callback, action, fetch_data_callback=get_data, identity=_ID
         )
         assert "ledg_night_mode=0" in _query(callback)
 
@@ -130,7 +130,7 @@ class TestRunActionScheme:
         action = ARAuraAction(scheme=ARAuraScheme.STATIC)
 
         await run_action(
-            callback, action, get_data_callback=get_data, identity=_ID
+            callback, action, fetch_data_callback=get_data, identity=_ID
         )
         assert "ledg_night_mode" not in _query(callback)
 
@@ -142,7 +142,7 @@ class TestRunActionScheme:
         action = ARAuraAction(scheme=ARAuraScheme.STATIC, night_mode=True)
 
         result = await run_action(
-            callback, action, get_data_callback=get_data, identity=_ID
+            callback, action, fetch_data_callback=get_data, identity=_ID
         )
         assert result.success is True
         assert "ledg_night_mode" not in _query(callback)
@@ -163,7 +163,7 @@ class TestRunActionScheme:
         raw = AsyncMock(return_value=None)
         action = ARAuraAction(scheme=ARAuraScheme.STATIC)
         result = await run_action(
-            callback, action, raw_callback=raw, identity=_ID
+            callback, action, fetch_raw_callback=raw, identity=_ID
         )
         assert result.success is False
 
@@ -174,7 +174,7 @@ class TestRunActionScheme:
         raw = AsyncMock(return_value="")
         action = ARAuraAction(scheme=ARAuraScheme.STATIC)
         result = await run_action(
-            callback, action, raw_callback=raw, identity=_ID
+            callback, action, fetch_raw_callback=raw, identity=_ID
         )
         assert result.success is True
         assert "ledg_scheme=2" in raw.await_args.kwargs["request"]
@@ -196,7 +196,7 @@ class TestRunActionColor:
         action = ARAuraAction(color=Color(255, 0, 0))
 
         await run_action(
-            callback, action, get_data_callback=get_data, identity=_ID
+            callback, action, fetch_data_callback=get_data, identity=_ID
         )
         assert "ledg_rgb=" in _query(callback)
 
@@ -212,7 +212,7 @@ class TestRunActionColor:
         action = ARAuraAction(color=Color(255, 0, 0))
 
         await run_action(
-            callback, action, get_data_callback=get_data, identity=_ID
+            callback, action, fetch_data_callback=get_data, identity=_ID
         )
         query = _query(callback)
         assert "ledg_scheme=2" in query
@@ -226,7 +226,7 @@ class TestRunActionColor:
         action = ARAuraAction(color=Color(255, 0, 0))
 
         await run_action(
-            callback, action, get_data_callback=get_data, identity=_ID
+            callback, action, fetch_data_callback=get_data, identity=_ID
         )
         assert "ledg_rgb" not in _query(callback)
 
@@ -244,7 +244,7 @@ class TestRunActionColor:
         action = ARAuraAction(color=Color(0, 0, 255))
 
         await run_action(
-            callback, action, get_data_callback=get_data, identity=_ID
+            callback, action, fetch_data_callback=get_data, identity=_ID
         )
         query = _query(callback)
         assert "ledg_rgb=" in query
@@ -268,8 +268,8 @@ class TestRunActionUnsupported:
         result = await run_action(
             callback,
             action,
-            get_data_callback=get_data,
-            raw_callback=raw,
+            fetch_data_callback=get_data,
+            fetch_raw_callback=raw,
             identity=identity,
         )
 

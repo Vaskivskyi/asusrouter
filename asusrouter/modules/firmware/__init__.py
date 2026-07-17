@@ -17,7 +17,7 @@ from asusrouter.modules.firmware.source import (
     ARFirmwareState,
     ARFirmwareSync,
     ARFirmwareWeb,
-    get_state,
+    fetch_state,
     translate_state,
 )
 from asusrouter.modules.firmware.version import AR_FW_388, ARFirmware
@@ -37,6 +37,6 @@ __all__ = [
     "ARFirmwareWebFetch",
     "ARFirmwareWebNotify",
     "ARFirmwareWebUpgrade",
-    "get_state",
+    "fetch_state",
     "translate_state",
 ]

@@ -22,7 +22,7 @@ from asusrouter.config.connection import (
 )
 from asusrouter.connection import Connection
 from asusrouter.const import (
-    AR_CALL_GET_STATE,
+    AR_CALL_FETCH_STATE,
     AR_CALL_RUN_ACTION,
     AR_CALL_TRANSLATE_ACTION,
     AR_CALL_TRANSLATE_STATE,
@@ -374,9 +374,9 @@ class AsusRouter:
                 else ARDataStateStatic(item)
             )
             state.callback = callback
-            state.state_caller = get_callable(item, name=AR_CALL_GET_STATE)
+            state.state_caller = get_callable(item, name=AR_CALL_FETCH_STATE)
             state.state_caller_multi = get_callable_flag(
-                item, name=AR_CALL_GET_STATE
+                item, name=AR_CALL_FETCH_STATE
             )
             state.translate_caller = get_callable(
                 item, name=AR_CALL_TRANSLATE_STATE
@@ -638,11 +638,11 @@ class AsusRouter:
         _LOGGER.debug("Triggered method async_fetch_data")
 
         # Sub-fetches inherit this call's force (override per-call if needed)
-        kwargs["get_data_callback"] = partial(
+        kwargs["fetch_data_callback"] = partial(
             self.async_fetch_data, force=force
         )
         # Raw fetch for readers that must see unparsed content
-        kwargs["raw_callback"] = self.async_fetch
+        kwargs["fetch_raw_callback"] = self.async_fetch
         # Let a fetch module trigger an action while resolving its data
         kwargs["run_action_callback"] = self.async_run_action
 
@@ -674,10 +674,10 @@ class AsusRouter:
         if run_caller is None:
             return None
 
-        kwargs["get_data_callback"] = partial(
+        kwargs["fetch_data_callback"] = partial(
             self.async_fetch_data, force=True
         )
-        kwargs["raw_callback"] = self.async_fetch
+        kwargs["fetch_raw_callback"] = self.async_fetch
         kwargs["run_action_callback"] = self.async_run_action
         kwargs["expire_callback"] = self._async_expire_data
 

@@ -111,12 +111,12 @@ def _remove(
 
 
 async def _async_current(
-    get_data_callback: ARCallbackType,
+    fetch_data_callback: ARCallbackType,
 ) -> list[ARPingTarget]:
     """Fetch the current target list, bypassing the cache."""
 
     raw = await async_get_value(
-        get_data_callback, ARNvramType.DNS_PING_LIST, force=True
+        fetch_data_callback, ARNvramType.DNS_PING_LIST, force=True
     )
     return _parse_targets(raw) if isinstance(raw, str) else []
 
@@ -125,7 +125,7 @@ async def run_action(
     callback: ARCallbackType,
     action: ARPingTargetsAction,
     *,
-    get_data_callback: ARCallbackType | None = None,
+    fetch_data_callback: ARCallbackType | None = None,
     **kwargs: Any,
 ) -> ARServiceResult:
     """Apply an add/remove/clean operation to the ping target list."""
@@ -136,9 +136,9 @@ async def run_action(
         if not action.targets:
             _LOGGER.debug("No compatible target provided; nothing to apply")
             return ARServiceResult(success=False)
-        if get_data_callback is None:
+        if fetch_data_callback is None:
             return ARServiceResult(success=False)
-        current = await _async_current(get_data_callback)
+        current = await _async_current(fetch_data_callback)
         targets = (
             _add(current, action.targets)
             if action.op is ARActionType.ADD

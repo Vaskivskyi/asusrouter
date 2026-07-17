@@ -12,7 +12,7 @@ import pytest
 from asusrouter.modules.boottime import (
     ARBoottime,
     ARBoottimeSource,
-    get_state,
+    fetch_state,
     read_uptime,
     source as boottime_source,
     stabilize,
@@ -155,25 +155,25 @@ class TestExtractUptime:
 
 
 class TestGetState:
-    """Tests for get_state."""
+    """Tests for fetch_state."""
 
     async def test_raw_fallback(self) -> None:
         """When the JSON has no uptime, the raw content is parsed."""
 
         callback = AsyncMock(return_value={})
-        raw_callback = AsyncMock(
+        fetch_raw_callback = AsyncMock(
             return_value='{\n"uptime":when(100 secs since boot)\n}'
         )
 
         with patch.object(boottime_source, "read_uptime", return_value=_BOOT):
-            result = await get_state(
+            result = await fetch_state(
                 callback,
                 ARBoottimeSource(),
-                raw_callback=raw_callback,
+                fetch_raw_callback=fetch_raw_callback,
             )
 
         assert result == _BOOT
-        raw_callback.assert_awaited_once()
+        fetch_raw_callback.assert_awaited_once()
 
     async def test_fetches_and_stabilizes(self) -> None:
         """Uptime is fetched and stabilized against the identity anchor."""
@@ -188,7 +188,7 @@ class TestGetState:
             "read_uptime",
             return_value=_BOOT + timedelta(seconds=1),
         ):
-            result = await get_state(
+            result = await fetch_state(
                 callback, ARBoottimeSource(), identity=identity
             )
 
@@ -203,7 +203,7 @@ class TestGetState:
         callback = AsyncMock(return_value={"uptime": "when(100 secs)"})
 
         with patch.object(boottime_source, "read_uptime", return_value=_BOOT):
-            result = await get_state(callback, ARBoottimeSource())
+            result = await fetch_state(callback, ARBoottimeSource())
 
         assert result == _BOOT
 
@@ -217,7 +217,7 @@ class TestGetState:
 
         callback = AsyncMock(return_value=raw)
 
-        assert await get_state(callback, ARBoottimeSource()) is None
+        assert await fetch_state(callback, ARBoottimeSource()) is None
 
 
 def test_registers_callable(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -225,7 +225,7 @@ def test_registers_callable(monkeypatch: pytest.MonkeyPatch) -> None:
 
     mock_register = Mock()
     monkeypatch.setattr(
-        "asusrouter.registry.ARCallableRegistry.register_module",
+        "asusrouter.registry.ARCallableRegistry.register_source",
         mock_register,
     )
 
@@ -233,5 +233,5 @@ def test_registers_callable(monkeypatch: pytest.MonkeyPatch) -> None:
 
     mock_register.assert_called_once_with(
         module.ARBoottimeSource,
-        get_state=module.get_state,
+        fetch_state=module.fetch_state,
     )

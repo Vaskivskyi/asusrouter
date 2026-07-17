@@ -21,7 +21,7 @@ from asusrouter.modules.device.identity import ARDeviceIdentity
 from asusrouter.modules.endpoint import AREndpoint
 from asusrouter.modules.traffic.aimesh import (
     ARTrafficAiMeshSource,
-    get_state,
+    fetch_state,
     source as aimesh,
     translate_state,
 )
@@ -233,7 +233,7 @@ class TestResolve:
 
 
 class TestGetState:
-    """Tests for get_state."""
+    """Tests for fetch_state."""
 
     async def test_atomic_calls_endpoint(self) -> None:
         """A specific link fetches one endpoint, keyed by the link."""
@@ -242,7 +242,7 @@ class TestGetState:
         callback = AsyncMock(return_value=_RAW)
         source = ARTrafficAiMeshSource(ARTrafficType.WIRED, _NODE)
 
-        result = await get_state(callback, source, identity=identity)
+        result = await fetch_state(callback, source, identity=identity)
 
         assert result == {ARTrafficType.WIRED: _RAW}
         callback.assert_awaited_once()
@@ -255,7 +255,7 @@ class TestGetState:
         callback = AsyncMock()
         source = ARTrafficAiMeshSource(ARTrafficType.WAN, _NODE)
 
-        result = await get_state(callback, source, identity=_identity())
+        result = await fetch_state(callback, source, identity=_identity())
 
         assert result == {}
         callback.assert_not_awaited()
@@ -266,7 +266,7 @@ class TestGetState:
         identity = ARDeviceIdentity()
         callback = AsyncMock()
 
-        result = await get_state(
+        result = await fetch_state(
             callback,
             ARTrafficAiMeshSource(ARTrafficType.WIRED),
             identity=identity,
@@ -281,7 +281,7 @@ class TestGetState:
         callback = AsyncMock(return_value=_RAW)
         source = ARTrafficAiMeshSource(ARTrafficType.WIRED)
 
-        await get_state(callback, source, identity=_identity())
+        await fetch_state(callback, source, identity=_identity())
 
         args = callback.await_args.kwargs["request"]
         assert args is not None
@@ -304,11 +304,11 @@ class TestGetState:
             return {src: {src.link: _METRICS} for src in sources}
 
         source = ARTrafficAiMeshSource(target=_NODE)
-        result = await get_state(
+        result = await fetch_state(
             AsyncMock(),
             source,
             identity=identity,
-            get_data_callback=fake_callback,
+            fetch_data_callback=fake_callback,
         )
 
         assert result == {
@@ -320,11 +320,11 @@ class TestGetState:
     async def test_aggregate_without_callback(self) -> None:
         """Without a callback the aggregate yields nothing."""
 
-        result = await get_state(
+        result = await fetch_state(
             AsyncMock(),
             ARTrafficAiMeshSource(target=_NODE),
             identity=_identity(),
-            get_data_callback=None,
+            fetch_data_callback=None,
         )
 
         assert result == {}
@@ -338,11 +338,11 @@ class TestGetState:
             captured["links"] = [src.link for src in sources]
             return {}
 
-        await get_state(
+        await fetch_state(
             AsyncMock(),
             ARTrafficAiMeshSource(target=_NODE),
             identity=_identity(node=False),
-            get_data_callback=fake_callback,
+            fetch_data_callback=fake_callback,
         )
 
         assert captured["links"] == [ARTrafficType.WIRED]
@@ -353,11 +353,11 @@ class TestGetState:
         async def fake_callback(sources: Any) -> dict[Any, Any]:
             return dict.fromkeys(sources)
 
-        result = await get_state(
+        result = await fetch_state(
             AsyncMock(),
             ARTrafficAiMeshSource(target=_NODE),
             identity=_identity(),
-            get_data_callback=fake_callback,
+            fetch_data_callback=fake_callback,
         )
 
         assert result == {}
@@ -368,11 +368,11 @@ class TestGetState:
         async def fake_callback(sources: Any) -> Any:
             return None
 
-        result = await get_state(
+        result = await fetch_state(
             AsyncMock(),
             ARTrafficAiMeshSource(target=_NODE),
             identity=_identity(),
-            get_data_callback=fake_callback,
+            fetch_data_callback=fake_callback,
         )
 
         assert result == {}
@@ -460,7 +460,7 @@ def test_registers_callable(monkeypatch: pytest.MonkeyPatch) -> None:
 
     mock_register = Mock()
     monkeypatch.setattr(
-        "asusrouter.registry.ARCallableRegistry.register_module",
+        "asusrouter.registry.ARCallableRegistry.register_source",
         mock_register,
     )
 
@@ -468,6 +468,6 @@ def test_registers_callable(monkeypatch: pytest.MonkeyPatch) -> None:
 
     mock_register.assert_called_once_with(
         aimesh.ARTrafficAiMeshSource,
-        get_state=aimesh.get_state,
+        fetch_state=aimesh.fetch_state,
         translate_state=aimesh.translate_state,
     )

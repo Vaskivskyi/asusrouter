@@ -17,7 +17,7 @@ from asusrouter.modules.network.handle import ARNetworkHandle
 from asusrouter.modules.network.source import (
     ARNetworkSource,
     ARNetworkSourceUniversal,
-    get_state,
+    fetch_state,
     translate_state,
 )
 
@@ -31,7 +31,7 @@ __all__ = [
     "ARNetworkSourceUniversal",
     "ARNetworkType",
     "find_handle_by_ssid",
-    "get_state",
+    "fetch_state",
     "run_action",
     "translate_state",
 ]

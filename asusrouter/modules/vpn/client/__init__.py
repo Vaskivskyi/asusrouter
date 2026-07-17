@@ -6,7 +6,7 @@ from asusrouter.modules.vpn.client.action import ARVpnClientAction
 from asusrouter.modules.vpn.client.source import (
     ARVpnClientSource,
     ARVpnClientSourceUniversal,
-    get_state,
+    fetch_state,
     translate_state,
 )
 
@@ -14,6 +14,6 @@ __all__ = [
     "ARVpnClientAction",
     "ARVpnClientSource",
     "ARVpnClientSourceUniversal",
-    "get_state",
+    "fetch_state",
     "translate_state",
 ]

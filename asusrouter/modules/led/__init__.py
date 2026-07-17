@@ -12,7 +12,7 @@ from asusrouter.modules.led.source import (
     LED_REQUEST,
     ARLedSource,
     ARLedSourceUniversal,
-    get_state,
+    fetch_state,
     translate_state,
 )
 
@@ -23,7 +23,7 @@ __all__ = [
     "ARLedSource",
     "ARLedSourceUniversal",
     "async_recover_state",
-    "get_state",
+    "fetch_state",
     "run_action",
     "translate_state",
 ]

@@ -170,13 +170,13 @@ def _state_arguments(action: ARPortForwardingAction) -> dict[str, Any] | None:
 
 
 async def _fetch_rules(
-    get_data_callback: ARCallbackType | None,
+    fetch_data_callback: ARCallbackType | None,
 ) -> list[ARPortForwardingRule] | None:
     """Read the current rules, or None when they cannot be fetched."""
 
-    if get_data_callback is None:
+    if fetch_data_callback is None:
         return None
-    fetched = await get_data_callback(ARPortForwardingSourceUniversal)
+    fetched = await fetch_data_callback(ARPortForwardingSourceUniversal)
     if not isinstance(fetched, dict):
         return None
     data = fetched.get(ARPortForwardingSourceUniversal) or {}
@@ -185,7 +185,7 @@ async def _fetch_rules(
 
 async def _rules_arguments(
     action: ARPortForwardingAction,
-    get_data_callback: ARCallbackType | None,
+    fetch_data_callback: ARCallbackType | None,
 ) -> dict[str, Any] | None:
     """Build the arguments for an add/remove/set of rules."""
 
@@ -203,7 +203,7 @@ async def _rules_arguments(
         ):
             _LOGGER.debug("ADD rejected: no rules or an incomplete one given")
             return None
-        current = await _fetch_rules(get_data_callback)
+        current = await _fetch_rules(fetch_data_callback)
         if current is None:
             return None
         final = current + list(action.rules)
@@ -213,7 +213,7 @@ async def _rules_arguments(
         if not specs:
             _LOGGER.debug("REMOVE rejected: no match specs given")
             return None
-        current = await _fetch_rules(get_data_callback)
+        current = await _fetch_rules(fetch_data_callback)
         if current is None:
             return None
         final = [
@@ -239,8 +239,8 @@ async def run_action(
     callback: ARCallbackType,
     action: ARPortForwardingAction,
     *,
-    get_data_callback: ARCallbackType | None = None,
-    raw_callback: ARCallbackType | None = None,
+    fetch_data_callback: ARCallbackType | None = None,
+    fetch_raw_callback: ARCallbackType | None = None,
     expire_callback: ARCallbackType | None = None,
     **kwargs: Any,
 ) -> ARServiceResult:
@@ -253,7 +253,7 @@ async def run_action(
         ARPortForwardingCommand.REMOVE,
         ARPortForwardingCommand.SET,
     ):
-        arguments = await _rules_arguments(action, get_data_callback)
+        arguments = await _rules_arguments(action, fetch_data_callback)
     else:
         _LOGGER.debug("Unknown port forwarding command: %s", action.command)
         return ARServiceResult(success=False)
@@ -265,7 +265,7 @@ async def run_action(
         callback,
         ARService.FIREWALL_RESTART,
         arguments=arguments,
-        raw_callback=raw_callback,
+        fetch_raw_callback=fetch_raw_callback,
     )
 
     # Drop the now-stale cached rules/state so the next read refetches

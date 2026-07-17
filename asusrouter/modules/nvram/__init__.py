@@ -9,7 +9,7 @@ from asusrouter.modules.nvram.source import (
     async_expire_values,
     async_fetch_values,
     async_get_value,
-    get_state,
+    fetch_state,
     translate_state,
 )
 
@@ -21,6 +21,6 @@ __all__ = [
     "async_expire_values",
     "async_fetch_values",
     "async_get_value",
-    "get_state",
+    "fetch_state",
     "translate_state",
 ]

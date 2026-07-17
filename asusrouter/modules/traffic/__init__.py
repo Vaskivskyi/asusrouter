@@ -6,7 +6,7 @@ from asusrouter.modules.traffic.aimesh import ARTrafficAiMeshSource
 from asusrouter.modules.traffic.base import ARTrafficLink, ARTrafficSource
 from asusrouter.modules.traffic.enums import ARTrafficType
 from asusrouter.modules.traffic.interface import ARTrafficInterfaceSource
-from asusrouter.modules.traffic.source import get_state
+from asusrouter.modules.traffic.source import fetch_state
 
 __all__ = [
     "ARTrafficAiMeshSource",
@@ -14,5 +14,5 @@ __all__ = [
     "ARTrafficLink",
     "ARTrafficSource",
     "ARTrafficType",
-    "get_state",
+    "fetch_state",
 ]

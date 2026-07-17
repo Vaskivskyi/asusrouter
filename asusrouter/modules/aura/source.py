@@ -57,11 +57,11 @@ class ARAuraSource(ARDataSource):
 ARAuraSourceUniversal: ARAuraSource = ARAuraSource()
 
 
-async def get_state(
+async def fetch_state(
     callback: ARCallbackType,
     source: ARAuraSource,
     *,
-    get_data_callback: ARCallbackType | None = None,
+    fetch_data_callback: ARCallbackType | None = None,
     identity: ARDeviceIdentity | None = None,
     **kwargs: Any,
 ) -> dict[Any, Any]:
@@ -70,7 +70,7 @@ async def get_state(
     if not aura_supported(identity):
         return {}
 
-    return await async_fetch_values(get_data_callback, _AURA_REQUEST)
+    return await async_fetch_values(fetch_data_callback, _AURA_REQUEST)
 
 
 def _parse_scheme_colors(
@@ -137,14 +137,14 @@ def translate_state(
     return result
 
 
-ARCallReg.register_module(
-    ARAuraSource, get_state=get_state, translate_state=translate_state
+ARCallReg.register_source(
+    ARAuraSource, fetch_state=fetch_state, translate_state=translate_state
 )
 
 
 __all__ = [
     "ARAuraSource",
     "ARAuraSourceUniversal",
-    "get_state",
+    "fetch_state",
     "translate_state",
 ]

@@ -4,12 +4,12 @@ from __future__ import annotations
 
 from unittest.mock import AsyncMock
 
-from asusrouter.const import AR_CALL_GET_STATE
+from asusrouter.const import AR_CALL_FETCH_STATE
 from asusrouter.modules.endpoint import AREndpoint
 from asusrouter.modules.vpn.client.source import (
     ARVpnClientSource,
     ARVpnClientSourceUniversal,
-    get_state,
+    fetch_state,
     translate_state,
 )
 from asusrouter.modules.vpn.enums import ARVpnClientField, ARVpnProtocol
@@ -17,13 +17,13 @@ from asusrouter.registry import ARCallableRegistry as ARCallReg
 
 
 class TestGetState:
-    """Tests for get_state."""
+    """Tests for fetch_state."""
 
     async def test_fusion_skips_vpn_cgi(self) -> None:
         """When a clientlist is present, the classic vpn.cgi is not fetched."""
 
         callback = AsyncMock(return_value={"vpnc_clientlist": "x"})
-        await get_state(callback, ARVpnClientSourceUniversal)
+        await fetch_state(callback, ARVpnClientSourceUniversal)
 
         request = callback.await_args.kwargs["request"]
         assert callback.await_args.kwargs["endpoint"] is AREndpoint.FETCH_DATA
@@ -36,7 +36,7 @@ class TestGetState:
         """Without a clientlist, the classic vpn.cgi status is fetched too."""
 
         callback = AsyncMock(side_effect=[{}, {"vpn_client1_status": "None"}])
-        data = await get_state(callback, ARVpnClientSourceUniversal)
+        data = await fetch_state(callback, ARVpnClientSourceUniversal)
 
         assert callback.await_count == 2
         assert (
@@ -75,9 +75,9 @@ class TestRegistration:
     """Tests for source registration."""
 
     def test_registered(self) -> None:
-        """The source resolves a get_state callable via the registry."""
+        """The source resolves a fetch_state callable via the registry."""
 
         assert (
-            ARCallReg.get_callable(ARVpnClientSource(), AR_CALL_GET_STATE)
-            is get_state
+            ARCallReg.get_callable(ARVpnClientSource(), AR_CALL_FETCH_STATE)
+            is fetch_state
         )

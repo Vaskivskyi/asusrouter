@@ -16,7 +16,7 @@ from asusrouter.modules.parental_control.enums import (
 from asusrouter.modules.parental_control.schedule.source import (
     DEFAULT_TIMEMAP,
     ARParentalControlSourceUniversal,
-    get_state,
+    fetch_state,
     rule_entry_count,
     rule_schedule_mode,
     serialize_rules,
@@ -41,7 +41,7 @@ _TIMEMAP = "W03E21000700&#60W04122000800&#62W01E21000700"
 
 
 class TestGetState:
-    """Tests for get_state."""
+    """Tests for fetch_state."""
 
     async def test_fetches_via_nvram(self) -> None:
         """The parental control items are requested from the NVRAM module."""
@@ -50,10 +50,10 @@ class TestGetState:
         get_data = AsyncMock(return_value=values)
         callback = AsyncMock()
 
-        result = await get_state(
+        result = await fetch_state(
             callback,
             ARParentalControlSourceUniversal,
-            get_data_callback=get_data,
+            fetch_data_callback=get_data,
         )
 
         assert result == values
@@ -70,7 +70,7 @@ class TestGetState:
         """Without a data callback nothing is fetched."""
 
         callback = AsyncMock()
-        result = await get_state(callback, ARParentalControlSourceUniversal)
+        result = await fetch_state(callback, ARParentalControlSourceUniversal)
         assert result == {}
         callback.assert_not_awaited()
 
@@ -78,10 +78,10 @@ class TestGetState:
         """A non-dict response is normalized to an empty dict."""
 
         get_data = AsyncMock(return_value=None)
-        result = await get_state(
+        result = await fetch_state(
             AsyncMock(),
             ARParentalControlSourceUniversal,
-            get_data_callback=get_data,
+            fetch_data_callback=get_data,
         )
         assert result == {}
 

@@ -10,7 +10,7 @@ import pytest
 
 from asusrouter.modules.common.metrics import ARMetricType as M
 from asusrouter.modules.device.identity import ARDeviceIdentity
-from asusrouter.modules.traffic import get_state, source as traffic_source
+from asusrouter.modules.traffic import fetch_state, source as traffic_source
 from asusrouter.modules.traffic.aimesh import ARTrafficAiMeshSource
 from asusrouter.modules.traffic.base import ARTrafficSource, ARTrafficType as T
 from asusrouter.modules.traffic.interface import ARTrafficInterfaceSource
@@ -33,7 +33,7 @@ def _callback(
     aimesh: dict[Any, Any] | None = None,
     interface: dict[Any, Any] | None = None,
 ) -> tuple[Any, list[Any]]:
-    """Build a fake get_data_callback returning per-source-type content."""
+    """Build a fake fetch_data_callback returning per-source-type content."""
 
     requested: list[Any] = []
 
@@ -51,12 +51,14 @@ def _callback(
 
 
 class TestGetState:
-    """Tests for the dispatcher get_state."""
+    """Tests for the dispatcher fetch_state."""
 
     async def test_without_callback(self) -> None:
         """Without a data callback the dispatcher yields nothing."""
 
-        result = await get_state(AsyncMock(), ARTrafficSource(target=_ROUTER))
+        result = await fetch_state(
+            AsyncMock(), ARTrafficSource(target=_ROUTER)
+        )
 
         assert result == {}
 
@@ -74,11 +76,11 @@ class TestGetState:
             },
         )
 
-        result = await get_state(
+        result = await fetch_state(
             AsyncMock(),
             ARTrafficSource(),
             identity=_identity(),
-            get_data_callback=callback,
+            fetch_data_callback=callback,
         )
 
         assert result == {
@@ -97,11 +99,11 @@ class TestGetState:
 
         callback, requested = _callback(interface={T.WAN: {M.RX: 1}})
 
-        result = await get_state(
+        result = await fetch_state(
             AsyncMock(),
             ARTrafficSource(T.WAN, _ROUTER),
             identity=_identity(),
-            get_data_callback=callback,
+            fetch_data_callback=callback,
         )
 
         assert result == {T.WAN: {M.RX: 1}}
@@ -115,11 +117,11 @@ class TestGetState:
             interface={T.WAN: {M.RX: 1}},
         )
 
-        result = await get_state(
+        result = await fetch_state(
             AsyncMock(),
             ARTrafficSource(target=_REMOTE),
             identity=_identity(),
-            get_data_callback=callback,
+            fetch_data_callback=callback,
         )
 
         assert result == {ARWiFiBand.BAND_5G1: {M.RX_SPEED: 12.0}}
@@ -137,11 +139,11 @@ class TestGetState:
             }
         )
 
-        result = await get_state(
+        result = await fetch_state(
             AsyncMock(),
             ARTrafficSource(T.WAN, _ROUTER),
             identity=_identity(),
-            get_data_callback=callback,
+            fetch_data_callback=callback,
         )
 
         # Filtered to the requested link
@@ -153,11 +155,11 @@ class TestGetState:
 
         callback, requested = _callback(interface={T.WAN: {M.RX: 5}})
 
-        result = await get_state(
+        result = await fetch_state(
             AsyncMock(),
             ARTrafficSource(T.WAN, _REMOTE),
             identity=_identity(),
-            get_data_callback=callback,
+            fetch_data_callback=callback,
         )
 
         assert result == {}
@@ -171,11 +173,11 @@ class TestGetState:
             interface={T.WAN: {M.RX: 1}},
         )
 
-        result = await get_state(
+        result = await fetch_state(
             AsyncMock(),
             ARTrafficSource(T.BACKHAUL, _ROUTER),
             identity=_identity(),
-            get_data_callback=callback,
+            fetch_data_callback=callback,
         )
 
         assert result == {T.BACKHAUL: {M.RX_SPEED: 80.0}}
@@ -194,11 +196,11 @@ class TestGetState:
             },
         )
 
-        result = await get_state(
+        result = await fetch_state(
             AsyncMock(),
             ARTrafficSource(T.WIRED, _ROUTER),
             identity=_identity(),
-            get_data_callback=callback,
+            fetch_data_callback=callback,
         )
 
         assert result == {T.WIRED: {M.RX: 10, M.RX_SPEED: 100.0}}
@@ -211,11 +213,11 @@ class TestGetState:
             interface={T.WAN: {M.RX: 1}},
         )
 
-        result = await get_state(
+        result = await fetch_state(
             AsyncMock(),
             ARTrafficSource(ARWiFiBand.BAND_6G1, _ROUTER),
             identity=_identity(),
-            get_data_callback=callback,
+            fetch_data_callback=callback,
         )
 
         assert result == {ARWiFiBand.BAND_6G1: {M.RX_SPEED: 5.0}}
@@ -231,11 +233,11 @@ class TestGetState:
         async def callback(sources: Any) -> Any:
             return value
 
-        result = await get_state(
+        result = await fetch_state(
             AsyncMock(),
             ARTrafficSource(target=_REMOTE),
             identity=_identity(),
-            get_data_callback=callback,
+            fetch_data_callback=callback,
         )
 
         assert result == {}
@@ -246,7 +248,7 @@ def test_registers_dispatcher(monkeypatch: pytest.MonkeyPatch) -> None:
 
     mock_register = Mock()
     monkeypatch.setattr(
-        "asusrouter.registry.ARCallableRegistry.register_module",
+        "asusrouter.registry.ARCallableRegistry.register_source",
         mock_register,
     )
 
@@ -254,5 +256,5 @@ def test_registers_dispatcher(monkeypatch: pytest.MonkeyPatch) -> None:
 
     mock_register.assert_called_once_with(
         module.ARTrafficSource,
-        get_state=module.get_state,
+        fetch_state=module.fetch_state,
     )

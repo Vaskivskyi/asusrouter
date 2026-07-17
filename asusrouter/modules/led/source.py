@@ -24,17 +24,17 @@ class ARLedSource(ARDataSource):
 ARLedSourceUniversal: ARLedSource = ARLedSource()
 
 
-async def get_state(
+async def fetch_state(
     callback: ARCallbackType,
     source: ARLedSource,
     *,
-    get_data_callback: ARCallbackType | None = None,
+    fetch_data_callback: ARCallbackType | None = None,
     identity: ARDeviceIdentity | None = None,
     **kwargs: Any,
 ) -> dict[Any, Any]:
     """Fetch the LED state through the NVRAM module."""
 
-    return await async_fetch_values(get_data_callback, LED_REQUEST)
+    return await async_fetch_values(fetch_data_callback, LED_REQUEST)
 
 
 # Translation map: nvram key -> field, converter
@@ -62,9 +62,9 @@ def translate_state(
     }
 
 
-ARCallReg.register_module(
+ARCallReg.register_source(
     ARLedSource,
-    get_state=get_state,
+    fetch_state=fetch_state,
     translate_state=translate_state,
 )
 
@@ -73,6 +73,6 @@ __all__ = [
     "ARLedSource",
     "ARLedSourceUniversal",
     "LED_REQUEST",
-    "get_state",
+    "fetch_state",
     "translate_state",
 ]

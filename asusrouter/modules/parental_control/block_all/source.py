@@ -22,16 +22,16 @@ class ARBlockAllSource(ARDataSource):
 ARBlockAllSourceUniversal: ARBlockAllSource = ARBlockAllSource()
 
 
-async def get_state(
+async def fetch_state(
     callback: ARCallbackType,
     source: ARBlockAllSource,
     *,
-    get_data_callback: ARCallbackType | None = None,
+    fetch_data_callback: ARCallbackType | None = None,
     **kwargs: Any,
 ) -> dict[Any, Any]:
     """Fetch the block-all switch through the NVRAM module."""
 
-    return await async_fetch_values(get_data_callback, KEY_BLOCK_ALL)
+    return await async_fetch_values(fetch_data_callback, KEY_BLOCK_ALL)
 
 
 def translate_state(data: Any, **kwargs: Any) -> bool:
@@ -42,9 +42,9 @@ def translate_state(data: Any, **kwargs: Any) -> bool:
     return raw_to_bool(data.get(KEY_BLOCK_ALL)) or False
 
 
-ARCallReg.register_module(
+ARCallReg.register_source(
     ARBlockAllSource,
-    get_state=get_state,
+    fetch_state=fetch_state,
     translate_state=translate_state,
 )
 
@@ -52,6 +52,6 @@ ARCallReg.register_module(
 __all__ = [
     "ARBlockAllSource",
     "ARBlockAllSourceUniversal",
-    "get_state",
+    "fetch_state",
     "translate_state",
 ]

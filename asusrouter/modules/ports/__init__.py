@@ -20,7 +20,7 @@ from asusrouter.modules.ports.enums import (
 from asusrouter.modules.ports.source import (
     ARPortsSource,
     ARPortsSourceUniversal,
-    get_state,
+    fetch_state,
     translate_state,
 )
 from asusrouter.modules.usb import ARUSBDevice, ARUSBDeviceType, ARUSBSpeed
@@ -39,7 +39,7 @@ __all__ = [
     "ARPortsSourceUniversal",
     "ARUSBDevice",
     "ARUSBDeviceType",
-    "get_state",
+    "fetch_state",
     "read_port_capabilities",
     "read_port_speed",
     "read_port_type",

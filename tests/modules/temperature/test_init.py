@@ -15,7 +15,7 @@ from asusrouter.modules.temperature import (
     ARTemperatureSource,
     ARTemperatureSourceUniversal,
     ARTemperatureType,
-    get_state,
+    fetch_state,
     translate_state,
 )
 from asusrouter.modules.wifi import ARWiFiBand
@@ -55,7 +55,7 @@ class TestARTemperatureSource:
 
 
 class TestGetState:
-    """Tests for get_state."""
+    """Tests for fetch_state."""
 
     async def test_returns_response_dict(self) -> None:
         """Returns the callback dict and queries the right endpoint."""
@@ -63,7 +63,7 @@ class TestGetState:
         expected = {"curr_cpuTemp": "45"}
         callback = AsyncMock(return_value=expected)
 
-        result = await get_state(callback, MagicMock(), identity=_identity())
+        result = await fetch_state(callback, MagicMock(), identity=_identity())
 
         callback.assert_called_once_with(endpoint=AREndpoint.FETCH_TEMPERATURE)
         assert result == expected
@@ -77,14 +77,14 @@ class TestGetState:
         """Returns {} when the callback yields a non-dict."""
 
         callback = AsyncMock(return_value=response)
-        result = await get_state(callback, MagicMock(), identity=_identity())
+        result = await fetch_state(callback, MagicMock(), identity=_identity())
         assert result == {}
 
     async def test_accepts_extra_kwargs(self) -> None:
         """Extra kwargs are accepted without error."""
 
         callback = AsyncMock(return_value={"curr_cpuTemp": "50"})
-        result = await get_state(
+        result = await fetch_state(
             callback,
             MagicMock(),
             identity=_identity(),

@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from asusrouter.const import AR_CALL_GET_STATE
+from asusrouter.const import AR_CALL_FETCH_STATE
 from asusrouter.modules.common.connection import (
     ARConnectionMethod,
     ARConnectionStatus,
@@ -23,7 +23,7 @@ from asusrouter.modules.wan import (
     ARWanSource,
     ARWanSourceUniversal,
     ARWanUnit,
-    get_state,
+    fetch_state,
     translate_state,
 )
 from asusrouter.modules.wan.source import _WAN_REQUEST, _parse_lb_ratio
@@ -213,13 +213,13 @@ class TestParseLbRatio:
 
 
 class TestGetState:
-    """Tests for get_state."""
+    """Tests for fetch_state."""
 
     @pytest.mark.asyncio
     async def test_no_data_callback(self) -> None:
         """Without a data callback an empty dict is returned."""
 
-        result = await get_state(AsyncMock(), ARWanSourceUniversal)
+        result = await fetch_state(AsyncMock(), ARWanSourceUniversal)
         assert result == {}
 
     @pytest.mark.asyncio
@@ -227,27 +227,27 @@ class TestGetState:
         """The fetched NVRAM dict is returned as-is."""
 
         values = {ARNvramType.WAN_UNIT: 0}
-        get_data_callback = AsyncMock(return_value=values)
+        fetch_data_callback = AsyncMock(return_value=values)
 
-        result = await get_state(
+        result = await fetch_state(
             AsyncMock(),
             ARWanSourceUniversal,
-            get_data_callback=get_data_callback,
+            fetch_data_callback=fetch_data_callback,
         )
 
         assert result == values
-        get_data_callback.assert_awaited_once_with(_WAN_REQUEST)
+        fetch_data_callback.assert_awaited_once_with(_WAN_REQUEST)
 
     @pytest.mark.asyncio
     async def test_non_dict_values(self) -> None:
         """A non-dict fetch result degrades to an empty dict."""
 
-        get_data_callback = AsyncMock(return_value=None)
+        fetch_data_callback = AsyncMock(return_value=None)
 
-        result = await get_state(
+        result = await fetch_state(
             AsyncMock(),
             ARWanSourceUniversal,
-            get_data_callback=get_data_callback,
+            fetch_data_callback=fetch_data_callback,
         )
 
         assert result == {}
@@ -387,9 +387,9 @@ class TestTranslateState:
 
 
 def test_module_registers_source() -> None:
-    """The WAN source resolves to the module get_state callable."""
+    """The WAN source resolves to the module fetch_state callable."""
 
     assert (
-        ARCallReg.get_callable(ARWanSourceUniversal, AR_CALL_GET_STATE)
-        is get_state
+        ARCallReg.get_callable(ARWanSourceUniversal, AR_CALL_FETCH_STATE)
+        is fetch_state
     )

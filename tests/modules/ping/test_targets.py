@@ -14,7 +14,7 @@ from asusrouter.modules.ping.targets import (
     ARPingTargetsAction,
     ARPingTargetsSource,
     ARPingTargetsSourceUniversal,
-    get_state,
+    fetch_state,
     run_action,
     translate_state,
 )
@@ -46,7 +46,7 @@ def _target(name: str, ip: str) -> ARPingTarget:
 
 
 def _list_callback(raw: str | None) -> AsyncMock:
-    """Build a get_data_callback returning the given dns_ping_list value."""
+    """Build a fetch_data_callback returning the given dns_ping_list value."""
 
     return AsyncMock(return_value={ARNvramType.DNS_PING_LIST: raw})
 
@@ -198,39 +198,41 @@ class TestSource:
         assert ARPingTargetsSource() == ARPingTargetsSourceUniversal
 
     def test_registered(self) -> None:
-        """The source resolves to the module get_state callable."""
+        """The source resolves to the module fetch_state callable."""
 
         assert (
-            ARCallReg.get_callable(ARPingTargetsSourceUniversal, "get_state")
-            is get_state
+            ARCallReg.get_callable(ARPingTargetsSourceUniversal, "fetch_state")
+            is fetch_state
         )
 
 
 class TestGetState:
-    """Tests for get_state."""
+    """Tests for fetch_state."""
 
     async def test_no_data_callback(self) -> None:
         """Without a data callback nothing is fetched."""
 
-        assert await get_state(AsyncMock(), ARPingTargetsSourceUniversal) == {}
+        assert (
+            await fetch_state(AsyncMock(), ARPingTargetsSourceUniversal) == {}
+        )
 
     async def test_returns_raw(self) -> None:
         """The raw dns_ping_list value is returned."""
 
-        result = await get_state(
+        result = await fetch_state(
             AsyncMock(),
             ARPingTargetsSourceUniversal,
-            get_data_callback=_list_callback(_RAW),
+            fetch_data_callback=_list_callback(_RAW),
         )
         assert result == _RAW
 
     async def test_non_dict_values(self) -> None:
         """A non-dict nvram reply yields no data."""
 
-        result = await get_state(
+        result = await fetch_state(
             AsyncMock(),
             ARPingTargetsSourceUniversal,
-            get_data_callback=AsyncMock(return_value=None),
+            fetch_data_callback=AsyncMock(return_value=None),
         )
         assert result == {}
 
@@ -309,16 +311,16 @@ class TestRunAction:
         """Clean applies an empty list without reading the current one."""
 
         callback = AsyncMock(return_value={MODIFY_KEY: "1"})
-        get_data_callback = _list_callback(_RAW)
+        fetch_data_callback = _list_callback(_RAW)
 
         result = await run_action(
             callback,
             ARPingTargetsAction(ARActionType.CLEAN),
-            get_data_callback=get_data_callback,
+            fetch_data_callback=fetch_data_callback,
         )
 
         assert result.success is True
-        get_data_callback.assert_not_awaited()
+        fetch_data_callback.assert_not_awaited()
         call = callback.await_args.kwargs
         assert call["endpoint"] == AREndpoint.PUSH_DATA
         assert "action_mode" in call["request"]
@@ -327,16 +329,16 @@ class TestRunAction:
         """Add fetches the current list, appends, then writes."""
 
         callback = AsyncMock(return_value={MODIFY_KEY: "1"})
-        get_data_callback = _list_callback("<A>1.1.1.1")
+        fetch_data_callback = _list_callback("<A>1.1.1.1")
 
         result = await run_action(
             callback,
             ARPingTargetsAction(ARActionType.ADD, [_ip("8.8.8.8")]),
-            get_data_callback=get_data_callback,
+            fetch_data_callback=fetch_data_callback,
         )
 
         assert result.success is True
-        get_data_callback.assert_awaited_once_with(
+        fetch_data_callback.assert_awaited_once_with(
             ARNvramType.DNS_PING_LIST, force=True
         )
         request = callback.await_args.kwargs["request"]
@@ -347,12 +349,12 @@ class TestRunAction:
         """Remove fetches the current list and drops by IP."""
 
         callback = AsyncMock(return_value={MODIFY_KEY: "1"})
-        get_data_callback = _list_callback("<A>1.1.1.1<B>8.8.8.8")
+        fetch_data_callback = _list_callback("<A>1.1.1.1<B>8.8.8.8")
 
         result = await run_action(
             callback,
             ARPingTargetsAction(ARActionType.REMOVE, [_ip("1.1.1.1")]),
-            get_data_callback=get_data_callback,
+            fetch_data_callback=fetch_data_callback,
         )
 
         assert result.success is True
@@ -364,28 +366,28 @@ class TestRunAction:
         """Adding an already-present target reads but does not write."""
 
         callback = AsyncMock()
-        get_data_callback = _list_callback("<target>9.9.9.9")
+        fetch_data_callback = _list_callback("<target>9.9.9.9")
 
         result = await run_action(
             callback,
             ARPingTargetsAction(ARActionType.ADD, "9.9.9.9"),
-            get_data_callback=get_data_callback,
+            fetch_data_callback=fetch_data_callback,
         )
 
         assert result.success is True
-        get_data_callback.assert_awaited_once()
+        fetch_data_callback.assert_awaited_once()
         callback.assert_not_awaited()
 
     async def test_remove_absent_skips_write(self) -> None:
         """Removing a target that is not present does not write."""
 
         callback = AsyncMock()
-        get_data_callback = _list_callback("<A>1.1.1.1")
+        fetch_data_callback = _list_callback("<A>1.1.1.1")
 
         result = await run_action(
             callback,
             ARPingTargetsAction(ARActionType.REMOVE, "8.8.8.8"),
-            get_data_callback=get_data_callback,
+            fetch_data_callback=fetch_data_callback,
         )
 
         assert result.success is True
@@ -395,17 +397,17 @@ class TestRunAction:
         """Add with no valid target skips both requests."""
 
         callback = AsyncMock()
-        get_data_callback = _list_callback(_RAW)
+        fetch_data_callback = _list_callback(_RAW)
 
         result = await run_action(
             callback,
             ARPingTargetsAction(ARActionType.ADD, ["not-an-ip"]),
-            get_data_callback=get_data_callback,
+            fetch_data_callback=fetch_data_callback,
         )
 
         assert result.success is False
         callback.assert_not_awaited()
-        get_data_callback.assert_not_awaited()
+        fetch_data_callback.assert_not_awaited()
 
     async def test_add_without_data_callback(self) -> None:
         """Add without a data callback fails without writing."""
@@ -425,7 +427,7 @@ class TestRunAction:
         result = await run_action(
             callback,
             ARPingTargetsAction(ARActionType.UNKNOWN),
-            get_data_callback=_list_callback(_RAW),
+            fetch_data_callback=_list_callback(_RAW),
         )
 
         assert result.success is False
