@@ -464,23 +464,27 @@ class TestRunAction:
         """With a raw callback, both requests post raw and success is True."""
 
         callback = AsyncMock()
-        raw_callback = AsyncMock(return_value="")
+        fetch_raw_callback = AsyncMock(return_value="")
 
         result = await run_action(
-            callback, ARSpeedTestAction(), raw_callback=raw_callback
+            callback,
+            ARSpeedTestAction(),
+            fetch_raw_callback=fetch_raw_callback,
         )
 
         assert result.success is True
         callback.assert_not_awaited()
-        assert raw_callback.await_count == 2
+        assert fetch_raw_callback.await_count == 2
 
     async def test_failed_run_returns_false(self) -> None:
         """A failed run request reports False."""
 
-        raw_callback = AsyncMock(return_value=None)
+        fetch_raw_callback = AsyncMock(return_value=None)
 
         result = await run_action(
-            AsyncMock(), ARSpeedTestAction(), raw_callback=raw_callback
+            AsyncMock(),
+            ARSpeedTestAction(),
+            fetch_raw_callback=fetch_raw_callback,
         )
 
         assert result.success is False

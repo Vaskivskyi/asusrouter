@@ -66,7 +66,7 @@ def translate_state(
     return {}
 
 
-ARCallReg.register_module(
+ARCallReg.register_source(
     ARPortsSource, fetch_state=fetch_state, translate_state=translate_state
 )
 

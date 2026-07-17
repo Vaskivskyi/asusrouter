@@ -25,7 +25,7 @@ class TestGetState:
         result = await fetch_state(
             AsyncMock(),
             ARBlockAllSourceUniversal,
-            get_data_callback=get_data,
+            fetch_data_callback=get_data,
         )
 
         assert result == {"MULTIFILTER_BLOCK_ALL": "1"}

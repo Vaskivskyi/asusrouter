@@ -84,7 +84,7 @@ class TestRunAction:
         result = await run_action(
             callback,
             ARLedAction(state=True),
-            get_data_callback=get_data,
+            fetch_data_callback=get_data,
             expire_callback=expire,
         )
 
@@ -104,7 +104,7 @@ class TestRunAction:
             ]
         )
         result = await run_action(
-            callback, ARLedAction(state=True), get_data_callback=get_data
+            callback, ARLedAction(state=True), fetch_data_callback=get_data
         )
 
         assert result.success is True
@@ -118,7 +118,7 @@ class TestRunAction:
             return_value={ARLedSourceUniversal: {ARLedField.STATE: None}}
         )
         result = await run_action(
-            callback, ARLedAction(state=True), get_data_callback=get_data
+            callback, ARLedAction(state=True), fetch_data_callback=get_data
         )
 
         assert result.success is True
@@ -147,7 +147,7 @@ class TestRunAction:
         result = await run_action(
             callback,
             ARLedAction(state=True),
-            get_data_callback=get_data,
+            fetch_data_callback=get_data,
             expire_callback=expire,
         )
 

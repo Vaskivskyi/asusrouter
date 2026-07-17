@@ -27,7 +27,7 @@ class TestGetState:
         callback = AsyncMock()
 
         result = await fetch_state(
-            callback, ARLedSourceUniversal, get_data_callback=get_data
+            callback, ARLedSourceUniversal, fetch_data_callback=get_data
         )
 
         assert result == values
@@ -48,7 +48,7 @@ class TestGetState:
 
         get_data = AsyncMock(return_value=None)
         result = await fetch_state(
-            AsyncMock(), ARLedSourceUniversal, get_data_callback=get_data
+            AsyncMock(), ARLedSourceUniversal, fetch_data_callback=get_data
         )
         assert result == {}
 

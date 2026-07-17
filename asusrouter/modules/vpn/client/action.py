@@ -49,20 +49,20 @@ async def run_action(
     callback: ARCallbackType,
     action: ARVpnClientAction,
     *,
-    get_data_callback: ARCallbackType | None = None,
-    raw_callback: ARCallbackType | None = None,
+    fetch_data_callback: ARCallbackType | None = None,
+    fetch_raw_callback: ARCallbackType | None = None,
     identity: ARDeviceIdentity | None = None,
     **kwargs: Any,
 ) -> ARServiceResult:
     """Toggle the action's VPN client on whichever backend the device uses."""
 
     # The clientlist decides the backend; without it no safe push is possible
-    if get_data_callback is None:
+    if fetch_data_callback is None:
         return ARServiceResult(success=False)
 
     # A None clientlist means a non-Fusion device
     clientlist = raw_to_str(
-        await async_get_value(get_data_callback, ARNvramType.VPNC_CLIENTLIST)
+        await async_get_value(fetch_data_callback, ARNvramType.VPNC_CLIENTLIST)
     )
     payload: tuple[list[ARServiceInput], dict[str, Any]] | None
     if clientlist is not None:
@@ -79,7 +79,10 @@ async def run_action(
 
     services, arguments = payload
     return await async_run_service(
-        callback, services, arguments=arguments, raw_callback=raw_callback
+        callback,
+        services,
+        arguments=arguments,
+        fetch_raw_callback=fetch_raw_callback,
     )
 
 

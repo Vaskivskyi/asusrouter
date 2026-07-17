@@ -43,14 +43,14 @@ async def run_action(
     callback: ARCallbackType,
     action: ARSpeedTestAction,
     *,
-    raw_callback: ARCallbackType | None = None,
+    fetch_raw_callback: ARCallbackType | None = None,
     **kwargs: Any,
 ) -> ARServiceResult:
     """Trigger a speedtest run."""
 
     # Post raw: async_fetch returns None on failure and the (ignored) body on
     # success, while async_read would collapse a failed fetch to {} and hide it
-    poster = raw_callback or callback
+    poster = fetch_raw_callback or callback
 
     # The start time is only stored for the WebUI display; result not checked
     await poster(

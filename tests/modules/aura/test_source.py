@@ -69,7 +69,7 @@ class TestGetState:
         result = await fetch_state(
             callback,
             ARAuraSourceUniversal,
-            get_data_callback=get_data,
+            fetch_data_callback=get_data,
             identity=_identity(),
         )
 
@@ -101,7 +101,7 @@ class TestGetState:
         result = await fetch_state(
             AsyncMock(),
             ARAuraSourceUniversal,
-            get_data_callback=get_data,
+            fetch_data_callback=get_data,
             identity=_identity(),
         )
         assert result == {}

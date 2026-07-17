@@ -227,27 +227,27 @@ class TestGetState:
         """The fetched NVRAM dict is returned as-is."""
 
         values = {ARNvramType.WAN_UNIT: 0}
-        get_data_callback = AsyncMock(return_value=values)
+        fetch_data_callback = AsyncMock(return_value=values)
 
         result = await fetch_state(
             AsyncMock(),
             ARWanSourceUniversal,
-            get_data_callback=get_data_callback,
+            fetch_data_callback=fetch_data_callback,
         )
 
         assert result == values
-        get_data_callback.assert_awaited_once_with(_WAN_REQUEST)
+        fetch_data_callback.assert_awaited_once_with(_WAN_REQUEST)
 
     @pytest.mark.asyncio
     async def test_non_dict_values(self) -> None:
         """A non-dict fetch result degrades to an empty dict."""
 
-        get_data_callback = AsyncMock(return_value=None)
+        fetch_data_callback = AsyncMock(return_value=None)
 
         result = await fetch_state(
             AsyncMock(),
             ARWanSourceUniversal,
-            get_data_callback=get_data_callback,
+            fetch_data_callback=fetch_data_callback,
         )
 
         assert result == {}

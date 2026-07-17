@@ -638,11 +638,11 @@ class AsusRouter:
         _LOGGER.debug("Triggered method async_fetch_data")
 
         # Sub-fetches inherit this call's force (override per-call if needed)
-        kwargs["get_data_callback"] = partial(
+        kwargs["fetch_data_callback"] = partial(
             self.async_fetch_data, force=force
         )
         # Raw fetch for readers that must see unparsed content
-        kwargs["raw_callback"] = self.async_fetch
+        kwargs["fetch_raw_callback"] = self.async_fetch
         # Let a fetch module trigger an action while resolving its data
         kwargs["run_action_callback"] = self.async_run_action
 
@@ -674,10 +674,10 @@ class AsusRouter:
         if run_caller is None:
             return None
 
-        kwargs["get_data_callback"] = partial(
+        kwargs["fetch_data_callback"] = partial(
             self.async_fetch_data, force=True
         )
-        kwargs["raw_callback"] = self.async_fetch
+        kwargs["fetch_raw_callback"] = self.async_fetch
         kwargs["run_action_callback"] = self.async_run_action
         kwargs["expire_callback"] = self._async_expire_data
 

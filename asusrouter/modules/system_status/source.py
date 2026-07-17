@@ -263,7 +263,7 @@ def translate_state(
     return result
 
 
-ARCallReg.register_module(
+ARCallReg.register_source(
     ARSystemStatusSource,
     fetch_state=fetch_state,
     translate_state=translate_state,

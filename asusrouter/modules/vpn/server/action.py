@@ -57,7 +57,7 @@ async def run_action(
     callback: ARCallbackType,
     action: ARVpnServerAction,
     *,
-    raw_callback: ARCallbackType | None = None,
+    fetch_raw_callback: ARCallbackType | None = None,
     identity: ARDeviceIdentity | None = None,
     **kwargs: Any,
 ) -> ARServiceResult:
@@ -69,7 +69,10 @@ async def run_action(
 
     services, arguments = payload
     return await async_run_service(
-        callback, services, arguments=arguments, raw_callback=raw_callback
+        callback,
+        services,
+        arguments=arguments,
+        fetch_raw_callback=fetch_raw_callback,
     )
 
 

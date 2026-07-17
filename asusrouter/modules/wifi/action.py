@@ -39,7 +39,7 @@ async def run_action(
     callback: ARCallbackType,
     action: ARWiFiAction,
     *,
-    raw_callback: ARCallbackType | None = None,
+    fetch_raw_callback: ARCallbackType | None = None,
     identity: ARDeviceIdentity | None = None,
     **kwargs: Any,
 ) -> ARServiceResult:
@@ -55,7 +55,7 @@ async def run_action(
         callback,
         ARService.WIRELESS_RESTART,
         arguments=arguments,
-        raw_callback=raw_callback,
+        fetch_raw_callback=fetch_raw_callback,
     )
 
 

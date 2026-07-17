@@ -568,12 +568,12 @@ async def fetch_state(
     callback: ARCallbackType,
     source: ARWanSource,
     *,
-    get_data_callback: ARCallbackType | None = None,
+    fetch_data_callback: ARCallbackType | None = None,
     **kwargs: Any,
 ) -> dict[Any, Any]:
     """Fetch the WAN state in a single batched NVRAM request."""
 
-    return await async_fetch_values(get_data_callback, _WAN_REQUEST)
+    return await async_fetch_values(fetch_data_callback, _WAN_REQUEST)
 
 
 def translate_state(data: Any, **kwargs: Any) -> ARWan:
@@ -604,6 +604,6 @@ def translate_state(data: Any, **kwargs: Any) -> ARWan:
     )
 
 
-ARCallReg.register_module(
+ARCallReg.register_source(
     ARWanSource, fetch_state=fetch_state, translate_state=translate_state
 )

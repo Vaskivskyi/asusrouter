@@ -64,15 +64,15 @@ class TestRunAction:
     async def test_wireguard_pushes(self) -> None:
         """WireGuard toggles the server and restarts dnsmasq."""
 
-        raw_callback = AsyncMock(return_value="NOT MODIFIED")
+        fetch_raw_callback = AsyncMock(return_value="NOT MODIFIED")
         action = ARVpnServerAction(ARVpnProtocol.WIREGUARD, True)
 
         result = await run_action(
-            AsyncMock(), action, raw_callback=raw_callback
+            AsyncMock(), action, fetch_raw_callback=fetch_raw_callback
         )
 
         assert result.success is True
-        push = raw_callback.await_args.kwargs
+        push = fetch_raw_callback.await_args.kwargs
         assert push["endpoint"] is AREndpoint.PUSH_DATA
         assert '"rc_service":"restart_wgs;restart_dnsmasq"' in push["request"]
         assert '"wgs_enable":1' in push["request"]
@@ -81,18 +81,18 @@ class TestRunAction:
     async def test_openvpn_modern_pushes(self) -> None:
         """Modern OpenVPN toggles the enable flag with a service chain."""
 
-        raw_callback = AsyncMock(return_value="NOT MODIFIED")
+        fetch_raw_callback = AsyncMock(return_value="NOT MODIFIED")
         action = ARVpnServerAction(ARVpnProtocol.OPENVPN, True)
 
         result = await run_action(
             AsyncMock(),
             action,
-            raw_callback=raw_callback,
+            fetch_raw_callback=fetch_raw_callback,
             identity=_modern_identity(),
         )
 
         assert result.success is True
-        request = raw_callback.await_args.kwargs["request"]
+        request = fetch_raw_callback.await_args.kwargs["request"]
         assert (
             '"rc_service":"restart_openvpnd;restart_chpass;'
             'restart_samba;restart_dnsmasq"' in request
@@ -102,29 +102,29 @@ class TestRunAction:
     async def test_openvpn_legacy_pushes(self) -> None:
         """Without an identity OpenVPN uses the per-unit start service."""
 
-        raw_callback = AsyncMock(return_value="NOT MODIFIED")
+        fetch_raw_callback = AsyncMock(return_value="NOT MODIFIED")
         action = ARVpnServerAction(ARVpnProtocol.OPENVPN, True, unit=2)
 
         result = await run_action(
-            AsyncMock(), action, raw_callback=raw_callback
+            AsyncMock(), action, fetch_raw_callback=fetch_raw_callback
         )
 
         assert result.success is True
-        request = raw_callback.await_args.kwargs["request"]
+        request = fetch_raw_callback.await_args.kwargs["request"]
         assert '"rc_service":"start_vpnserver2"' in request
 
     async def test_unsupported_protocol_fails(self) -> None:
         """A protocol without a backend fails without a push."""
 
-        raw_callback = AsyncMock()
+        fetch_raw_callback = AsyncMock()
         result = await run_action(
             AsyncMock(),
             ARVpnServerAction(ARVpnProtocol.IPSEC, True),
-            raw_callback=raw_callback,
+            fetch_raw_callback=fetch_raw_callback,
         )
 
         assert result == ARServiceResult(success=False)
-        raw_callback.assert_not_awaited()
+        fetch_raw_callback.assert_not_awaited()
 
     async def test_falls_back_to_callback(self) -> None:
         """Without a raw callback the plain callback posts the request."""

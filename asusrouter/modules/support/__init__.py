@@ -172,6 +172,6 @@ def translate_state(
     }
 
 
-ARCallReg.register_module(
+ARCallReg.register_source(
     ARSupportSource, fetch_state=fetch_state, translate_state=translate_state
 )

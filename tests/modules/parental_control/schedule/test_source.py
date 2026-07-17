@@ -53,7 +53,7 @@ class TestGetState:
         result = await fetch_state(
             callback,
             ARParentalControlSourceUniversal,
-            get_data_callback=get_data,
+            fetch_data_callback=get_data,
         )
 
         assert result == values
@@ -81,7 +81,7 @@ class TestGetState:
         result = await fetch_state(
             AsyncMock(),
             ARParentalControlSourceUniversal,
-            get_data_callback=get_data,
+            fetch_data_callback=get_data,
         )
         assert result == {}
 

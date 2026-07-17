@@ -161,7 +161,7 @@ class TestGetState:
         """When the JSON has no uptime, the raw content is parsed."""
 
         callback = AsyncMock(return_value={})
-        raw_callback = AsyncMock(
+        fetch_raw_callback = AsyncMock(
             return_value='{\n"uptime":when(100 secs since boot)\n}'
         )
 
@@ -169,11 +169,11 @@ class TestGetState:
             result = await fetch_state(
                 callback,
                 ARBoottimeSource(),
-                raw_callback=raw_callback,
+                fetch_raw_callback=fetch_raw_callback,
             )
 
         assert result == _BOOT
-        raw_callback.assert_awaited_once()
+        fetch_raw_callback.assert_awaited_once()
 
     async def test_fetches_and_stabilizes(self) -> None:
         """Uptime is fetched and stabilized against the identity anchor."""
@@ -225,7 +225,7 @@ def test_registers_callable(monkeypatch: pytest.MonkeyPatch) -> None:
 
     mock_register = Mock()
     monkeypatch.setattr(
-        "asusrouter.registry.ARCallableRegistry.register_module",
+        "asusrouter.registry.ARCallableRegistry.register_source",
         mock_register,
     )
 

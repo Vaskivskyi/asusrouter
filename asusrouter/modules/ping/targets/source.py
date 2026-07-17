@@ -42,12 +42,14 @@ async def fetch_state(
     callback: ARCallbackType,
     source: ARPingTargetsSource,
     *,
-    get_data_callback: ARCallbackType | None = None,
+    fetch_data_callback: ARCallbackType | None = None,
     **kwargs: Any,
 ) -> Any:
     """Fetch the raw dns_ping_list value."""
 
-    value = await async_get_value(get_data_callback, ARNvramType.DNS_PING_LIST)
+    value = await async_get_value(
+        fetch_data_callback, ARNvramType.DNS_PING_LIST
+    )
     return value if value is not None else {}
 
 
@@ -75,7 +77,7 @@ def _parse_targets(raw: str) -> list[ARPingTarget]:
 
 # Registration
 
-ARCallReg.register_module(
+ARCallReg.register_source(
     ARPingTargetsSource,
     fetch_state=fetch_state,
     translate_state=translate_state,

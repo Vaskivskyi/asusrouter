@@ -52,7 +52,7 @@ DEVICE_REQUEST: tuple[ARDataType | ARDataSource, ...] = (
 async def fetch_state(
     callback: ARCallbackType,
     source: ARDeviceSource,
-    get_data_callback: ARCallbackType,
+    fetch_data_callback: ARCallbackType,
     **kwargs: Any,
 ) -> Any:
     """Fetch the device state.
@@ -60,7 +60,7 @@ async def fetch_state(
     This is a special case where we need to fetch data from other sources.
     """
 
-    return await get_data_callback(DEVICE_REQUEST)
+    return await fetch_data_callback(DEVICE_REQUEST)
 
 
 def translate_state(
@@ -72,7 +72,7 @@ def translate_state(
     return ARDeviceIdentity.build(data)
 
 
-ARCallReg.register_module(
+ARCallReg.register_source(
     ARDeviceSource, fetch_state=fetch_state, translate_state=translate_state
 )
 

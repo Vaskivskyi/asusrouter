@@ -53,7 +53,7 @@ async def fetch_state(
     callback: ARCallbackType,
     source: ARDSLSource,
     *,
-    get_data_callback: ARCallbackType | None = None,
+    fetch_data_callback: ARCallbackType | None = None,
     identity: ARDeviceIdentity | None = None,
     **kwargs: Any,
 ) -> dict[Any, Any]:
@@ -64,7 +64,7 @@ async def fetch_state(
     ):
         return {}
 
-    return await async_fetch_values(get_data_callback, _DSL_REQUEST)
+    return await async_fetch_values(fetch_data_callback, _DSL_REQUEST)
 
 
 def translate_state(
@@ -87,7 +87,7 @@ def translate_state(
     return result
 
 
-ARCallReg.register_module(
+ARCallReg.register_source(
     ARDSLSource, fetch_state=fetch_state, translate_state=translate_state
 )
 

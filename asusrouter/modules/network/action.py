@@ -59,7 +59,7 @@ class ARNetworkAction(ARAction):
 
 
 async def _build_payload(
-    get_data_callback: ARCallbackType | None,
+    fetch_data_callback: ARCallbackType | None,
     handle: ARNetworkHandle,
     state: bool,
 ) -> tuple[str, dict[str, Any]] | None:
@@ -67,7 +67,7 @@ async def _build_payload(
 
     if handle.backend is ARNetworkBackend.SDN:
         raw_sdn_rl = await async_get_value(
-            get_data_callback, ARNvramType.SDN_RL
+            fetch_data_callback, ARNvramType.SDN_RL
         )
         if raw_sdn_rl is None:
             return None
@@ -80,22 +80,25 @@ async def run_action(
     callback: ARCallbackType,
     action: ARNetworkAction,
     *,
-    get_data_callback: ARCallbackType | None = None,
-    raw_callback: ARCallbackType | None = None,
+    fetch_data_callback: ARCallbackType | None = None,
+    fetch_raw_callback: ARCallbackType | None = None,
     identity: ARDeviceIdentity | None = None,
     **kwargs: Any,
 ) -> ARServiceResult:
     """Toggle the action's network on its backend."""
 
     payload = await _build_payload(
-        get_data_callback, action.handle, action.state
+        fetch_data_callback, action.handle, action.state
     )
     if payload is None:
         return ARServiceResult(success=False)
 
     rc_service, arguments = payload
     return await async_run_service(
-        callback, rc_service, arguments=arguments, raw_callback=raw_callback
+        callback,
+        rc_service,
+        arguments=arguments,
+        fetch_raw_callback=fetch_raw_callback,
     )
 
 

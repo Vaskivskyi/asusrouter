@@ -59,20 +59,20 @@ class TestRunAction:
     async def test_enable_via_raw_callback(self) -> None:
         """Enabling posts wl{unit}_radio=1 to PUSH_DATA via raw callback."""
 
-        raw_callback = AsyncMock(return_value="NOT MODIFIED")
+        fetch_raw_callback = AsyncMock(return_value="NOT MODIFIED")
         callback = AsyncMock()
         action = ARWiFiAction(ARWiFiBand.BAND_5G1, True)
 
         result = await run_action(
             callback,
             action,
-            raw_callback=raw_callback,
+            fetch_raw_callback=fetch_raw_callback,
             identity=_identity(_WIFI),
         )
 
         assert result.success is True
         callback.assert_not_awaited()
-        call = raw_callback.await_args.kwargs
+        call = fetch_raw_callback.await_args.kwargs
         assert call["endpoint"] is AREndpoint.PUSH_DATA
         assert '"rc_service":"restart_wireless"' in call["request"]
         assert '"wl1_radio":1' in call["request"]

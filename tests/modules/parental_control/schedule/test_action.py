@@ -126,7 +126,7 @@ class TestRules:
         callback = _poster()
         action = ARParentalControlAction(command=_C.ADD, rules=[RULE_B])
         result = await run_action(
-            callback, action, get_data_callback=_data([RULE_A])
+            callback, action, fetch_data_callback=_data([RULE_A])
         )
 
         assert _payload(callback)["MULTIFILTER_MAC"] == (
@@ -139,7 +139,7 @@ class TestRules:
 
         callback = _poster()
         action = ARParentalControlAction(command=_C.ADD, rules=[RULE_A_DUP])
-        await run_action(callback, action, get_data_callback=_data([RULE_A]))
+        await run_action(callback, action, fetch_data_callback=_data([RULE_A]))
 
         payload = _payload(callback)
         assert payload["MULTIFILTER_MAC"] == "AA:AA:AA:AA:AA:AA"
@@ -161,7 +161,7 @@ class TestRules:
         callback = _poster()
         action = ARParentalControlAction(command=_C.ADD, rules=[RULE_A])
         result = await run_action(
-            callback, action, get_data_callback=AsyncMock(return_value="x")
+            callback, action, fetch_data_callback=AsyncMock(return_value="x")
         )
 
         assert result.success is False
@@ -173,7 +173,7 @@ class TestRules:
         callback = _poster()
         action = ARParentalControlAction(command=_C.ADD, rules=[RULE_A])
         result = await run_action(
-            callback, action, get_data_callback=_data(None)
+            callback, action, fetch_data_callback=_data(None)
         )
 
         assert _payload(callback) == serialize_rules([RULE_A]) | {
@@ -188,7 +188,7 @@ class TestRules:
         callback = _poster()
         action = ARParentalControlAction(command=_C.ADD)
         result = await run_action(
-            callback, action, get_data_callback=_data([])
+            callback, action, fetch_data_callback=_data([])
         )
 
         assert result.success is False
@@ -202,7 +202,7 @@ class TestRules:
         action = ARParentalControlAction(
             command=_C.ADD, rules=[{_F.NAME: "nope"}]
         )
-        result = await run_action(callback, action, get_data_callback=data)
+        result = await run_action(callback, action, fetch_data_callback=data)
 
         assert result.success is False
         callback.assert_not_awaited()
@@ -217,7 +217,7 @@ class TestRules:
             rules=[{_F.MAC: MacAddress.from_value("AA:AA:AA:AA:AA:AA")}],
         )
         result = await run_action(
-            callback, action, get_data_callback=_data([])
+            callback, action, fetch_data_callback=_data([])
         )
 
         assert result.success is False
@@ -268,7 +268,7 @@ class TestRules:
             rules=[{_F.MAC: MacAddress.from_value("AA:AA:AA:AA:AA:AA")}],
         )
         result = await run_action(
-            callback, action, get_data_callback=_data([RULE_A, RULE_B])
+            callback, action, fetch_data_callback=_data([RULE_A, RULE_B])
         )
 
         assert _payload(callback)["MULTIFILTER_MAC"] == "BB:BB:BB:BB:BB:BB"
@@ -280,7 +280,7 @@ class TestRules:
         callback = _poster()
         data = _data([RULE_A])
         action = ARParentalControlAction(command=_C.REMOVE, rules=[{}])
-        result = await run_action(callback, action, get_data_callback=data)
+        result = await run_action(callback, action, fetch_data_callback=data)
 
         assert result.success is False
         callback.assert_not_awaited()
@@ -388,7 +388,7 @@ class TestMaxRules:
         result = await run_action(
             callback,
             action,
-            get_data_callback=_data(_rules(2)),
+            fetch_data_callback=_data(_rules(2)),
             identity=_identity(2),
         )
 
@@ -405,7 +405,7 @@ class TestMaxRules:
         result = await run_action(
             callback,
             action,
-            get_data_callback=_data(_rules(3)),
+            fetch_data_callback=_data(_rules(3)),
             identity=_identity(2),
         )
 

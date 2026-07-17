@@ -88,7 +88,7 @@ class TestGetState:
         result = await fetch_state(
             callback,
             ARDSLSource(),
-            get_data_callback=get_data,
+            fetch_data_callback=get_data,
             identity=_identity(dsl_support=True),
         )
 
@@ -107,7 +107,7 @@ class TestGetState:
         result = await fetch_state(
             AsyncMock(),
             ARDSLSource(),
-            get_data_callback=get_data,
+            fetch_data_callback=get_data,
             identity=_identity(dsl_support=True),
         )
 
@@ -140,7 +140,7 @@ class TestGetState:
         result = await fetch_state(
             AsyncMock(),
             ARDSLSource(),
-            get_data_callback=get_data,
+            fetch_data_callback=get_data,
             identity=identity,
         )
 
@@ -185,7 +185,7 @@ def test_registers_callable(monkeypatch: pytest.MonkeyPatch) -> None:
 
     mock_register = Mock()
     monkeypatch.setattr(
-        "asusrouter.registry.ARCallableRegistry.register_module",
+        "asusrouter.registry.ARCallableRegistry.register_source",
         mock_register,
     )
 

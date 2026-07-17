@@ -308,7 +308,7 @@ class TestGetState:
             AsyncMock(),
             source,
             identity=identity,
-            get_data_callback=fake_callback,
+            fetch_data_callback=fake_callback,
         )
 
         assert result == {
@@ -324,7 +324,7 @@ class TestGetState:
             AsyncMock(),
             ARTrafficAiMeshSource(target=_NODE),
             identity=_identity(),
-            get_data_callback=None,
+            fetch_data_callback=None,
         )
 
         assert result == {}
@@ -342,7 +342,7 @@ class TestGetState:
             AsyncMock(),
             ARTrafficAiMeshSource(target=_NODE),
             identity=_identity(node=False),
-            get_data_callback=fake_callback,
+            fetch_data_callback=fake_callback,
         )
 
         assert captured["links"] == [ARTrafficType.WIRED]
@@ -357,7 +357,7 @@ class TestGetState:
             AsyncMock(),
             ARTrafficAiMeshSource(target=_NODE),
             identity=_identity(),
-            get_data_callback=fake_callback,
+            fetch_data_callback=fake_callback,
         )
 
         assert result == {}
@@ -372,7 +372,7 @@ class TestGetState:
             AsyncMock(),
             ARTrafficAiMeshSource(target=_NODE),
             identity=_identity(),
-            get_data_callback=fake_callback,
+            fetch_data_callback=fake_callback,
         )
 
         assert result == {}
@@ -460,7 +460,7 @@ def test_registers_callable(monkeypatch: pytest.MonkeyPatch) -> None:
 
     mock_register = Mock()
     monkeypatch.setattr(
-        "asusrouter.registry.ARCallableRegistry.register_module",
+        "asusrouter.registry.ARCallableRegistry.register_source",
         mock_register,
     )
 

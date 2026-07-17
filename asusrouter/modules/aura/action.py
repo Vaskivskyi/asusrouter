@@ -93,8 +93,8 @@ async def run_action(
     callback: ARCallbackType,
     action: ARAuraAction,
     *,
-    get_data_callback: ARCallbackType | None = None,
-    raw_callback: ARCallbackType | None = None,
+    fetch_data_callback: ARCallbackType | None = None,
+    fetch_raw_callback: ARCallbackType | None = None,
     identity: ARDeviceIdentity | None = None,
     **kwargs: Any,
 ) -> ARServiceResult:
@@ -105,8 +105,8 @@ async def run_action(
         return ARServiceResult(success=False)
 
     current: dict[ARAuraField, Any] = {}
-    if get_data_callback is not None:
-        fetched = await get_data_callback(ARAuraSourceUniversal)
+    if fetch_data_callback is not None:
+        fetched = await fetch_data_callback(ARAuraSourceUniversal)
         if isinstance(fetched, dict):
             current = fetched.get(ARAuraSourceUniversal) or {}
 
@@ -130,7 +130,7 @@ async def run_action(
 
     # Post raw: async_fetch returns None on failure and the (ignored) body on
     # success, while async_read would collapse a failed fetch to {} and hide it
-    poster = raw_callback or callback
+    poster = fetch_raw_callback or callback
     data = await poster(endpoint=AREndpoint.SET_AURA, request=request)
     return ARServiceResult(success=data is not None)
 

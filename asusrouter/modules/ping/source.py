@@ -105,12 +105,12 @@ def _build_request() -> str:
     )
 
 
-async def _async_wait_finished(get_data_callback: ARCallbackType) -> bool:
+async def _async_wait_finished(fetch_data_callback: ARCallbackType) -> bool:
     """Poll `dns_ping_state` until the ping run reports finished."""
 
     async def _probe(**kwargs: Any) -> ARPingStatus:
         raw = await async_get_value(
-            get_data_callback, ARNvramType.DNS_PING_STATUS, **kwargs
+            fetch_data_callback, ARNvramType.DNS_PING_STATUS, **kwargs
         )
         return ARPingStatus.from_value(raw)
 
@@ -129,14 +129,14 @@ async def fetch_state(
     callback: ARCallbackType,
     source: ARPingSource,
     *,
-    get_data_callback: ARCallbackType | None = None,
+    fetch_data_callback: ARCallbackType | None = None,
     run_action_callback: ARCallbackType | None = None,
     refresh: bool = False,
     **kwargs: Any,
 ) -> Any:
     """Fetch ping results; with `refresh`, run a fresh ping first."""
 
-    if get_data_callback is None:
+    if fetch_data_callback is None:
         return {}
 
     # Optionally trigger a fresh run
@@ -147,7 +147,7 @@ async def fetch_state(
 
     # A run may be in progress (ours or an unrelated trigger); wait it out
     # before reading, or drop stale/partial data
-    if not await _async_wait_finished(get_data_callback):
+    if not await _async_wait_finished(fetch_data_callback):
         _LOGGER.debug("Ping run did not finish; dropping results")
         return {}
 
@@ -206,7 +206,7 @@ def translate_state(data: Any, **kwargs: Any) -> dict[IpAddress, ARPingResult]:
 
 # Registration
 
-ARCallReg.register_module(
+ARCallReg.register_source(
     ARPingSource, fetch_state=fetch_state, translate_state=translate_state
 )
 

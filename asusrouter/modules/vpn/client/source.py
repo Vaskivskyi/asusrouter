@@ -70,7 +70,7 @@ def translate_state(
     return classic.translate(data)
 
 
-ARCallReg.register_module(
+ARCallReg.register_source(
     ARVpnClientSource, fetch_state=fetch_state, translate_state=translate_state
 )
 

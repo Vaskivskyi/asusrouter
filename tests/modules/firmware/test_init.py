@@ -224,32 +224,32 @@ class TestGetState:
         """A newer available firmware triggers the release-note fetch."""
 
         callback = AsyncMock(return_value={"webs_state_info": _NEWER})
-        raw_callback = AsyncMock(return_value="Release Note\n- Fix\n")
+        fetch_raw_callback = AsyncMock(return_value="Release Note\n- Fix\n")
         result = await fetch_state(
             callback,
             ARFirmwareSourceUniversal,
             identity=_identity(_OLDER),
-            raw_callback=raw_callback,
+            fetch_raw_callback=fetch_raw_callback,
         )
         assert result["update"] == {"webs_state_info": _NEWER}
         assert result["note"] == "- Fix"
         assert result["available"] is not None
-        raw_callback.assert_awaited()
+        fetch_raw_callback.assert_awaited()
 
     @pytest.mark.asyncio
     async def test_no_stable_update_skips_note(self) -> None:
         """An older available firmware skips the note fetch."""
 
         callback = AsyncMock(return_value={"webs_state_info": _OLDER})
-        raw_callback = AsyncMock()
+        fetch_raw_callback = AsyncMock()
         result = await fetch_state(
             callback,
             ARFirmwareSourceUniversal,
             identity=_identity(_NEWER),
-            raw_callback=raw_callback,
+            fetch_raw_callback=fetch_raw_callback,
         )
         assert result["note"] is None
-        raw_callback.assert_not_awaited()
+        fetch_raw_callback.assert_not_awaited()
 
     @pytest.mark.asyncio
     async def test_no_raw_callback(self) -> None:
@@ -272,7 +272,7 @@ class TestGetState:
             callback,
             ARFirmwareSourceUniversal,
             identity=_identity(),
-            raw_callback=AsyncMock(),
+            fetch_raw_callback=AsyncMock(),
         )
         assert result == {"update": {}, "note": None, "available": None}
 

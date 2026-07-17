@@ -53,13 +53,13 @@ async def fetch_state(
     callback: ARCallbackType,
     source: ARPortForwardingSource,
     *,
-    get_data_callback: ARCallbackType | None = None,
+    fetch_data_callback: ARCallbackType | None = None,
     identity: ARDeviceIdentity | None = None,
     **kwargs: Any,
 ) -> dict[Any, Any]:
     """Fetch the port forwarding configuration through the NVRAM module."""
 
-    return await async_fetch_values(get_data_callback, _PF_REQUEST)
+    return await async_fetch_values(fetch_data_callback, _PF_REQUEST)
 
 
 def _parse_rule(
@@ -170,7 +170,7 @@ def translate_state(
     }
 
 
-ARCallReg.register_module(
+ARCallReg.register_source(
     ARPortForwardingSource,
     fetch_state=fetch_state,
     translate_state=translate_state,

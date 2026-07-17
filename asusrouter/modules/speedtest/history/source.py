@@ -122,7 +122,7 @@ async def async_save_result(
 
 # Registration
 
-ARCallReg.register_module(
+ARCallReg.register_source(
     ARSpeedTestHistorySource,
     fetch_state=fetch_state,
     translate_state=translate_state,

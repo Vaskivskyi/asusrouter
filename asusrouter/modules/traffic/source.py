@@ -42,12 +42,12 @@ async def fetch_state(
     source: ARTrafficSource,
     *,
     identity: ARDeviceIdentity | None = None,
-    get_data_callback: ARCallbackType | None = None,
+    fetch_data_callback: ARCallbackType | None = None,
     **kwargs: Any,
 ) -> dict[ARTrafficLink, Any]:
     """Dispatch and merge AiMesh and interface traffic for the source."""
 
-    if get_data_callback is None:
+    if fetch_data_callback is None:
         return {}
 
     target = source.target
@@ -73,7 +73,7 @@ async def fetch_state(
     if not request:
         return {}
 
-    results = await get_data_callback(request)
+    results = await fetch_data_callback(request)
     if not isinstance(results, dict):
         results = {}
 
@@ -92,4 +92,4 @@ async def fetch_state(
     return merged
 
 
-ARCallReg.register_module(ARTrafficSource, fetch_state=fetch_state)
+ARCallReg.register_source(ARTrafficSource, fetch_state=fetch_state)

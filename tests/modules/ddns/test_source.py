@@ -52,7 +52,7 @@ class TestGetState:
         callback = AsyncMock()
 
         result = await fetch_state(
-            callback, ARDdnsSourceUniversal, get_data_callback=get_data
+            callback, ARDdnsSourceUniversal, fetch_data_callback=get_data
         )
 
         assert result == values
@@ -91,7 +91,7 @@ class TestGetState:
 
         get_data = AsyncMock(return_value=None)
         result = await fetch_state(
-            AsyncMock(), ARDdnsSourceUniversal, get_data_callback=get_data
+            AsyncMock(), ARDdnsSourceUniversal, fetch_data_callback=get_data
         )
         assert result == {}
 

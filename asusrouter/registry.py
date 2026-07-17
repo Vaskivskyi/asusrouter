@@ -43,7 +43,7 @@ class ARCallableRegistryBase:
                     # Plain callables carry no flag; drop any stale one
                     self._flags.pop(value, None)
 
-    def register_module(
+    def register_source(
         self,
         source_cls: type,
         *,

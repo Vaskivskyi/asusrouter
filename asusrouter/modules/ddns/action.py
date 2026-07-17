@@ -115,13 +115,13 @@ _WRITABLE: frozenset[ARDdnsField] = frozenset(
 
 
 async def _fetch_current(
-    get_data_callback: ARCallbackType | None,
+    fetch_data_callback: ARCallbackType | None,
 ) -> ARDdnsConfig | None:
     """Read the current DDNS data, or None when it cannot be fetched."""
 
-    if get_data_callback is None:
+    if fetch_data_callback is None:
         return None
-    fetched = await get_data_callback(ARDdnsSourceUniversal)
+    fetched = await fetch_data_callback(ARDdnsSourceUniversal)
     if not isinstance(fetched, dict):
         return None
     data = fetched.get(ARDdnsSourceUniversal)
@@ -139,7 +139,7 @@ def _state_arguments(action: ARDdnsAction) -> dict[str, Any] | None:
 
 async def _config_arguments(
     action: ARDdnsAction,
-    get_data_callback: ARCallbackType | None,
+    fetch_data_callback: ARCallbackType | None,
 ) -> dict[str, Any] | None:
     """Build the arguments for a config write."""
 
@@ -171,7 +171,7 @@ async def _config_arguments(
     # A hostname change unbinds the registered one, as the web UI does
     hostname = arguments.get(ARNvramType.DDNS_HOSTNAME.value)
     if hostname is not None:
-        current = await _fetch_current(get_data_callback)
+        current = await _fetch_current(fetch_data_callback)
         if current is not None and current.get(ARDdnsField.HOSTNAME) != (
             hostname
         ):
@@ -192,20 +192,20 @@ def _dispatched(value: Any) -> bool:
 
 async def _deregister(
     callback: ARCallbackType,
-    get_data_callback: ARCallbackType | None,
-    raw_callback: ARCallbackType | None,
+    fetch_data_callback: ARCallbackType | None,
+    fetch_raw_callback: ARCallbackType | None,
 ) -> bool:
     """Release the registered ASUS DDNS hostname."""
 
     # A hostname bound to a Router-app account cannot be released here
-    current = await _fetch_current(get_data_callback)
+    current = await _fetch_current(fetch_data_callback)
     if current is not None and current.get(ARDdnsField.TOKEN_STATE) is True:
         _LOGGER.debug(
             "DEREGISTER rejected: the hostname is bound to an app account"
         )
         return False
 
-    poster = raw_callback or callback
+    poster = fetch_raw_callback or callback
     dispatched = await poster(endpoint=AREndpoint.DDNS_UNREGISTER)
     if not _dispatched(dispatched):
         return False
@@ -242,8 +242,8 @@ async def run_action(
     callback: ARCallbackType,
     action: ARDdnsAction,
     *,
-    get_data_callback: ARCallbackType | None = None,
-    raw_callback: ARCallbackType | None = None,
+    fetch_data_callback: ARCallbackType | None = None,
+    fetch_raw_callback: ARCallbackType | None = None,
     expire_callback: ARCallbackType | None = None,
     **kwargs: Any,
 ) -> ARServiceResult:
@@ -258,7 +258,7 @@ async def run_action(
     if action.command is ARDdnsCommand.DEREGISTER:
         result = ARServiceResult(
             success=await _deregister(
-                callback, get_data_callback, raw_callback
+                callback, fetch_data_callback, fetch_raw_callback
             )
         )
     elif action.command is ARDdnsCommand.UPDATE:
@@ -267,13 +267,13 @@ async def run_action(
             callback,
             ARService.DDNS_CLIENT,
             action_mode=ARActionMode.UPDATE,
-            raw_callback=raw_callback,
+            fetch_raw_callback=fetch_raw_callback,
         )
     else:
         if action.command is ARDdnsCommand.STATE:
             arguments = _state_arguments(action)
         elif action.command is ARDdnsCommand.SET:
-            arguments = await _config_arguments(action, get_data_callback)
+            arguments = await _config_arguments(action, fetch_data_callback)
         else:
             _LOGGER.debug("Unknown DDNS command: %s", action.command)
             return ARServiceResult(success=False)
@@ -285,7 +285,7 @@ async def run_action(
             callback,
             ARService.DDNS_RESTART,
             arguments=arguments,
-            raw_callback=raw_callback,
+            fetch_raw_callback=fetch_raw_callback,
         )
 
     # Drop the now-stale cached config and its per-item nvram values,

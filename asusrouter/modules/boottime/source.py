@@ -107,7 +107,7 @@ async def fetch_state(
     source: ARBoottimeSource,
     *,
     identity: ARDeviceIdentity | None = None,
-    raw_callback: ARCallbackType | None = None,
+    fetch_raw_callback: ARCallbackType | None = None,
     **kwargs: Any,
 ) -> ARBoottime | None:
     """Fetch the uptime hook and return the (stabilized) boot time."""
@@ -117,8 +117,8 @@ async def fetch_state(
     # Prefer the raw content: the uptime value is not valid JSON on old
     # firmware, so the JSON reader would log a spurious decode error
     uptime: str | None = None
-    if raw_callback is not None:
-        content = await raw_callback(
+    if fetch_raw_callback is not None:
+        content = await fetch_raw_callback(
             endpoint=AREndpoint.FETCH_DATA, request=request
         )
         uptime = _extract_uptime(content)
@@ -133,7 +133,7 @@ async def fetch_state(
     return stabilize(candidate, prev)
 
 
-ARCallReg.register_module(ARBoottimeSource, fetch_state=fetch_state)
+ARCallReg.register_source(ARBoottimeSource, fetch_state=fetch_state)
 
 
 __all__ = [

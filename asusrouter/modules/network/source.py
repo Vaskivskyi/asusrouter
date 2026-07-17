@@ -76,7 +76,7 @@ def translate_state(
     return legacy.translate(data, wifi)
 
 
-ARCallReg.register_module(
+ARCallReg.register_source(
     ARNetworkSource, fetch_state=fetch_state, translate_state=translate_state
 )
 

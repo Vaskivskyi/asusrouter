@@ -103,7 +103,7 @@ def test_module_registers_callables(monkeypatch: pytest.MonkeyPatch) -> None:
 
     mock_register = MagicMock()
     monkeypatch.setattr(
-        "asusrouter.registry.ARCallableRegistry.register_module",
+        "asusrouter.registry.ARCallableRegistry.register_source",
         mock_register,
     )
     importlib.reload(support_mod)

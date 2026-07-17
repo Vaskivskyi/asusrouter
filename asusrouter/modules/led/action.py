@@ -43,11 +43,11 @@ class ARLedAction(ARAction):
         return (self.state,)
 
 
-async def _async_wait_settled(get_data_callback: ARCallbackType) -> bool:
+async def _async_wait_settled(fetch_data_callback: ARCallbackType) -> bool:
     """Poll the LED state until it settles to a real on/off value."""
 
     async def probe(**kwargs: Any) -> Any:
-        return await get_data_callback(ARLedSourceUniversal)
+        return await fetch_data_callback(ARLedSourceUniversal)
 
     def ready(result: Any) -> bool:
         if not isinstance(result, dict):
@@ -67,9 +67,9 @@ async def run_action(
     callback: ARCallbackType,
     action: ARLedAction,
     *,
-    get_data_callback: ARCallbackType | None = None,
+    fetch_data_callback: ARCallbackType | None = None,
     expire_callback: ARCallbackType | None = None,
-    raw_callback: ARCallbackType | None = None,
+    fetch_raw_callback: ARCallbackType | None = None,
     **kwargs: Any,
 ) -> ARServiceResult:
     """Apply the LED action."""
@@ -79,15 +79,15 @@ async def run_action(
         callback,
         ARService.LED_CONTROL,
         arguments=arguments,
-        raw_callback=raw_callback,
+        fetch_raw_callback=fetch_raw_callback,
     )
 
     if not result.success:
         return result
 
     # Wait until state is settled
-    if get_data_callback is not None:
-        if not await _async_wait_settled(get_data_callback):
+    if fetch_data_callback is not None:
+        if not await _async_wait_settled(fetch_data_callback):
             _LOGGER.debug("LED state did not settle after the switch")
     elif expire_callback is not None:
         # Without a data callback, drop the stale cache for the next read

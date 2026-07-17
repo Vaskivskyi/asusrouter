@@ -243,17 +243,19 @@ class TestRunAction:
     async def test_success_via_raw_callback(self) -> None:
         """A run posts to PUSH_DATA via the raw callback; text = success."""
 
-        raw_callback = AsyncMock(return_value="NOT MODIFIED")
+        fetch_raw_callback = AsyncMock(return_value="NOT MODIFIED")
         callback = AsyncMock()
         action = ARServiceAction(
             ARService.WIRELESS_RESTART, arguments={"wl0_radio": "0"}
         )
 
-        result = await run_action(callback, action, raw_callback=raw_callback)
+        result = await run_action(
+            callback, action, fetch_raw_callback=fetch_raw_callback
+        )
 
         assert result.success is True
         callback.assert_not_awaited()
-        call = raw_callback.await_args.kwargs
+        call = fetch_raw_callback.await_args.kwargs
         assert call["endpoint"] == AREndpoint.PUSH_DATA
         assert '"rc_service":"restart_wireless"' in call["request"]
         assert '"wl0_radio":"0"' in call["request"]
@@ -273,24 +275,29 @@ class TestRunAction:
         """An action with no services fails without a call."""
 
         callback = AsyncMock()
-        raw_callback = AsyncMock()
+        fetch_raw_callback = AsyncMock()
         result = await run_action(
-            callback, ARServiceAction([]), raw_callback=raw_callback
+            callback,
+            ARServiceAction([]),
+            fetch_raw_callback=fetch_raw_callback,
         )
 
         assert result.success is False
         callback.assert_not_awaited()
-        raw_callback.assert_not_awaited()
+        fetch_raw_callback.assert_not_awaited()
 
     async def test_reboot_marks_identity(self) -> None:
         """A successful reboot flags the identity for reconnect."""
 
-        raw_callback = AsyncMock(return_value="NOT MODIFIED")
+        fetch_raw_callback = AsyncMock(return_value="NOT MODIFIED")
         identity = Mock()
         action = ARServiceAction(ARService.REBOOT)
 
         await run_action(
-            AsyncMock(), action, raw_callback=raw_callback, identity=identity
+            AsyncMock(),
+            action,
+            fetch_raw_callback=fetch_raw_callback,
+            identity=identity,
         )
 
         identity.mark_reboot.assert_called_once_with()
@@ -298,13 +305,13 @@ class TestRunAction:
     async def test_reboot_failure_does_not_mark(self) -> None:
         """A failed reboot leaves the identity untouched."""
 
-        raw_callback = AsyncMock(return_value="")
+        fetch_raw_callback = AsyncMock(return_value="")
         identity = Mock()
 
         await run_action(
             AsyncMock(),
             ARServiceAction(ARService.REBOOT),
-            raw_callback=raw_callback,
+            fetch_raw_callback=fetch_raw_callback,
             identity=identity,
         )
 
@@ -313,13 +320,13 @@ class TestRunAction:
     async def test_non_reboot_does_not_mark(self) -> None:
         """A non-reboot service never flags the identity."""
 
-        raw_callback = AsyncMock(return_value="NOT MODIFIED")
+        fetch_raw_callback = AsyncMock(return_value="NOT MODIFIED")
         identity = Mock()
 
         await run_action(
             AsyncMock(),
             ARServiceAction(ARService.WIRELESS_RESTART),
-            raw_callback=raw_callback,
+            fetch_raw_callback=fetch_raw_callback,
             identity=identity,
         )
 
@@ -328,12 +335,12 @@ class TestRunAction:
     async def test_reboot_without_identity(self) -> None:
         """A reboot with no identity still succeeds without error."""
 
-        raw_callback = AsyncMock(return_value="NOT MODIFIED")
+        fetch_raw_callback = AsyncMock(return_value="NOT MODIFIED")
 
         result = await run_action(
             AsyncMock(),
             ARServiceAction(ARService.REBOOT),
-            raw_callback=raw_callback,
+            fetch_raw_callback=fetch_raw_callback,
         )
 
         assert result.success is True

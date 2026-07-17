@@ -43,7 +43,7 @@ _ROW = [
 
 
 def _status_callback(value: str | None) -> AsyncMock:
-    """Build a get_data_callback returning the given ping status."""
+    """Build a fetch_data_callback returning the given ping status."""
 
     return AsyncMock(return_value={ARNvramType.DNS_PING_STATUS: value})
 
@@ -120,12 +120,12 @@ class TestGetState:
 
         callback = AsyncMock(return_value={"contents": [_ROW]})
         run_action_callback = AsyncMock(return_value=True)
-        get_data_callback = _status_callback("3")
+        fetch_data_callback = _status_callback("3")
 
         result = await fetch_state(
             callback,
             ARPingSourceUniversal,
-            get_data_callback=get_data_callback,
+            fetch_data_callback=fetch_data_callback,
             run_action_callback=run_action_callback,
         )
 
@@ -133,7 +133,7 @@ class TestGetState:
         # No run triggered, but the finished status is still awaited
         run_action_callback.assert_not_awaited()
         mock_sleep.assert_not_awaited()
-        get_data_callback.assert_awaited_with(
+        fetch_data_callback.assert_awaited_with(
             ARNvramType.DNS_PING_STATUS, force=True
         )
 
@@ -141,29 +141,29 @@ class TestGetState:
         """A run in progress (any trigger) is awaited before reading."""
 
         callback = AsyncMock()
-        get_data_callback = _status_callback("1")
+        fetch_data_callback = _status_callback("1")
         with patch("asusrouter.tools.poll.asyncio.sleep", AsyncMock()):
             result = await fetch_state(
                 callback,
                 ARPingSourceUniversal,
-                get_data_callback=get_data_callback,
+                fetch_data_callback=fetch_data_callback,
             )
 
         assert result == {}
         callback.assert_not_awaited()
-        get_data_callback.assert_awaited_with(
+        fetch_data_callback.assert_awaited_with(
             ARNvramType.DNS_PING_STATUS, force=True
         )
 
     async def test_status_non_dict(self) -> None:
         """A non-dict status reply counts as not finished."""
 
-        get_data_callback = AsyncMock(return_value=None)
+        fetch_data_callback = AsyncMock(return_value=None)
         with patch("asusrouter.tools.poll.asyncio.sleep", AsyncMock()):
             result = await fetch_state(
                 AsyncMock(),
                 ARPingSourceUniversal,
-                get_data_callback=get_data_callback,
+                fetch_data_callback=fetch_data_callback,
             )
 
         assert result == {}
@@ -175,7 +175,7 @@ class TestGetState:
         result = await fetch_state(
             callback,
             ARPingSourceUniversal,
-            get_data_callback=_status_callback("3"),
+            fetch_data_callback=_status_callback("3"),
         )
 
         assert result == {}
@@ -187,7 +187,7 @@ class TestGetState:
         result = await fetch_state(
             callback,
             ARPingSourceUniversal,
-            get_data_callback=_status_callback("3"),
+            fetch_data_callback=_status_callback("3"),
         )
 
         assert result == {}
@@ -199,7 +199,7 @@ class TestGetState:
         result = await fetch_state(
             callback,
             ARPingSourceUniversal,
-            get_data_callback=_status_callback("3"),
+            fetch_data_callback=_status_callback("3"),
             refresh=True,
         )
 
@@ -210,19 +210,19 @@ class TestGetState:
         """A run that fails to start drops the results without polling."""
 
         callback = AsyncMock()
-        get_data_callback = _status_callback("3")
+        fetch_data_callback = _status_callback("3")
 
         result = await fetch_state(
             callback,
             ARPingSourceUniversal,
-            get_data_callback=get_data_callback,
+            fetch_data_callback=fetch_data_callback,
             run_action_callback=AsyncMock(return_value=False),
             refresh=True,
         )
 
         assert result == {}
         callback.assert_not_awaited()
-        get_data_callback.assert_not_awaited()
+        fetch_data_callback.assert_not_awaited()
 
     async def test_refresh_runs_then_reads(
         self, mock_sleep: AsyncMock
@@ -235,7 +235,7 @@ class TestGetState:
         result = await fetch_state(
             callback,
             ARPingSourceUniversal,
-            get_data_callback=_status_callback("3"),
+            fetch_data_callback=_status_callback("3"),
             run_action_callback=run_action_callback,
             refresh=True,
         )

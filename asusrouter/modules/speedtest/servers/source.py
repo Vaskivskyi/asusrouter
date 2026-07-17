@@ -88,7 +88,7 @@ def translate_state(data: Any, **kwargs: Any) -> list[ARSpeedTestServer]:
 
 # Registration
 
-ARCallReg.register_module(
+ARCallReg.register_source(
     ARSpeedTestServersSource,
     fetch_state=fetch_state,
     translate_state=translate_state,

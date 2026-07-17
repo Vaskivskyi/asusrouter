@@ -39,13 +39,13 @@ async def fetch_state(
     callback: ARCallbackType,
     source: ARDdnsSource,
     *,
-    get_data_callback: ARCallbackType | None = None,
+    fetch_data_callback: ARCallbackType | None = None,
     identity: ARDeviceIdentity | None = None,
     **kwargs: Any,
 ) -> dict[Any, Any]:
     """Fetch the DDNS configuration through the NVRAM module."""
 
-    return await async_fetch_values(get_data_callback, DDNS_REQUEST)
+    return await async_fetch_values(fetch_data_callback, DDNS_REQUEST)
 
 
 def read_status(raw: Any) -> ARDdnsStatus:
@@ -152,7 +152,7 @@ def translate_state(
     }
 
 
-ARCallReg.register_module(
+ARCallReg.register_source(
     ARDdnsSource,
     fetch_state=fetch_state,
     translate_state=translate_state,

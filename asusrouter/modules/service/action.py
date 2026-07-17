@@ -153,7 +153,7 @@ async def async_run_service(
     *,
     arguments: dict[str, Any] | None = None,
     action_mode: ARActionMode = ARActionMode.APPLY,
-    raw_callback: ARCallbackType | None = None,
+    fetch_raw_callback: ARCallbackType | None = None,
 ) -> ARServiceResult:
     """Post a service run and read the outcome."""
 
@@ -162,7 +162,7 @@ async def async_run_service(
     )
     # Post raw when possible: async_fetch preserves a failed fetch as None,
     # while async_read would collapse it to {} and hide the failure
-    poster = raw_callback or callback
+    poster = fetch_raw_callback or callback
     data = await poster(endpoint=AREndpoint.PUSH_DATA, request=request)
     return read_service_result(data, services)
 
@@ -171,7 +171,7 @@ async def run_action(
     callback: ARCallbackType,
     action: ARServiceAction,
     *,
-    raw_callback: ARCallbackType | None = None,
+    fetch_raw_callback: ARCallbackType | None = None,
     identity: ARDeviceIdentity | None = None,
     **kwargs: Any,
 ) -> ARServiceResult:
@@ -184,7 +184,7 @@ async def run_action(
         callback,
         action.services,
         arguments=action.arguments or None,
-        raw_callback=raw_callback,
+        fetch_raw_callback=fetch_raw_callback,
     )
 
     # A reboot drops the session; flag it so the caller reconnects

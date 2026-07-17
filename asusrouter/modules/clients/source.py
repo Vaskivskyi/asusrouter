@@ -59,4 +59,4 @@ async def fetch_state(
     return source.merge_history(build_clients(raw, identity))
 
 
-ARCallReg.register_module(ARClientsSource, fetch_state=fetch_state)
+ARCallReg.register_source(ARClientsSource, fetch_state=fetch_state)

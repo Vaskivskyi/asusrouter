@@ -157,7 +157,7 @@ def translate_state(
     return temperature
 
 
-ARCallReg.register_module(
+ARCallReg.register_source(
     ARTemperatureSource,
     fetch_state=fetch_state,
     translate_state=translate_state,
