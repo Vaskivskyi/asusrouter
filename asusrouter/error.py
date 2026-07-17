@@ -18,24 +18,6 @@ class AsusRouterError(Exception):
         super().__init__(*args, message)
 
 
-class AsusRouterRequestFormatError(AsusRouterError):
-    """Request format error."""
-
-
-class AsusRouterConnectionError(
-    AsusRouterError, aiohttp.ClientConnectionError
-):
-    """Connection error."""
-
-
-class AsusRouterTimeoutError(AsusRouterError):
-    """Timeout error."""
-
-
-class AsusRouterSSLCertificateError(AsusRouterError):
-    """SSL certificate error."""
-
-
 class AsusRouter404Error(AsusRouterError):
     """Page not found error."""
 
@@ -44,8 +26,10 @@ class AsusRouterAccessError(AsusRouterError):
     """Access error."""
 
 
-class AsusRouterLogoutError(AsusRouterError):
-    """Logout error."""
+class AsusRouterConnectionError(
+    AsusRouterError, aiohttp.ClientConnectionError
+):
+    """Connection error."""
 
 
 class AsusRouterFallbackError(AsusRouterError):
@@ -58,3 +42,19 @@ class AsusRouterFallbackForbiddenError(AsusRouterFallbackError):
 
 class AsusRouterFallbackLoopError(AsusRouterFallbackError):
     """Fallback loop error."""
+
+
+class AsusRouterLogoutError(AsusRouterError):
+    """Logout error."""
+
+
+class AsusRouterRequestFormatError(AsusRouterError):
+    """Request format error."""
+
+
+class AsusRouterSSLCertificateError(AsusRouterError):
+    """SSL certificate error."""
+
+
+class AsusRouterTimeoutError(AsusRouterError):
+    """Timeout error."""
