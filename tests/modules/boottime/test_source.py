@@ -1,4 +1,4 @@
-"""Tests for the boottime module."""
+"""Tests for the boottime source."""
 
 from __future__ import annotations
 

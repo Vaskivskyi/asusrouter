@@ -1,4 +1,4 @@
-"""Tests for the DSL module."""
+"""Tests for the DSL source."""
 
 from __future__ import annotations
 

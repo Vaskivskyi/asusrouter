@@ -1,4 +1,4 @@
-"""Tests for the sysinfo module."""
+"""Tests for the sysinfo source."""
 
 from __future__ import annotations
 

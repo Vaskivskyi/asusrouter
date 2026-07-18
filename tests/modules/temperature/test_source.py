@@ -1,4 +1,4 @@
-"""Tests for the temperature module."""
+"""Tests for the temperature source."""
 
 from __future__ import annotations
 

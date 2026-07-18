@@ -1,4 +1,4 @@
-"""Tests for the traffic module dispatcher."""
+"""Tests for the traffic source."""
 
 from __future__ import annotations
 

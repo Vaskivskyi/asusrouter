@@ -1,4 +1,4 @@
-"""Tests for the AiMesh module source and callables."""
+"""Tests for the AiMesh source."""
 
 from __future__ import annotations
 

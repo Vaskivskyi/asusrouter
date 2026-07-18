@@ -1,4 +1,4 @@
-"""Tests for the system status module."""
+"""Tests for the system status source."""
 
 from __future__ import annotations
 

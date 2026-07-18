@@ -1,4 +1,4 @@
-"""Tests for the ports module source and pipeline."""
+"""Tests for the ports source."""
 
 from __future__ import annotations
 

@@ -1,4 +1,4 @@
-"""Tests for the clients module source."""
+"""Tests for the clients source."""
 
 from __future__ import annotations
 
