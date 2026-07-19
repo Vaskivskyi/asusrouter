@@ -1,4 +1,4 @@
-"""Tests for the interface traffic submodule."""
+"""Tests for the traffic interface source."""
 
 from __future__ import annotations
 

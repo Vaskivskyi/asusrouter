@@ -1,4 +1,4 @@
-"""Tests for the AiMesh traffic submodule."""
+"""Tests for the traffic AiMesh source."""
 
 from __future__ import annotations
 

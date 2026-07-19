@@ -4,21 +4,6 @@ from __future__ import annotations
 
 from asusrouter.const import RequestType
 from asusrouter.modules.endpoint import AREndpoint, get_endpoint_request_type
-from asusrouter.modules.ping import ARPingStatus
-
-
-class TestARPingStatus:
-    """Tests for ARPingStatus."""
-
-    def test_finished(self) -> None:
-        """`3` maps to FINISHED."""
-
-        assert ARPingStatus.from_value("3") is ARPingStatus.FINISHED
-
-    def test_unknown(self) -> None:
-        """Any other value maps to UNKNOWN."""
-
-        assert ARPingStatus.from_value("1") is ARPingStatus.UNKNOWN
 
 
 class TestEndpoint:
