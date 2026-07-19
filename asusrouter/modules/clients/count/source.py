@@ -30,15 +30,40 @@ _AIBOARD_NAME_PREFIX = "aiboard"
 
 
 class ARClientsCountSource(ARDataSource):
-    """Connected clients count data source for the connected router."""
+    """Connected clients count data source."""
+
+    def __init__(self, target: Any = None) -> None:
+        """Initialize the source with an optional target MAC."""
+
+        super().__init__()
+
+        self._target: MacAddress | None = None
+        self.target = target
+
+    @property
+    def target(self) -> MacAddress | None:
+        """Get the target MAC address."""
+
+        return self._target
+
+    @target.setter
+    def target(self, value: Any) -> None:
+        """Set the target MAC address."""
+
+        self._target = MacAddress.from_value_safe(value)
+
+    def _key(self) -> tuple[Any, ...]:
+        """Key by the target MAC."""
+
+        return (self._target,)
 
 
-# Universal instance - preferred
+# Universal instance - preferred (targets all nodes)
 ARClientsCountSourceUniversal: ARClientsCountSource = ARClientsCountSource()
 
 
 def _build_request(mac: MacAddress) -> str:
-    """Build the active-client diagnostics request for the router MAC."""
+    """Build the active-client diagnostics request for one node MAC."""
 
     return dict_to_request(
         {
@@ -51,10 +76,10 @@ def _build_request(mac: MacAddress) -> str:
     )
 
 
-async def _fetch_modern(
+async def _fetch_modern_one(
     callback: ARCallbackType, mac: MacAddress
 ) -> int | None:
-    """Fetch the newest connected-client count from diagnostics."""
+    """Fetch the newest connected-client count for one node."""
 
     data = await callback(
         endpoint=AREndpoint.FETCH_DIAGNOSTICS_ACTIVE_CLIENT,
@@ -64,7 +89,15 @@ async def _fetch_modern(
     if not isinstance(counts, list) or not counts:
         return None
 
-    return raw_to_int(counts[-1])
+    # A refresh can momentarily report 0; fall back one point only
+    last = raw_to_int(counts[-1])
+    if last == 0:
+        prev_point = counts[-2:-1]
+        prev = raw_to_int(prev_point[0]) if prev_point else None
+        if prev:
+            return prev
+
+    return last
 
 
 def _is_aiboard(client: ARClient) -> bool:
@@ -74,49 +107,78 @@ def _is_aiboard(client: ARClient) -> bool:
     return name is not None and name.lower().startswith(_AIBOARD_NAME_PREFIX)
 
 
-def _has_ai(identity: ARDeviceIdentity | None) -> bool:
-    """Whether the device reports AI support (has an AI board)."""
+def _target_macs(
+    source: ARClientsCountSource, identity: ARDeviceIdentity
+) -> list[MacAddress]:
+    """Resolve the nodes to report: the target, else all known nodes."""
 
-    if identity is None:
-        return False
-    return bool(identity.support.get(ARSupportType.AI))
+    if source.target is not None:
+        return [source.target]
+    nodes = identity.aimesh.macs()
+    if nodes:
+        return nodes
+    return [identity.mac] if identity.mac is not None else []
+
+
+async def _fetch_modern(
+    callback: ARCallbackType, macs: list[MacAddress]
+) -> dict[MacAddress, int]:
+    """Fetch the per-node counts from the active-client diagnostics."""
+
+    result: dict[MacAddress, int] = {}
+    for mac in macs:
+        count = await _fetch_modern_one(callback, mac)
+        if count is not None:
+            result[mac] = count
+    return result
 
 
 async def _fetch_legacy(
-    callback: ARCallbackType, identity: ARDeviceIdentity | None
-) -> int:
-    """Count the online clients, excluding the AI board on AI devices."""
+    callback: ARCallbackType,
+    identity: ARDeviceIdentity,
+    macs: list[MacAddress],
+) -> dict[MacAddress, int]:
+    """Count the online clients per node, excluding the AI board."""
 
     raw = await callback(
         endpoint=AREndpoint.FETCH_DATA,
         request=hook_request(ARHook.CLIENTLIST, ARHook.CLIENTLIST_DATABASE),
     )
     clients = build_clients(raw, identity)
-    online = [client for client in clients.values() if client.online is True]
+    skip_aiboard = bool(identity.support.get(ARSupportType.AI))
 
-    total = len(online)
-    if _has_ai(identity):
-        total -= sum(1 for client in online if _is_aiboard(client))
+    per_node: dict[MacAddress, int] = {}
+    for client in clients.values():
+        if client.online is not True or client.connection is None:
+            continue
+        if skip_aiboard and _is_aiboard(client):
+            continue
+        node = client.connection.node
+        if node is not None:
+            per_node[node] = per_node.get(node, 0) + 1
 
-    return total
+    # Report every requested node, filling absent ones with zero
+    return {mac: per_node.get(mac, 0) for mac in macs}
 
 
 async def fetch_state(
     callback: ARCallbackType,
     source: ARClientsCountSource,
     *,
-    identity: ARDeviceIdentity | None = None,
+    identity: ARDeviceIdentity,
     **kwargs: Any,
-) -> int:
-    """Fetch the connected clients count, preferring the modern endpoint."""
+) -> dict[MacAddress, int]:
+    """Fetch per-node connected clients counts, preferring diagnostics."""
 
-    mac = identity.mac if identity is not None else None
-    if mac is not None:
-        modern = await _fetch_modern(callback, mac)
-        if modern is not None:
-            return modern
+    macs = _target_macs(source, identity)
+    if not macs:
+        return {}
 
-    return await _fetch_legacy(callback, identity)
+    modern = await _fetch_modern(callback, macs)
+    if modern:
+        return modern
+
+    return await _fetch_legacy(callback, identity, macs)
 
 
 ARCallReg.register_source(ARClientsCountSource, fetch_state=fetch_state)
