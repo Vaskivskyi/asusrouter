@@ -33,6 +33,7 @@ class AREndpoint(FromStrMixin, StrEnum):
     FETCH_CLIENTS_UPDATE = "update_clients.asp"
     FETCH_DATA = "appGet.cgi"
     FETCH_DEVICEMAP = "ajax_status.xml"
+    FETCH_DIAGNOSTICS_ACTIVE_CLIENT = "get_diag_active_client.cgi"
     FETCH_DIAGNOSTICS_DATA = "get_diag_content_data.cgi"
     FETCH_FIRMWARE_UPDATE = "detect_firmware.asp"
     FETCH_FIRMWARE_UPDATE_NOTE = "release_note0.asp"
@@ -99,6 +100,7 @@ _RAW_POST_SENSITIVE_META = AREndpointMeta(
 _ENDPOINT_META: dict[AREndpoint, AREndpointMeta] = {
     AREndpoint.DDNS_CLEAN: _GET_META,
     AREndpoint.DDNS_UNREGISTER: _GET_META,
+    AREndpoint.FETCH_DIAGNOSTICS_ACTIVE_CLIENT: _GET_META,
     AREndpoint.FETCH_DIAGNOSTICS_DATA: _GET_META,
     AREndpoint.FETCH_NETWORK: _GET_META,
     AREndpoint.FETCH_PORT_STATUS: _GET_META,

@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+from asusrouter.modules.clients.count import (
+    ARClientsCountSource,
+    ARClientsCountSourceUniversal,
+)
 from asusrouter.modules.clients.model import (
     ARClient,
     ARClientConnection,
@@ -17,6 +21,8 @@ __all__ = [
     "ARClient",
     "ARClientConnection",
     "ARClientLink",
+    "ARClientsCountSource",
+    "ARClientsCountSourceUniversal",
     "ARClientsSource",
     "ARClientsSourceUniversal",
     "fetch_state",
