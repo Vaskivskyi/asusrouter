@@ -30,12 +30,19 @@ class ARSupportType(FromStrMixin, StrEnum):
     # Connections
     CONNECTIONS = "connections"
 
+    # Credentials
+    CHPASS = "chpass"
+
     # DSL
     DSL = "dsl"
 
     # FTP
     FTP = "ftp"
     FTP_CAPABILITIES = "ftp_capabilities"
+
+    # HTTP
+    HTTP_PASSWORD_MAX_LENGTH = "http_password_max_length"
+    HTTP_USERNAME_MAX_LENGTH = "http_username_max_length"
 
     # LAN
     LAN_CAPABILITIES = "lan_capabilities"
@@ -54,6 +61,9 @@ class ARSupportType(FromStrMixin, StrEnum):
     SDN_MAX_RULES = "sdn_max_rules"
     SDN_MWL = "sdn_mwl"
     SDN_PRIORITY = "sdn_priority"
+
+    # Security
+    SECURE_DEFAULT = "secure_default"
 
     # SpeedTest
     SPEEDTEST = "speedtest"
@@ -101,12 +111,19 @@ class ARSupportValue(FromStrMixin, StrEnum):
     CONNECTION_HTTPS = "HTTPS"
     CONNECTION_SSH = "ssh"
 
+    # Credentials
+    CHPASS = "CHPASS"
+
     # DSL
     DSL = "dsl"
 
     # FTP
     FTP = "noftp"
     FTP_SSL = "ftp_ssl"
+
+    # HTTP
+    HTTP_PASSWORD_MAX_LENGTH = "MaxLen_http_passwd"
+    HTTP_USERNAME_MAX_LENGTH = "MaxLen_http_name"
 
     # LAN capabilities
     LAN_AGGREGATION = "lacp"
@@ -131,6 +148,9 @@ class ARSupportValue(FromStrMixin, StrEnum):
     SDN_MAX_RULES = "MaxRule_SDN"
     SDN_MWL = "sdn_mwl"
     SDN_PRIORITY = "SDN_PRIORITY"
+
+    # Security
+    SECURE_DEFAULT = "secure_default"
 
     # SpeedTest
     SPEEDTEST = "ookla"

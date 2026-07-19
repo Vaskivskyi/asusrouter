@@ -107,7 +107,9 @@ class ARNvramType(ARDataType):
 
     # HTTP
     HTTP_AUTOLOGOUT = "http_autologout"  # minutes
+    HTTP_PASSWORD = "http_passwd"
     HTTP_PREFERRED_LANGUAGE = "preferred_lang"
+    HTTP_USERNAME = "http_username"
 
     # IP
     IP_LAN = "lan_ipaddr"

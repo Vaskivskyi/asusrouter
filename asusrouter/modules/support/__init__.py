@@ -26,6 +26,12 @@ from asusrouter.modules.support.aura import (
     translate_aura_zone,
 )
 from asusrouter.modules.support.connection import translate_connection
+from asusrouter.modules.support.credentials import (
+    translate_chpass,
+    translate_http_password_max_length,
+    translate_http_username_max_length,
+    translate_secure_default,
+)
 from asusrouter.modules.support.dsl import translate_dsl
 from asusrouter.modules.support.flag import ARSupportType
 from asusrouter.modules.support.ftp import (
@@ -91,10 +97,13 @@ _TRANSLATION_TABLE: dict[ARSupportType, ARCallableType] = {
     ARSupportType.AURA: translate_aura,
     ARSupportType.AURA_NIGHT_MODE: translate_aura_night_mode,
     ARSupportType.AURA_ZONE: translate_aura_zone,
+    ARSupportType.CHPASS: translate_chpass,
     ARSupportType.CONNECTIONS: translate_connection,
     ARSupportType.DSL: translate_dsl,
     ARSupportType.FTP: translate_ftp,
     ARSupportType.FTP_CAPABILITIES: translate_ftp_capabilities,
+    ARSupportType.HTTP_PASSWORD_MAX_LENGTH: translate_http_password_max_length,
+    ARSupportType.HTTP_USERNAME_MAX_LENGTH: translate_http_username_max_length,
     ARSupportType.LAN_CAPABILITIES: translate_lan_capabilities,
     ARSupportType.PARENTAL_CONTROL_MAX_ENTRIES: (
         translate_parental_control_max_entries
@@ -111,6 +120,7 @@ _TRANSLATION_TABLE: dict[ARSupportType, ARCallableType] = {
     ARSupportType.SDN_MAX_RULES: translate_sdn_max_rules,
     ARSupportType.SDN_MWL: translate_sdn_mwl,
     ARSupportType.SDN_PRIORITY: translate_sdn_priority,
+    ARSupportType.SECURE_DEFAULT: translate_secure_default,
     ARSupportType.SPEEDTEST: translate_speedtest,
     ARSupportType.SPEEDTEST_CAPABILITIES: translate_speedtest_capabilities,
     ARSupportType.USB_GENERATION: translate_usb_generation,

@@ -58,6 +58,11 @@ from asusrouter.tools.security.log import render_for_log
 
 _LOGGER = logging.getLogger(__name__)
 
+# A credential change bounces. Wait and try to reconnect
+_CREDENTIALS_RECONNECT_INITIAL_DELAY: float = 1.0
+_CREDENTIALS_RECONNECT_INTERVAL: float = 2.0
+_CREDENTIALS_RECONNECT_TIMEOUT: float = 30.0
+
 _T = TypeVar("_T")
 
 
@@ -252,6 +257,44 @@ class Connection:  # pylint: disable=too-many-instance-attributes
 
         return self._connected
 
+    @property
+    def http(self) -> str:
+        """Return HTTP scheme."""
+
+        return "https" if self._config.get(ARCCKey.USE_SSL) else "http"
+
+    @property
+    def password(self) -> str:
+        """Return the current password."""
+
+        return self._password
+
+    @property
+    def port(self) -> int:
+        """Return port number."""
+
+        return safe_int_config(self._config.get(ARCCKey.PORT))
+
+    @property
+    def username(self) -> str:
+        """Return the current username."""
+
+        return self._username
+
+    @property
+    def webpanel(self) -> str:
+        """Return web panel URL."""
+
+        return f"{self.http}://{self._hostname}:{self.port}"
+
+    # ---------------------------
+    # <-- Properties
+    # ---------------------------
+
+    # ---------------------------
+    # Logging -->
+    # ---------------------------
+
     def set_error_suppression(self, suppress: bool) -> None:
         """Downgrade expected connection errors to debug while set."""
 
@@ -266,26 +309,8 @@ class Connection:  # pylint: disable=too-many-instance-attributes
             *args,
         )
 
-    @property
-    def http(self) -> str:
-        """Return HTTP scheme."""
-
-        return "https" if self._config.get(ARCCKey.USE_SSL) else "http"
-
-    @property
-    def port(self) -> int:
-        """Return port number."""
-
-        return safe_int_config(self._config.get(ARCCKey.PORT))
-
-    @property
-    def webpanel(self) -> str:
-        """Return web panel URL."""
-
-        return f"{self.http}://{self._hostname}:{self.port}"
-
     # ---------------------------
-    # <-- Properties
+    # <-- Logging
     # ---------------------------
 
     # ---------------------------
@@ -470,21 +495,7 @@ class Connection:  # pylint: disable=too-many-instance-attributes
 
         _LOGGER.debug("Initializing disconnection from %s", self._log_hostname)
 
-        # Cancel any in-flight connect task so it can't re-establish
-        # connection state after we tear it down.
-        old_task: asyncio.Task[bool] | None = None
-        async with self._connect_task_lock:
-            if (
-                self._connect_task is not None
-                and not self._connect_task.done()
-            ):
-                old_task = self._connect_task
-                self._connect_task = None
-                old_task.cancel()
-
-        if old_task is not None:
-            with contextlib.suppress(asyncio.CancelledError, Exception):
-                await old_task
+        await self._async_cancel_connect_task()
 
         try:
             await self._send_request(AREndpoint.LOGOUT)
@@ -506,6 +517,23 @@ class Connection:  # pylint: disable=too-many-instance-attributes
         _LOGGER.debug("Disconnected from %s", self._log_hostname)
         return True
 
+    async def _async_cancel_connect_task(self) -> None:
+        """Cancel any in-flight connect task so it cannot re-establish auth."""
+
+        old_task: asyncio.Task[bool] | None = None
+        async with self._connect_task_lock:
+            if (
+                self._connect_task is not None
+                and not self._connect_task.done()
+            ):
+                old_task = self._connect_task
+                self._connect_task = None
+                old_task.cancel()
+
+        if old_task is not None:
+            with contextlib.suppress(asyncio.CancelledError, Exception):
+                await old_task
+
     def reset_auth(self) -> None:
         """Clear auth state when the connection is no longer valid."""
 
@@ -517,6 +545,39 @@ class Connection:  # pylint: disable=too-many-instance-attributes
         self._connected = False
         self._token = None
         self._header = None
+
+    async def async_set_credentials(
+        self, username: str, password: str
+    ) -> bool:
+        """Swap the stored credentials and re-establish the session."""
+
+        self._username = username
+        self._password = password
+        self._auth_payload, self._auth_headers = generate_credentials(
+            username, password
+        )
+        # Drop the stale auth and cancel any in-flight login
+        self.reset_auth()
+        await self._async_cancel_connect_task()
+
+        # httpd is restarting; expected login failures stay at debug
+        prev_suppress = self._suppress_errors
+        self.set_error_suppression(True)
+        try:
+            await asyncio.sleep(_CREDENTIALS_RECONNECT_INITIAL_DELAY)
+            loop = asyncio.get_running_loop()
+            deadline = loop.time() + _CREDENTIALS_RECONNECT_TIMEOUT
+            while True:
+                try:
+                    if await self.async_connect(block_error=True):
+                        return True
+                except AsusRouterError:
+                    pass
+                if loop.time() >= deadline:
+                    return False
+                await asyncio.sleep(_CREDENTIALS_RECONNECT_INTERVAL)
+        finally:
+            self.set_error_suppression(prev_suppress)
 
     # ---------------------------
     # <-- Connection management
