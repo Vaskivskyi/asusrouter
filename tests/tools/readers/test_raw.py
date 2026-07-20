@@ -108,6 +108,27 @@ def test_is_true_in_dict(
             '{"key1": "value1", "key2": , "key3": "value3", "key4": ,}',
             {"key1": "value1", "key2": None, "key3": "value3", "key4": None},
         ),
+        # Legacy firmware emits get_clientlist without wrapping braces
+        (
+            '{\n"get_clientlist":"AA:BB":{"name":"x"},"maclist":["AA:BB"],\n'
+            '"get_clientlist_from_json_database":""\n}',
+            {
+                "get_clientlist": {
+                    "AA:BB": {"name": "x"},
+                    "maclist": ["AA:BB"],
+                },
+                "get_clientlist_from_json_database": "",
+            },
+        ),
+        # A properly wrapped get_clientlist is left untouched
+        (
+            '{"get_clientlist":{"AA:BB":{"name":"x"}},'
+            '"get_clientlist_from_json_database":""}',
+            {
+                "get_clientlist": {"AA:BB": {"name": "x"}},
+                "get_clientlist_from_json_database": "",
+            },
+        ),
     ],
 )
 def test_read_json_content(

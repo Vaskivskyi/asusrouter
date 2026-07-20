@@ -20,6 +20,14 @@ _JSON_LEADING_COMMA = re.compile(r"^\s*{\s*,")
 _JSON_TRAILING_COMMA = re.compile(r",\s*}\s*$")
 _JSON_EMPTY_VALUE = re.compile(r":\s*(,|\})")
 
+# Legacy firmware emits the get_clientlist value without wrapping braces,
+# so its entries leak to the top level; wrap them back into an object
+_JSON_CLIENTLIST = re.compile(
+    r'("get_clientlist":)\s*(".*?)'
+    r'(\s*,\s*"get_clientlist_from_json_database")',
+    re.DOTALL,
+)
+
 
 def is_true_in_dict(value: str, data: dict[str, Any]) -> bool:
     """Check if the value exists in the dict and is truthy."""
@@ -44,6 +52,9 @@ def read_json_content(content: str | None) -> dict[str, Any]:
 
     # Handle keys without values
     content = _JSON_EMPTY_VALUE.sub(r": null\1", content)
+
+    # Rewrap an unwrapped get_clientlist value
+    content = _JSON_CLIENTLIST.sub(r"\1{\2}\3", content)
 
     try:
         json_data = json.loads(content)
