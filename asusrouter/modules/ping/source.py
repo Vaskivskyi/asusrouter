@@ -108,21 +108,25 @@ def _build_request() -> str:
 async def _async_wait_finished(fetch_data_callback: ARCallbackType) -> bool:
     """Poll `dns_ping_state` until the ping run reports finished."""
 
-    async def _probe(**kwargs: Any) -> ARPingStatus:
-        raw = await async_get_value(
-            fetch_data_callback, ARNvramType.DNS_PING_STATUS, **kwargs
+    async def _probe(**kwargs: Any) -> str | None:
+        return raw_to_str(
+            await async_get_value(
+                fetch_data_callback, ARNvramType.DNS_PING_STATUS, **kwargs
+            )
         )
-        return ARPingStatus.from_value(raw)
+
+    def _settled(raw: str | None) -> bool:
+        return not raw or ARPingStatus.from_value(raw) is ARPingStatus.FINISHED
 
     # Force each poll to bypass the state cache, so we see fresh status
-    status = await async_poll_until(
+    raw = await async_poll_until(
         _probe,
-        lambda value: value is ARPingStatus.FINISHED,
+        _settled,
         interval=_POLL_INTERVAL,
         attempts=_POLL_ATTEMPTS,
         force=True,
     )
-    return status is ARPingStatus.FINISHED
+    return ARPingStatus.from_value(raw) is ARPingStatus.FINISHED
 
 
 async def fetch_state(
