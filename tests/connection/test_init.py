@@ -151,20 +151,23 @@ class TestConnectionInit:
         assert conn._session is None
         assert conn._manage_session is False
 
-    def test_dumpback_stored(self) -> None:
-        """Dumpback callable is stored."""
+    def test_response_callback_stored(self) -> None:
+        """Response callback callable is stored."""
 
-        dumpback = Mock()
+        response_callback = Mock()
         conn = Connection(
-            TCONST_HOST, TCONST_USER, TCONST_PASS, dumpback=dumpback
+            TCONST_HOST,
+            TCONST_USER,
+            TCONST_PASS,
+            response_callback=response_callback,
         )
-        assert conn._dumpback is dumpback
+        assert conn._response_callback is response_callback
 
-    def test_dumpback_none_by_default(self) -> None:
-        """Dumpback is None when not provided."""
+    def test_response_callback_none_by_default(self) -> None:
+        """Response callback is None when not provided."""
 
         conn = Connection(TCONST_HOST, TCONST_USER, TCONST_PASS)
-        assert conn._dumpback is None
+        assert conn._response_callback is None
 
     def test_config_applied(self) -> None:
         """Custom config dict is applied to the internal ARConnectionConfig."""

@@ -11,6 +11,7 @@ from collections.abc import Awaitable, Callable, Iterable
 from datetime import timedelta
 from functools import partial
 import logging
+from pathlib import Path
 from typing import Any, Self
 
 import aiohttp
@@ -34,6 +35,7 @@ from asusrouter.error import (
     AsusRouterAccessError,
     AsusRouterError,
 )
+from asusrouter.modules import load_all_sources
 from asusrouter.modules.action import ARAction
 from asusrouter.modules.aimesh import ARAiMeshSourceUniversal
 from asusrouter.modules.aimesh.topology import ARAiMeshTopology
@@ -58,6 +60,16 @@ from asusrouter.modules.source import (
 from asusrouter.modules.support.flag import ARSupportType
 from asusrouter.registry import ARCallableRegistry as ARCallReg
 from asusrouter.tools.converters.raw import raw_to_str
+from asusrouter.tools.dump import (
+    DEFAULT_DUMP_PATH,
+    DUMP_SENSITIVE_WARNING,
+    ARDumpRecorder,
+    active_recorder,
+    bind_recorder,
+    unbind_recorder,
+    write_device_snapshot,
+    write_dump,
+)
 from asusrouter.tools.identifiers import Hostname
 from asusrouter.tools.security.log import register_log_config
 from asusrouter.tools.types import ARCallableType
@@ -101,7 +113,7 @@ class AsusRouter:
         port: int | None = None,
         use_ssl: bool = False,
         session: aiohttp.ClientSession | None = None,
-        dumpback: Callable[..., Awaitable[None]] | None = None,
+        response_callback: Callable[..., Awaitable[None]] | None = None,
         config: dict[ARConfKey, Any] | None = None,
         connection_config: dict[ARCCKey, Any] | None = None,
     ):
@@ -137,7 +149,7 @@ class AsusRouter:
             use_ssl=use_ssl,
             session=session,
             timeout=DEFAULT_TIMEOUT,
-            dumpback=dumpback,
+            response_callback=response_callback,
             config=connection_config,
         )
 
@@ -322,6 +334,9 @@ class AsusRouter:
                     endpoint, payload=request, request_type=request_type
                 )
                 _LOGGER.debug("Response %s from %s", status, endpoint)
+                recorder = active_recorder()
+                if recorder is not None:
+                    recorder.record(endpoint, request_type, request, content)
                 return content
             except AsusRouter404Error:
                 _LOGGER.debug(
@@ -674,6 +689,117 @@ class AsusRouter:
         }
         return result or None
 
+    # ---------------------------
+    # <-- Data pipeline
+    # ---------------------------
+
+    # ---------------------------
+    # Data dump -->
+    # ---------------------------
+
+    def _warn_dump_once(self) -> None:
+        """Emit the sensitive-data warning once per session."""
+
+        config = self._config
+        config.ensure_notification_flag(ARConfKey.NOTIFIED_DUMP)
+        if not config.get(ARConfKey.NOTIFIED_DUMP):
+            _LOGGER.warning(DUMP_SENSITIVE_WARNING)
+            config.set(ARConfKey.NOTIFIED_DUMP, True)
+
+    def _default_sources(self) -> list[ARDataSource]:
+        """Build the default instance of every fetchable source."""
+
+        # Import all modules to register sources
+        load_all_sources()
+
+        sources: list[ARDataSource] = []
+        for source_cls in sorted(
+            ARCallReg.classes_with(AR_CALL_FETCH_STATE),
+            key=lambda cls: cls.__name__,
+        ):
+            if not issubclass(source_cls, ARDataSource):
+                continue
+            try:
+                sources.append(source_cls())
+            except TypeError:
+                _LOGGER.debug(
+                    "Skipping source without a default instance: %s",
+                    source_cls.__name__,
+                )
+        return sources
+
+    async def _async_dump_source(
+        self, source: ARDataSource | ARDataType, path: str | Path
+    ) -> Path | None:
+        """Dump a single source's raw replies, if any were captured."""
+
+        recorder = ARDumpRecorder()
+        # Bind to the async context so only this dump's own fetches (and their
+        # context-inheriting sub-tasks) are captured, never concurrent traffic
+        token = bind_recorder(recorder)
+        try:
+            await self.async_fetch_data(source, force=True)
+        finally:
+            unbind_recorder(token)
+
+        if not recorder:
+            return None
+        return write_dump(
+            recorder, path=path, identity=self.description, source=source
+        )
+
+    async def async_dump_data(
+        self,
+        source: ARDataRequest,
+        path: str | Path = DEFAULT_DUMP_PATH,
+    ) -> list[Path]:
+        """Dump raw device replies for the given source(s) to disk."""
+
+        self._warn_dump_once()
+
+        collection = ARDataCollection.from_value(source)
+        if not collection:
+            return []
+
+        written: list[Path] = []
+        for item in collection:
+            result = await self._async_dump_source(item, path)
+            if result is not None:
+                written.append(result)
+        if written:
+            write_device_snapshot(path, self.description)
+        return written
+
+    async def async_dump_all(
+        self, path: str | Path = DEFAULT_DUMP_PATH
+    ) -> list[Path]:
+        """Dump raw replies for every default source in one pass."""
+
+        self._warn_dump_once()
+
+        written: list[Path] = []
+        for item in self._default_sources():
+            try:
+                result = await self._async_dump_source(item, path)
+            except AsusRouterError:
+                _LOGGER.exception(
+                    "Failed to dump source %s", type(item).__name__
+                )
+                continue
+            if result is not None:
+                written.append(result)
+        if written:
+            write_device_snapshot(path, self.description)
+        return written
+
+    # ---------------------------
+    # <-- Data dump
+    # ---------------------------
+
+    # ---------------------------
+    # Action pipeline -->
+    # ---------------------------
+
     async def async_run_action(self, action: ARAction, **kwargs: Any) -> Any:
         """Run an action or push data to the device."""
 
@@ -773,5 +899,5 @@ class AsusRouter:
             self._reboot_recovery = None
 
     # ---------------------------
-    # <-- Data pipeline
+    # <-- Action pipeline
     # ---------------------------

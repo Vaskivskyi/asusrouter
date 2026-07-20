@@ -149,6 +149,12 @@ class ARCallableRegistryBase:
                 return bool(value[1])
             return self._flags.get(value, False)
 
+    def classes_with(self, name: str) -> list[type]:
+        """Return all registered classes that have a callable under `name`."""
+
+        with self._lock:
+            return [cls for cls, entry in self._map.items() if name in entry]
+
     def get_all_for(self, source: Any) -> dict[str, ARCallableEntry]:
         """Return all resolved callables for `source` by name (MRO merged).
 
