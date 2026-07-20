@@ -8,6 +8,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 from asusrouter.modules.action import _RUN_START_DELAY
+from asusrouter.modules.device.identity import ARDeviceIdentity
 from asusrouter.modules.endpoint import AREndpoint
 from asusrouter.modules.endpoint.hooks import ARHook
 from asusrouter.modules.speedtest import (
@@ -19,7 +20,19 @@ from asusrouter.modules.speedtest import (
     translate_state,
 )
 from asusrouter.modules.speedtest.source import _log_stream
+from asusrouter.modules.support.flag import ARSupportType
 from asusrouter.registry import ARCallableRegistry as ARCallReg
+
+
+def _identity(*, speedtest: bool = True) -> ARDeviceIdentity:
+    """Build an identity with the SpeedTest support flag set."""
+
+    identity = ARDeviceIdentity()
+    identity._support[ARSupportType.SPEEDTEST] = speedtest
+    return identity
+
+
+_IDENTITY = _identity()
 
 _HOOK = ARHook.OOKLA_SPEEDTEST_RESULT.value
 _EVENTS = [{"type": "result", "result": {"id": "abc"}}, {}]
@@ -113,7 +126,9 @@ class TestGetState:
         """Without refresh the last result is read, no run triggered."""
 
         callback = AsyncMock(return_value={_HOOK: _EVENTS})
-        result = await fetch_state(callback, ARSpeedTestSourceUniversal)
+        result = await fetch_state(
+            callback, ARSpeedTestSourceUniversal, identity=_IDENTITY
+        )
 
         assert result == _EVENTS
         call = callback.await_args.kwargs
@@ -123,7 +138,9 @@ class TestGetState:
         """A non-dict hook reply yields no data."""
 
         callback = AsyncMock(return_value=None)
-        result = await fetch_state(callback, ARSpeedTestSourceUniversal)
+        result = await fetch_state(
+            callback, ARSpeedTestSourceUniversal, identity=_IDENTITY
+        )
 
         assert result == {}
 
@@ -133,7 +150,9 @@ class TestGetState:
         events = _events_srv("r", 54112)
         callback = AsyncMock(return_value={_HOOK: events})
 
-        result = await fetch_state(callback, ARSpeedTestSource(54112))
+        result = await fetch_state(
+            callback, ARSpeedTestSource(54112), identity=_IDENTITY
+        )
 
         assert result == events
 
@@ -152,7 +171,9 @@ class TestGetState:
             ]
         )
 
-        result = await fetch_state(callback, ARSpeedTestSource(54112))
+        result = await fetch_state(
+            callback, ARSpeedTestSource(54112), identity=_IDENTITY
+        )
 
         assert result == [entry]
 
@@ -166,7 +187,9 @@ class TestGetState:
             ]
         )
 
-        result = await fetch_state(callback, ARSpeedTestSource(54112))
+        result = await fetch_state(
+            callback, ARSpeedTestSource(54112), identity=_IDENTITY
+        )
 
         assert result == {}
 
@@ -189,6 +212,7 @@ class TestGetState:
         result = await fetch_state(
             callback,
             ARSpeedTestSourceUniversal,
+            identity=_IDENTITY,
             run_action_callback=AsyncMock(return_value=False),
             refresh=True,
         )
@@ -205,6 +229,7 @@ class TestGetState:
             result = await fetch_state(
                 callback,
                 ARSpeedTestSourceUniversal,
+                identity=_IDENTITY,
                 run_action_callback=AsyncMock(return_value=True),
                 refresh=True,
             )
@@ -225,6 +250,7 @@ class TestGetState:
             result = await fetch_state(
                 callback,
                 ARSpeedTestSourceUniversal,
+                identity=_IDENTITY,
                 run_action_callback=run_action_callback,
                 refresh=True,
             )
@@ -244,6 +270,7 @@ class TestGetState:
         result = await fetch_state(
             callback,
             ARSpeedTestSourceUniversal,
+            identity=_IDENTITY,
             run_action_callback=run_action_callback,
             refresh=True,
         )
@@ -262,6 +289,7 @@ class TestGetState:
         await fetch_state(
             callback,
             ARSpeedTestSource(54112, "tun11"),
+            identity=_IDENTITY,
             run_action_callback=run_action_callback,
             refresh=True,
         )
@@ -295,6 +323,7 @@ class TestGetState:
             result = await fetch_state(
                 callback,
                 ARSpeedTestSourceUniversal,
+                identity=_IDENTITY,
                 run_action_callback=AsyncMock(return_value=True),
                 refresh=True,
             )
@@ -315,6 +344,7 @@ class TestGetState:
             result = await fetch_state(
                 callback,
                 ARSpeedTestSourceUniversal,
+                identity=_IDENTITY,
                 run_action_callback=AsyncMock(return_value=True),
                 refresh=True,
                 save=True,
@@ -341,6 +371,7 @@ class TestGetState:
             result = await fetch_state(
                 callback,
                 ARSpeedTestSourceUniversal,
+                identity=_IDENTITY,
                 run_action_callback=AsyncMock(return_value=True),
                 refresh=True,
                 save=True,
@@ -359,7 +390,10 @@ class TestGetState:
             AsyncMock(),
         ) as save:
             result = await fetch_state(
-                callback, ARSpeedTestSourceUniversal, save=True
+                callback,
+                ARSpeedTestSourceUniversal,
+                save=True,
+                identity=_IDENTITY,
             )
 
         assert result == _EVENTS
