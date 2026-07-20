@@ -547,8 +547,61 @@ class TestAsyncGetDataState:
         assert result == {source: sentinel}
 
 
+class TestEnsureConnected:
+    """Tests for AsusRouter._async_ensure_connected."""
+
+    @pytest.mark.asyncio
+    async def test_connects_when_not_connected(
+        self, router: AsusRouter, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Connects on the first request of a fresh, unconnected router."""
+
+        connect = AsyncMock(return_value=True)
+        monkeypatch.setattr(router, "async_connect", connect)
+
+        await router._async_ensure_connected()
+
+        connect.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_skips_when_connected(
+        self, router: AsusRouter, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Does not reconnect when already connected."""
+
+        connect = AsyncMock()
+        monkeypatch.setattr(router, "async_connect", connect)
+        monkeypatch.setattr(router._connection, "_connected", True)
+
+        await router._async_ensure_connected()
+
+        connect.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_skips_during_reboot(
+        self, router: AsusRouter, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Leaves reconnection to the reboot recovery while it is in flight."""
+
+        connect = AsyncMock()
+        monkeypatch.setattr(router, "async_connect", connect)
+        monkeypatch.setattr(router, "_reboot_recovery", object())
+
+        await router._async_ensure_connected()
+
+        connect.assert_not_awaited()
+
+
 class TestAsyncFetchData:
     """Tests for AsusRouter.async_fetch_data."""
+
+    @pytest.fixture(autouse=True)
+    def _skip_ensure_connected(
+        self, router: AsusRouter, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Assume an already-connected router for these unit tests."""
+
+        monkeypatch.setattr(router, "_async_ensure_connected", AsyncMock())
 
     @pytest.mark.asyncio
     async def test_returns_none_when_no_data_state(
@@ -692,6 +745,14 @@ class TestAsyncFetchData:
 
 class TestAsyncRunAction:
     """Tests for AsusRouter.async_run_action."""
+
+    @pytest.fixture(autouse=True)
+    def _skip_ensure_connected(
+        self, router: AsusRouter, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Assume an already-connected router for these unit tests."""
+
+        monkeypatch.setattr(router, "_async_ensure_connected", AsyncMock())
 
     @pytest.mark.asyncio
     async def test_no_caller_returns_none(

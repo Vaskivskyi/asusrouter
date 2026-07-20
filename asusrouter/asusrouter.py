@@ -217,6 +217,13 @@ class AsusRouter:
         await self.async_disconnect()
         await self._connection.async_close_session()
 
+    async def _async_ensure_connected(self) -> None:
+        """Connect and identify before a request if not connected."""
+
+        if self._reboot_recovery is None and not self._connection.connected:
+            _LOGGER.debug("Not connected yet; connecting before the request")
+            await self.async_connect()
+
     async def async_connect(self) -> bool:
         """Connect to the device and get its identity."""
 
@@ -637,6 +644,8 @@ class AsusRouter:
 
         _LOGGER.debug("Triggered method async_fetch_data")
 
+        await self._async_ensure_connected()
+
         # Sub-fetches inherit this call's force (override per-call if needed)
         kwargs["fetch_data_callback"] = partial(
             self.async_fetch_data, force=force
@@ -673,6 +682,8 @@ class AsusRouter:
         run_caller = ARCallReg.get_callable(action, AR_CALL_RUN_ACTION)
         if run_caller is None:
             return None
+
+        await self._async_ensure_connected()
 
         kwargs["fetch_data_callback"] = partial(
             self.async_fetch_data, force=True
