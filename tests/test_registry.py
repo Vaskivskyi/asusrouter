@@ -46,6 +46,26 @@ def test_register_and_get_callable_by_instance_and_class() -> None:
     assert fn2 is base_get
 
 
+def test_classes_with_lists_only_matching_names() -> None:
+    """Test that classes_with returns classes registering the given name."""
+
+    class A:
+        pass
+
+    class B:
+        pass
+
+    def fn(s: Any) -> None:
+        return None
+
+    ARCallReg.register(A, fetch_state=fn)
+    ARCallReg.register(B, translate_state=fn)
+
+    assert ARCallReg.classes_with("fetch_state") == [A]
+    assert ARCallReg.classes_with("translate_state") == [B]
+    assert ARCallReg.classes_with("run_action") == []
+
+
 def test_get_all_for_merges_mro_correctly() -> None:
     """Test that get_all_for merges MRO correctly."""
 

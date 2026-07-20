@@ -20,6 +20,9 @@ pytest/
 local_test*.py
 local/
 
+# Default data dump output
+dumps/
+
 # VS Code
 .vscode/launch.json
 .vscode/settings.json
