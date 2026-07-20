@@ -144,6 +144,19 @@ class TestGetState:
 
         assert result == {}
 
+    async def test_unsupported_skips_fetch(self) -> None:
+        """Without SpeedTest support nothing is fetched."""
+
+        callback = AsyncMock()
+        result = await fetch_state(
+            callback,
+            ARSpeedTestSourceUniversal,
+            identity=_identity(speedtest=False),
+        )
+
+        assert result == {}
+        callback.assert_not_awaited()
+
     async def test_bound_source_uses_matching_last_run(self) -> None:
         """A bound source keeps the last run when it is for its server."""
 
@@ -198,7 +211,10 @@ class TestGetState:
 
         callback = AsyncMock()
         result = await fetch_state(
-            callback, ARSpeedTestSourceUniversal, refresh=True
+            callback,
+            ARSpeedTestSourceUniversal,
+            refresh=True,
+            identity=_IDENTITY,
         )
 
         assert result == {}
