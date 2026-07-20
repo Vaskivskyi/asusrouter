@@ -219,6 +219,30 @@ class TestTranslateIdentityBase:
                 None,
                 None,
             ),
+            # Blank label MAC falls back to the LAN hardware address
+            (
+                {
+                    ARNvramType.MAC: "",
+                    ARNvramType.MAC_LAN: "AA:BB:CC:11:22:33",
+                    ARNvramType.MODEL: "RT-AC66U",
+                },
+                "AA:BB:CC:11:22:33",
+                "RT-AC66U",
+                None,
+                None,
+            ),
+            # Blank label and LAN MAC fall back to the WAN hardware address
+            (
+                {
+                    ARNvramType.MAC: "",
+                    ARNvramType.MAC_LAN: "",
+                    ARNvramType.MAC_WAN: "AA:BB:CC:11:22:44",
+                },
+                "AA:BB:CC:11:22:44",
+                None,
+                None,
+                None,
+            ),
             # All missing → all None
             ({}, None, None, None, None),
         ],
