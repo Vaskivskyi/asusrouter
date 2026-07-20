@@ -6,6 +6,7 @@ import json
 from unittest.mock import AsyncMock
 from urllib.parse import unquote_plus
 
+from asusrouter.modules.device.identity import ARDeviceIdentity
 from asusrouter.modules.endpoint import AREndpoint
 from asusrouter.modules.endpoint.hooks import ARHook
 from asusrouter.modules.speedtest.history import (
@@ -17,7 +18,19 @@ from asusrouter.modules.speedtest.history import (
     fetch_state,
     translate_state,
 )
+from asusrouter.modules.support.flag import ARSupportType
 from asusrouter.registry import ARCallableRegistry as ARCallReg
+
+
+def _identity(*, speedtest: bool = True) -> ARDeviceIdentity:
+    """Build an identity with the SpeedTest support flag set."""
+
+    identity = ARDeviceIdentity()
+    identity._support[ARSupportType.SPEEDTEST] = speedtest
+    return identity
+
+
+_IDENTITY = _identity()
 
 _HOOK = ARHook.OOKLA_SPEEDTEST_HISTORY.value
 _HISTORY = [
@@ -63,7 +76,9 @@ class TestGetState:
         """The history hook is read and returned raw."""
 
         callback = AsyncMock(return_value={_HOOK: _HISTORY})
-        result = await fetch_state(callback, ARSpeedTestHistorySourceUniversal)
+        result = await fetch_state(
+            callback, ARSpeedTestHistorySourceUniversal, identity=_IDENTITY
+        )
 
         assert result == _HISTORY
         call = callback.await_args.kwargs
@@ -73,9 +88,24 @@ class TestGetState:
         """A non-dict hook reply yields no data."""
 
         callback = AsyncMock(return_value=None)
-        result = await fetch_state(callback, ARSpeedTestHistorySourceUniversal)
+        result = await fetch_state(
+            callback, ARSpeedTestHistorySourceUniversal, identity=_IDENTITY
+        )
 
         assert result == {}
+
+    async def test_unsupported_skips_fetch(self) -> None:
+        """Without SpeedTest support nothing is fetched."""
+
+        callback = AsyncMock()
+        result = await fetch_state(
+            callback,
+            ARSpeedTestHistorySourceUniversal,
+            identity=_identity(speedtest=False),
+        )
+
+        assert result == {}
+        callback.assert_not_awaited()
 
 
 class TestTranslateState:

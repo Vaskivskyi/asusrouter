@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from asusrouter.modules.endpoint import AREndpoint
 from asusrouter.modules.endpoint.hooks import ARHook, hook_request, hook_value
@@ -13,9 +13,14 @@ from asusrouter.modules.speedtest.models import (
     build_run_request,
     servers_from_list,
 )
+from asusrouter.modules.support.flag import ARSupportType
+from asusrouter.modules.support.helpers import support_available
 from asusrouter.registry import ARCallableRegistry as ARCallReg
 from asusrouter.tools.poll import async_poll_until
 from asusrouter.tools.types import ARCallbackType
+
+if TYPE_CHECKING:
+    from asusrouter.modules.device.identity import ARDeviceIdentity
 
 # The router populates the server list asynchronously after the trigger,
 # so poll the hook until it returns a usable list
@@ -56,9 +61,15 @@ async def fetch_state(
     source: ARSpeedTestServersSource,
     *,
     refresh: bool = False,
+    identity: ARDeviceIdentity | None = None,
     **kwargs: Any,
 ) -> Any:
     """Fetch the speedtest server list; with `refresh`, ask for a fresh one."""
+
+    if identity is None or not support_available(
+        identity.support, ARSupportType.SPEEDTEST
+    ):
+        return {}
 
     if refresh:
         # Ask the router to rebuild the list, then wait for it to fill

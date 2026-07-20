@@ -8,6 +8,7 @@ from typing import Any
 
 from asusrouter.const import DEFAULT_IDENTITY_BRAND
 from asusrouter.modules.aimesh.topology import ARAiMeshTopology
+from asusrouter.modules.device.recovery import recover_support
 from asusrouter.modules.firmware import ARFirmware
 from asusrouter.modules.nvram import (
     ARNvramIndexSource,
@@ -79,13 +80,23 @@ def _translate_wifi(
     return _wifi_from_bands(data, support) or _wifi_from_nband(data)
 
 
+def _translate_mac(data: IdentityData) -> MacAddress | None:
+    """Pick the device MAC, falling back when the label MAC is blank."""
+
+    for key in (ARNvramType.MAC, ARNvramType.MAC_LAN, ARNvramType.MAC_WAN):
+        mac = MacAddress.from_value_safe(data.get(key))
+        if mac is not None:
+            return mac
+    return None
+
+
 def _translate_identity_base(
     data: IdentityData,
 ) -> tuple[MacAddress | None, str | None, str | None, str | None]:
     """Parse the base identity information from the raw payload."""
 
     return (
-        MacAddress.from_value_safe(data.get(ARNvramType.MAC)),
+        _translate_mac(data),
         raw_to_str(data.get(ARNvramType.MODEL)),
         raw_to_str(data.get(ARNvramType.MODEL_ORIGINAL)),
         raw_to_str(data.get(ARNvramType.SERIAL)),
@@ -230,5 +241,8 @@ class ARDeviceIdentity:
             identity._serial,
         ) = _translate_identity_base(data)
         identity._wifi = _translate_wifi(data, identity._support)
+
+        # Try to recover missing values indirectly
+        recover_support(identity)
 
         return identity

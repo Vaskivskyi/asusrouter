@@ -28,6 +28,8 @@ ARDeviceSourceUniversal: ARDeviceSource = ARDeviceSource()
 DEVICE_REQUEST: tuple[ARDataType | ARDataSource, ...] = (
     # Device information
     ARNvramType.MAC,
+    ARNvramType.MAC_LAN,
+    ARNvramType.MAC_WAN,
     ARNvramType.MODEL,
     ARNvramType.MODEL_ORIGINAL,
     ARNvramType.SECRET_CODE,
