@@ -7,7 +7,11 @@ from unittest.mock import patch
 
 import pytest
 
-from asusrouter.tools.readers.raw import is_true_in_dict, read_json_content
+from asusrouter.tools.readers.raw import (
+    is_redirect_page,
+    is_true_in_dict,
+    read_json_content,
+)
 
 
 @pytest.mark.parametrize(
@@ -146,3 +150,26 @@ def test_read_json_content_fail() -> None:
         "asusrouter.tools.readers.raw.json.loads", return_value="some value"
     ):
         assert read_json_content("invalid json") == {}
+
+
+@pytest.mark.parametrize(
+    ("content", "expected"),
+    [
+        # An old-firmware bounce page for an unavailable endpoint
+        (
+            '<HTML><HEAD><meta http-equiv="refresh" '
+            'content="0; url=cloud_sync.asp?flag="></HEAD></HTML>',
+            True,
+        ),
+        # Case and spacing variations still match
+        ("<meta HTTP-EQUIV = refresh content='0'>", True),
+        # Real payloads are not redirects
+        ('{"get_clientlist": {}}', False),
+        ("", False),
+        (None, False),
+    ],
+)
+def test_is_redirect_page(content: str | None, expected: bool) -> None:
+    """A meta-refresh HTML bounce is detected, real content is not."""
+
+    assert is_redirect_page(content) is expected

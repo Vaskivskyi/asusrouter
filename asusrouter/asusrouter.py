@@ -71,6 +71,7 @@ from asusrouter.tools.dump import (
     write_dump,
 )
 from asusrouter.tools.identifiers import Hostname
+from asusrouter.tools.readers import is_redirect_page
 from asusrouter.tools.security.log import register_log_config
 from asusrouter.tools.types import ARCallableType
 
@@ -334,6 +335,14 @@ class AsusRouter:
                     endpoint, payload=request, request_type=request_type
                 )
                 _LOGGER.debug("Response %s from %s", status, endpoint)
+                # Legacy can return a 200 with redirect instead of 404
+                if is_redirect_page(content):
+                    _LOGGER.debug(
+                        "Endpoint %s returned a redirect, marking unavailable",
+                        endpoint,
+                    )
+                    self._unavailable_endpoints.add(endpoint)
+                    return None
                 recorder = active_recorder()
                 if recorder is not None:
                     recorder.record(endpoint, request_type, request, content)
