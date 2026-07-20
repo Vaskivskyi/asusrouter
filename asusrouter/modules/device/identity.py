@@ -8,6 +8,7 @@ from typing import Any
 
 from asusrouter.const import DEFAULT_IDENTITY_BRAND
 from asusrouter.modules.aimesh.topology import ARAiMeshTopology
+from asusrouter.modules.device.recovery import recover_support
 from asusrouter.modules.firmware import ARFirmware
 from asusrouter.modules.nvram import (
     ARNvramIndexSource,
@@ -240,5 +241,8 @@ class ARDeviceIdentity:
             identity._serial,
         ) = _translate_identity_base(data)
         identity._wifi = _translate_wifi(data, identity._support)
+
+        # Try to recover missing values indirectly
+        recover_support(identity)
 
         return identity
