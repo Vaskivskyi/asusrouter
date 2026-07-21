@@ -70,6 +70,7 @@ from asusrouter.modules.support.wan import (
     translate_wan_limit,
 )
 from asusrouter.modules.support.wifi import (
+    translate_wifi_capabilities,
     translate_wifi_generation,
     translate_wifi_multiband,
     translate_wifi_units,
@@ -125,6 +126,7 @@ _TRANSLATION_TABLE: dict[ARSupportType, ARCallableType] = {
     ARSupportType.WAN: translate_wan,
     ARSupportType.WAN_CAPABILITIES: translate_wan_capabilities,
     ARSupportType.WAN_LIMIT: translate_wan_limit,
+    ARSupportType.WIFI_CAPABILITIES: translate_wifi_capabilities,
     ARSupportType.WIFI_GENERATION: translate_wifi_generation,
     ARSupportType.WIFI_MULTIBAND: translate_wifi_multiband,
     ARSupportType.WIFI_UNITS: translate_wifi_units,

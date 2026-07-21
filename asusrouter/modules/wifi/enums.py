@@ -90,6 +90,19 @@ class ARWiFiBandwidth(FromIntMixin, IntEnum):
     WIDTH_320 = 320
 
 
+class ARWiFiCapability(FromStrMixin, StrEnum):
+    """WiFi radio/driver capabilities advertised. Acts as a database."""
+
+    UNKNOWN = UNKNOWN_MEMBER_STR
+
+    MBO = "mbo"
+    MLO = "mlo"
+    MUMIMO = "mumimo"
+    OFDMA = "ofdma"
+    OFDMA_DL = "ofdma_dl"  # Downlink-only
+    SMART_CONNECT = "smart_connect"  # Smart connect generation
+
+
 class ARWiFiField(FromStrMixin, StrEnum):
     """Keys of the per-band WiFi radio data dict."""
 

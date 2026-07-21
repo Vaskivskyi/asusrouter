@@ -8,11 +8,16 @@ import pytest
 
 from asusrouter.modules.support.flag import ARSupportValue
 from asusrouter.modules.support.wifi import (
+    translate_wifi_capabilities,
     translate_wifi_generation,
     translate_wifi_multiband,
     translate_wifi_units,
 )
-from asusrouter.modules.wifi import ARWiFiGeneration, ARWiFiMultiBand
+from asusrouter.modules.wifi import (
+    ARWiFiCapability,
+    ARWiFiGeneration,
+    ARWiFiMultiBand,
+)
 
 
 @pytest.mark.parametrize(
@@ -60,6 +65,73 @@ def test_translate_wifi_multiband(
     """Test translate_wifi_multiband returns correct multiband type."""
 
     assert translate_wifi_multiband(data) == expected
+
+
+@pytest.mark.parametrize(
+    ("data", "expected"),
+    [
+        # SMART_CONNECT is always present; nothing else here
+        ({}, {ARWiFiCapability.SMART_CONNECT: 0}),
+        (
+            {ARSupportValue.WIFI_OFDMA.value: 1},
+            {ARWiFiCapability.OFDMA: True, ARWiFiCapability.SMART_CONNECT: 0},
+        ),
+        # DL-only OFDMA is its own bool capability
+        (
+            {ARSupportValue.WIFI_OFDMA_DL.value: 1},
+            {
+                ARWiFiCapability.OFDMA_DL: True,
+                ARWiFiCapability.SMART_CONNECT: 0,
+            },
+        ),
+        # Smart Connect v2
+        (
+            {ARSupportValue.WIFI_SMART_CONNECT_V2.value: 1},
+            {ARWiFiCapability.SMART_CONNECT: 2},
+        ),
+        # Smart Connect v1 from either flag
+        (
+            {ARSupportValue.WIFI_SMART_CONNECT.value: 1},
+            {ARWiFiCapability.SMART_CONNECT: 1},
+        ),
+        (
+            {ARSupportValue.WIFI_BANDSTEERING.value: 1},
+            {ARWiFiCapability.SMART_CONNECT: 1},
+        ),
+        # v2 wins over v1 flags
+        (
+            {
+                ARSupportValue.WIFI_SMART_CONNECT_V2.value: 1,
+                ARSupportValue.WIFI_SMART_CONNECT.value: 1,
+            },
+            {ARWiFiCapability.SMART_CONNECT: 2},
+        ),
+        (
+            {
+                ARSupportValue.WIFI_MBO.value: 1,
+                ARSupportValue.WIFI_MLO.value: 1,
+                ARSupportValue.WIFI_MUMIMO.value: 1,
+                ARSupportValue.WIFI_OFDMA.value: 1,
+                ARSupportValue.WIFI_OFDMA_DL.value: 1,
+                ARSupportValue.WIFI_SMART_CONNECT_V2.value: 1,
+            },
+            {
+                ARWiFiCapability.MBO: True,
+                ARWiFiCapability.MLO: True,
+                ARWiFiCapability.MUMIMO: True,
+                ARWiFiCapability.OFDMA: True,
+                ARWiFiCapability.OFDMA_DL: True,
+                ARWiFiCapability.SMART_CONNECT: 2,
+            },
+        ),
+    ],
+)
+def test_translate_wifi_capabilities(
+    data: dict[str, Any], expected: dict[ARWiFiCapability, bool | int]
+) -> None:
+    """Test translate_wifi_capabilities maps caps and Smart Connect level."""
+
+    assert translate_wifi_capabilities(data) == expected
 
 
 @pytest.mark.parametrize(

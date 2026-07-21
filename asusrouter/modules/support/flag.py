@@ -74,6 +74,7 @@ class ARSupportType(FromStrMixin, StrEnum):
     WAN_LIMIT = "wan_limit"
 
     # WiFi
+    WIFI_CAPABILITIES = "wifi_capabilities"
     WIFI_GENERATION = "wifi_generation"
     WIFI_MULTIBAND = "wifi_multiband"
     WIFI_UNITS = "wifi_units"
@@ -161,6 +162,16 @@ class ARSupportValue(FromStrMixin, StrEnum):
     WAN_DUALWAN = "dualwan"
     WAN_LIMIT = "wanMax"
     WAN_NOWAN = "nowan"
+
+    # WiFi capabilities
+    WIFI_BANDSTEERING = "bandstr"  # Smart Connect v1
+    WIFI_MBO = "mbo"
+    WIFI_MLO = "mlo"
+    WIFI_MUMIMO = "mumimo"
+    WIFI_OFDMA = "ofdma"
+    WIFI_OFDMA_DL = "DL_OFDMA"
+    WIFI_SMART_CONNECT = "smart_connect"
+    WIFI_SMART_CONNECT_V2 = "smart_connect_v2"
 
     # WiFi generation
     WIFI_5 = "11AC"
