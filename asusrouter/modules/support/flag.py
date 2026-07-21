@@ -34,6 +34,10 @@ class ARSupportType(FromStrMixin, StrEnum):
     # DSL
     DSL = "dsl"
 
+    # Firmware
+    FIRMWARE = "firmware"
+    FIRMWARE_CAPABILITIES = "firmware_capabilities"
+
     # FTP
     FTP = "ftp"
     FTP_CAPABILITIES = "ftp_capabilities"
@@ -101,6 +105,14 @@ class ARSupportValue(FromStrMixin, StrEnum):
 
     # DSL
     DSL = "dsl"
+
+    # Firmware
+    FIRMWARE_AUTO_UPGRADE = "afwupg"
+    FIRMWARE_BETA = "betaupg"
+    FIRMWARE_LIVE_UPDATE = "update"
+    FIRMWARE_NO_MANUAL = "noFwManual"  # negative manual upload
+    FIRMWARE_NO_UPDATE = "noupdate"  # negative update
+    FIRMWARE_REVERT = "revertfw"
 
     # FTP
     FTP = "noftp"

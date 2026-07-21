@@ -26,6 +26,10 @@ from asusrouter.modules.support.aura import (
 from asusrouter.modules.support.connection import translate_connection
 from asusrouter.modules.support.device import translate_device_mode
 from asusrouter.modules.support.dsl import translate_dsl
+from asusrouter.modules.support.firmware import (
+    translate_firmware,
+    translate_firmware_capabilities,
+)
 from asusrouter.modules.support.flag import ARSupportType
 from asusrouter.modules.support.ftp import (
     translate_ftp,
@@ -88,6 +92,8 @@ _TRANSLATION_TABLE: dict[ARSupportType, ARCallableType] = {
     ARSupportType.CONNECTIONS: translate_connection,
     ARSupportType.DEVICE_MODE: translate_device_mode,
     ARSupportType.DSL: translate_dsl,
+    ARSupportType.FIRMWARE: translate_firmware,
+    ARSupportType.FIRMWARE_CAPABILITIES: translate_firmware_capabilities,
     ARSupportType.FTP: translate_ftp,
     ARSupportType.FTP_CAPABILITIES: translate_ftp_capabilities,
     ARSupportType.LAN_CAPABILITIES: translate_lan_capabilities,
