@@ -12,6 +12,7 @@ from asusrouter.modules.network.enums import (
     ARNetworkField,
     ARNetworkSchedule,
     ARNetworkType,
+    ARSDNCapability,
 )
 from asusrouter.modules.network.handle import ARNetworkHandle
 from asusrouter.modules.network.source import (
@@ -30,6 +31,7 @@ __all__ = [
     "ARNetworkSource",
     "ARNetworkSourceUniversal",
     "ARNetworkType",
+    "ARSDNCapability",
     "find_handle_by_ssid",
     "fetch_state",
     "run_action",

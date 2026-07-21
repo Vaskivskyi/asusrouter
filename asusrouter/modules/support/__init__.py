@@ -43,11 +43,8 @@ from asusrouter.modules.support.parental_control import (
 )
 from asusrouter.modules.support.platform import translate_platform
 from asusrouter.modules.support.sdn import (
-    translate_sdn_awv,
-    translate_sdn_mainfh,
-    translate_sdn_max_rules,
-    translate_sdn_mwl,
-    translate_sdn_priority,
+    translate_sdn,
+    translate_sdn_capabilities,
 )
 from asusrouter.modules.support.speedtest import (
     translate_speedtest,
@@ -99,11 +96,8 @@ _TRANSLATION_TABLE: dict[ARSupportType, ARCallableType] = {
         translate_parental_control_capabilities
     ),
     ARSupportType.PLATFORM: translate_platform,
-    ARSupportType.SDN_AWV: translate_sdn_awv,
-    ARSupportType.SDN_MAINFH: translate_sdn_mainfh,
-    ARSupportType.SDN_MAX_RULES: translate_sdn_max_rules,
-    ARSupportType.SDN_MWL: translate_sdn_mwl,
-    ARSupportType.SDN_PRIORITY: translate_sdn_priority,
+    ARSupportType.SDN: translate_sdn,
+    ARSupportType.SDN_CAPABILITIES: translate_sdn_capabilities,
     ARSupportType.SPEEDTEST: translate_speedtest,
     ARSupportType.SPEEDTEST_CAPABILITIES: translate_speedtest_capabilities,
     ARSupportType.USB: translate_usb,

@@ -242,8 +242,8 @@ def test_support_available_in(
     [
         # bool value
         ({ARSupportType.AI: True}, ARSupportType.AI, True),
-        # int value
-        ({ARSupportType.SDN_MAX_RULES: 2}, ARSupportType.SDN_MAX_RULES, 2),
+        # int value (support_value returns whatever is stored)
+        ({ARSupportType.SPEEDTEST: 2}, ARSupportType.SPEEDTEST, 2),
         # list value
         (
             {ARSupportType.CONNECTIONS: [ARConnection.HTTPS]},

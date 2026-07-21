@@ -49,11 +49,8 @@ class ARSupportType(FromStrMixin, StrEnum):
     PLATFORM = "platform"
 
     # SDN
-    SDN_AWV = "sdn_awv"
-    SDN_MAINFH = "sdn_mainfh"
-    SDN_MAX_RULES = "sdn_max_rules"
-    SDN_MWL = "sdn_mwl"
-    SDN_PRIORITY = "sdn_priority"
+    SDN = "sdn"
+    SDN_CAPABILITIES = "sdn_capabilities"
 
     # SpeedTest
     SPEEDTEST = "speedtest"
@@ -132,6 +129,7 @@ class ARSupportValue(FromStrMixin, StrEnum):
     PLATFORM_QUALCOMM = "qcawifi"
 
     # SDN
+    SDN = "mtlancfg"
     SDN_AWV = "AWV_SDN"
     SDN_MAINFH = "sdn_mainfh"
     SDN_MAX_RULES = "MaxRule_SDN"
