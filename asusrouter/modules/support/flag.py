@@ -30,6 +30,9 @@ class ARSupportType(FromStrMixin, StrEnum):
     # Connections
     CONNECTIONS = "connections"
 
+    # Device mode
+    DEVICE_MODE = "device_mode"
+
     # DSL
     DSL = "dsl"
 
@@ -117,7 +120,11 @@ class ARSupportValue(FromStrMixin, StrEnum):
     LAN_AGGREGATION = "lacp"
 
     # Device mode
-    MODE_REPEATER = "repeater"  # TODO: use it
+    MODE_MEDIA_BRIDGE = "psta"
+    MODE_MEDIA_BRIDGE_PROXYSTA = "proxysta"  # newer version
+    MODE_NO_ACCESS_POINT = "noAP"  # negative AP
+    MODE_NO_ROUTER = "noRouter"  # negative router
+    MODE_REPEATER = "repeater"
 
     # Parental control
     PARENTAL_CONTROL_MAX_ENTRIES = "MaxRule_PC_DAYTIME"

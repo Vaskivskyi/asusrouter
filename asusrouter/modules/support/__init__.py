@@ -26,6 +26,7 @@ from asusrouter.modules.support.aura import (
     translate_aura_zone,
 )
 from asusrouter.modules.support.connection import translate_connection
+from asusrouter.modules.support.device import translate_device_mode
 from asusrouter.modules.support.dsl import translate_dsl
 from asusrouter.modules.support.flag import ARSupportType
 from asusrouter.modules.support.ftp import (
@@ -97,6 +98,7 @@ _TRANSLATION_TABLE: dict[ARSupportType, ARCallableType] = {
     ARSupportType.AURA_NIGHT_MODE: translate_aura_night_mode,
     ARSupportType.AURA_ZONE: translate_aura_zone,
     ARSupportType.CONNECTIONS: translate_connection,
+    ARSupportType.DEVICE_MODE: translate_device_mode,
     ARSupportType.DSL: translate_dsl,
     ARSupportType.FTP: translate_ftp,
     ARSupportType.FTP_CAPABILITIES: translate_ftp_capabilities,

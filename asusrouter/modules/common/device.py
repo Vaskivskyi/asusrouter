@@ -8,6 +8,18 @@ from asusrouter.const import UNKNOWN_MEMBER
 from asusrouter.tools.enum import FromIntMixin
 
 
+class AROperationMode(FromIntMixin, IntEnum):
+    """Device operation mode."""
+
+    UNKNOWN = UNKNOWN_MEMBER
+
+    ROUTER = 1
+    REPEATER = 2
+    ACCESS_POINT = 3
+    MEDIA_BRIDGE = 4
+    AIMESH_NODE = 5
+
+
 class ARDeviceType(FromIntMixin, IntEnum):
     """A device category, by its Asus client-type code."""
 
