@@ -60,6 +60,10 @@ from asusrouter.modules.support.usb import (
     translate_usb_ports,
     translate_usb_wan,
 )
+from asusrouter.modules.support.vpn import (
+    translate_vpn,
+    translate_vpn_capabilities,
+)
 from asusrouter.modules.support.wan import (
     translate_wan,
     translate_wan_capabilities,
@@ -116,6 +120,8 @@ _TRANSLATION_TABLE: dict[ARSupportType, ARCallableType] = {
     ARSupportType.USB_GENERATION: translate_usb_generation,
     ARSupportType.USB_PORTS: translate_usb_ports,
     ARSupportType.USB_WAN: translate_usb_wan,
+    ARSupportType.VPN: translate_vpn,
+    ARSupportType.VPN_CAPABILITIES: translate_vpn_capabilities,
     ARSupportType.WAN: translate_wan,
     ARSupportType.WAN_CAPABILITIES: translate_wan_capabilities,
     ARSupportType.WAN_LIMIT: translate_wan_limit,

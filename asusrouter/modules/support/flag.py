@@ -64,6 +64,10 @@ class ARSupportType(FromStrMixin, StrEnum):
     USB_PORTS = "usb_ports"
     USB_WAN = "usb_wan"
 
+    # VPN
+    VPN = "vpn"
+    VPN_CAPABILITIES = "vpn_capabilities"
+
     # WAN
     WAN = "wan"
     WAN_CAPABILITIES = "wan_capabilities"
@@ -142,6 +146,15 @@ class ARSupportValue(FromStrMixin, StrEnum):
     USB_3 = "usb3"
     USB_PORTS = "usbPortMax"
     USB_WAN = "usb_bk"
+
+    # VPN
+    VPN_CLIENT = "vpnc"
+    VPN_FUSION = "vpn_fusion"
+    VPN_FUSION_MAX_CONNECTIONS = "MaxRule_VPN_FUSION_Conn"  # concurrent active
+    VPN_IPSEC = "ipsec_srv"
+    VPN_OPENVPN = "openvpnd"
+    VPN_PPTP = "pptpd"
+    VPN_WIREGUARD = "wireguard"
 
     # WAN capabilities
     WAN_AGGREGATION = "wanbonding"
