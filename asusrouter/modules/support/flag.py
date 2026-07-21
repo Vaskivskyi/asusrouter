@@ -76,10 +76,8 @@ class ARSupportType(FromStrMixin, StrEnum):
     WAN_LIMIT = "wan_limit"
 
     # WiFi
+    WIFI = "wifi"
     WIFI_CAPABILITIES = "wifi_capabilities"
-    WIFI_GENERATION = "wifi_generation"
-    WIFI_MULTIBAND = "wifi_multiband"
-    WIFI_UNITS = "wifi_units"
 
 
 class ARSupportValue(FromStrMixin, StrEnum):

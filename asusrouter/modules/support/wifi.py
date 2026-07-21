@@ -23,7 +23,7 @@ _CAPABILITY_FLAGS = {
 }
 
 # First match wins
-translate_wifi_generation = make_enum_translator(
+_generation = make_enum_translator(
     {
         ARSupportValue.WIFI_7.value: ARWiFiGeneration.WIFI_7,
         ARSupportValue.WIFI_6.value: ARWiFiGeneration.WIFI_6,
@@ -32,13 +32,23 @@ translate_wifi_generation = make_enum_translator(
     ARWiFiGeneration.UNKNOWN,
 )
 # First match wins
-translate_wifi_multiband = make_enum_translator(
+_multiband = make_enum_translator(
     {
         ARSupportValue.WIFI_BANDS_QUAD.value: ARWiFiMultiBand.QUADBAND,
         ARSupportValue.WIFI_BANDS_TRI.value: ARWiFiMultiBand.TRIBAND,
         ARSupportValue.WIFI_BANDS_DUAL.value: ARWiFiMultiBand.DUALBAND,
     },
     ARWiFiMultiBand.UNKNOWN,
+)
+
+_UNITS = {
+    ARSupportValue.WIFI_UNIT_0.value: 0,
+    ARSupportValue.WIFI_UNIT_1.value: 1,
+    ARSupportValue.WIFI_UNIT_2.value: 2,
+}
+
+WiFiCapabilityValue = (
+    bool | int | ARWiFiGeneration | ARWiFiMultiBand | list[int]
 )
 
 
@@ -54,36 +64,47 @@ def _smart_connect(data: dict[str, Any]) -> int:
     return 0
 
 
+def _units(data: dict[str, Any]) -> list[int]:
+    """Wireless unit indices; empty when the device reports no WiFi."""
+
+    if is_true_in_dict(ARSupportValue.WIFI_UNIT_NONE.value, data):
+        return []
+    return [
+        idx for value, idx in _UNITS.items() if is_true_in_dict(value, data)
+    ]
+
+
 def translate_wifi_capabilities(
     data: dict[str, Any],
-) -> dict[ARWiFiCapability, bool | int]:
-    """Map advertised WiFi capabilities; SMART_CONNECT carries a level."""
+) -> dict[ARWiFiCapability, WiFiCapabilityValue]:
+    """Map advertised WiFi capabilities; each key present only when known."""
 
-    capabilities: dict[ARWiFiCapability, bool | int] = {
+    capabilities: dict[ARWiFiCapability, WiFiCapabilityValue] = {
         capability: True
         for key, capability in _CAPABILITY_FLAGS.items()
         if is_true_in_dict(key, data)
     }
-    capabilities[ARWiFiCapability.SMART_CONNECT] = _smart_connect(data)
+
+    generation = _generation(data)
+    if generation is not ARWiFiGeneration.UNKNOWN:
+        capabilities[ARWiFiCapability.GENERATION] = generation
+
+    multiband = _multiband(data)
+    if multiband is not ARWiFiMultiBand.UNKNOWN:
+        capabilities[ARWiFiCapability.MULTIBAND] = multiband
+
+    if smart_connect := _smart_connect(data):
+        capabilities[ARWiFiCapability.SMART_CONNECT] = smart_connect
+
+    if units := _units(data):
+        capabilities[ARWiFiCapability.UNITS] = units
+
     return capabilities
 
 
-def translate_wifi_units(data: dict[str, Any]) -> list[int]:
-    """Translate WiFi units data to a list of unit indices."""
+def translate_wifi(data: dict[str, Any]) -> bool:
+    """Whether the device has WiFi - false when it opts out or has none."""
 
-    if not isinstance(data, dict):
-        return []  # type: ignore[unreachable]
-
-    # Fast-path for no WiFi
     if is_true_in_dict(ARSupportValue.WIFI_UNIT_NONE.value, data):
-        return []
-
-    return [
-        unit_index
-        for unit_value, unit_index in {
-            ARSupportValue.WIFI_UNIT_0.value: 0,
-            ARSupportValue.WIFI_UNIT_1.value: 1,
-            ARSupportValue.WIFI_UNIT_2.value: 2,
-        }.items()
-        if is_true_in_dict(unit_value, data)
-    ]
+        return False
+    return bool(translate_wifi_capabilities(data))

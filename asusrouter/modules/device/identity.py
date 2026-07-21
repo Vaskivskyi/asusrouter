@@ -18,7 +18,11 @@ from asusrouter.modules.nvram import (
 )
 from asusrouter.modules.support import ARSupportSourceUniversal
 from asusrouter.modules.support.flag import ARSupportType
-from asusrouter.modules.wifi import AR_WIFI_MAX_UNITS, ARWiFiBand
+from asusrouter.modules.wifi import (
+    AR_WIFI_MAX_UNITS,
+    ARWiFiBand,
+    ARWiFiCapability,
+)
 from asusrouter.tools.converters.raw import raw_to_int, raw_to_str
 from asusrouter.tools.identifiers import MacAddress
 from asusrouter.tools.readers import split_rows
@@ -39,10 +43,11 @@ def _translate_firmware(data: IdentityData) -> ARFirmware:
 def _wifi_from_bands(
     data: IdentityData, support: dict[ARSupportType, Any]
 ) -> dict[ARWiFiBand, int]:
-    """Map bands via `WIRELESS_BANDS` nvram and the `WIFI_UNITS` support."""
+    """Map bands via `WIRELESS_BANDS` nvram and the WiFi units support."""
 
     bands = split_rows(data.get(ARNvramType.WIRELESS_BANDS))
-    bands_ids = support.get(ARSupportType.WIFI_UNITS, ())
+    capabilities = support.get(ARSupportType.WIFI_CAPABILITIES, {})
+    bands_ids = capabilities.get(ARWiFiCapability.UNITS, ())
 
     result: dict[ARWiFiBand, int] = {}
     for band, band_id in zip(bands, bands_ids):

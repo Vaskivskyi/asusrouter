@@ -25,7 +25,7 @@ from asusrouter.modules.nvram import (
 )
 from asusrouter.modules.support import ARSupportSourceUniversal
 from asusrouter.modules.support.flag import ARSupportType
-from asusrouter.modules.wifi import ARWiFiBand
+from asusrouter.modules.wifi import ARWiFiBand, ARWiFiCapability
 
 
 class TestTranslateFirmware:
@@ -81,12 +81,20 @@ class TestTranslateWifi:
         [
             (
                 {ARNvramType.WIRELESS_BANDS: "2g1&#605g1"},
-                {ARSupportType.WIFI_UNITS: (0, 1)},
+                {
+                    ARSupportType.WIFI_CAPABILITIES: {
+                        ARWiFiCapability.UNITS: (0, 1)
+                    }
+                },
                 {ARWiFiBand.BAND_2G1: 0, ARWiFiBand.BAND_5G1: 1},
             ),
             (
                 {ARNvramType.WIRELESS_BANDS: "2g1&#605g1&#605g2"},
-                {ARSupportType.WIFI_UNITS: (0, 1, 2)},
+                {
+                    ARSupportType.WIFI_CAPABILITIES: {
+                        ARWiFiCapability.UNITS: (0, 1, 2)
+                    }
+                },
                 {
                     ARWiFiBand.BAND_2G1: 0,
                     ARWiFiBand.BAND_5G1: 1,
@@ -96,7 +104,11 @@ class TestTranslateWifi:
             # Invalid band string raises ValueError in ARWiFiBand → skipped
             (
                 {ARNvramType.WIRELESS_BANDS: "2g1&#60invalid_band&#605g1"},
-                {ARSupportType.WIFI_UNITS: (0, 1, 2)},
+                {
+                    ARSupportType.WIFI_CAPABILITIES: {
+                        ARWiFiCapability.UNITS: (0, 1, 2)
+                    }
+                },
                 {ARWiFiBand.BAND_2G1: 0, ARWiFiBand.BAND_5G1: 2},
             ),
             # No WIFI_UNITS → zip stops immediately
@@ -108,26 +120,42 @@ class TestTranslateWifi:
             # Empty band string
             (
                 {ARNvramType.WIRELESS_BANDS: ""},
-                {ARSupportType.WIFI_UNITS: (0, 1)},
+                {
+                    ARSupportType.WIFI_CAPABILITIES: {
+                        ARWiFiCapability.UNITS: (0, 1)
+                    }
+                },
                 {},
             ),
             # Missing WIRELESS_BANDS key
             (
                 {},
-                {ARSupportType.WIFI_UNITS: (0, 1)},
+                {
+                    ARSupportType.WIFI_CAPABILITIES: {
+                        ARWiFiCapability.UNITS: (0, 1)
+                    }
+                },
                 {},
             ),
             # Fewer ids than bands → zip stops early
             (
                 {ARNvramType.WIRELESS_BANDS: "2g1&#605g1&#605g2"},
-                {ARSupportType.WIFI_UNITS: (0,)},
+                {
+                    ARSupportType.WIFI_CAPABILITIES: {
+                        ARWiFiCapability.UNITS: (0,)
+                    }
+                },
                 {ARWiFiBand.BAND_2G1: 0},
             ),
             # ARWiFiBand.UNKNOWN is a valid member ("unknown")
             # but must be skipped
             (
                 {ARNvramType.WIRELESS_BANDS: "2g1&#60unknown&#605g1"},
-                {ARSupportType.WIFI_UNITS: (0, 1, 2)},
+                {
+                    ARSupportType.WIFI_CAPABILITIES: {
+                        ARWiFiCapability.UNITS: (0, 1, 2)
+                    }
+                },
                 {ARWiFiBand.BAND_2G1: 0, ARWiFiBand.BAND_5G1: 2},
             ),
         ],
@@ -179,7 +207,10 @@ class TestTranslateWifi:
             ARNvramType.WIRELESS_BANDS: "2g1",
             **self._nband(**{"0": "1"}),
         }
-        assert _translate_wifi(data, {ARSupportType.WIFI_UNITS: (0,)}) == {
+        assert _translate_wifi(
+            data,
+            {ARSupportType.WIFI_CAPABILITIES: {ARWiFiCapability.UNITS: (0,)}},
+        ) == {
             ARWiFiBand.BAND_2G1: 0,
         }
 
@@ -358,7 +389,9 @@ class TestARDeviceIdentityBuild:
     def test_build_full_data(self) -> None:
         """Build populates all fields from a complete data dict."""
 
-        support_data = {ARSupportType.WIFI_UNITS: (0, 1)}
+        support_data = {
+            ARSupportType.WIFI_CAPABILITIES: {ARWiFiCapability.UNITS: (0, 1)}
+        }
         data: dict[Any, Any] = {
             ARSupportSourceUniversal: support_data,
             ARNvramType.FW_MAJOR: "3.0.0.4",
