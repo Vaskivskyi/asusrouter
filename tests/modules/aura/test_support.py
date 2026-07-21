@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
+from asusrouter.modules.aura import ARAuraCapability
 from asusrouter.modules.aura.support import (
     aura_supported,
     night_mode_supported,
@@ -14,10 +15,11 @@ from asusrouter.modules.support.flag import ARSupportType
 def _identity(*, aura: bool = True, night: bool = False) -> SimpleNamespace:
     """Build a fake identity exposing an Aura support map."""
 
+    capabilities = {ARAuraCapability.NIGHT_MODE: True} if night else {}
     return SimpleNamespace(
         support={
             ARSupportType.AURA: aura,
-            ARSupportType.AURA_NIGHT_MODE: night,
+            ARSupportType.AURA_CAPABILITIES: capabilities,
         }
     )
 

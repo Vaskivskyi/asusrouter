@@ -8,6 +8,15 @@ from asusrouter.const import UNKNOWN_MEMBER, UNKNOWN_MEMBER_STR
 from asusrouter.tools.enum import FromIntMixin, FromStrMixin
 
 
+class ARAuraCapability(FromStrMixin, StrEnum):
+    """Aura capabilities a device advertises. Acts as a database."""
+
+    UNKNOWN = UNKNOWN_MEMBER_STR
+
+    NIGHT_MODE = "night_mode"
+    ZONE = "zone"
+
+
 class ARAuraScheme(FromIntMixin, IntEnum):
     """Aura light effect scheme. Values are the device `ledg_scheme` codes."""
 
@@ -54,6 +63,7 @@ class ARAuraField(FromStrMixin, StrEnum):
 
 __all__ = [
     "AURA_COLOR_SCHEMES",
+    "ARAuraCapability",
     "ARAuraField",
     "ARAuraScheme",
 ]

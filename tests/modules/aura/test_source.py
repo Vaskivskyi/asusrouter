@@ -8,7 +8,11 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from asusrouter.modules.aura.enums import ARAuraField, ARAuraScheme
+from asusrouter.modules.aura.enums import (
+    ARAuraCapability,
+    ARAuraField,
+    ARAuraScheme,
+)
 from asusrouter.modules.aura.source import (
     ARAuraSourceUniversal,
     fetch_state,
@@ -31,10 +35,11 @@ def _rgb(code: int) -> ARNvramIndexSource:
 def _identity(*, aura: bool = True, night: bool = False) -> SimpleNamespace:
     """Build a fake identity exposing an Aura support map."""
 
+    capabilities = {ARAuraCapability.NIGHT_MODE: True} if night else {}
     return SimpleNamespace(
         support={
             ARSupportType.AURA: aura,
-            ARSupportType.AURA_NIGHT_MODE: night,
+            ARSupportType.AURA_CAPABILITIES: capabilities,
         }
     )
 

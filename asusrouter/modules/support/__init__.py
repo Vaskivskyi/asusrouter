@@ -21,8 +21,7 @@ from asusrouter.modules.support.aimesh import (
 )
 from asusrouter.modules.support.aura import (
     translate_aura,
-    translate_aura_night_mode,
-    translate_aura_zone,
+    translate_aura_capabilities,
 )
 from asusrouter.modules.support.connection import translate_connection
 from asusrouter.modules.support.device import translate_device_mode
@@ -89,8 +88,7 @@ _TRANSLATION_TABLE: dict[ARSupportType, ARCallableType] = {
     ARSupportType.AIMESH: translate_aimesh,
     ARSupportType.AIMESH_CAPABILITIES: translate_aimesh_capabilities,
     ARSupportType.AURA: translate_aura,
-    ARSupportType.AURA_NIGHT_MODE: translate_aura_night_mode,
-    ARSupportType.AURA_ZONE: translate_aura_zone,
+    ARSupportType.AURA_CAPABILITIES: translate_aura_capabilities,
     ARSupportType.CONNECTIONS: translate_connection,
     ARSupportType.DEVICE_MODE: translate_device_mode,
     ARSupportType.DSL: translate_dsl,

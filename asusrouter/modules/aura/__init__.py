@@ -3,7 +3,11 @@
 from __future__ import annotations
 
 from asusrouter.modules.aura.action import ARAuraAction
-from asusrouter.modules.aura.enums import ARAuraField, ARAuraScheme
+from asusrouter.modules.aura.enums import (
+    ARAuraCapability,
+    ARAuraField,
+    ARAuraScheme,
+)
 from asusrouter.modules.aura.source import (
     ARAuraSource,
     ARAuraSourceUniversal,
@@ -13,6 +17,7 @@ from asusrouter.modules.aura.source import (
 
 __all__ = [
     "ARAuraAction",
+    "ARAuraCapability",
     "ARAuraField",
     "ARAuraScheme",
     "ARAuraSource",

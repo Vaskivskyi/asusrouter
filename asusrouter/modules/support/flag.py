@@ -23,8 +23,7 @@ class ARSupportType(FromStrMixin, StrEnum):
 
     # Aura
     AURA = "aura"
-    AURA_NIGHT_MODE = "aura_night_mode"
-    AURA_ZONE = "aura_zone"
+    AURA_CAPABILITIES = "aura_capabilities"
 
     # Connections
     CONNECTIONS = "connections"
