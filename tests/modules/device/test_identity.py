@@ -9,10 +9,12 @@ import pytest
 
 from asusrouter.const import DEFAULT_IDENTITY_BRAND
 from asusrouter.modules.aimesh.topology import ARAiMeshTopology
+from asusrouter.modules.common.device import AROperationMode
 from asusrouter.modules.device.identity import (
     ARDeviceIdentity,
     _translate_firmware,
     _translate_identity_base,
+    _translate_operation_mode,
     _translate_wifi,
 )
 from asusrouter.modules.firmware import ARFirmware
@@ -492,3 +494,87 @@ class TestBoottime:
         identity.mark_reboot()
 
         assert identity.rebooted is True
+
+
+class TestTranslateOperationMode:
+    """Tests for _translate_operation_mode."""
+
+    @pytest.mark.parametrize(
+        ("data", "expected"),
+        [
+            # No data -> unknown
+            ({}, AROperationMode.UNKNOWN),
+            # Plain sw_mode values
+            ({ARNvramType.SW_MODE: 1}, AROperationMode.ROUTER),
+            ({ARNvramType.SW_MODE: 2}, AROperationMode.REPEATER),
+            ({ARNvramType.SW_MODE: 3}, AROperationMode.ACCESS_POINT),
+            ({ARNvramType.SW_MODE: 4}, AROperationMode.MEDIA_BRIDGE),
+            ({ARNvramType.SW_MODE: 99}, AROperationMode.UNKNOWN),
+            # Proxy-STA repurposes the hardware
+            (
+                {ARNvramType.SW_MODE: 2, ARNvramType.WLC_PROXY_STA: 1},
+                AROperationMode.MEDIA_BRIDGE,
+            ),
+            (
+                {ARNvramType.SW_MODE: 3, ARNvramType.WLC_PROXY_STA: 1},
+                AROperationMode.MEDIA_BRIDGE,
+            ),
+            (
+                {ARNvramType.SW_MODE: 3, ARNvramType.WLC_PROXY_STA: 3},
+                AROperationMode.MEDIA_BRIDGE,
+            ),
+            (
+                {ARNvramType.SW_MODE: 3, ARNvramType.WLC_PROXY_STA: 2},
+                AROperationMode.REPEATER,
+            ),
+            # psta=3 only applies to an AP base, not a repeater base
+            (
+                {ARNvramType.SW_MODE: 2, ARNvramType.WLC_PROXY_STA: 3},
+                AROperationMode.REPEATER,
+            ),
+            # String values from the device are handled
+            (
+                {ARNvramType.SW_MODE: "3", ARNvramType.WLC_PROXY_STA: "2"},
+                AROperationMode.REPEATER,
+            ),
+            # An AiMesh node runs as a repeater but re_mode overrides it
+            (
+                {
+                    ARNvramType.SW_MODE: 2,
+                    ARNvramType.RE_MODE: 1,
+                },
+                AROperationMode.AIMESH_NODE,
+            ),
+            (
+                {
+                    ARNvramType.SW_MODE: 3,
+                    ARNvramType.WLC_PROXY_STA: 2,
+                    ARNvramType.RE_MODE: 1,
+                },
+                AROperationMode.AIMESH_NODE,
+            ),
+            # re_mode 0 does not override
+            (
+                {ARNvramType.SW_MODE: 1, ARNvramType.RE_MODE: 0},
+                AROperationMode.ROUTER,
+            ),
+        ],
+    )
+    def test_translate(
+        self, data: dict[Any, Any], expected: AROperationMode
+    ) -> None:
+        """The raw sw_mode and wlc_psta resolve to the active mode."""
+
+        assert _translate_operation_mode(data) == expected
+
+    def test_default_is_unknown(self) -> None:
+        """A fresh identity reports an unknown operation mode."""
+
+        assert ARDeviceIdentity().operation_mode is AROperationMode.UNKNOWN
+
+    def test_build_sets_operation_mode(self) -> None:
+        """build() resolves the operation mode onto the identity."""
+
+        identity = ARDeviceIdentity.build({ARNvramType.SW_MODE: 3})
+
+        assert identity.operation_mode is AROperationMode.ACCESS_POINT

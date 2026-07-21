@@ -46,7 +46,9 @@ DEVICE_REQUEST: tuple[ARDataType | ARDataSource, ...] = (
     ARNvramType.FW_BUILD,
     ARNvramType.FW_SWPJ,
     # Software information
+    ARNvramType.RE_MODE,
     ARNvramType.SW_MODE,
+    ARNvramType.WLC_PROXY_STA,
     ARSupportSourceUniversal,
 )
 

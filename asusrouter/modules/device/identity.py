@@ -8,6 +8,7 @@ from typing import Any
 
 from asusrouter.const import DEFAULT_IDENTITY_BRAND
 from asusrouter.modules.aimesh.topology import ARAiMeshTopology
+from asusrouter.modules.common.device import AROperationMode
 from asusrouter.modules.device.recovery import recover_support
 from asusrouter.modules.firmware import ARFirmware
 from asusrouter.modules.nvram import (
@@ -18,7 +19,7 @@ from asusrouter.modules.nvram import (
 from asusrouter.modules.support import ARSupportSourceUniversal
 from asusrouter.modules.support.flag import ARSupportType
 from asusrouter.modules.wifi import AR_WIFI_MAX_UNITS, ARWiFiBand
-from asusrouter.tools.converters.raw import raw_to_str
+from asusrouter.tools.converters.raw import raw_to_int, raw_to_str
 from asusrouter.tools.identifiers import MacAddress
 from asusrouter.tools.readers import split_rows
 
@@ -90,6 +91,34 @@ def _translate_mac(data: IdentityData) -> MacAddress | None:
     return None
 
 
+# Proxy-STA (`wlc_psta`) states that refine an AP/repeater `sw_mode`
+_PSTA_BRIDGE = 1  # media bridge over a repeater or AP base
+_PSTA_REPEATER = 2  # repeater over an AP base
+_PSTA_BRIDGE_ON_AP = 3  # media bridge over an AP base
+
+_RE_MODE_AIMESH_NODE = 1  # `re_mode` value marking an AiMesh node
+
+
+def _translate_operation_mode(data: IdentityData) -> AROperationMode:
+    """Resolve the active operation mode from `sw_mode` and `wlc_psta`."""
+
+    if raw_to_int(data.get(ARNvramType.RE_MODE)) == _RE_MODE_AIMESH_NODE:
+        return AROperationMode.AIMESH_NODE
+
+    sw_mode = raw_to_int(data.get(ARNvramType.SW_MODE))
+    mode = AROperationMode.from_value(sw_mode)
+    psta = raw_to_int(data.get(ARNvramType.WLC_PROXY_STA))
+
+    repeater_or_ap = (AROperationMode.REPEATER, AROperationMode.ACCESS_POINT)
+    if (mode in repeater_or_ap and psta == _PSTA_BRIDGE) or (
+        mode is AROperationMode.ACCESS_POINT and psta == _PSTA_BRIDGE_ON_AP
+    ):
+        return AROperationMode.MEDIA_BRIDGE
+    if mode is AROperationMode.ACCESS_POINT and psta == _PSTA_REPEATER:
+        return AROperationMode.REPEATER
+    return mode
+
+
 def _translate_identity_base(
     data: IdentityData,
 ) -> tuple[MacAddress | None, str | None, str | None, str | None]:
@@ -114,6 +143,7 @@ class ARDeviceIdentity:
         self._mac: MacAddress | None = None
         self._model: str | None = None
         self._model_original: str | None = None
+        self._operation_mode: AROperationMode = AROperationMode.UNKNOWN
         self._serial: str | None = None
         self._support: dict[ARSupportType, Any] = {}
         self._wifi: dict[ARWiFiBand, int] = {}
@@ -156,6 +186,12 @@ class ARDeviceIdentity:
         """Get the original model."""
 
         return self._model_original
+
+    @property
+    def operation_mode(self) -> AROperationMode:
+        """Get the active operation mode."""
+
+        return self._operation_mode
 
     @property
     def serial(self) -> str | None:
@@ -240,6 +276,7 @@ class ARDeviceIdentity:
             identity._model_original,
             identity._serial,
         ) = _translate_identity_base(data)
+        identity._operation_mode = _translate_operation_mode(data)
         identity._wifi = _translate_wifi(data, identity._support)
 
         # Try to recover missing values indirectly
