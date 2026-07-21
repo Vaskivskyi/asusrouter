@@ -20,7 +20,6 @@ class ARSupportType(FromStrMixin, StrEnum):
     # AiMesh
     AIMESH = "aimesh"
     AIMESH_CAPABILITIES = "aimesh_capabilities"
-    AIMESH_GENERATION = "aimesh_generation"
 
     # Aura
     AURA = "aura"
