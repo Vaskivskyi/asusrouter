@@ -25,6 +25,7 @@ class ARWANCapability(FromStrMixin, StrEnum):
 
     AGGREGATION = "aggregation"
     DUALWAN = "dualwan"
+    LIMIT = "limit"
 
 
 __all__ = [

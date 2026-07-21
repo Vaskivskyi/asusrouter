@@ -67,7 +67,6 @@ from asusrouter.modules.support.vpn import (
 from asusrouter.modules.support.wan import (
     translate_wan,
     translate_wan_capabilities,
-    translate_wan_limit,
 )
 from asusrouter.modules.support.wifi import (
     translate_wifi,
@@ -123,7 +122,6 @@ _TRANSLATION_TABLE: dict[ARSupportType, ARCallableType] = {
     ARSupportType.VPN_CAPABILITIES: translate_vpn_capabilities,
     ARSupportType.WAN: translate_wan,
     ARSupportType.WAN_CAPABILITIES: translate_wan_capabilities,
-    ARSupportType.WAN_LIMIT: translate_wan_limit,
     ARSupportType.WIFI: translate_wifi,
     ARSupportType.WIFI_CAPABILITIES: translate_wifi_capabilities,
 }

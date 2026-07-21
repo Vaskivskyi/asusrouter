@@ -73,7 +73,6 @@ class ARSupportType(FromStrMixin, StrEnum):
     # WAN
     WAN = "wan"
     WAN_CAPABILITIES = "wan_capabilities"
-    WAN_LIMIT = "wan_limit"
 
     # WiFi
     WIFI = "wifi"

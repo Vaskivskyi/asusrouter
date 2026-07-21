@@ -229,7 +229,7 @@ def test_support_available_in(
         # bool value
         ({ARSupportType.AI: True}, ARSupportType.AI, True),
         # int value
-        ({ARSupportType.WAN_LIMIT: 2}, ARSupportType.WAN_LIMIT, 2),
+        ({ARSupportType.SDN_MAX_RULES: 2}, ARSupportType.SDN_MAX_RULES, 2),
         # list value
         (
             {ARSupportType.CONNECTIONS: [ARConnection.HTTPS]},
