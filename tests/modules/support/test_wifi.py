@@ -113,6 +113,7 @@ def test_translate_wifi_multiband(
                 ARSupportValue.WIFI_MUMIMO.value: 1,
                 ARSupportValue.WIFI_OFDMA.value: 1,
                 ARSupportValue.WIFI_OFDMA_DL.value: 1,
+                ARSupportValue.WIFI_POWER_CONTROL.value: 1,
                 ARSupportValue.WIFI_SMART_CONNECT_V2.value: 1,
             },
             {
@@ -121,6 +122,7 @@ def test_translate_wifi_multiband(
                 ARWiFiCapability.MUMIMO: True,
                 ARWiFiCapability.OFDMA: True,
                 ARWiFiCapability.OFDMA_DL: True,
+                ARWiFiCapability.POWER_CONTROL: True,
                 ARWiFiCapability.SMART_CONNECT: 2,
             },
         ),

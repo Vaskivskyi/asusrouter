@@ -19,6 +19,7 @@ _CAPABILITY_FLAGS = {
     ARSupportValue.WIFI_MUMIMO.value: ARWiFiCapability.MUMIMO,
     ARSupportValue.WIFI_OFDMA.value: ARWiFiCapability.OFDMA,
     ARSupportValue.WIFI_OFDMA_DL.value: ARWiFiCapability.OFDMA_DL,
+    ARSupportValue.WIFI_POWER_CONTROL.value: ARWiFiCapability.POWER_CONTROL,
 }
 
 # First match wins

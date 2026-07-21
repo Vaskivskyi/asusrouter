@@ -100,6 +100,7 @@ class ARWiFiCapability(FromStrMixin, StrEnum):
     MUMIMO = "mumimo"
     OFDMA = "ofdma"
     OFDMA_DL = "ofdma_dl"  # Downlink-only
+    POWER_CONTROL = "power_control"  # Adjustable TX power
     SMART_CONNECT = "smart_connect"  # Smart connect generation
 
 

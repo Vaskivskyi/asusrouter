@@ -170,6 +170,7 @@ class ARSupportValue(FromStrMixin, StrEnum):
     WIFI_MUMIMO = "mumimo"
     WIFI_OFDMA = "ofdma"
     WIFI_OFDMA_DL = "DL_OFDMA"
+    WIFI_POWER_CONTROL = "pwrctrl"
     WIFI_SMART_CONNECT = "smart_connect"
     WIFI_SMART_CONNECT_V2 = "smart_connect_v2"
 
@@ -182,9 +183,6 @@ class ARSupportValue(FromStrMixin, StrEnum):
     WIFI_BANDS_DUAL = "dualband"
     WIFI_BANDS_TRI = "triband"
     WIFI_BANDS_QUAD = "quadband"
-
-    # WiFi power
-    WIFI_POWER_CONTROL = "pwrctrl"  # TODO: use it
 
     # WiFi support by units
     # These parameter defines units at the selected id, but the
