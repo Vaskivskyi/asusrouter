@@ -40,6 +40,10 @@ def test_translate_wan(data: Any, expected: bool) -> None:
             {ARSupportValue.WAN_DUALWAN.value: 1},
             {ARWANCapability.DUALWAN: True},
         ),
+        (
+            {ARSupportValue.WAN_REAL_IP.value: 1},
+            {ARWANCapability.REAL_IP: True},
+        ),
         # LIMIT carries the port count, present only when reported
         (
             {ARSupportValue.WAN_LIMIT.value: 2},

@@ -163,6 +163,7 @@ class ARSupportValue(FromStrMixin, StrEnum):
     WAN_DUALWAN = "dualwan"
     WAN_LIMIT = "wanMax"
     WAN_NOWAN = "nowan"
+    WAN_REAL_IP = "realip"
 
     # WiFi capabilities
     WIFI_BANDSTEERING = "bandstr"  # Smart Connect v1

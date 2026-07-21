@@ -17,6 +17,7 @@ translate_wan = make_bool_translator(
 _CAPABILITY_FLAGS = {
     ARSupportValue.WAN_AGGREGATION.value: ARWANCapability.AGGREGATION,
     ARSupportValue.WAN_DUALWAN.value: ARWANCapability.DUALWAN,
+    ARSupportValue.WAN_REAL_IP.value: ARWANCapability.REAL_IP,
 }
 
 
