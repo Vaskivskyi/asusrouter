@@ -19,6 +19,17 @@ _kib_to_byte = DataUnitConverter.converter_factory(
 _UNAVAILABLE = "-1"
 
 
+class ARUSBCapability(FromStrMixin, StrEnum):
+    """USB capabilities a device advertises. Acts as a database."""
+
+    UNKNOWN = UNKNOWN_MEMBER_STR
+
+    GENERATION = "generation"
+    MODEM = "modem"
+    PORTS_COUNT = "ports_count"
+    WAN = "wan"
+
+
 class ARUSBGeneration(FromIntMixin, IntEnum):
     """USB generation types."""
 

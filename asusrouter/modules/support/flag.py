@@ -63,9 +63,8 @@ class ARSupportType(FromStrMixin, StrEnum):
     SPEEDTEST_CAPABILITIES = "speedtest_capabilities"
 
     # USB
-    USB_GENERATION = "usb_generation"
-    USB_PORTS = "usb_ports"
-    USB_WAN = "usb_wan"
+    USB = "usb"
+    USB_CAPABILITIES = "usb_capabilities"
 
     # VPN
     VPN = "vpn"
@@ -152,6 +151,8 @@ class ARSupportValue(FromStrMixin, StrEnum):
     USB = "usbX"
     USB_2 = "usbX2"
     USB_3 = "usb3"
+    USB_MODEM = "modem"
+    USB_NO_MODEM = "nomodem"  # negative modem
     USB_PORTS = "usbPortMax"
     USB_WAN = "usb_bk"
 

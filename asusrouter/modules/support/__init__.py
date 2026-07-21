@@ -57,9 +57,8 @@ from asusrouter.modules.support.speedtest import (
     translate_speedtest_capabilities,
 )
 from asusrouter.modules.support.usb import (
-    translate_usb_generation,
-    translate_usb_ports,
-    translate_usb_wan,
+    translate_usb,
+    translate_usb_capabilities,
 )
 from asusrouter.modules.support.vpn import (
     translate_vpn,
@@ -120,9 +119,8 @@ _TRANSLATION_TABLE: dict[ARSupportType, ARCallableType] = {
     ARSupportType.SDN_PRIORITY: translate_sdn_priority,
     ARSupportType.SPEEDTEST: translate_speedtest,
     ARSupportType.SPEEDTEST_CAPABILITIES: translate_speedtest_capabilities,
-    ARSupportType.USB_GENERATION: translate_usb_generation,
-    ARSupportType.USB_PORTS: translate_usb_ports,
-    ARSupportType.USB_WAN: translate_usb_wan,
+    ARSupportType.USB: translate_usb,
+    ARSupportType.USB_CAPABILITIES: translate_usb_capabilities,
     ARSupportType.VPN: translate_vpn,
     ARSupportType.VPN_CAPABILITIES: translate_vpn_capabilities,
     ARSupportType.WAN: translate_wan,
