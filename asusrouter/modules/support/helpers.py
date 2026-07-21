@@ -85,6 +85,15 @@ def support_available_in(
     return isinstance(value, list | dict) and item in value
 
 
+def support_capability(
+    support: dict[ARSupportType, Any], key: ARSupportType, capability: Any
+) -> Any:
+    """Return a capability's value from the capabilities dict under the key."""
+
+    value = support.get(key)
+    return value.get(capability) if isinstance(value, dict) else None
+
+
 def support_value(
     support: dict[ARSupportType, Any], key: ARSupportType
 ) -> Any:

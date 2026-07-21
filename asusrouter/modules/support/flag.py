@@ -42,9 +42,8 @@ class ARSupportType(FromStrMixin, StrEnum):
     LAN_CAPABILITIES = "lan_capabilities"
 
     # Parental control
-    PARENTAL_CONTROL_MAX_ENTRIES = "parental_control_max_entries"
-    PARENTAL_CONTROL_MAX_RULES = "parental_control_max_rules"
-    PARENTAL_CONTROL_SCHED_VERSION = "parental_control_sched_version"
+    PARENTAL_CONTROL = "parental_control"
+    PARENTAL_CONTROL_CAPABILITIES = "parental_control_capabilities"
 
     # Platform
     PLATFORM = "platform"
@@ -121,6 +120,7 @@ class ARSupportValue(FromStrMixin, StrEnum):
     MODE_REPEATER = "repeater"
 
     # Parental control
+    PARENTAL_CONTROL = "PARENTAL2"
     PARENTAL_CONTROL_MAX_ENTRIES = "MaxRule_PC_DAYTIME"
     PARENTAL_CONTROL_MAX_RULES = "MaxRule_parentctrl"
     PARENTAL_CONTROL_SCHED_VERSION = "PC_SCHED_V3"

@@ -8,6 +8,16 @@ from asusrouter.const import UNKNOWN_MEMBER, UNKNOWN_MEMBER_STR
 from asusrouter.tools.enum import FromIntMixin, FromStrMixin
 
 
+class ARParentalControlCapability(FromStrMixin, StrEnum):
+    """Parental control capabilities."""
+
+    UNKNOWN = UNKNOWN_MEMBER_STR
+
+    MAX_ENTRIES = "max_entries"
+    MAX_RULES = "max_rules"
+    SCHED_VERSION = "sched_version"
+
+
 class ARParentalControlCommand(FromStrMixin, StrEnum):
     """The mutation an action performs on parental control."""
 

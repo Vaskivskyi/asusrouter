@@ -11,6 +11,7 @@ import pytest
 
 from asusrouter.modules.endpoint import AREndpoint
 from asusrouter.modules.parental_control.enums import (
+    ARParentalControlCapability,
     ARParentalControlCommand,
     ARParentalControlField,
     ARParentalControlScheduleMode,
@@ -330,7 +331,11 @@ def _identity(max_rules: Any) -> Any:
     """Build a stand-in identity exposing a parental-control rule limit."""
 
     return SimpleNamespace(
-        support={ARSupportType.PARENTAL_CONTROL_MAX_RULES: max_rules}
+        support={
+            ARSupportType.PARENTAL_CONTROL_CAPABILITIES: {
+                ARParentalControlCapability.MAX_RULES: max_rules
+            }
+        }
     )
 
 
@@ -416,7 +421,11 @@ def _entries_identity(max_entries: Any) -> Any:
     """Build a stand-in identity exposing a total schedule-window limit."""
 
     return SimpleNamespace(
-        support={ARSupportType.PARENTAL_CONTROL_MAX_ENTRIES: max_entries}
+        support={
+            ARSupportType.PARENTAL_CONTROL_CAPABILITIES: {
+                ARParentalControlCapability.MAX_ENTRIES: max_entries
+            }
+        }
     )
 
 
@@ -494,7 +503,11 @@ def _sched_identity(version: Any) -> Any:
     """Build a stand-in identity exposing a `PC_SCHED_V3` version."""
 
     return SimpleNamespace(
-        support={ARSupportType.PARENTAL_CONTROL_SCHED_VERSION: version}
+        support={
+            ARSupportType.PARENTAL_CONTROL_CAPABILITIES: {
+                ARParentalControlCapability.SCHED_VERSION: version
+            }
+        }
     )
 
 
