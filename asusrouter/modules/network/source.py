@@ -16,8 +16,8 @@ from asusrouter.modules.network.enums import ARNetworkField, ARNetworkType
 from asusrouter.modules.nvram import ARNvramType
 from asusrouter.modules.source import ARDataSource
 from asusrouter.modules.support.flag import ARSupportType
+from asusrouter.modules.support.helpers import support_value
 from asusrouter.registry import ARCallableRegistry as ARCallReg
-from asusrouter.tools.converters.raw import raw_to_int
 from asusrouter.tools.types import ARCallbackType
 
 if TYPE_CHECKING:
@@ -33,12 +33,11 @@ ARNetworkSourceUniversal: ARNetworkSource = ARNetworkSource()
 
 
 def _sdn_supported(identity: ARDeviceIdentity | None) -> bool:
-    """Whether the device supports SDN (has a positive `MaxRule_SDN`)."""
+    """Whether the device supports SDN (the `mtlancfg` backend flag)."""
 
     if identity is None:
         return False
-    rules = raw_to_int(identity.support.get(ARSupportType.SDN_MAX_RULES))
-    return rules is not None and rules > 0
+    return support_value(identity.support, ARSupportType.SDN) is True
 
 
 async def fetch_state(

@@ -8,6 +8,20 @@ from asusrouter.const import UNKNOWN_MEMBER, UNKNOWN_MEMBER_STR
 from asusrouter.tools.enum import FromIntMixin, FromStrMixin
 
 
+class ARVpnCapability(FromStrMixin, StrEnum):
+    """VPN capabilities a device advertises. Acts as a database."""
+
+    UNKNOWN = UNKNOWN_MEMBER_STR
+
+    CLIENT = "client"  # Router as a VPN client
+    FUSION = "fusion"
+    FUSION_CONNECTIONS = "fusion_connections"  # Max concurrent active
+    IPSEC = "ipsec"
+    OPENVPN = "openvpn"
+    PPTP = "pptp"
+    WIREGUARD = "wireguard"
+
+
 class ARVpnProtocol(FromStrMixin, StrEnum):
     """VPN protocol. Acts as a database; not every member has a backend yet."""
 

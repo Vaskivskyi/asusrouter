@@ -38,7 +38,9 @@ class ARNvramType(ARDataType):
     HW_ID = "HwId"
 
     # Software information (configurable by user)
+    RE_MODE = "re_mode"  # 1 when running as an AiMesh node
     SW_MODE = "sw_mode"
+    WLC_PROXY_STA = "wlc_psta"  # proxy-STA state, refines the operation mode
 
     # Supported features (raw, fallback for on old firmware)
     RC_SUPPORT = "rc_support"

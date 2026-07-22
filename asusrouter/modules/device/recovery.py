@@ -5,7 +5,11 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from asusrouter.modules.support.flag import ARSupportType
-from asusrouter.modules.wifi import ARWiFiGeneration, ARWiFiMultiBand
+from asusrouter.modules.wifi import (
+    ARWiFiCapability,
+    ARWiFiGeneration,
+    ARWiFiMultiBand,
+)
 
 if TYPE_CHECKING:
     from asusrouter.modules.device.identity import ARDeviceIdentity
@@ -35,13 +39,21 @@ def recover_support(identity: ARDeviceIdentity) -> None:
     """Recover unknown values from the complimentary data."""
 
     support = identity.support
+    capabilities = support.get(ARSupportType.WIFI_CAPABILITIES, {})
 
-    if support.get(ARSupportType.WIFI_GENERATION) is ARWiFiGeneration.UNKNOWN:
+    recovered: dict[ARWiFiCapability, ARWiFiGeneration | ARWiFiMultiBand] = {}
+
+    if ARWiFiCapability.GENERATION not in capabilities:
         generation = _wifi_generation_from_model(identity.model)
         if generation is not ARWiFiGeneration.UNKNOWN:
-            support[ARSupportType.WIFI_GENERATION] = generation
+            recovered[ARWiFiCapability.GENERATION] = generation
 
-    if support.get(ARSupportType.WIFI_MULTIBAND) is ARWiFiMultiBand.UNKNOWN:
+    if ARWiFiCapability.MULTIBAND not in capabilities:
         multiband = ARWiFiMultiBand.from_value(len(identity.wifi))
         if multiband is not ARWiFiMultiBand.UNKNOWN:
-            support[ARSupportType.WIFI_MULTIBAND] = multiband
+            recovered[ARWiFiCapability.MULTIBAND] = multiband
+
+    if recovered:
+        support.setdefault(ARSupportType.WIFI_CAPABILITIES, {}).update(
+            recovered
+        )

@@ -10,6 +10,7 @@ from asusrouter.modules.action import ARAction
 from asusrouter.modules.common.command import ARService
 from asusrouter.modules.nvram import ARNvramType, async_expire_values
 from asusrouter.modules.parental_control.enums import (
+    ARParentalControlCapability,
     ARParentalControlCommand,
     ARParentalControlField,
     ARParentalControlScheduleMode,
@@ -27,7 +28,7 @@ from asusrouter.modules.service.action import (
     async_run_service,
 )
 from asusrouter.modules.support.flag import ARSupportType
-from asusrouter.modules.support.helpers import support_value
+from asusrouter.modules.support.helpers import support_capability
 from asusrouter.registry import ARCallableRegistry as ARCallReg
 from asusrouter.tools.converters.raw import raw_to_int
 from asusrouter.tools.identifiers import MacAddress
@@ -142,8 +143,10 @@ def _max_rules(identity: ARDeviceIdentity | None) -> int:
 
     if identity is not None:
         value = raw_to_int(
-            support_value(
-                identity.support, ARSupportType.PARENTAL_CONTROL_MAX_RULES
+            support_capability(
+                identity.support,
+                ARSupportType.PARENTAL_CONTROL_CAPABILITIES,
+                ARParentalControlCapability.MAX_RULES,
             )
         )
         if value:
@@ -156,8 +159,10 @@ def _max_entries(identity: ARDeviceIdentity | None) -> int:
 
     if identity is not None:
         value = raw_to_int(
-            support_value(
-                identity.support, ARSupportType.PARENTAL_CONTROL_MAX_ENTRIES
+            support_capability(
+                identity.support,
+                ARSupportType.PARENTAL_CONTROL_CAPABILITIES,
+                ARParentalControlCapability.MAX_ENTRIES,
             )
         )
         if value:
@@ -171,8 +176,10 @@ def _online_supported(identity: ARDeviceIdentity | None) -> bool:
     if identity is None:
         return False
     version = raw_to_int(
-        support_value(
-            identity.support, ARSupportType.PARENTAL_CONTROL_SCHED_VERSION
+        support_capability(
+            identity.support,
+            ARSupportType.PARENTAL_CONTROL_CAPABILITIES,
+            ARParentalControlCapability.SCHED_VERSION,
         )
     )
     return version is not None and version >= SCHEDULE_MODE_MIN_VERSION

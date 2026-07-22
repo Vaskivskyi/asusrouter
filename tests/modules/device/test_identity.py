@@ -9,10 +9,12 @@ import pytest
 
 from asusrouter.const import DEFAULT_IDENTITY_BRAND
 from asusrouter.modules.aimesh.topology import ARAiMeshTopology
+from asusrouter.modules.common.device import AROperationMode
 from asusrouter.modules.device.identity import (
     ARDeviceIdentity,
     _translate_firmware,
     _translate_identity_base,
+    _translate_operation_mode,
     _translate_wifi,
 )
 from asusrouter.modules.firmware import ARFirmware
@@ -23,7 +25,7 @@ from asusrouter.modules.nvram import (
 )
 from asusrouter.modules.support import ARSupportSourceUniversal
 from asusrouter.modules.support.flag import ARSupportType
-from asusrouter.modules.wifi import ARWiFiBand
+from asusrouter.modules.wifi import ARWiFiBand, ARWiFiCapability
 
 
 class TestTranslateFirmware:
@@ -79,12 +81,20 @@ class TestTranslateWifi:
         [
             (
                 {ARNvramType.WIRELESS_BANDS: "2g1&#605g1"},
-                {ARSupportType.WIFI_UNITS: (0, 1)},
+                {
+                    ARSupportType.WIFI_CAPABILITIES: {
+                        ARWiFiCapability.UNITS: (0, 1)
+                    }
+                },
                 {ARWiFiBand.BAND_2G1: 0, ARWiFiBand.BAND_5G1: 1},
             ),
             (
                 {ARNvramType.WIRELESS_BANDS: "2g1&#605g1&#605g2"},
-                {ARSupportType.WIFI_UNITS: (0, 1, 2)},
+                {
+                    ARSupportType.WIFI_CAPABILITIES: {
+                        ARWiFiCapability.UNITS: (0, 1, 2)
+                    }
+                },
                 {
                     ARWiFiBand.BAND_2G1: 0,
                     ARWiFiBand.BAND_5G1: 1,
@@ -94,7 +104,11 @@ class TestTranslateWifi:
             # Invalid band string raises ValueError in ARWiFiBand → skipped
             (
                 {ARNvramType.WIRELESS_BANDS: "2g1&#60invalid_band&#605g1"},
-                {ARSupportType.WIFI_UNITS: (0, 1, 2)},
+                {
+                    ARSupportType.WIFI_CAPABILITIES: {
+                        ARWiFiCapability.UNITS: (0, 1, 2)
+                    }
+                },
                 {ARWiFiBand.BAND_2G1: 0, ARWiFiBand.BAND_5G1: 2},
             ),
             # No WIFI_UNITS → zip stops immediately
@@ -106,26 +120,42 @@ class TestTranslateWifi:
             # Empty band string
             (
                 {ARNvramType.WIRELESS_BANDS: ""},
-                {ARSupportType.WIFI_UNITS: (0, 1)},
+                {
+                    ARSupportType.WIFI_CAPABILITIES: {
+                        ARWiFiCapability.UNITS: (0, 1)
+                    }
+                },
                 {},
             ),
             # Missing WIRELESS_BANDS key
             (
                 {},
-                {ARSupportType.WIFI_UNITS: (0, 1)},
+                {
+                    ARSupportType.WIFI_CAPABILITIES: {
+                        ARWiFiCapability.UNITS: (0, 1)
+                    }
+                },
                 {},
             ),
             # Fewer ids than bands → zip stops early
             (
                 {ARNvramType.WIRELESS_BANDS: "2g1&#605g1&#605g2"},
-                {ARSupportType.WIFI_UNITS: (0,)},
+                {
+                    ARSupportType.WIFI_CAPABILITIES: {
+                        ARWiFiCapability.UNITS: (0,)
+                    }
+                },
                 {ARWiFiBand.BAND_2G1: 0},
             ),
             # ARWiFiBand.UNKNOWN is a valid member ("unknown")
             # but must be skipped
             (
                 {ARNvramType.WIRELESS_BANDS: "2g1&#60unknown&#605g1"},
-                {ARSupportType.WIFI_UNITS: (0, 1, 2)},
+                {
+                    ARSupportType.WIFI_CAPABILITIES: {
+                        ARWiFiCapability.UNITS: (0, 1, 2)
+                    }
+                },
                 {ARWiFiBand.BAND_2G1: 0, ARWiFiBand.BAND_5G1: 2},
             ),
         ],
@@ -177,7 +207,10 @@ class TestTranslateWifi:
             ARNvramType.WIRELESS_BANDS: "2g1",
             **self._nband(**{"0": "1"}),
         }
-        assert _translate_wifi(data, {ARSupportType.WIFI_UNITS: (0,)}) == {
+        assert _translate_wifi(
+            data,
+            {ARSupportType.WIFI_CAPABILITIES: {ARWiFiCapability.UNITS: (0,)}},
+        ) == {
             ARWiFiBand.BAND_2G1: 0,
         }
 
@@ -356,7 +389,9 @@ class TestARDeviceIdentityBuild:
     def test_build_full_data(self) -> None:
         """Build populates all fields from a complete data dict."""
 
-        support_data = {ARSupportType.WIFI_UNITS: (0, 1)}
+        support_data = {
+            ARSupportType.WIFI_CAPABILITIES: {ARWiFiCapability.UNITS: (0, 1)}
+        }
         data: dict[Any, Any] = {
             ARSupportSourceUniversal: support_data,
             ARNvramType.FW_MAJOR: "3.0.0.4",
@@ -492,3 +527,87 @@ class TestBoottime:
         identity.mark_reboot()
 
         assert identity.rebooted is True
+
+
+class TestTranslateOperationMode:
+    """Tests for _translate_operation_mode."""
+
+    @pytest.mark.parametrize(
+        ("data", "expected"),
+        [
+            # No data -> unknown
+            ({}, AROperationMode.UNKNOWN),
+            # Plain sw_mode values
+            ({ARNvramType.SW_MODE: 1}, AROperationMode.ROUTER),
+            ({ARNvramType.SW_MODE: 2}, AROperationMode.REPEATER),
+            ({ARNvramType.SW_MODE: 3}, AROperationMode.ACCESS_POINT),
+            ({ARNvramType.SW_MODE: 4}, AROperationMode.MEDIA_BRIDGE),
+            ({ARNvramType.SW_MODE: 99}, AROperationMode.UNKNOWN),
+            # Proxy-STA repurposes the hardware
+            (
+                {ARNvramType.SW_MODE: 2, ARNvramType.WLC_PROXY_STA: 1},
+                AROperationMode.MEDIA_BRIDGE,
+            ),
+            (
+                {ARNvramType.SW_MODE: 3, ARNvramType.WLC_PROXY_STA: 1},
+                AROperationMode.MEDIA_BRIDGE,
+            ),
+            (
+                {ARNvramType.SW_MODE: 3, ARNvramType.WLC_PROXY_STA: 3},
+                AROperationMode.MEDIA_BRIDGE,
+            ),
+            (
+                {ARNvramType.SW_MODE: 3, ARNvramType.WLC_PROXY_STA: 2},
+                AROperationMode.REPEATER,
+            ),
+            # psta=3 only applies to an AP base, not a repeater base
+            (
+                {ARNvramType.SW_MODE: 2, ARNvramType.WLC_PROXY_STA: 3},
+                AROperationMode.REPEATER,
+            ),
+            # String values from the device are handled
+            (
+                {ARNvramType.SW_MODE: "3", ARNvramType.WLC_PROXY_STA: "2"},
+                AROperationMode.REPEATER,
+            ),
+            # An AiMesh node runs as a repeater but re_mode overrides it
+            (
+                {
+                    ARNvramType.SW_MODE: 2,
+                    ARNvramType.RE_MODE: 1,
+                },
+                AROperationMode.AIMESH_NODE,
+            ),
+            (
+                {
+                    ARNvramType.SW_MODE: 3,
+                    ARNvramType.WLC_PROXY_STA: 2,
+                    ARNvramType.RE_MODE: 1,
+                },
+                AROperationMode.AIMESH_NODE,
+            ),
+            # re_mode 0 does not override
+            (
+                {ARNvramType.SW_MODE: 1, ARNvramType.RE_MODE: 0},
+                AROperationMode.ROUTER,
+            ),
+        ],
+    )
+    def test_translate(
+        self, data: dict[Any, Any], expected: AROperationMode
+    ) -> None:
+        """The raw sw_mode and wlc_psta resolve to the active mode."""
+
+        assert _translate_operation_mode(data) == expected
+
+    def test_default_is_unknown(self) -> None:
+        """A fresh identity reports an unknown operation mode."""
+
+        assert ARDeviceIdentity().operation_mode is AROperationMode.UNKNOWN
+
+    def test_build_sets_operation_mode(self) -> None:
+        """build() resolves the operation mode onto the identity."""
+
+        identity = ARDeviceIdentity.build({ARNvramType.SW_MODE: 3})
+
+        assert identity.operation_mode is AROperationMode.ACCESS_POINT

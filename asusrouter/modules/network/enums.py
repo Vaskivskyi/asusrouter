@@ -71,3 +71,15 @@ class ARNetworkType(FromStrMixin, StrEnum):
     MAINBH = "MAINBH"
     MAINFH = "MAINFH"
     MLO = "MLO"
+
+
+class ARSDNCapability(FromStrMixin, StrEnum):
+    """SDN capabilities advertised."""
+
+    UNKNOWN = UNKNOWN_MEMBER_STR
+
+    AWV = "awv"
+    MAIN_FRONTHAUL = "main_fronthaul"
+    MAX_RULES = "max_rules"
+    MWL = "mwl"
+    PRIORITY = "priority"

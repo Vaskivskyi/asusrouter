@@ -8,6 +8,7 @@ from asusrouter.modules.parental_control.block_all import (
     ARBlockAllSourceUniversal,
 )
 from asusrouter.modules.parental_control.enums import (
+    ARParentalControlCapability,
     ARParentalControlCommand,
     ARParentalControlField,
     ARParentalControlScheduleMode,
@@ -50,6 +51,7 @@ __all__ = [
     "ARBlockAllSource",
     "ARBlockAllSourceUniversal",
     "ARParentalControlAction",
+    "ARParentalControlCapability",
     "ARParentalControlCommand",
     "ARParentalControlField",
     "ARParentalControlRule",

@@ -12,11 +12,13 @@ from asusrouter.modules.device.recovery import (
 from asusrouter.modules.support.flag import ARSupportType
 from asusrouter.modules.wifi import (
     ARWiFiBand,
+    ARWiFiCapability,
     ARWiFiGeneration,
     ARWiFiMultiBand,
 )
 
 _S = ARSupportType
+_C = ARWiFiCapability
 _G = ARWiFiGeneration
 _MB = ARWiFiMultiBand
 
@@ -55,10 +57,12 @@ def _identity(
     identity._wifi = {
         band: unit for unit, band in enumerate(list(ARWiFiBand)[1 : bands + 1])
     }
-    identity._support = {
-        _S.WIFI_GENERATION: generation,
-        _S.WIFI_MULTIBAND: multiband,
-    }
+    capabilities: dict[ARWiFiCapability, object] = {}
+    if generation is not _G.UNKNOWN:
+        capabilities[_C.GENERATION] = generation
+    if multiband is not _MB.UNKNOWN:
+        capabilities[_C.MULTIBAND] = multiband
+    identity._support = {_S.WIFI_CAPABILITIES: capabilities}
     return identity
 
 
@@ -72,8 +76,9 @@ class TestRecoverSupport:
 
         recover_support(identity)
 
-        assert identity.support[_S.WIFI_GENERATION] is _G.WIFI_5
-        assert identity.support[_S.WIFI_MULTIBAND] is _MB.DUALBAND
+        capabilities = identity.support[_S.WIFI_CAPABILITIES]
+        assert capabilities[_C.GENERATION] is _G.WIFI_5
+        assert capabilities[_C.MULTIBAND] is _MB.DUALBAND
 
     def test_keeps_fetched_values(self) -> None:
         """A real fetched value is never overwritten by recovery."""
@@ -87,8 +92,9 @@ class TestRecoverSupport:
 
         recover_support(identity)
 
-        assert identity.support[_S.WIFI_GENERATION] is _G.WIFI_7
-        assert identity.support[_S.WIFI_MULTIBAND] is _MB.TRIBAND
+        capabilities = identity.support[_S.WIFI_CAPABILITIES]
+        assert capabilities[_C.GENERATION] is _G.WIFI_7
+        assert capabilities[_C.MULTIBAND] is _MB.TRIBAND
 
     def test_unrecoverable_stays_unknown(self) -> None:
         """No model marker and no bands leaves both unknown."""
@@ -97,5 +103,6 @@ class TestRecoverSupport:
 
         recover_support(identity)
 
-        assert identity.support[_S.WIFI_GENERATION] is _G.UNKNOWN
-        assert identity.support[_S.WIFI_MULTIBAND] is _MB.UNKNOWN
+        capabilities = identity.support[_S.WIFI_CAPABILITIES]
+        assert _C.GENERATION not in capabilities
+        assert _C.MULTIBAND not in capabilities

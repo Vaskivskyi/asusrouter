@@ -20,18 +20,23 @@ class ARSupportType(FromStrMixin, StrEnum):
     # AiMesh
     AIMESH = "aimesh"
     AIMESH_CAPABILITIES = "aimesh_capabilities"
-    AIMESH_GENERATION = "aimesh_generation"
 
     # Aura
     AURA = "aura"
-    AURA_NIGHT_MODE = "aura_night_mode"
-    AURA_ZONE = "aura_zone"
+    AURA_CAPABILITIES = "aura_capabilities"
 
     # Connections
     CONNECTIONS = "connections"
 
+    # Device mode
+    DEVICE_MODE = "device_mode"
+
     # DSL
     DSL = "dsl"
+
+    # Firmware
+    FIRMWARE = "firmware"
+    FIRMWARE_CAPABILITIES = "firmware_capabilities"
 
     # FTP
     FTP = "ftp"
@@ -41,38 +46,35 @@ class ARSupportType(FromStrMixin, StrEnum):
     LAN_CAPABILITIES = "lan_capabilities"
 
     # Parental control
-    PARENTAL_CONTROL_MAX_ENTRIES = "parental_control_max_entries"
-    PARENTAL_CONTROL_MAX_RULES = "parental_control_max_rules"
-    PARENTAL_CONTROL_SCHED_VERSION = "parental_control_sched_version"
+    PARENTAL_CONTROL = "parental_control"
+    PARENTAL_CONTROL_CAPABILITIES = "parental_control_capabilities"
 
     # Platform
     PLATFORM = "platform"
 
     # SDN
-    SDN_AWV = "sdn_awv"
-    SDN_MAINFH = "sdn_mainfh"
-    SDN_MAX_RULES = "sdn_max_rules"
-    SDN_MWL = "sdn_mwl"
-    SDN_PRIORITY = "sdn_priority"
+    SDN = "sdn"
+    SDN_CAPABILITIES = "sdn_capabilities"
 
     # SpeedTest
     SPEEDTEST = "speedtest"
     SPEEDTEST_CAPABILITIES = "speedtest_capabilities"
 
     # USB
-    USB_GENERATION = "usb_generation"
-    USB_PORTS = "usb_ports"
-    USB_WAN = "usb_wan"
+    USB = "usb"
+    USB_CAPABILITIES = "usb_capabilities"
+
+    # VPN
+    VPN = "vpn"
+    VPN_CAPABILITIES = "vpn_capabilities"
 
     # WAN
     WAN = "wan"
     WAN_CAPABILITIES = "wan_capabilities"
-    WAN_LIMIT = "wan_limit"
 
     # WiFi
-    WIFI_GENERATION = "wifi_generation"
-    WIFI_MULTIBAND = "wifi_multiband"
-    WIFI_UNITS = "wifi_units"
+    WIFI = "wifi"
+    WIFI_CAPABILITIES = "wifi_capabilities"
 
 
 class ARSupportValue(FromStrMixin, StrEnum):
@@ -104,6 +106,14 @@ class ARSupportValue(FromStrMixin, StrEnum):
     # DSL
     DSL = "dsl"
 
+    # Firmware
+    FIRMWARE_AUTO_UPGRADE = "afwupg"
+    FIRMWARE_BETA = "betaupg"
+    FIRMWARE_LIVE_UPDATE = "update"
+    FIRMWARE_NO_MANUAL = "noFwManual"  # negative manual upload
+    FIRMWARE_NO_UPDATE = "noupdate"  # negative update
+    FIRMWARE_REVERT = "revertfw"
+
     # FTP
     FTP = "noftp"
     FTP_SSL = "ftp_ssl"
@@ -112,9 +122,14 @@ class ARSupportValue(FromStrMixin, StrEnum):
     LAN_AGGREGATION = "lacp"
 
     # Device mode
-    MODE_REPEATER = "repeater"  # TODO: use it
+    MODE_MEDIA_BRIDGE = "psta"
+    MODE_MEDIA_BRIDGE_PROXYSTA = "proxysta"  # newer version
+    MODE_NO_ACCESS_POINT = "noAP"  # negative AP
+    MODE_NO_ROUTER = "noRouter"  # negative router
+    MODE_REPEATER = "repeater"
 
     # Parental control
+    PARENTAL_CONTROL = "PARENTAL2"
     PARENTAL_CONTROL_MAX_ENTRIES = "MaxRule_PC_DAYTIME"
     PARENTAL_CONTROL_MAX_RULES = "MaxRule_parentctrl"
     PARENTAL_CONTROL_SCHED_VERSION = "PC_SCHED_V3"
@@ -126,6 +141,7 @@ class ARSupportValue(FromStrMixin, StrEnum):
     PLATFORM_QUALCOMM = "qcawifi"
 
     # SDN
+    SDN = "mtlancfg"
     SDN_AWV = "AWV_SDN"
     SDN_MAINFH = "sdn_mainfh"
     SDN_MAX_RULES = "MaxRule_SDN"
@@ -140,14 +156,37 @@ class ARSupportValue(FromStrMixin, StrEnum):
     USB = "usbX"
     USB_2 = "usbX2"
     USB_3 = "usb3"
+    USB_MODEM = "modem"
+    USB_NO_MODEM = "nomodem"  # negative modem
     USB_PORTS = "usbPortMax"
     USB_WAN = "usb_bk"
+
+    # VPN
+    VPN_CLIENT = "vpnc"
+    VPN_FUSION = "vpn_fusion"
+    VPN_FUSION_MAX_CONNECTIONS = "MaxRule_VPN_FUSION_Conn"  # concurrent active
+    VPN_IPSEC = "ipsec_srv"
+    VPN_OPENVPN = "openvpnd"
+    VPN_PPTP = "pptpd"
+    VPN_WIREGUARD = "wireguard"
 
     # WAN capabilities
     WAN_AGGREGATION = "wanbonding"
     WAN_DUALWAN = "dualwan"
     WAN_LIMIT = "wanMax"
     WAN_NOWAN = "nowan"
+    WAN_REAL_IP = "realip"
+
+    # WiFi capabilities
+    WIFI_BANDSTEERING = "bandstr"  # Smart Connect v1
+    WIFI_MBO = "mbo"
+    WIFI_MLO = "mlo"
+    WIFI_MUMIMO = "mumimo"
+    WIFI_OFDMA = "ofdma"
+    WIFI_OFDMA_DL = "DL_OFDMA"
+    WIFI_POWER_CONTROL = "pwrctrl"
+    WIFI_SMART_CONNECT = "smart_connect"
+    WIFI_SMART_CONNECT_V2 = "smart_connect_v2"
 
     # WiFi generation
     WIFI_5 = "11AC"
@@ -158,9 +197,6 @@ class ARSupportValue(FromStrMixin, StrEnum):
     WIFI_BANDS_DUAL = "dualband"
     WIFI_BANDS_TRI = "triband"
     WIFI_BANDS_QUAD = "quadband"
-
-    # WiFi power
-    WIFI_POWER_CONTROL = "pwrctrl"  # TODO: use it
 
     # WiFi support by units
     # These parameter defines units at the selected id, but the
