@@ -64,6 +64,10 @@ class MacAddress(ARSensitive):
                 raise ValueError(ERROR_MAC_BYTE)
             return bytes(value)
 
+        # A separated MAC is never an integer, fast path
+        if isinstance(value, str) and (":" in value or "-" in value):
+            return cls._from_str(value)
+
         # Integer-compatible
         vint = raw_to_int(value)
         if isinstance(vint, int):
@@ -73,12 +77,19 @@ class MacAddress(ARSensitive):
 
         # String-compatible
         if isinstance(value, str):
-            cleaned = MAC_CLEAN_RE.sub("", value)
-            if len(cleaned) != MAC_LENGTH_STR:
-                raise ValueError(ERROR_MAC_STR)
-            return bytes.fromhex(cleaned)
+            return cls._from_str(value)
 
         raise ValueError(f"{ERROR_MAC_UNSUPPORTED_TYPE}: {type(value)!r}")
+
+    @classmethod
+    def _from_str(cls, value: str) -> bytes:
+        """Convert a hex MAC string to its canonical bytes."""
+
+        cleaned = MAC_CLEAN_RE.sub("", value)
+        if len(cleaned) != MAC_LENGTH_STR:
+            raise ValueError(ERROR_MAC_STR)
+
+        return bytes.fromhex(cleaned)
 
     @classmethod
     def from_value(cls, value: Any) -> MacAddress:
