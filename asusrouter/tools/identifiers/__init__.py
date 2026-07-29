@@ -9,6 +9,7 @@ from asusrouter.tools.identifiers.password import Password
 from asusrouter.tools.identifiers.serial import Serial
 from asusrouter.tools.identifiers.ssid import Ssid
 from asusrouter.tools.identifiers.username import Username
+from asusrouter.tools.identifiers.wifi import WiFiInterface
 
 __all__ = [
     "Hostname",
@@ -19,4 +20,5 @@ __all__ = [
     "Serial",
     "Ssid",
     "Username",
+    "WiFiInterface",
 ]
