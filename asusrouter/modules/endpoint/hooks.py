@@ -21,6 +21,7 @@ class ARHook(FromStrMixin, StrEnum):
     LAN_HWADDR = "get_lan_hwaddr"
     LANGUAGE_SUPPORT_LIST = "language_support_list"
     MEMORY_USAGE = "memory_usage"
+    NVRAM_DUMP = "nvram_dump"
     NVRAM_GET = "nvram_get"
     UI_SUPPORT = "get_ui_support"
     UPTIME = "uptime"
@@ -73,14 +74,18 @@ class ARHook(FromStrMixin, StrEnum):
     WL_NBAND_INFO = "wl_nband_info"
 
 
+# A hook with its exact argument string
+ARHookCall = tuple[ARHook, str]
+
+
 class ARHookItem(Protocol):
     """An item that renders itself as a single appGet hook call."""
 
-    def as_hook(self) -> tuple[ARHook, str]:
+    def as_hook(self) -> ARHookCall:
         """Return the hook and its argument string."""
 
 
-def hook_request(*items: ARHook | tuple[ARHook, str] | ARHookItem) -> str:
+def hook_request(*items: ARHook | ARHookCall | ARHookItem) -> str:
     """Build an appGet `hook=` request string from one or more hooks."""
 
     parts: list[str] = []
