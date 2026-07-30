@@ -494,7 +494,10 @@ class TestAsyncRefreshDataState:
             extra_kw="x",
         )
         if translator:
-            translator.assert_called_once_with({"a": 1}, identity=ANY)
+            # The last result is offered so a translator can continue it
+            translator.assert_called_once_with(
+                {"a": 1}, identity=ANY, previous=None
+            )
         assert_state_updated(state, expected_value)
 
 

@@ -7,6 +7,7 @@ from typing import Any
 
 from asusrouter.const import (
     AR_CALL_FETCH_STATE,
+    AR_CALL_PROBE_STATE,
     AR_CALL_RUN_ACTION,
     AR_CALL_TRANSLATE_ACTION,
     AR_CALL_TRANSLATE_STATE,
@@ -49,6 +50,7 @@ class ARCallableRegistryBase:
         *,
         fetch_state: ARCallableType | None = None,
         translate_state: ARCallableType | None = None,
+        probe_state: ARCallableType | None = None,
         multi: bool = False,
     ) -> None:
         """Register a module's standard callables for `source_cls`."""
@@ -61,6 +63,8 @@ class ARCallableRegistryBase:
             )
             if func is not None
         }
+        if probe_state is not None:
+            callables[AR_CALL_PROBE_STATE] = probe_state
         self.register(source_cls, **callables)
 
     def register_action(
