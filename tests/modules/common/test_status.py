@@ -27,14 +27,16 @@ class TestARStatusCode:
         assert MODIFY_KEY == "modify"
 
     def test_success_value(self) -> None:
-        """SUCCESS maps to its string value."""
+        """SUCCESS and FAIL map to their string values."""
 
         assert ARStatusCode.SUCCESS.value == "success"
+        assert ARStatusCode.FAIL.value == "fail"
 
     @pytest.mark.parametrize(
         ("value", "expected"),
         [
             ("success", ARStatusCode.SUCCESS),
+            ("fail", ARStatusCode.FAIL),
             ("error", ARStatusCode.UNKNOWN),
             (None, ARStatusCode.UNKNOWN),
         ],
