@@ -19,4 +19,5 @@ class ARStatusCode(FromStrMixin, StrEnum):
 
     UNKNOWN = UNKNOWN_MEMBER_STR
 
+    FAIL = "fail"
     SUCCESS = "success"

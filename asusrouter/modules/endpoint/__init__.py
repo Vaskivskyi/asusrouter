@@ -38,6 +38,7 @@ class AREndpoint(FromStrMixin, StrEnum):
     FETCH_FIRMWARE_UPDATE = "detect_firmware.asp"
     FETCH_FIRMWARE_UPDATE_NOTE = "release_note0.asp"
     FETCH_FIRMWARE_UPDATE_NOTE_AIMESH = "release_note_amas.asp"
+    FETCH_LOG = "ajax_log_data.asp"
     FETCH_NETWORK = "netool.cgi"
     FETCH_ONBOARDING = "ajax_onboarding.asp"
     FETCH_PORT_STATUS = "get_port_status.cgi"

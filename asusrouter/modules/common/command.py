@@ -59,7 +59,12 @@ class ARService(FromStrMixin, StrEnum):
     UNKNOWN = UNKNOWN_MEMBER_STR
 
     # System
+    LOGGER_STOP = "stop_logger"  # syslogd
     REBOOT = "reboot"
+
+    # AiMesh
+    CFGSYNC_START = "start_cfgsync"  # config sync
+    STA_BINDING_UPDATE = "update_sta_binding"
 
     # Aura
     AURA_RESTART = "restart_ledg"
@@ -79,6 +84,7 @@ class ARService(FromStrMixin, StrEnum):
 
     # DNS
     DNS_RESTART = "restart_dnsmasq"  # dnsmasq
+    DNS_START = "start_dnsmasq"
     DNSFILTER_RESTART = "restart_dnsfilter"
 
     # Firewall
@@ -106,6 +112,7 @@ class ARService(FromStrMixin, StrEnum):
     OPENVPN_STOP = "stop_openvpnd"
 
     # Password
+    CHPASS = "chpass"  # change account password
     CHPASS_RESTART = "restart_chpass"  # account password daemon
 
     # QoS
@@ -115,10 +122,13 @@ class ARService(FromStrMixin, StrEnum):
     SDN_RESTART = "restart_sdn"
 
     # Storage
+    DISK_MONITOR_RESTART = "restart_diskmon"
     FTP_RESTART = "restart_ftpd"
     FTP_SAMBA_RESTART = "restart_ftpsamba"
     NAS_APPS_RESTART = "restart_nasapps"
     SAMBA_RESTART = "restart_samba"
+    SAMBA_START = "start_samba"
+    SAMBA_STOP = "stop_samba"
 
     # Time
     TIME_RESTART = "restart_time"
@@ -140,6 +150,8 @@ class ARService(FromStrMixin, StrEnum):
 
     # Web server
     WEBUI_RESTART = "restart_httpd"  # httpd
+    WEBUI_START = "start_httpd"
+    WEBUI_STOP = "stop_httpd"
 
     # WebDAV
     WEBDAV_RESTART = "restart_webdav"
@@ -149,6 +161,9 @@ class ARService(FromStrMixin, StrEnum):
     WIREGUARD_SERVER_RESTART = "restart_wgs"
 
     # Wireless
+    ACSD_RESTART = "restart_acsd"  # auto channel selection daemon
+    ACSD_STOP = "stop_acsd"
+    BSD_START = "start_bsd"  # band steering daemon
     WIRELESS_RESTART = "restart_wireless"
     WIRELESS_SURVEY_RESTART = "restart_wlcscan"
 
@@ -159,9 +174,7 @@ class ARService(FromStrMixin, StrEnum):
     # AIPROTECTION_STOP_FORCE = "stop_wrs_force"
     # CAPTIVE_PORTAL_RESTART = "restart_CP"  # needs uam_srv + adv_wl chain
     # DISK_FORMAT_START = "start_diskformat"
-    # DISK_MONITOR_RESTART = "restart_diskmon"
     # DISK_SCAN_START = "start_diskscan"
-    # LOGGER_STOP = "stop_logger"
     # OAM_RESTART = "restart_oam"
     # PRINTER_LPD_RESTART = "restart_lpd"
     # PRINTER_U2EC_RESTART = "restart_u2ec"
