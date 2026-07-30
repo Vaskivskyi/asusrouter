@@ -24,7 +24,7 @@ from asusrouter.modules.wifi import (
     ARWiFiCapability,
 )
 from asusrouter.tools.converters.raw import raw_to_int, raw_to_str
-from asusrouter.tools.identifiers import MacAddress
+from asusrouter.tools.identifiers import MacAddress, Username
 from asusrouter.tools.readers import split_rows
 
 IdentityData = Mapping[Any, Any]
@@ -151,6 +151,8 @@ class ARDeviceIdentity:
         self._operation_mode: AROperationMode = AROperationMode.UNKNOWN
         self._serial: str | None = None
         self._support: dict[ARSupportType, Any] = {}
+        # Login name used to reach the device - injected
+        self._username: Username | None = None
         self._wifi: dict[ARWiFiBand, int] = {}
         # Live AiMesh topology - the only mutable identity part, swapped
         # atomically as a whole snapshot by `update_aimesh`
@@ -227,6 +229,17 @@ class ARDeviceIdentity:
         """Get the live AiMesh topology."""
 
         return self._aimesh
+
+    @property
+    def username(self) -> Username | None:
+        """Get the login name used to reach the device."""
+
+        return self._username
+
+    def update_username(self, username: Username | None) -> None:
+        """Set the login name used to reach the device."""
+
+        self._username = username
 
     def update_aimesh(self, topology: ARAiMeshTopology) -> None:
         """Replace the AiMesh topology snapshot atomically."""
