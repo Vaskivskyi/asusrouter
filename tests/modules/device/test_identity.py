@@ -26,6 +26,7 @@ from asusrouter.modules.nvram import (
 from asusrouter.modules.support import ARSupportSourceUniversal
 from asusrouter.modules.support.flag import ARSupportType
 from asusrouter.modules.wifi import ARWiFiBand, ARWiFiCapability
+from asusrouter.tools.identifiers import Username
 
 
 class TestTranslateFirmware:
@@ -611,3 +612,29 @@ class TestTranslateOperationMode:
         identity = ARDeviceIdentity.build({ARNvramType.SW_MODE: 3})
 
         assert identity.operation_mode is AROperationMode.ACCESS_POINT
+
+
+class TestUsername:
+    """The login name injected into the identity after it is built."""
+
+    def test_absent_by_default(self) -> None:
+        """An identity built from device data knows no login name."""
+
+        assert ARDeviceIdentity().username is None
+
+    def test_updated(self) -> None:
+        """The name is injected the way the boot time is."""
+
+        identity = ARDeviceIdentity()
+        identity.update_username(Username("fakeadmin"))
+
+        assert identity.username == "fakeadmin"
+
+    def test_cleared(self) -> None:
+        """It can be taken away again."""
+
+        identity = ARDeviceIdentity()
+        identity.update_username(Username("fakeadmin"))
+        identity.update_username(None)
+
+        assert identity.username is None
