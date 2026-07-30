@@ -24,6 +24,7 @@ from asusrouter.config.connection import (
 from asusrouter.connection import Connection
 from asusrouter.const import (
     AR_CALL_FETCH_STATE,
+    AR_CALL_PROBE_STATE,
     AR_CALL_RUN_ACTION,
     AR_CALL_TRANSLATE_ACTION,
     AR_CALL_TRANSLATE_STATE,
@@ -35,7 +36,7 @@ from asusrouter.error import (
     AsusRouterAccessError,
     AsusRouterError,
 )
-from asusrouter.modules import load_all_sources
+from asusrouter.modules import load_all_probes, load_all_sources
 from asusrouter.modules.action import ARAction
 from asusrouter.modules.aimesh import ARAiMeshSourceUniversal
 from asusrouter.modules.aimesh.topology import ARAiMeshTopology
@@ -70,8 +71,16 @@ from asusrouter.tools.dump import (
     write_device_snapshot,
     write_dump,
 )
-from asusrouter.tools.identifiers import Hostname
+from asusrouter.tools.identifiers import Hostname, Username
+from asusrouter.tools.probe import (
+    DEFAULT_PROBE_PATH,
+    PROBE_SENSITIVE_WARNING,
+    ARProbeReport,
+    ARProbeSection,
+    write_probe,
+)
 from asusrouter.tools.readers import is_redirect_page
+from asusrouter.tools.security import ARSecurityLevel
 from asusrouter.tools.security.log import register_log_config
 from asusrouter.tools.types import ARCallableType
 
@@ -129,6 +138,8 @@ class AsusRouter:
         self._config = ARInstanceConfig(defaults=config)
         # Constrain shared log masking by this instance's log level
         register_log_config(self._config)
+
+        self._username = Username(username)
 
         self._cache_threshold = timedelta(seconds=DEFAULT_CACHE_TIME)
 
@@ -254,6 +265,8 @@ class AsusRouter:
             ARDeviceSourceUniversal, force=True
         )
         if result is not None:
+            # Inject username
+            self.description.update_username(self._username)
             # Seed the live AiMesh topology before any user request, so it
             # is available on the identity right after connecting
             await self.async_fetch_data(ARAiMeshSourceUniversal, force=True)
@@ -555,7 +568,10 @@ class AsusRouter:
             translate = state.translate_caller
             self._commit_data_state(
                 state,
-                translate(raw, identity=identity) if translate else raw,
+                # Allow continuous translation/read
+                translate(raw, identity=identity, previous=state.content)
+                if translate
+                else raw,
             )
         finally:
             # Wake waiters as soon as this fetch is done
@@ -803,6 +819,74 @@ class AsusRouter:
 
     # ---------------------------
     # <-- Data dump
+    # ---------------------------
+
+    # ---------------------------
+    # Device probe -->
+    # ---------------------------
+
+    def _warn_probe_once(self) -> None:
+        """Emit the redaction warning once per session."""
+
+        config = self._config
+        config.ensure_notification_flag(ARConfKey.NOTIFIED_PROBE)
+        if not config.get(ARConfKey.NOTIFIED_PROBE):
+            _LOGGER.warning(PROBE_SENSITIVE_WARNING)
+            config.set(ARConfKey.NOTIFIED_PROBE, True)
+
+    async def async_probe_data(
+        self,
+        source: ARDataSource | ARDataType,
+        *,
+        path: str | Path | None = DEFAULT_PROBE_PATH,
+        level: ARSecurityLevel = ARSecurityLevel.SANITIZED,
+        **kwargs: Any,
+    ) -> ARProbeReport | None:
+        """Probe a source and report what it produced."""
+
+        _LOGGER.debug("Triggered method async_probe_data: %s", source)
+
+        # Import the probes only when one is actually asked for
+        load_all_probes()
+
+        probe_caller = ARCallReg.get_callable(source, AR_CALL_PROBE_STATE)
+        if probe_caller is None:
+            _LOGGER.debug(
+                "No probe registered for source %s", type(source).__name__
+            )
+            return None
+
+        self._warn_probe_once()
+        await self._async_ensure_connected()
+
+        # A probe reads the device as it is now, never a cached state
+        kwargs["fetch_data_callback"] = partial(
+            self.async_fetch_data, force=True
+        )
+        kwargs["fetch_raw_callback"] = self.async_fetch
+        kwargs["run_action_callback"] = self.async_run_action
+
+        sections: list[ARProbeSection] = await probe_caller(
+            self.async_read,
+            source,
+            identity=self.description,
+            level=level,
+            **kwargs,
+        )
+
+        report = ARProbeReport(
+            source=type(source).__name__,
+            level=level,
+            sections=tuple(sections),
+        )
+
+        if path is not None:
+            write_probe(report, path=path, identity=self.description)
+
+        return report
+
+    # ---------------------------
+    # <-- Device probe
     # ---------------------------
 
     # ---------------------------

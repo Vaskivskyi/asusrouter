@@ -33,6 +33,8 @@ class ARConfigKey(ARConfigKeyBase):
     BOOTTIME = "boottime"
     # Data dump sensitive-data warning shown once per session
     NOTIFIED_DUMP = "notified_dump"
+    # Probe report redaction warning shown once per session
+    NOTIFIED_PROBE = "notified_probe"
     # Security level applied to logged data
     SECURITY_LEVEL_LOG = "security_level_log"
     # Security level applied to data exposed to consumers
@@ -87,6 +89,7 @@ CONFIG_DEFAULT: dict[ARConfigKey, Any] = {
     # of fetching it on connect
     ARConfigKey.BOOTTIME: None,
     ARConfigKey.NOTIFIED_DUMP: CONFIG_DEFAULT_ALREADY_NOTIFIED,
+    ARConfigKey.NOTIFIED_PROBE: CONFIG_DEFAULT_ALREADY_NOTIFIED,
     # Logs sanitize sensitive data by default
     ARConfigKey.SECURITY_LEVEL_LOG: ARSecurityLevel.SANITIZED,
     # Data exposes reasonably-sensitive values (MAC, IP) but not secrets
@@ -101,6 +104,8 @@ TYPES_DEFAULT: dict[ARConfigKey, Callable[[Any], Any]] = {
     ARConfigKey.BOOTTIME: safe_datetime_config,
     # Data dump notification flag
     ARConfigKey.NOTIFIED_DUMP: safe_bool_config,
+    # Probe report notification flag
+    ARConfigKey.NOTIFIED_PROBE: safe_bool_config,
     # Security levels
     ARConfigKey.SECURITY_LEVEL_LOG: ARSecurityLevel.from_value,
     ARConfigKey.SECURITY_LEVEL_DATA: ARSecurityLevel.from_value,
