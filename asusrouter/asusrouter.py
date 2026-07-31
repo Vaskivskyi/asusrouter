@@ -40,7 +40,12 @@ from asusrouter.modules import load_all_probes, load_all_sources
 from asusrouter.modules.action import ARAction
 from asusrouter.modules.aimesh import ARAiMeshSourceUniversal
 from asusrouter.modules.aimesh.topology import ARAiMeshTopology
-from asusrouter.modules.boottime import ARBoottime, ARBoottimeSourceUniversal
+from asusrouter.modules.clock import (
+    ARBoottime,
+    ARClockField,
+    ARClockSource,
+    ARClockSourceUniversal,
+)
 from asusrouter.modules.device import ARDeviceSourceUniversal
 from asusrouter.modules.device.identity import ARDeviceIdentity
 from asusrouter.modules.endpoint import (
@@ -270,15 +275,11 @@ class AsusRouter:
             # Seed the live AiMesh topology before any user request, so it
             # is available on the identity right after connecting
             await self.async_fetch_data(ARAiMeshSourceUniversal, force=True)
-            # Boot time: use the seeded config value if given (anchors
-            # stabilization), otherwise fetch it once now
+            # A seeded boot time anchors the first stabilization
             seeded_boottime = self._config.get(ARConfKey.BOOTTIME)
             if seeded_boottime is not None:
                 self.description.update_boottime(seeded_boottime)
-            else:
-                await self.async_fetch_data(
-                    ARBoottimeSourceUniversal, force=True
-                )
+            await self.async_fetch_data(ARClockSourceUniversal, force=True)
 
         return result is not None
 
@@ -438,9 +439,23 @@ class AsusRouter:
         # Keep the identity's live AiMesh topology in sync
         if isinstance(value, ARAiMeshTopology):
             self.description.update_aimesh(value)
-        # Keep the identity's live boot time in sync
-        elif isinstance(value, ARBoottime):
-            self.description.update_boottime(value)
+        # Keep the identity's live clock in sync
+        elif isinstance(state.source, ARClockSource) and isinstance(
+            value, dict
+        ):
+            self._sync_clock(value)
+
+    def _sync_clock(self, value: dict[Any, Any]) -> None:
+        """Sync the identity with the values a clock read reported."""
+
+        boottime = value.get(ARClockField.BOOTTIME)
+        if isinstance(boottime, ARBoottime):
+            self.description.update_boottime(boottime)
+
+        uptime = value.get(ARClockField.UPTIME)
+        # `bool` is an `int`; only a real count says anything here
+        if isinstance(uptime, int) and not isinstance(uptime, bool):
+            self.description.update_uptime(uptime)
 
     def _translate_multidata_batch(
         self,
