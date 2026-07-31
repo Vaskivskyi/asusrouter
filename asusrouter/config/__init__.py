@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from datetime import datetime
 from enum import StrEnum
+import logging
 import threading
 from typing import Any
 
@@ -14,6 +15,8 @@ from asusrouter.tools.converters.raw import (
     raw_to_int,
 )
 from asusrouter.tools.security import ARSecurityLevel
+
+_LOGGER = logging.getLogger(__name__)
 
 # Sentinel for distinguishing "missing" from a stored None value.
 _MISSING = object()
@@ -29,7 +32,7 @@ class ARConfigKey(ARConfigKeyBase):
     # Optimistic temperature
     OPTIMISTIC_TEMPERATURE = "optimistic_temperature"
     NOTIFIED_OPTIMISTIC_TEMPERATURE = "notified_optimistic_temperature"
-    # Seed boot time; when set it anchors stabilization instead of fetching
+    # Seed boot time; when set it anchors the first stabilization
     BOOTTIME = "boottime"
     # Data dump sensitive-data warning shown once per session
     NOTIFIED_DUMP = "notified_dump"
@@ -78,6 +81,21 @@ def safe_datetime_config(value: Any) -> datetime | None:
     return None
 
 
+def safe_boottime_config(value: Any) -> datetime | None:
+    """Convert a value to an aware boot time, else None."""
+
+    config_value = safe_datetime_config(value)
+
+    if config_value is not None and config_value.tzinfo is None:
+        _LOGGER.warning(
+            "Ignoring the seeded boot time: it carries no timezone, "
+            "and the device reports its own with one"
+        )
+        return None
+
+    return config_value
+
+
 CONFIG_DEFAULT: dict[ARConfigKey, Any] = {
     # If set, the temperature will be automatically adjusted
     # to fit the expected range
@@ -85,8 +103,7 @@ CONFIG_DEFAULT: dict[ARConfigKey, Any] = {
     ARConfigKey.NOTIFIED_OPTIMISTIC_TEMPERATURE: (
         CONFIG_DEFAULT_ALREADY_NOTIFIED
     ),
-    # If set, this boot time is used as the stabilization anchor instead
-    # of fetching it on connect
+    # If set, this boot time anchors the first stabilization on connect
     ARConfigKey.BOOTTIME: None,
     ARConfigKey.NOTIFIED_DUMP: CONFIG_DEFAULT_ALREADY_NOTIFIED,
     ARConfigKey.NOTIFIED_PROBE: CONFIG_DEFAULT_ALREADY_NOTIFIED,
@@ -101,7 +118,7 @@ TYPES_DEFAULT: dict[ARConfigKey, Callable[[Any], Any]] = {
     ARConfigKey.OPTIMISTIC_TEMPERATURE: safe_bool_config,
     ARConfigKey.NOTIFIED_OPTIMISTIC_TEMPERATURE: safe_bool_config,
     # Seed boot time
-    ARConfigKey.BOOTTIME: safe_datetime_config,
+    ARConfigKey.BOOTTIME: safe_boottime_config,
     # Data dump notification flag
     ARConfigKey.NOTIFIED_DUMP: safe_bool_config,
     # Probe report notification flag

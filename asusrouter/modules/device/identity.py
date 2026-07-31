@@ -160,8 +160,9 @@ class ARDeviceIdentity:
         # Live boot time - the stabilization anchor; seeded or fetched and
         # kept in sync by `update_boottime`
         self._boottime: datetime | None = None
-        # Edge flag - set when the boot time moves (a reboot), cleared by
-        # the reboot handler once acted upon
+        # Seconds the device has been running
+        self._uptime: int | None = None
+        # Edge flag - set when the uptime falls back (a reboot)
         self._rebooted: bool = False
 
     @property
@@ -253,15 +254,22 @@ class ARDeviceIdentity:
         return self._boottime
 
     def update_boottime(self, boottime: datetime | None) -> None:
-        """Replace the boot time, flagging a reboot when it moves."""
+        """Replace the boot time."""
 
-        previous = self._boottime
         self._boottime = boottime
-        if (
-            previous is not None
-            and boottime is not None
-            and boottime != previous
-        ):
+
+    @property
+    def uptime(self) -> int | None:
+        """Get the seconds the device has been running."""
+
+        return self._uptime
+
+    def update_uptime(self, uptime: int | None) -> None:
+        """Replace the uptime, flagging a reboot when it falls back."""
+
+        previous = self._uptime
+        self._uptime = uptime
+        if previous is not None and uptime is not None and uptime < previous:
             self._rebooted = True
 
     @property

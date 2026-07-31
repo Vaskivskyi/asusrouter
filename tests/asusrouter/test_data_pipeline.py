@@ -15,7 +15,7 @@ from asusrouter.const import AR_CALL_RUN_ACTION
 from asusrouter.error import AsusRouterError
 from asusrouter.modules.action import ARAction
 from asusrouter.modules.aimesh.topology import ARAiMeshTopology
-from asusrouter.modules.boottime import ARBoottime
+from asusrouter.modules.clock import ARBoottime, ARClockField, ARClockSource
 from asusrouter.modules.device import ARDeviceSourceUniversal
 from asusrouter.modules.device.identity import ARDeviceIdentity
 from asusrouter.modules.endpoint import AREndpoint
@@ -168,7 +168,7 @@ class TestCommitState:
         source: ARDataSource,
         make_state: MakeStateFactory,
     ) -> None:
-        """Committing an ARBoottime updates the identity boot time."""
+        """A clock dict's tagged boot time updates the identity."""
 
         identity = ARDeviceIdentity()
         id_state = make_state(ARDeviceSourceUniversal)
@@ -176,9 +176,78 @@ class TestCommitState:
         router._data_states[ARDeviceSourceUniversal] = id_state
 
         boottime = ARBoottime(2026, 1, 1, tzinfo=UTC)
-        router._commit_data_state(make_state(source), boottime)
+        router._commit_data_state(
+            make_state(ARClockSource()), {ARClockField.BOOTTIME: boottime}
+        )
 
         assert identity.boottime == boottime
+
+    def test_committing_uptime_detects_a_reboot(
+        self,
+        router: AsusRouter,
+        make_state: MakeStateFactory,
+    ) -> None:
+        """A clock dict whose uptime fell back flags a reboot."""
+
+        identity = ARDeviceIdentity()
+        id_state = make_state(ARDeviceSourceUniversal)
+        cast(Any, id_state)._content = identity
+        router._data_states[ARDeviceSourceUniversal] = id_state
+
+        router._commit_data_state(
+            make_state(ARClockSource()), {ARClockField.UPTIME: 2131043}
+        )
+        assert identity.rebooted is False
+
+        router._commit_data_state(
+            make_state(ARClockSource()), {ARClockField.UPTIME: 12}
+        )
+
+        assert identity.uptime == 12
+        assert identity.rebooted is True
+
+    def test_clock_keys_from_another_source_are_ignored(
+        self,
+        router: AsusRouter,
+        source: ARDataSource,
+        make_state: MakeStateFactory,
+    ) -> None:
+        """Only the clock feeds the clock; a lookalike dict does not."""
+
+        identity = ARDeviceIdentity()
+        id_state = make_state(ARDeviceSourceUniversal)
+        cast(Any, id_state)._content = identity
+        router._data_states[ARDeviceSourceUniversal] = id_state
+
+        router._commit_data_state(
+            make_state(source),
+            {
+                "uptime": 2131043,
+                "boottime": ARBoottime(2026, 1, 1, tzinfo=UTC),
+            },
+        )
+
+        assert identity.uptime is None
+        assert identity.boottime is None
+
+    def test_committing_untagged_boottime_is_ignored(
+        self,
+        router: AsusRouter,
+        make_state: MakeStateFactory,
+    ) -> None:
+        """A plain datetime under the key is not the tagged boot time."""
+
+        identity = ARDeviceIdentity()
+        id_state = make_state(ARDeviceSourceUniversal)
+        cast(Any, id_state)._content = identity
+        router._data_states[ARDeviceSourceUniversal] = id_state
+
+        router._commit_data_state(
+            make_state(ARClockSource()),
+            {ARClockField.BOOTTIME: datetime(2026, 1, 1, tzinfo=UTC)},
+        )
+
+        assert identity.boottime is None
 
     def test_committing_plain_datetime_ignores_boottime(
         self,
