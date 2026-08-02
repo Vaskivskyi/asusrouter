@@ -39,8 +39,10 @@ class TestChannelSpec:
                 AREventAutoChannelDaemon.CHANNEL_SELECTED,
             ),
             (
-                "wl1.1: NONACSD channel switching to channel spec: "
-                "0xe832 (36/160)",
+                (
+                    "wl1.1: NONACSD channel switching to channel spec: "
+                    "0xe832 (36/160)"
+                ),
                 AREventAutoChannelDaemon.CHANNEL_SWITCHED,
             ),
         ],
