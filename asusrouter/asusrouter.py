@@ -8,7 +8,7 @@ from __future__ import annotations
 import asyncio
 from collections import defaultdict
 from collections.abc import Awaitable, Callable, Iterable
-from datetime import timedelta
+from datetime import datetime, timedelta
 from functools import partial
 import logging
 from pathlib import Path
@@ -24,6 +24,7 @@ from asusrouter.config.connection import (
 from asusrouter.connection import Connection
 from asusrouter.const import (
     AR_CALL_FETCH_STATE,
+    AR_CALL_PROBE_STATE,
     AR_CALL_RUN_ACTION,
     AR_CALL_TRANSLATE_ACTION,
     AR_CALL_TRANSLATE_STATE,
@@ -35,11 +36,16 @@ from asusrouter.error import (
     AsusRouterAccessError,
     AsusRouterError,
 )
-from asusrouter.modules import load_all_sources
+from asusrouter.modules import load_all_probes, load_all_sources
 from asusrouter.modules.action import ARAction
 from asusrouter.modules.aimesh import ARAiMeshSourceUniversal
 from asusrouter.modules.aimesh.topology import ARAiMeshTopology
-from asusrouter.modules.boottime import ARBoottime, ARBoottimeSourceUniversal
+from asusrouter.modules.clock import (
+    ARBoottime,
+    ARClockField,
+    ARClockSource,
+    ARClockSourceUniversal,
+)
 from asusrouter.modules.device import ARDeviceSourceUniversal
 from asusrouter.modules.device.identity import ARDeviceIdentity
 from asusrouter.modules.endpoint import (
@@ -70,8 +76,16 @@ from asusrouter.tools.dump import (
     write_device_snapshot,
     write_dump,
 )
-from asusrouter.tools.identifiers import Hostname
+from asusrouter.tools.identifiers import Hostname, Username
+from asusrouter.tools.probe import (
+    DEFAULT_PROBE_PATH,
+    PROBE_SENSITIVE_WARNING,
+    ARProbeReport,
+    ARProbeSection,
+    write_probe,
+)
 from asusrouter.tools.readers import is_redirect_page
+from asusrouter.tools.security import ARSecurityLevel
 from asusrouter.tools.security.log import register_log_config
 from asusrouter.tools.types import ARCallableType
 
@@ -130,6 +144,8 @@ class AsusRouter:
         self._config = ARInstanceConfig(defaults=config)
         # Constrain shared log masking by this instance's log level
         register_log_config(self._config)
+
+        self._username = Username(username)
 
         self._cache_threshold = timedelta(seconds=DEFAULT_CACHE_TIME)
 
@@ -255,18 +271,16 @@ class AsusRouter:
             ARDeviceSourceUniversal, force=True
         )
         if result is not None:
+            # Inject username
+            self.description.update_username(self._username)
             # Seed the live AiMesh topology before any user request, so it
             # is available on the identity right after connecting
             await self.async_fetch_data(ARAiMeshSourceUniversal, force=True)
-            # Boot time: use the seeded config value if given (anchors
-            # stabilization), otherwise fetch it once now
+            # A seeded boot time anchors the first stabilization
             seeded_boottime = self._config.get(ARConfKey.BOOTTIME)
             if seeded_boottime is not None:
                 self.description.update_boottime(seeded_boottime)
-            else:
-                await self.async_fetch_data(
-                    ARBoottimeSourceUniversal, force=True
-                )
+            await self.async_fetch_data(ARClockSourceUniversal, force=True)
 
         return result is not None
 
@@ -281,6 +295,20 @@ class AsusRouter:
             self._handle_exception(ex)
 
         return True
+
+    def _current_credentials(self) -> tuple[str, str]:
+        """Return the (username, password) currently held by the connection."""
+
+        return self._connection.username, self._connection.password
+
+    async def _async_set_credentials(
+        self, username: str, password: str
+    ) -> bool:
+        """Swap the login credentials and re-establish the session."""
+
+        _LOGGER.debug("Triggered method _async_set_credentials")
+
+        return await self._connection.async_set_credentials(username, password)
 
     def _async_drop_connection(self) -> None:
         """Drop the connection.
@@ -426,9 +454,30 @@ class AsusRouter:
         # Keep the identity's live AiMesh topology in sync
         if isinstance(value, ARAiMeshTopology):
             self.description.update_aimesh(value)
-        # Keep the identity's live boot time in sync
-        elif isinstance(value, ARBoottime):
-            self.description.update_boottime(value)
+        # Keep the identity's live clock in sync
+        elif isinstance(state.source, ARClockSource) and isinstance(
+            value, dict
+        ):
+            self._sync_clock(value)
+
+    def _sync_clock(self, value: dict[Any, Any]) -> None:
+        """Sync the identity with the values a clock read reported."""
+
+        boottime = value.get(ARClockField.BOOTTIME)
+        if isinstance(boottime, ARBoottime):
+            self.description.update_boottime(boottime)
+
+        uptime = value.get(ARClockField.UPTIME)
+        # `bool` is an `int`; only a real count says anything here
+        if isinstance(uptime, int) and not isinstance(uptime, bool):
+            self.description.update_uptime(uptime)
+
+        device_time = value.get(ARClockField.DEVICE_TIME)
+        if (
+            isinstance(device_time, datetime)
+            and device_time.tzinfo is not None
+        ):
+            self.description.update_device_time(device_time)
 
     def _translate_multidata_batch(
         self,
@@ -556,7 +605,10 @@ class AsusRouter:
             translate = state.translate_caller
             self._commit_data_state(
                 state,
-                translate(raw, identity=identity) if translate else raw,
+                # Allow continuous translation/read
+                translate(raw, identity=identity, previous=state.content)
+                if translate
+                else raw,
             )
         finally:
             # Wake waiters as soon as this fetch is done
@@ -807,6 +859,74 @@ class AsusRouter:
     # ---------------------------
 
     # ---------------------------
+    # Device probe -->
+    # ---------------------------
+
+    def _warn_probe_once(self) -> None:
+        """Emit the redaction warning once per session."""
+
+        config = self._config
+        config.ensure_notification_flag(ARConfKey.NOTIFIED_PROBE)
+        if not config.get(ARConfKey.NOTIFIED_PROBE):
+            _LOGGER.warning(PROBE_SENSITIVE_WARNING)
+            config.set(ARConfKey.NOTIFIED_PROBE, True)
+
+    async def async_probe_data(
+        self,
+        source: ARDataSource | ARDataType,
+        *,
+        path: str | Path | None = DEFAULT_PROBE_PATH,
+        level: ARSecurityLevel = ARSecurityLevel.SANITIZED,
+        **kwargs: Any,
+    ) -> ARProbeReport | None:
+        """Probe a source and report what it produced."""
+
+        _LOGGER.debug("Triggered method async_probe_data: %s", source)
+
+        # Import the probes only when one is actually asked for
+        load_all_probes()
+
+        probe_caller = ARCallReg.get_callable(source, AR_CALL_PROBE_STATE)
+        if probe_caller is None:
+            _LOGGER.debug(
+                "No probe registered for source %s", type(source).__name__
+            )
+            return None
+
+        self._warn_probe_once()
+        await self._async_ensure_connected()
+
+        # A probe reads the device as it is now, never a cached state
+        kwargs["fetch_data_callback"] = partial(
+            self.async_fetch_data, force=True
+        )
+        kwargs["fetch_raw_callback"] = self.async_fetch
+        kwargs["run_action_callback"] = self.async_run_action
+
+        sections: list[ARProbeSection] = await probe_caller(
+            self.async_read,
+            source,
+            identity=self.description,
+            level=level,
+            **kwargs,
+        )
+
+        report = ARProbeReport(
+            source=type(source).__name__,
+            level=level,
+            sections=tuple(sections),
+        )
+
+        if path is not None:
+            write_probe(report, path=path, identity=self.description)
+
+        return report
+
+    # ---------------------------
+    # <-- Device probe
+    # ---------------------------
+
+    # ---------------------------
     # Action pipeline -->
     # ---------------------------
 
@@ -827,6 +947,8 @@ class AsusRouter:
         kwargs["fetch_raw_callback"] = self.async_fetch
         kwargs["run_action_callback"] = self.async_run_action
         kwargs["expire_callback"] = self._async_expire_data
+        kwargs["credentials_get_callback"] = self._current_credentials
+        kwargs["credentials_set_callback"] = self._async_set_credentials
 
         raw = await run_caller(
             self.async_read, action, identity=self.description, **kwargs

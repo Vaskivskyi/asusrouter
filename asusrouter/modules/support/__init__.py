@@ -24,6 +24,9 @@ from asusrouter.modules.support.aura import (
     translate_aura_capabilities,
 )
 from asusrouter.modules.support.connection import translate_connection
+from asusrouter.modules.support.credentials import (
+    translate_credentials_capabilities,
+)
 from asusrouter.modules.support.device import translate_device_mode
 from asusrouter.modules.support.dsl import translate_dsl
 from asusrouter.modules.support.firmware import (
@@ -90,6 +93,7 @@ _TRANSLATION_TABLE: dict[ARSupportType, ARCallableType] = {
     ARSupportType.AURA: translate_aura,
     ARSupportType.AURA_CAPABILITIES: translate_aura_capabilities,
     ARSupportType.CONNECTIONS: translate_connection,
+    ARSupportType.CREDENTIALS_CAPABILITIES: translate_credentials_capabilities,
     ARSupportType.DEVICE_MODE: translate_device_mode,
     ARSupportType.DSL: translate_dsl,
     ARSupportType.FIRMWARE: translate_firmware,

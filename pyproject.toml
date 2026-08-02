@@ -115,6 +115,9 @@ split-on-trailing-comma = false
 "**/enums.py" = [
     "S105",    # Enum members are field-name keys, not hardcoded secrets
 ]
+"**/support/flag.py" = [
+    "S105",    # Enum members are field-name keys, not hardcoded secrets
+]
 "scripts/*" = [
     "BLE001",  # Do not catch blind exception: `Exception`
     "PLR2004", # Magic value used in comparison
@@ -130,6 +133,7 @@ split-on-trailing-comma = false
     "S104",    # Possible binding to all interfaces
     "S105",    # Possible hardcoded password assigned to: "{}"
     "S106",    # Possible hardcoded password assigned to argument: "{}"
+    "S301",    # `pickle` round-trips test our own values, not foreign data
     "S311",    # Standard pseudo-random generators are not suitable for cryptographic purposes
 ]
 

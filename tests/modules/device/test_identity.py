@@ -26,6 +26,7 @@ from asusrouter.modules.nvram import (
 from asusrouter.modules.support import ARSupportSourceUniversal
 from asusrouter.modules.support.flag import ARSupportType
 from asusrouter.modules.wifi import ARWiFiBand, ARWiFiCapability
+from asusrouter.tools.identifiers import Username
 
 
 class TestTranslateFirmware:
@@ -487,46 +488,98 @@ class TestBoottime:
 
         assert identity.boottime == boottime
 
-    def test_first_boottime_is_not_a_reboot(self) -> None:
-        """Setting boot time from None does not flag a reboot."""
-
-        identity = ARDeviceIdentity()
-
-        identity.update_boottime(datetime(2026, 1, 1, tzinfo=UTC))
-
-        assert identity.rebooted is False
-
-    def test_unchanged_boottime_is_not_a_reboot(self) -> None:
-        """Re-setting the same boot time does not flag a reboot."""
-
-        identity = ARDeviceIdentity()
-        boottime = datetime(2026, 1, 1, tzinfo=UTC)
-        identity.update_boottime(boottime)
-
-        identity.update_boottime(boottime)
-
-        assert identity.rebooted is False
-
-    def test_moved_boottime_flags_reboot(self) -> None:
-        """A changed boot time flags a reboot; clearing resets it."""
+    def test_moved_boottime_is_not_a_reboot(self) -> None:
+        """The device's clock steps, so a moved boot time proves nothing."""
 
         identity = ARDeviceIdentity()
         identity.update_boottime(datetime(2026, 1, 1, tzinfo=UTC))
 
         identity.update_boottime(datetime(2026, 1, 2, tzinfo=UTC))
-        assert identity.rebooted is True
 
-        identity.clear_rebooted()
         assert identity.rebooted is False
 
     def test_mark_reboot_flags_reboot(self) -> None:
-        """mark_reboot flags a reboot without a boot time move."""
+        """mark_reboot flags a reboot without reading the uptime."""
 
         identity = ARDeviceIdentity()
 
         identity.mark_reboot()
 
         assert identity.rebooted is True
+
+
+class TestDeviceTime:
+    """Tests for the device's own clock on the identity."""
+
+    def test_default_is_none(self) -> None:
+        """A fresh identity carries no device time."""
+
+        assert ARDeviceIdentity().device_time is None
+
+    def test_update_sets_device_time(self) -> None:
+        """update_device_time stores the value."""
+
+        identity = ARDeviceIdentity()
+        device_time = datetime(2026, 7, 31, 10, 24, 4, tzinfo=UTC)
+
+        identity.update_device_time(device_time)
+
+        assert identity.device_time == device_time
+
+    def test_update_does_not_flag_a_reboot(self) -> None:
+        """The clock moves on its own; only the uptime says anything."""
+
+        identity = ARDeviceIdentity()
+        identity.update_device_time(datetime(2026, 1, 1, tzinfo=UTC))
+
+        identity.update_device_time(datetime(2027, 1, 1, tzinfo=UTC))
+
+        assert identity.rebooted is False
+
+
+class TestUptime:
+    """Tests for the live uptime, which is what detects a reboot."""
+
+    def test_default_is_none(self) -> None:
+        """A fresh identity carries no uptime."""
+
+        assert ARDeviceIdentity().uptime is None
+
+    def test_update_sets_uptime(self) -> None:
+        """update_uptime stores the value."""
+
+        identity = ARDeviceIdentity()
+
+        identity.update_uptime(2131043)
+
+        assert identity.uptime == 2131043
+
+    @pytest.mark.parametrize(
+        ("first", "second"),
+        [(None, 100), (100, 100), (100, 200), (100, None)],
+        ids=["first_read", "unchanged", "counting_up", "gone"],
+    )
+    def test_not_a_reboot(self, first: int | None, second: int | None) -> None:
+        """Only a count that falls back says the device restarted."""
+
+        identity = ARDeviceIdentity()
+        identity.update_uptime(first)
+
+        identity.update_uptime(second)
+
+        assert identity.rebooted is False
+
+    def test_falling_uptime_flags_reboot(self) -> None:
+        """A count that drops is a boot in between; clearing resets it."""
+
+        identity = ARDeviceIdentity()
+        identity.update_uptime(2131043)
+
+        identity.update_uptime(12)
+        assert identity.rebooted is True
+
+        identity.clear_rebooted()
+        assert identity.rebooted is False
 
 
 class TestTranslateOperationMode:
@@ -611,3 +664,29 @@ class TestTranslateOperationMode:
         identity = ARDeviceIdentity.build({ARNvramType.SW_MODE: 3})
 
         assert identity.operation_mode is AROperationMode.ACCESS_POINT
+
+
+class TestUsername:
+    """The login name injected into the identity after it is built."""
+
+    def test_absent_by_default(self) -> None:
+        """An identity built from device data knows no login name."""
+
+        assert ARDeviceIdentity().username is None
+
+    def test_updated(self) -> None:
+        """The name is injected the way the boot time is."""
+
+        identity = ARDeviceIdentity()
+        identity.update_username(Username("fakeadmin"))
+
+        assert identity.username == "fakeadmin"
+
+    def test_cleared(self) -> None:
+        """It can be taken away again."""
+
+        identity = ARDeviceIdentity()
+        identity.update_username(Username("fakeadmin"))
+        identity.update_username(None)
+
+        assert identity.username is None

@@ -24,7 +24,7 @@ from asusrouter.modules.wifi import (
     ARWiFiCapability,
 )
 from asusrouter.tools.converters.raw import raw_to_int, raw_to_str
-from asusrouter.tools.identifiers import MacAddress
+from asusrouter.tools.identifiers import MacAddress, Username
 from asusrouter.tools.readers import split_rows
 
 IdentityData = Mapping[Any, Any]
@@ -151,6 +151,8 @@ class ARDeviceIdentity:
         self._operation_mode: AROperationMode = AROperationMode.UNKNOWN
         self._serial: str | None = None
         self._support: dict[ARSupportType, Any] = {}
+        # Login name used to reach the device - injected
+        self._username: Username | None = None
         self._wifi: dict[ARWiFiBand, int] = {}
         # Live AiMesh topology - the only mutable identity part, swapped
         # atomically as a whole snapshot by `update_aimesh`
@@ -158,8 +160,11 @@ class ARDeviceIdentity:
         # Live boot time - the stabilization anchor; seeded or fetched and
         # kept in sync by `update_boottime`
         self._boottime: datetime | None = None
-        # Edge flag - set when the boot time moves (a reboot), cleared by
-        # the reboot handler once acted upon
+        # Seconds the device has been running
+        self._uptime: int | None = None
+        # The device's own clock as of the last read
+        self._device_time: datetime | None = None
+        # Edge flag - set when the uptime falls back (a reboot)
         self._rebooted: bool = False
 
     @property
@@ -228,6 +233,17 @@ class ARDeviceIdentity:
 
         return self._aimesh
 
+    @property
+    def username(self) -> Username | None:
+        """Get the login name used to reach the device."""
+
+        return self._username
+
+    def update_username(self, username: Username | None) -> None:
+        """Set the login name used to reach the device."""
+
+        self._username = username
+
     def update_aimesh(self, topology: ARAiMeshTopology) -> None:
         """Replace the AiMesh topology snapshot atomically."""
 
@@ -240,16 +256,34 @@ class ARDeviceIdentity:
         return self._boottime
 
     def update_boottime(self, boottime: datetime | None) -> None:
-        """Replace the boot time, flagging a reboot when it moves."""
+        """Replace the boot time."""
 
-        previous = self._boottime
         self._boottime = boottime
-        if (
-            previous is not None
-            and boottime is not None
-            and boottime != previous
-        ):
+
+    @property
+    def uptime(self) -> int | None:
+        """Get the seconds the device has been running."""
+
+        return self._uptime
+
+    def update_uptime(self, uptime: int | None) -> None:
+        """Replace the uptime, flagging a reboot when it falls back."""
+
+        previous = self._uptime
+        self._uptime = uptime
+        if previous is not None and uptime is not None and uptime < previous:
             self._rebooted = True
+
+    @property
+    def device_time(self) -> datetime | None:
+        """Get the device's own clock as of the last read."""
+
+        return self._device_time
+
+    def update_device_time(self, device_time: datetime | None) -> None:
+        """Replace the device's own clock."""
+
+        self._device_time = device_time
 
     @property
     def rebooted(self) -> bool:

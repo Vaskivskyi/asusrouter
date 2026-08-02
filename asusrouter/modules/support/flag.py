@@ -28,6 +28,9 @@ class ARSupportType(FromStrMixin, StrEnum):
     # Connections
     CONNECTIONS = "connections"
 
+    # Credentials
+    CREDENTIALS_CAPABILITIES = "credentials_capabilities"
+
     # Device mode
     DEVICE_MODE = "device_mode"
 
@@ -103,6 +106,9 @@ class ARSupportValue(FromStrMixin, StrEnum):
     CONNECTION_HTTPS = "HTTPS"
     CONNECTION_SSH = "ssh"
 
+    # Credentials
+    CHPASS = "CHPASS"
+
     # DSL
     DSL = "dsl"
 
@@ -117,6 +123,10 @@ class ARSupportValue(FromStrMixin, StrEnum):
     # FTP
     FTP = "noftp"
     FTP_SSL = "ftp_ssl"
+
+    # HTTP
+    HTTP_PASSWORD_MAX_LENGTH = "MaxLen_http_passwd"
+    HTTP_USERNAME_MAX_LENGTH = "MaxLen_http_name"
 
     # LAN capabilities
     LAN_AGGREGATION = "lacp"
@@ -147,6 +157,9 @@ class ARSupportValue(FromStrMixin, StrEnum):
     SDN_MAX_RULES = "MaxRule_SDN"
     SDN_MWL = "sdn_mwl"
     SDN_PRIORITY = "SDN_PRIORITY"
+
+    # Security
+    SECURE_DEFAULT = "secure_default"
 
     # SpeedTest
     SPEEDTEST = "ookla"
