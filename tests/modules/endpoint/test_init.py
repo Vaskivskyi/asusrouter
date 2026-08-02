@@ -92,7 +92,12 @@ def test_get_endpoint_meta_login_sensitive() -> None:
     assert meta.payload_sensitivity is ARSecurityLevel.UNSAFE
 
 
-_SENSITIVE = (AREndpoint.LOGIN, AREndpoint.WRITE_SPEEDTEST_HISTORY)
+_SENSITIVE = (
+    AREndpoint.CHPASS,
+    AREndpoint.LOGIN,
+    AREndpoint.START_APPLY,
+    AREndpoint.WRITE_SPEEDTEST_HISTORY,
+)
 _NON_SENSITIVE = [
     e
     for e in AREndpoint
@@ -144,10 +149,15 @@ def test_get_endpoint_payload_sensitivity_others(
 
 @pytest.mark.parametrize(
     "endpoint",
-    [AREndpoint.RUN_SPEEDTEST, AREndpoint.SET_SPEEDTEST_START_TIME],
+    [
+        AREndpoint.CHPASS,
+        AREndpoint.RUN_SPEEDTEST,
+        AREndpoint.SET_SPEEDTEST_START_TIME,
+        AREndpoint.START_APPLY,
+    ],
 )
 def test_get_endpoint_raw_payload_true(endpoint: AREndpoint) -> None:
-    """The speedtest form endpoints send their body verbatim."""
+    """The form endpoints send their body verbatim."""
 
     assert get_endpoint_raw_payload(endpoint) is True
 

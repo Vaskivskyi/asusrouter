@@ -62,13 +62,13 @@ class TestNotify:
     def test_trailing_separator(self) -> None:
         """A list ending on a separator yields no empty action."""
 
-        # A real RT-AC66U line; `restart_upnp` is not an ARService member
+        # A real RT-AC66U line
         event = _translate("httpd 1234:notify_rc restart_time;restart_upnp;")
 
         assert event[_KEY.ACTIONS] == ("restart_time", "restart_upnp")
         assert event[_KEY.SERVICES] == (
             ARService.TIME_RESTART,
-            ARService.UNKNOWN,
+            ARService.UPNP_RESTART,
         )
 
     def test_action_argument(self) -> None:

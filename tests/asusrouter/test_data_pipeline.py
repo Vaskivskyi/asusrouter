@@ -898,6 +898,8 @@ class TestAsyncRunAction:
         assert isinstance(kw["identity"], ARDeviceIdentity)
         assert kw["fetch_raw_callback"] == router.async_fetch
         assert kw["run_action_callback"] == router.async_run_action
+        assert kw["credentials_get_callback"] == router._current_credentials
+        assert kw["credentials_set_callback"] == router._async_set_credentials
         assert kw["extra_kw"] == "x"
         callback = kw["fetch_data_callback"]
         assert isinstance(callback, partial)

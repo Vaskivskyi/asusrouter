@@ -10,6 +10,7 @@ from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
+from asusrouter.connection import generate_credentials
 from asusrouter.const import USER_AGENT
 from asusrouter.error import (
     AsusRouterAccessError,
@@ -17,6 +18,7 @@ from asusrouter.error import (
     AsusRouterLogoutError,
     AsusRouterSSLCertificateError,
 )
+from asusrouter.modules.endpoint.error import ARAccessError
 from tests.helpers import AsyncPatch, ConnectionFactory, SyncPatch
 
 
@@ -759,3 +761,254 @@ class TestResetAuth:
         else:
             assert conn._token == token
             assert conn._header == header
+
+
+class TestAsyncSetCredentials:
+    """Tests for Connection.async_set_credentials."""
+
+    async def test_swaps_credentials_and_regenerates_auth(
+        self,
+        connection_factory: ConnectionFactory,
+        async_connect: AsyncPatch,
+        reset_auth: SyncPatch,
+    ) -> None:
+        """New credentials replace the stored ones and the auth payload."""
+
+        conn = connection_factory()
+        async_connect(conn, return_value=True)
+        reset_auth(conn)
+        expected_payload, expected_headers = generate_credentials(
+            "newuser", "newpass"
+        )
+
+        with patch(
+            "asusrouter.connection.asyncio.sleep", new_callable=AsyncMock
+        ):
+            result = await conn.async_set_credentials("newuser", "newpass")
+
+        assert result is True
+        assert conn._username == "newuser"
+        assert conn._password == "newpass"
+        assert conn.username == "newuser"
+        assert conn.password == "newpass"
+        assert conn._auth_payload == expected_payload
+        assert conn._auth_headers == expected_headers
+
+    async def test_success_first_attempt(
+        self,
+        connection_factory: ConnectionFactory,
+        async_connect: AsyncPatch,
+        reset_auth: SyncPatch,
+    ) -> None:
+        """A successful reconnect drops old auth and toggles suppression."""
+
+        conn = connection_factory()
+        mock_connect = async_connect(conn, return_value=True)
+        mock_reset = reset_auth(conn)
+
+        with (
+            patch(
+                "asusrouter.connection.asyncio.sleep", new_callable=AsyncMock
+            ),
+            patch.object(conn, "set_error_suppression") as mock_suppress,
+        ):
+            result = await conn.async_set_credentials("newuser", "newpass")
+
+        assert result is True
+        mock_reset.assert_called_once()
+        mock_connect.assert_awaited_once()
+        assert [c.args[0] for c in mock_suppress.call_args_list] == [
+            True,
+            False,
+        ]
+
+    async def test_cancels_inflight_connect_task(
+        self,
+        connection_factory: ConnectionFactory,
+        async_connect: AsyncPatch,
+        reset_auth: SyncPatch,
+    ) -> None:
+        """A login started with the old credentials is cancelled first."""
+
+        conn = connection_factory()
+
+        async def blocking() -> bool:
+            await asyncio.Event().wait()
+            return True
+
+        inflight = asyncio.create_task(blocking())
+        await asyncio.sleep(0)
+        conn._connect_task = inflight
+        async_connect(conn, return_value=True)
+        reset_auth(conn)
+
+        with patch(
+            "asusrouter.connection.asyncio.sleep", new_callable=AsyncMock
+        ):
+            result = await conn.async_set_credentials("newuser", "newpass")
+
+        assert result is True
+        assert inflight.cancelled()
+        assert conn._connect_task is None
+
+    async def test_restores_previous_error_suppression(
+        self,
+        connection_factory: ConnectionFactory,
+        async_connect: AsyncPatch,
+        reset_auth: SyncPatch,
+    ) -> None:
+        """Suppression is restored to its prior value, not forced off."""
+
+        conn = connection_factory()
+        conn._suppress_errors = True  # an outer caller already suppressed
+        async_connect(conn, return_value=True)
+        reset_auth(conn)
+
+        with patch(
+            "asusrouter.connection.asyncio.sleep", new_callable=AsyncMock
+        ):
+            await conn.async_set_credentials("newuser", "newpass")
+
+        assert conn._suppress_errors is True
+
+    async def test_retries_until_success(
+        self,
+        connection_factory: ConnectionFactory,
+        async_connect: AsyncPatch,
+        reset_auth: SyncPatch,
+    ) -> None:
+        """Reconnect is retried while httpd is still down."""
+
+        conn = connection_factory()
+        mock_connect = async_connect(conn)
+        mock_connect.side_effect = [False, False, True]
+        reset_auth(conn)
+
+        with patch(
+            "asusrouter.connection.asyncio.sleep", new_callable=AsyncMock
+        ) as mock_sleep:
+            result = await conn.async_set_credentials("newuser", "newpass")
+
+        assert result is True
+        assert mock_connect.await_count == 3
+        # Initial settle delay plus one wait between each failed retry
+        assert mock_sleep.await_count == 3
+
+    async def test_connect_error_is_caught(
+        self,
+        connection_factory: ConnectionFactory,
+        async_connect: AsyncPatch,
+        reset_auth: SyncPatch,
+    ) -> None:
+        """A raised connection error is swallowed and the retry continues."""
+
+        conn = connection_factory()
+        mock_connect = async_connect(conn)
+        mock_connect.side_effect = [AsusRouterError("down"), True]
+        reset_auth(conn)
+
+        with patch(
+            "asusrouter.connection.asyncio.sleep", new_callable=AsyncMock
+        ):
+            result = await conn.async_set_credentials("newuser", "newpass")
+
+        assert result is True
+        assert mock_connect.await_count == 2
+
+    async def test_stale_credentials_error_is_retried(
+        self,
+        connection_factory: ConnectionFactory,
+        async_connect: AsyncPatch,
+        reset_auth: SyncPatch,
+    ) -> None:
+        """A login refused while httpd reloads is retried."""
+
+        conn = connection_factory()
+        mock_connect = async_connect(conn)
+        mock_connect.side_effect = [
+            AsusRouterAccessError(
+                "Access error", ARAccessError.CREDENTIALS, {}
+            ),
+            True,
+        ]
+        reset_auth(conn)
+
+        with patch(
+            "asusrouter.connection.asyncio.sleep", new_callable=AsyncMock
+        ):
+            result = await conn.async_set_credentials("newuser", "newpass")
+
+        assert result is True
+        assert mock_connect.await_count == 2
+
+    @pytest.mark.parametrize(
+        "args",
+        [
+            # The device started asking for a captcha
+            ("Access error", ARAccessError.CAPTCHA, {}),
+            # Too many failed logins already; it is counting down a lock
+            ("Access error", ARAccessError.TRY_AGAIN, {"timeout": 60}),
+            # No code carried at all - not provably a stale-credentials bounce
+            ("Access error",),
+        ],
+    )
+    async def test_other_access_error_stops_knocking(
+        self,
+        connection_factory: ConnectionFactory,
+        async_connect: AsyncPatch,
+        reset_auth: SyncPatch,
+        args: tuple[Any, ...],
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        """Anything but stale credentials aborts before attempts run out."""
+
+        conn = connection_factory()
+        mock_connect = async_connect(conn)
+        mock_connect.side_effect = AsusRouterAccessError(*args)
+        reset_auth(conn)
+
+        with (
+            patch(
+                "asusrouter.connection.asyncio.sleep", new_callable=AsyncMock
+            ),
+            caplog.at_level(logging.ERROR),
+        ):
+            result = await conn.async_set_credentials("newuser", "newpass")
+
+        assert result is False
+        # Stopped on the first refusal instead of feeding the lockout
+        assert mock_connect.await_count == 1
+        # The user has to know the session is dead and may need to step in
+        assert "refused the new session" in caplog.text
+
+    async def test_attempts_are_capped_but_credentials_kept(
+        self,
+        connection_factory: ConnectionFactory,
+        async_connect: AsyncPatch,
+        reset_auth: SyncPatch,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        """A device that never comes back costs a bounded number of logins."""
+
+        conn = connection_factory()
+        mock_connect = async_connect(conn, return_value=False)
+        reset_auth(conn)
+
+        with (
+            patch(
+                "asusrouter.connection.asyncio.sleep", new_callable=AsyncMock
+            ),
+            patch.object(conn, "set_error_suppression") as mock_suppress,
+            caplog.at_level(logging.ERROR),
+        ):
+            result = await conn.async_set_credentials("newuser", "newpass")
+
+        assert result is False
+        assert mock_connect.await_count == 3
+        # Suppression must not hide the give-up from the user
+        assert "could not be established" in caplog.text
+        # New credentials persist so a later normal connect uses them
+        assert conn._username == "newuser"
+        assert conn._password == "newpass"
+        # Suppression is always restored, even when giving up
+        assert mock_suppress.call_args_list[-1].args[0] is False

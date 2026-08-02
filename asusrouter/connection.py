@@ -50,13 +50,22 @@ from asusrouter.modules.endpoint import (
     get_endpoint_payload_sensitivity,
     get_endpoint_raw_payload,
 )
-from asusrouter.modules.endpoint.error import handle_access_error
+from asusrouter.modules.endpoint.error import (
+    ARAccessError,
+    handle_access_error,
+)
 from asusrouter.tools.converters.raw import raw_to_str
 from asusrouter.tools.identifiers import Hostname
 from asusrouter.tools.security import Sensitive
 from asusrouter.tools.security.log import render_for_log
 
 _LOGGER = logging.getLogger(__name__)
+
+# A credential change bounces. Wait and try to reconnect
+# Fix attempts so we don't hit captcha or lockout on fail
+_CREDENTIALS_RECONNECT_INITIAL_DELAY: float = 5.0
+_CREDENTIALS_RECONNECT_INTERVAL: float = 5.0
+_CREDENTIALS_RECONNECT_MAX_ATTEMPTS: int = 3
 
 _T = TypeVar("_T")
 
@@ -110,6 +119,15 @@ def _log_request(endpoint: AREndpoint, payload: str | None) -> None:
         endpoint,
         Sensitive(payload, get_endpoint_payload_sensitivity(endpoint)),
     )
+
+
+def _access_error(error: AsusRouterAccessError) -> ARAccessError:
+    """Read the access error code the exception carries."""
+
+    for arg in error.args:
+        if isinstance(arg, ARAccessError):
+            return arg
+    return ARAccessError.UNKNOWN
 
 
 def _check_response(
@@ -252,6 +270,44 @@ class Connection:  # pylint: disable=too-many-instance-attributes
 
         return self._connected
 
+    @property
+    def http(self) -> str:
+        """Return HTTP scheme."""
+
+        return "https" if self._config.get(ARCCKey.USE_SSL) else "http"
+
+    @property
+    def password(self) -> str:
+        """Return the current password."""
+
+        return self._password
+
+    @property
+    def port(self) -> int:
+        """Return port number."""
+
+        return safe_int_config(self._config.get(ARCCKey.PORT))
+
+    @property
+    def username(self) -> str:
+        """Return the current username."""
+
+        return self._username
+
+    @property
+    def webpanel(self) -> str:
+        """Return web panel URL."""
+
+        return f"{self.http}://{self._hostname}:{self.port}"
+
+    # ---------------------------
+    # <-- Properties
+    # ---------------------------
+
+    # ---------------------------
+    # Logging -->
+    # ---------------------------
+
     def set_error_suppression(self, suppress: bool) -> None:
         """Downgrade expected connection errors to debug while set."""
 
@@ -266,26 +322,8 @@ class Connection:  # pylint: disable=too-many-instance-attributes
             *args,
         )
 
-    @property
-    def http(self) -> str:
-        """Return HTTP scheme."""
-
-        return "https" if self._config.get(ARCCKey.USE_SSL) else "http"
-
-    @property
-    def port(self) -> int:
-        """Return port number."""
-
-        return safe_int_config(self._config.get(ARCCKey.PORT))
-
-    @property
-    def webpanel(self) -> str:
-        """Return web panel URL."""
-
-        return f"{self.http}://{self._hostname}:{self.port}"
-
     # ---------------------------
-    # <-- Properties
+    # <-- Logging
     # ---------------------------
 
     # ---------------------------
@@ -470,21 +508,7 @@ class Connection:  # pylint: disable=too-many-instance-attributes
 
         _LOGGER.debug("Initializing disconnection from %s", self._log_hostname)
 
-        # Cancel any in-flight connect task so it can't re-establish
-        # connection state after we tear it down.
-        old_task: asyncio.Task[bool] | None = None
-        async with self._connect_task_lock:
-            if (
-                self._connect_task is not None
-                and not self._connect_task.done()
-            ):
-                old_task = self._connect_task
-                self._connect_task = None
-                old_task.cancel()
-
-        if old_task is not None:
-            with contextlib.suppress(asyncio.CancelledError, Exception):
-                await old_task
+        await self._async_cancel_connect_task()
 
         try:
             await self._send_request(AREndpoint.LOGOUT)
@@ -506,6 +530,23 @@ class Connection:  # pylint: disable=too-many-instance-attributes
         _LOGGER.debug("Disconnected from %s", self._log_hostname)
         return True
 
+    async def _async_cancel_connect_task(self) -> None:
+        """Cancel any in-flight connect task so it cannot re-establish auth."""
+
+        old_task: asyncio.Task[bool] | None = None
+        async with self._connect_task_lock:
+            if (
+                self._connect_task is not None
+                and not self._connect_task.done()
+            ):
+                old_task = self._connect_task
+                self._connect_task = None
+                old_task.cancel()
+
+        if old_task is not None:
+            with contextlib.suppress(asyncio.CancelledError, Exception):
+                await old_task
+
     def reset_auth(self) -> None:
         """Clear auth state when the connection is no longer valid."""
 
@@ -517,6 +558,58 @@ class Connection:  # pylint: disable=too-many-instance-attributes
         self._connected = False
         self._token = None
         self._header = None
+
+    async def async_set_credentials(
+        self, username: str, password: str
+    ) -> bool:
+        """Swap the stored credentials and re-establish the session."""
+
+        self._username = username
+        self._password = password
+        self._auth_payload, self._auth_headers = generate_credentials(
+            username, password
+        )
+        # Drop the stale auth and cancel any in-flight login
+        self.reset_auth()
+        await self._async_cancel_connect_task()
+
+        # httpd is restarting; expected login failures stay at debug
+        prev_suppress = self._suppress_errors
+        self.set_error_suppression(True)
+        try:
+            await asyncio.sleep(_CREDENTIALS_RECONNECT_INITIAL_DELAY)
+            for attempt in range(_CREDENTIALS_RECONNECT_MAX_ATTEMPTS):
+                if attempt:
+                    await asyncio.sleep(_CREDENTIALS_RECONNECT_INTERVAL)
+                try:
+                    if await self.async_connect(block_error=True):
+                        return True
+                except AsusRouterAccessError as ex:
+                    # Stale credentials are expected while httpd reloads
+                    error = _access_error(ex)
+                    if error is not ARAccessError.CREDENTIALS:
+                        _LOGGER.error(
+                            "Login on %s was changed, but the device refused "
+                            "the new session (%s). The new credentials are "
+                            "stored; check the device for a captcha or a "
+                            "temporary login lock before reconnecting",
+                            self._log_hostname,
+                            error.name,
+                        )
+                        return False
+                except AsusRouterError:
+                    pass
+
+            _LOGGER.error(
+                "Login on %s was changed, but the new session could not be "
+                "established in %s attempts. The new credentials are stored; "
+                "reconnect manually if the device stays unreachable",
+                self._log_hostname,
+                _CREDENTIALS_RECONNECT_MAX_ATTEMPTS,
+            )
+            return False
+        finally:
+            self.set_error_suppression(prev_suppress)
 
     # ---------------------------
     # <-- Connection management

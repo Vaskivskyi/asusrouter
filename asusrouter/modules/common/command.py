@@ -134,6 +134,9 @@ class ARService(FromStrMixin, StrEnum):
     TIME_RESTART = "restart_time"
     TIMEMACHINE_RESTART = "restart_timemachine"
 
+    # UPnP
+    UPNP_RESTART = "restart_upnp"
+
     # VPN client
     VPNC_RESTART = "restart_vpnc"
     VPNC_STOP = "stop_vpnc"
@@ -183,7 +186,6 @@ class ARService(FromStrMixin, StrEnum):
     # TOR_RESTART = "restart_tor"
     # TR069_RESTART = "restart_tr"
     # TRAFFIC_DNSQD_RESTART = "restart_dnsqd"  # dns query daemon
-    # UPNP_RESTART = "restart_upnp"
     # USB_IDLE_RESTART = "restart_usb_idle"
     # WPS_IE_RESTART = "restart_wpsie"
     # WTFAST_RULE_RESTART = "restart_wtfast_rule"

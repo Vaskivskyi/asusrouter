@@ -295,6 +295,20 @@ class AsusRouter:
 
         return True
 
+    def _current_credentials(self) -> tuple[str, str]:
+        """Return the (username, password) currently held by the connection."""
+
+        return self._connection.username, self._connection.password
+
+    async def _async_set_credentials(
+        self, username: str, password: str
+    ) -> bool:
+        """Swap the login credentials and re-establish the session."""
+
+        _LOGGER.debug("Triggered method _async_set_credentials")
+
+        return await self._connection.async_set_credentials(username, password)
+
     def _async_drop_connection(self) -> None:
         """Drop the connection.
 
@@ -932,6 +946,8 @@ class AsusRouter:
         kwargs["fetch_raw_callback"] = self.async_fetch
         kwargs["run_action_callback"] = self.async_run_action
         kwargs["expire_callback"] = self._async_expire_data
+        kwargs["credentials_get_callback"] = self._current_credentials
+        kwargs["credentials_set_callback"] = self._async_set_credentials
 
         raw = await run_caller(
             self.async_read, action, identity=self.description, **kwargs

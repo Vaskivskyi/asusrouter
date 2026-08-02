@@ -260,3 +260,34 @@ def test_async_drop_connection_resets_connection(
     router._async_drop_connection()
 
     conn.reset_auth.assert_called_once()
+
+
+def test_current_credentials_reads_from_connection(
+    router: AsusRouter,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """_current_credentials returns the connection's username and password."""
+
+    conn = Mock()
+    conn.username = "someuser"
+    conn.password = "somepass"
+    monkeypatch.setattr(router, "_connection", conn)
+
+    assert router._current_credentials() == ("someuser", "somepass")
+
+
+@pytest.mark.asyncio
+async def test_async_set_credentials_delegates_to_connection(
+    router: AsusRouter,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """_async_set_credentials forwards to the connection, returns its bool."""
+
+    conn = Mock()
+    conn.async_set_credentials = AsyncMock(return_value=True)
+    monkeypatch.setattr(router, "_connection", conn)
+
+    result = await router._async_set_credentials("newuser", "newpass")
+
+    conn.async_set_credentials.assert_awaited_once_with("newuser", "newpass")
+    assert result is True
