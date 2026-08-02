@@ -67,8 +67,10 @@ class TestServerEnabled:
     ("content", "expected"),
     [
         (
-            '<?xml version="1.0" ?>\n<vpnserver>\n'
-            "192.168.55.23:15620 10.8.0.2 Surfie\n\n</vpnserver>",
+            (
+                '<?xml version="1.0" ?>\n<vpnserver>\n'
+                "192.168.55.23:15620 10.8.0.2 Surfie\n\n</vpnserver>"
+            ),
             [
                 {
                     "name": "Surfie",
@@ -79,8 +81,10 @@ class TestServerEnabled:
         ),
         # Two clients
         (
-            "<vpnserver>\n1.2.3.4:5 10.0.0.2 a\n6.7.8.9:1 10.0.0.3 b\n"
-            "</vpnserver>",
+            (
+                "<vpnserver>\n1.2.3.4:5 10.0.0.2 a\n6.7.8.9:1 10.0.0.3 b\n"
+                "</vpnserver>"
+            ),
             [
                 {"name": "a", "vpn_ip": "10.0.0.2", "remote": "1.2.3.4:5"},
                 {"name": "b", "vpn_ip": "10.0.0.3", "remote": "6.7.8.9:1"},

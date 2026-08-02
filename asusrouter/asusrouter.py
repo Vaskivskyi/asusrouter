@@ -125,6 +125,7 @@ class AsusRouter:
         hostname: str,
         username: str,
         password: str,
+        *,
         port: int | None = None,
         use_ssl: bool = False,
         session: aiohttp.ClientSession | None = None,

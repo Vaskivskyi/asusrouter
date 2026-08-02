@@ -44,7 +44,7 @@ include = ["asusrouter*"]
 dev = [
     "mypy==2.3.0",
     "pydantic==2.13.4",
-    "ruff==0.15.22",
+    "ruff==0.16.0",
     "prek==0.4.11",
 ]
 test = [
@@ -61,6 +61,9 @@ asyncio_mode = "auto"
 line-length = 79
 src = ["asusrouter"]
 target-version = "py311"
+
+[tool.ruff.format]
+exclude = ["*.md"]  # don't format code within markdown files
 
 [tool.ruff.lint]
 select = [
@@ -124,6 +127,7 @@ split-on-trailing-comma = false
 "tests/*" = [
     "BLE001",  # Do not catch blind exception: `Exception`
     "PLR0913", # Too many arguments in function definition ({c_args} > {max_args})
+    "PLR0917", # Too many positional arguments ({c_pos} > {max_pos})
     "PLR2004", # Magic value used in comparison
     "S101",    # Use of `assert` detected
     "S104",    # Possible binding to all interfaces
