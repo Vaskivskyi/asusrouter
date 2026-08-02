@@ -69,6 +69,18 @@ def test_rejects_too_long_password() -> None:
 
 
 @pytest.mark.parametrize(
+    "new_password",
+    ["café", "пароль", "pass word", "emoji\U0001f512"],
+    ids=["accent", "cyrillic", "nbsp", "emoji"],
+)
+def test_rejects_non_ascii_password(new_password: str) -> None:
+    """A password the login payload cannot encode is refused up front."""
+
+    error = _validate(new_password=new_password)
+    assert error == "password must contain only ASCII characters"
+
+
+@pytest.mark.parametrize(
     "new_username",
     ["good_name", "a1-b_2", "Router", "x"],
 )

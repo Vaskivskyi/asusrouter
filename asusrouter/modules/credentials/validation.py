@@ -83,6 +83,9 @@ def _validate_password(password: str, policy: CredentialsPolicy) -> str | None:
     error = _validate_length(password, policy.password_max, "password")
     if error:
         return error
+    # The login payload is ASCII-encoded
+    if not password.isascii():
+        return "password must contain only ASCII characters"
     if policy.strict:
         return _validate_strict_password(password)
     return None
