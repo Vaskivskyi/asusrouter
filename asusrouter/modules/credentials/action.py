@@ -5,11 +5,14 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass
 import logging
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from asusrouter.error import AsusRouterConnectionError, AsusRouterTimeoutError
 from asusrouter.modules.action import ARAction
-from asusrouter.modules.credentials.enums import ARCredentialsStatus
+from asusrouter.modules.credentials.enums import (
+    ARCredentialsCapability,
+    ARCredentialsStatus,
+)
 from asusrouter.modules.credentials.legacy import build_legacy_request
 from asusrouter.modules.credentials.models import (
     build_chpass_request,
@@ -22,14 +25,14 @@ from asusrouter.modules.credentials.validation import (
 )
 from asusrouter.modules.endpoint import AREndpoint
 from asusrouter.modules.service.action import ARServiceResult
-from asusrouter.modules.support import (
-    ARSupportSourceUniversal,
-    support_available,
-    support_value,
-)
 from asusrouter.modules.support.flag import ARSupportType
+from asusrouter.modules.support.helpers import support_capability
 from asusrouter.registry import ARCallableRegistry as ARCallReg
+from asusrouter.tools.converters.raw import raw_to_int
 from asusrouter.tools.types import ARCallbackType
+
+if TYPE_CHECKING:
+    from asusrouter.modules.device.identity import ARDeviceIdentity
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -44,34 +47,38 @@ class ARCredentialsAction(ARAction):
     new_password: str | None = None
 
 
-async def _fetch_support(
-    fetch_data_callback: ARCallbackType | None,
-) -> dict[ARSupportType, Any]:
-    """Fetch the device support flags, or an empty map when unavailable."""
+def _capability(
+    identity: ARDeviceIdentity | None,
+    capability: ARCredentialsCapability,
+) -> Any:
+    """Read one advertised login capability off the identity."""
 
-    if fetch_data_callback is None:
-        return {}
-    fetched = await fetch_data_callback(ARSupportSourceUniversal)
-    if isinstance(fetched, dict):
-        return fetched.get(ARSupportSourceUniversal) or {}
-    return {}
+    if identity is None:
+        return None
+    return support_capability(
+        identity.support,
+        ARSupportType.CREDENTIALS_CAPABILITIES,
+        capability,
+    )
 
 
-def _policy_from_support(
-    support: dict[ARSupportType, Any],
+def _policy_from_identity(
+    identity: ARDeviceIdentity | None,
 ) -> CredentialsPolicy:
-    """Derive the credential rules from the support flags."""
+    """Derive the credential rules from the advertised capabilities."""
+
+    username_max = raw_to_int(
+        _capability(identity, ARCredentialsCapability.USERNAME_MAX_LENGTH)
+    )
+    password_max = raw_to_int(
+        _capability(identity, ARCredentialsCapability.PASSWORD_MAX_LENGTH)
+    )
 
     return CredentialsPolicy(
-        username_max=(
-            support_value(support, ARSupportType.HTTP_USERNAME_MAX_LENGTH)
-            or DEFAULT_MAX_LENGTH
-        ),
-        password_max=(
-            support_value(support, ARSupportType.HTTP_PASSWORD_MAX_LENGTH)
-            or DEFAULT_MAX_LENGTH
-        ),
-        strict=support_available(support, ARSupportType.SECURE_DEFAULT),
+        username_max=username_max or DEFAULT_MAX_LENGTH,
+        password_max=password_max or DEFAULT_MAX_LENGTH,
+        strict=_capability(identity, ARCredentialsCapability.SECURE_DEFAULT)
+        is True,
     )
 
 
@@ -108,6 +115,8 @@ async def run_action(
 ) -> ARServiceResult:
     """Change the router login username/password."""
 
+    identity: ARDeviceIdentity | None = kwargs.get("identity")
+
     if credentials_get_callback is None:
         _LOGGER.debug("No credentials getter available; cannot change login")
         return ARServiceResult(success=False)
@@ -122,19 +131,18 @@ async def run_action(
     new_password = action.new_password or cur_password
 
     # Reject changes the device is known to refuse, before sending them
-    support = await _fetch_support(kwargs.get("fetch_data_callback"))
     error = validate_credentials(
         cur_username=cur_username,
         cur_password=cur_password,
         new_username=action.new_username,
         new_password=action.new_password,
-        policy=_policy_from_support(support),
+        policy=_policy_from_identity(identity),
     )
     if error is not None:
         _LOGGER.warning("Login change rejected: %s", error)
         return ARServiceResult(success=False)
 
-    use_chpass = support_available(support, ARSupportType.CHPASS)
+    use_chpass = _capability(identity, ARCredentialsCapability.CHPASS) is True
     # New FW
     if use_chpass:
         endpoint = AREndpoint.CHPASS

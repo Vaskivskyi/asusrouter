@@ -29,7 +29,7 @@ class ARSupportType(FromStrMixin, StrEnum):
     CONNECTIONS = "connections"
 
     # Credentials
-    CHPASS = "chpass"
+    CREDENTIALS_CAPABILITIES = "credentials_capabilities"
 
     # Device mode
     DEVICE_MODE = "device_mode"
@@ -45,10 +45,6 @@ class ARSupportType(FromStrMixin, StrEnum):
     FTP = "ftp"
     FTP_CAPABILITIES = "ftp_capabilities"
 
-    # HTTP
-    HTTP_PASSWORD_MAX_LENGTH = "http_password_max_length"
-    HTTP_USERNAME_MAX_LENGTH = "http_username_max_length"
-
     # LAN
     LAN_CAPABILITIES = "lan_capabilities"
 
@@ -62,9 +58,6 @@ class ARSupportType(FromStrMixin, StrEnum):
     # SDN
     SDN = "sdn"
     SDN_CAPABILITIES = "sdn_capabilities"
-
-    # Security
-    SECURE_DEFAULT = "secure_default"
 
     # SpeedTest
     SPEEDTEST = "speedtest"

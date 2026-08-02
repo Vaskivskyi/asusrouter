@@ -16,8 +16,8 @@ from asusrouter.modules.credentials.action import (
     ARCredentialsAction,
     run_action,
 )
+from asusrouter.modules.credentials.enums import ARCredentialsCapability
 from asusrouter.modules.endpoint import AREndpoint
-from asusrouter.modules.support import ARSupportSourceUniversal
 from asusrouter.modules.support.flag import ARSupportType
 from asusrouter.registry import ARCallableRegistry as ARCallReg
 
@@ -57,22 +57,30 @@ def _sent_fields(
     return {k: v[0] for k, v in parse_qs(body, keep_blank_values=True).items()}
 
 
-def _support_callback(
+def _identity(
     *,
     username_max: int = 32,
     password_max: int = 32,
     strict: bool = False,
     chpass: bool = True,
-) -> AsyncMock:
-    """fetch_data_callback serving the credential support flags."""
+) -> Mock:
+    """Identity advertising the given login capabilities, as translated."""
 
-    support = {
-        ARSupportType.HTTP_USERNAME_MAX_LENGTH: username_max,
-        ARSupportType.HTTP_PASSWORD_MAX_LENGTH: password_max,
-        ARSupportType.SECURE_DEFAULT: strict,
-        ARSupportType.CHPASS: chpass,
-    }
-    return AsyncMock(return_value={ARSupportSourceUniversal: support})
+    capabilities: dict[ARCredentialsCapability, bool | int] = {}
+    if username_max:
+        capabilities[ARCredentialsCapability.USERNAME_MAX_LENGTH] = (
+            username_max
+        )
+    if password_max:
+        capabilities[ARCredentialsCapability.PASSWORD_MAX_LENGTH] = (
+            password_max
+        )
+    if strict:
+        capabilities[ARCredentialsCapability.SECURE_DEFAULT] = True
+    if chpass:
+        capabilities[ARCredentialsCapability.CHPASS] = True
+
+    return Mock(support={ARSupportType.CREDENTIALS_CAPABILITIES: capabilities})
 
 
 async def test_password_change_success() -> None:
@@ -87,7 +95,7 @@ async def test_password_change_success() -> None:
         credentials_get_callback=_getter(),
         credentials_set_callback=setter,
         fetch_raw_callback=poster,
-        fetch_data_callback=_support_callback(),
+        identity=_identity(),
     )
 
     assert result.success is True
@@ -112,7 +120,7 @@ async def test_username_change_success() -> None:
         credentials_get_callback=_getter(),
         credentials_set_callback=setter,
         fetch_raw_callback=poster,
-        fetch_data_callback=_support_callback(),
+        identity=_identity(),
     )
 
     assert result.success is True
@@ -136,7 +144,7 @@ async def test_both_change_success() -> None:
         credentials_get_callback=_getter(),
         credentials_set_callback=setter,
         fetch_raw_callback=poster,
-        fetch_data_callback=_support_callback(),
+        identity=_identity(),
     )
 
     assert result.success is True
@@ -156,7 +164,7 @@ async def test_failure_does_not_resync(status: str) -> None:
         credentials_get_callback=_getter(),
         credentials_set_callback=setter,
         fetch_raw_callback=poster,
-        fetch_data_callback=_support_callback(),
+        identity=_identity(),
     )
 
     assert result.success is False
@@ -193,7 +201,7 @@ async def test_connection_drop_reports_failure_without_swap() -> None:
         credentials_get_callback=_getter(),
         credentials_set_callback=setter,
         fetch_raw_callback=poster,
-        fetch_data_callback=_support_callback(),
+        identity=_identity(),
     )
 
     assert result.success is False
@@ -214,7 +222,7 @@ async def test_success_without_setter_callback(
             credentials_get_callback=_getter(),
             credentials_set_callback=None,
             fetch_raw_callback=poster,
-            fetch_data_callback=_support_callback(),
+            identity=_identity(),
         )
 
     assert result.success is True
@@ -266,7 +274,7 @@ async def test_falls_back_to_primary_callback() -> None:
         ARCredentialsAction(new_password="freshpass"),
         credentials_get_callback=_getter(),
         credentials_set_callback=setter,
-        fetch_data_callback=_support_callback(),
+        identity=_identity(),
     )
 
     assert result.success is True
@@ -285,7 +293,7 @@ async def test_rejects_change_over_max_length() -> None:
         credentials_get_callback=_getter(),
         credentials_set_callback=setter,
         fetch_raw_callback=poster,
-        fetch_data_callback=_support_callback(password_max=8),
+        identity=_identity(password_max=8),
     )
 
     assert result.success is False
@@ -306,7 +314,7 @@ async def test_rejects_username_equal_password(
             ARCredentialsAction(new_password=_CUR_USER),
             credentials_get_callback=_getter(),
             fetch_raw_callback=poster,
-            fetch_data_callback=_support_callback(),
+            identity=_identity(),
         )
 
     assert result.success is False
@@ -324,7 +332,7 @@ async def test_strict_policy_rejects_weak_password() -> None:
         ARCredentialsAction(new_password="weak"),
         credentials_get_callback=_getter(),
         fetch_raw_callback=poster,
-        fetch_data_callback=_support_callback(strict=True),
+        identity=_identity(strict=True),
     )
 
     assert result.success is False
@@ -343,7 +351,7 @@ async def test_strict_policy_accepts_compliant_password() -> None:
         credentials_get_callback=_getter(),
         credentials_set_callback=setter,
         fetch_raw_callback=poster,
-        fetch_data_callback=_support_callback(strict=True),
+        identity=_identity(strict=True),
     )
 
     assert result.success is True
@@ -363,7 +371,7 @@ async def test_legacy_password_change() -> None:
         credentials_get_callback=_getter(),
         credentials_set_callback=setter,
         fetch_raw_callback=poster,
-        fetch_data_callback=_support_callback(chpass=False),
+        identity=_identity(chpass=False),
     )
 
     assert result.success is True
@@ -389,7 +397,7 @@ async def test_legacy_username_change() -> None:
         credentials_get_callback=_getter(),
         credentials_set_callback=setter,
         fetch_raw_callback=poster,
-        fetch_data_callback=_support_callback(chpass=False),
+        identity=_identity(chpass=False),
     )
 
     assert result.success is True
@@ -411,15 +419,15 @@ async def test_legacy_empty_response_fails() -> None:
         credentials_get_callback=_getter(),
         credentials_set_callback=setter,
         fetch_raw_callback=poster,
-        fetch_data_callback=_support_callback(chpass=False),
+        identity=_identity(chpass=False),
     )
 
     assert result.success is False
     setter.assert_not_awaited()
 
 
-async def test_non_dict_support_falls_back_to_legacy() -> None:
-    """A non-dict support response yields defaults and the legacy backend."""
+async def test_no_identity_falls_back_to_legacy() -> None:
+    """Without an identity, defaults apply and the legacy backend is used."""
 
     poster = AsyncMock(return_value="<html>ok</html>")
 
@@ -429,7 +437,25 @@ async def test_non_dict_support_falls_back_to_legacy() -> None:
         credentials_get_callback=_getter(),
         credentials_set_callback=AsyncMock(return_value=True),
         fetch_raw_callback=poster,
-        fetch_data_callback=AsyncMock(return_value=None),
+    )
+
+    assert result.success is True
+    assert poster.await_args.kwargs["endpoint"] is AREndpoint.START_APPLY
+
+
+async def test_non_dict_capabilities_falls_back_to_legacy() -> None:
+    """A non-dict capabilities value yields defaults and the legacy backend."""
+
+    poster = AsyncMock(return_value="<html>ok</html>")
+    identity = Mock(support={ARSupportType.CREDENTIALS_CAPABILITIES: None})
+
+    result = await run_action(
+        poster,
+        ARCredentialsAction(new_password="freshpass"),
+        credentials_get_callback=_getter(),
+        credentials_set_callback=AsyncMock(return_value=True),
+        fetch_raw_callback=poster,
+        identity=identity,
     )
 
     assert result.success is True

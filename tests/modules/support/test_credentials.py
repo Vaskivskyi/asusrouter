@@ -6,11 +6,9 @@ from typing import Any
 
 import pytest
 
+from asusrouter.modules.credentials.enums import ARCredentialsCapability
 from asusrouter.modules.support.credentials import (
-    translate_chpass,
-    translate_http_password_max_length,
-    translate_http_username_max_length,
-    translate_secure_default,
+    translate_credentials_capabilities,
 )
 from asusrouter.modules.support.flag import ARSupportValue
 
@@ -18,54 +16,49 @@ from asusrouter.modules.support.flag import ARSupportValue
 @pytest.mark.parametrize(
     ("data", "expected"),
     [
-        ({ARSupportValue.HTTP_USERNAME_MAX_LENGTH.value: "32"}, 32),
-        ({ARSupportValue.HTTP_USERNAME_MAX_LENGTH.value: "0"}, 0),
-        ({}, 0),
+        # Nothing advertised
+        ({}, {}),
+        # Modern firmware reporting the full set
+        (
+            {
+                ARSupportValue.CHPASS.value: 1,
+                ARSupportValue.SECURE_DEFAULT.value: 1,
+                ARSupportValue.HTTP_USERNAME_MAX_LENGTH.value: "32",
+                ARSupportValue.HTTP_PASSWORD_MAX_LENGTH.value: "16",
+            },
+            {
+                ARCredentialsCapability.CHPASS: True,
+                ARCredentialsCapability.SECURE_DEFAULT: True,
+                ARCredentialsCapability.USERNAME_MAX_LENGTH: 32,
+                ARCredentialsCapability.PASSWORD_MAX_LENGTH: 16,
+            },
+        ),
+        # Flags reported as disabled are left out
+        (
+            {
+                ARSupportValue.CHPASS.value: 0,
+                ARSupportValue.SECURE_DEFAULT.value: 0,
+            },
+            {},
+        ),
+        # A zero length is unreported, not a limit of zero
+        (
+            {
+                ARSupportValue.HTTP_USERNAME_MAX_LENGTH.value: "0",
+                ARSupportValue.HTTP_PASSWORD_MAX_LENGTH.value: "0",
+            },
+            {},
+        ),
+        # Legacy firmware advertises the lengths but has no CHPASS
+        (
+            {ARSupportValue.HTTP_PASSWORD_MAX_LENGTH.value: "32"},
+            {ARCredentialsCapability.PASSWORD_MAX_LENGTH: 32},
+        ),
     ],
 )
-def test_translate_username_max_length(data: Any, expected: int) -> None:
-    """The username-length translator reads the reported integer."""
+def test_translate_credentials_capabilities(
+    data: Any, expected: dict[ARCredentialsCapability, bool | int]
+) -> None:
+    """Only advertised login capabilities are reported."""
 
-    assert translate_http_username_max_length(data) == expected
-
-
-@pytest.mark.parametrize(
-    ("data", "expected"),
-    [
-        ({ARSupportValue.HTTP_PASSWORD_MAX_LENGTH.value: "32"}, 32),
-        ({ARSupportValue.HTTP_PASSWORD_MAX_LENGTH.value: "0"}, 0),
-        ({}, 0),
-    ],
-)
-def test_translate_password_max_length(data: Any, expected: int) -> None:
-    """The password-length translator reads the reported integer."""
-
-    assert translate_http_password_max_length(data) == expected
-
-
-@pytest.mark.parametrize(
-    ("data", "expected"),
-    [
-        ({ARSupportValue.SECURE_DEFAULT.value: 1}, True),
-        ({ARSupportValue.SECURE_DEFAULT.value: 0}, False),
-        ({}, False),
-    ],
-)
-def test_translate_secure_default(data: Any, expected: bool) -> None:
-    """The secure-default translator reports the boolean flag."""
-
-    assert translate_secure_default(data) is expected
-
-
-@pytest.mark.parametrize(
-    ("data", "expected"),
-    [
-        ({ARSupportValue.CHPASS.value: 1}, True),
-        ({ARSupportValue.CHPASS.value: 0}, False),
-        ({}, False),
-    ],
-)
-def test_translate_chpass(data: Any, expected: bool) -> None:
-    """The chpass translator reports whether chpass.cgi is available."""
-
-    assert translate_chpass(data) is expected
+    assert translate_credentials_capabilities(data) == expected

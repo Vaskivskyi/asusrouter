@@ -25,10 +25,7 @@ from asusrouter.modules.support.aura import (
 )
 from asusrouter.modules.support.connection import translate_connection
 from asusrouter.modules.support.credentials import (
-    translate_chpass,
-    translate_http_password_max_length,
-    translate_http_username_max_length,
-    translate_secure_default,
+    translate_credentials_capabilities,
 )
 from asusrouter.modules.support.device import translate_device_mode
 from asusrouter.modules.support.dsl import translate_dsl
@@ -95,16 +92,14 @@ _TRANSLATION_TABLE: dict[ARSupportType, ARCallableType] = {
     ARSupportType.AIMESH_CAPABILITIES: translate_aimesh_capabilities,
     ARSupportType.AURA: translate_aura,
     ARSupportType.AURA_CAPABILITIES: translate_aura_capabilities,
-    ARSupportType.CHPASS: translate_chpass,
     ARSupportType.CONNECTIONS: translate_connection,
+    ARSupportType.CREDENTIALS_CAPABILITIES: translate_credentials_capabilities,
     ARSupportType.DEVICE_MODE: translate_device_mode,
     ARSupportType.DSL: translate_dsl,
     ARSupportType.FIRMWARE: translate_firmware,
     ARSupportType.FIRMWARE_CAPABILITIES: translate_firmware_capabilities,
     ARSupportType.FTP: translate_ftp,
     ARSupportType.FTP_CAPABILITIES: translate_ftp_capabilities,
-    ARSupportType.HTTP_PASSWORD_MAX_LENGTH: translate_http_password_max_length,
-    ARSupportType.HTTP_USERNAME_MAX_LENGTH: translate_http_username_max_length,
     ARSupportType.LAN_CAPABILITIES: translate_lan_capabilities,
     ARSupportType.PARENTAL_CONTROL: translate_parental_control,
     ARSupportType.PARENTAL_CONTROL_CAPABILITIES: (
@@ -113,7 +108,6 @@ _TRANSLATION_TABLE: dict[ARSupportType, ARCallableType] = {
     ARSupportType.PLATFORM: translate_platform,
     ARSupportType.SDN: translate_sdn,
     ARSupportType.SDN_CAPABILITIES: translate_sdn_capabilities,
-    ARSupportType.SECURE_DEFAULT: translate_secure_default,
     ARSupportType.SPEEDTEST: translate_speedtest,
     ARSupportType.SPEEDTEST_CAPABILITIES: translate_speedtest_capabilities,
     ARSupportType.USB: translate_usb,
