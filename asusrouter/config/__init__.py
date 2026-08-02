@@ -38,6 +38,8 @@ class ARConfigKey(ARConfigKeyBase):
     NOTIFIED_DUMP = "notified_dump"
     # Probe report redaction warning shown once per session
     NOTIFIED_PROBE = "notified_probe"
+    # How many log entries are kept across reads
+    LOG_HISTORY_LIMIT = "log_history_limit"
     # Security level applied to logged data
     SECURITY_LEVEL_LOG = "security_level_log"
     # Security level applied to data exposed to consumers
@@ -47,6 +49,7 @@ class ARConfigKey(ARConfigKeyBase):
 CONFIG_DEFAULT_BOOL: bool = False
 CONFIG_DEFAULT_INT: int = 0
 CONFIG_DEFAULT_ALREADY_NOTIFIED: bool = False
+CONFIG_DEFAULT_LOG_HISTORY: int = 50000
 
 
 def safe_bool_config(value: Any) -> bool:
@@ -107,6 +110,8 @@ CONFIG_DEFAULT: dict[ARConfigKey, Any] = {
     ARConfigKey.BOOTTIME: None,
     ARConfigKey.NOTIFIED_DUMP: CONFIG_DEFAULT_ALREADY_NOTIFIED,
     ARConfigKey.NOTIFIED_PROBE: CONFIG_DEFAULT_ALREADY_NOTIFIED,
+    # Log entries kept across reads; 0 keeps everything
+    ARConfigKey.LOG_HISTORY_LIMIT: CONFIG_DEFAULT_LOG_HISTORY,
     # Logs sanitize sensitive data by default
     ARConfigKey.SECURITY_LEVEL_LOG: ARSecurityLevel.SANITIZED,
     # Data exposes reasonably-sensitive values (MAC, IP) but not secrets
@@ -123,6 +128,7 @@ TYPES_DEFAULT: dict[ARConfigKey, Callable[[Any], Any]] = {
     ARConfigKey.NOTIFIED_DUMP: safe_bool_config,
     # Probe report notification flag
     ARConfigKey.NOTIFIED_PROBE: safe_bool_config,
+    ARConfigKey.LOG_HISTORY_LIMIT: safe_int_config,
     # Security levels
     ARConfigKey.SECURITY_LEVEL_LOG: ARSecurityLevel.from_value,
     ARConfigKey.SECURITY_LEVEL_DATA: ARSecurityLevel.from_value,

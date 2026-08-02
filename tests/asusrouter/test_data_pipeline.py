@@ -206,6 +206,45 @@ class TestCommitState:
         assert identity.uptime == 12
         assert identity.rebooted is True
 
+    def test_committing_device_time_syncs_identity(
+        self,
+        router: AsusRouter,
+        make_state: MakeStateFactory,
+    ) -> None:
+        """The device's own clock reaches the identity for the log."""
+
+        identity = ARDeviceIdentity()
+        id_state = make_state(ARDeviceSourceUniversal)
+        cast(Any, id_state)._content = identity
+        router._data_states[ARDeviceSourceUniversal] = id_state
+
+        device_time = datetime(2026, 7, 31, 10, 24, 4, tzinfo=UTC)
+        router._commit_data_state(
+            make_state(ARClockSource()),
+            {ARClockField.DEVICE_TIME: device_time},
+        )
+
+        assert identity.device_time == device_time
+
+    def test_naive_device_time_is_ignored(
+        self,
+        router: AsusRouter,
+        make_state: MakeStateFactory,
+    ) -> None:
+        """A clock stating no offset places nothing on a timeline."""
+
+        identity = ARDeviceIdentity()
+        id_state = make_state(ARDeviceSourceUniversal)
+        cast(Any, id_state)._content = identity
+        router._data_states[ARDeviceSourceUniversal] = id_state
+
+        router._commit_data_state(
+            make_state(ARClockSource()),
+            {ARClockField.DEVICE_TIME: datetime(2026, 7, 31, 10, 24, 4)},
+        )
+
+        assert identity.device_time is None
+
     def test_clock_keys_from_another_source_are_ignored(
         self,
         router: AsusRouter,

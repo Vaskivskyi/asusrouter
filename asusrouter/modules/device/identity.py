@@ -162,6 +162,8 @@ class ARDeviceIdentity:
         self._boottime: datetime | None = None
         # Seconds the device has been running
         self._uptime: int | None = None
+        # The device's own clock as of the last read
+        self._device_time: datetime | None = None
         # Edge flag - set when the uptime falls back (a reboot)
         self._rebooted: bool = False
 
@@ -271,6 +273,17 @@ class ARDeviceIdentity:
         self._uptime = uptime
         if previous is not None and uptime is not None and uptime < previous:
             self._rebooted = True
+
+    @property
+    def device_time(self) -> datetime | None:
+        """Get the device's own clock as of the last read."""
+
+        return self._device_time
+
+    def update_device_time(self, device_time: datetime | None) -> None:
+        """Replace the device's own clock."""
+
+        self._device_time = device_time
 
     @property
     def rebooted(self) -> bool:
