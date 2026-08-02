@@ -142,6 +142,7 @@ class Connection:  # pylint: disable=too-many-instance-attributes
         hostname: str,
         username: str,
         password: str,
+        *,
         port: int | None = None,
         use_ssl: bool = False,
         session: aiohttp.ClientSession | None = None,

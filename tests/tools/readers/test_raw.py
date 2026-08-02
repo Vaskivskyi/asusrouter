@@ -114,8 +114,11 @@ def test_is_true_in_dict(
         ),
         # Legacy firmware emits get_clientlist without wrapping braces
         (
-            '{\n"get_clientlist":"AA:BB":{"name":"x"},"maclist":["AA:BB"],\n'
-            '"get_clientlist_from_json_database":""\n}',
+            (
+                '{\n"get_clientlist":"AA:BB":{"name":"x"},'
+                '"maclist":["AA:BB"],\n'
+                '"get_clientlist_from_json_database":""\n}'
+            ),
             {
                 "get_clientlist": {
                     "AA:BB": {"name": "x"},
@@ -126,8 +129,10 @@ def test_is_true_in_dict(
         ),
         # A properly wrapped get_clientlist is left untouched
         (
-            '{"get_clientlist":{"AA:BB":{"name":"x"}},'
-            '"get_clientlist_from_json_database":""}',
+            (
+                '{"get_clientlist":{"AA:BB":{"name":"x"}},'
+                '"get_clientlist_from_json_database":""}'
+            ),
             {
                 "get_clientlist": {"AA:BB": {"name": "x"}},
                 "get_clientlist_from_json_database": "",
@@ -157,8 +162,10 @@ def test_read_json_content_fail() -> None:
     [
         # An old-firmware bounce page for an unavailable endpoint
         (
-            '<HTML><HEAD><meta http-equiv="refresh" '
-            'content="0; url=cloud_sync.asp?flag="></HEAD></HTML>',
+            (
+                '<HTML><HEAD><meta http-equiv="refresh" '
+                'content="0; url=cloud_sync.asp?flag="></HEAD></HTML>'
+            ),
             True,
         ),
         # Case and spacing variations still match
