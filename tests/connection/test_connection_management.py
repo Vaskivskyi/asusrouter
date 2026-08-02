@@ -18,6 +18,7 @@ from asusrouter.error import (
     AsusRouterLogoutError,
     AsusRouterSSLCertificateError,
 )
+from asusrouter.modules.endpoint.error import ARAccessError
 from tests.helpers import AsyncPatch, ConnectionFactory, SyncPatch
 
 
@@ -914,16 +915,83 @@ class TestAsyncSetCredentials:
         assert result is True
         assert mock_connect.await_count == 2
 
-    async def test_timeout_returns_false_but_keeps_new_credentials(
+    async def test_stale_credentials_error_is_retried(
         self,
         connection_factory: ConnectionFactory,
         async_connect: AsyncPatch,
         reset_auth: SyncPatch,
     ) -> None:
-        """Past the deadline it gives up, but new credentials remain set."""
+        """A login refused while httpd reloads is retried."""
 
         conn = connection_factory()
-        async_connect(conn, return_value=False)
+        mock_connect = async_connect(conn)
+        mock_connect.side_effect = [
+            AsusRouterAccessError(
+                "Access error", ARAccessError.CREDENTIALS, {}
+            ),
+            True,
+        ]
+        reset_auth(conn)
+
+        with patch(
+            "asusrouter.connection.asyncio.sleep", new_callable=AsyncMock
+        ):
+            result = await conn.async_set_credentials("newuser", "newpass")
+
+        assert result is True
+        assert mock_connect.await_count == 2
+
+    @pytest.mark.parametrize(
+        "args",
+        [
+            # The device started asking for a captcha
+            ("Access error", ARAccessError.CAPTCHA, {}),
+            # Too many failed logins already; it is counting down a lock
+            ("Access error", ARAccessError.TRY_AGAIN, {"timeout": 60}),
+            # No code carried at all - not provably a stale-credentials bounce
+            ("Access error",),
+        ],
+    )
+    async def test_other_access_error_stops_knocking(
+        self,
+        connection_factory: ConnectionFactory,
+        async_connect: AsyncPatch,
+        reset_auth: SyncPatch,
+        args: tuple[Any, ...],
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        """Anything but stale credentials aborts before attempts run out."""
+
+        conn = connection_factory()
+        mock_connect = async_connect(conn)
+        mock_connect.side_effect = AsusRouterAccessError(*args)
+        reset_auth(conn)
+
+        with (
+            patch(
+                "asusrouter.connection.asyncio.sleep", new_callable=AsyncMock
+            ),
+            caplog.at_level(logging.ERROR),
+        ):
+            result = await conn.async_set_credentials("newuser", "newpass")
+
+        assert result is False
+        # Stopped on the first refusal instead of feeding the lockout
+        assert mock_connect.await_count == 1
+        # The user has to know the session is dead and may need to step in
+        assert "refused the new session" in caplog.text
+
+    async def test_attempts_are_capped_but_credentials_kept(
+        self,
+        connection_factory: ConnectionFactory,
+        async_connect: AsyncPatch,
+        reset_auth: SyncPatch,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        """A device that never comes back costs a bounded number of logins."""
+
+        conn = connection_factory()
+        mock_connect = async_connect(conn, return_value=False)
         reset_auth(conn)
 
         with (
@@ -931,15 +999,16 @@ class TestAsyncSetCredentials:
                 "asusrouter.connection.asyncio.sleep", new_callable=AsyncMock
             ),
             patch.object(conn, "set_error_suppression") as mock_suppress,
-            patch(
-                "asusrouter.connection._CREDENTIALS_RECONNECT_TIMEOUT", -1.0
-            ),
+            caplog.at_level(logging.ERROR),
         ):
             result = await conn.async_set_credentials("newuser", "newpass")
 
         assert result is False
+        assert mock_connect.await_count == 3
+        # Suppression must not hide the give-up from the user
+        assert "could not be established" in caplog.text
         # New credentials persist so a later normal connect uses them
         assert conn._username == "newuser"
         assert conn._password == "newpass"
-        # Suppression is always restored, even on the timeout path
+        # Suppression is always restored, even when giving up
         assert mock_suppress.call_args_list[-1].args[0] is False
