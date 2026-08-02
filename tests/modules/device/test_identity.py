@@ -508,6 +508,35 @@ class TestBoottime:
         assert identity.rebooted is True
 
 
+class TestDeviceTime:
+    """Tests for the device's own clock on the identity."""
+
+    def test_default_is_none(self) -> None:
+        """A fresh identity carries no device time."""
+
+        assert ARDeviceIdentity().device_time is None
+
+    def test_update_sets_device_time(self) -> None:
+        """update_device_time stores the value."""
+
+        identity = ARDeviceIdentity()
+        device_time = datetime(2026, 7, 31, 10, 24, 4, tzinfo=UTC)
+
+        identity.update_device_time(device_time)
+
+        assert identity.device_time == device_time
+
+    def test_update_does_not_flag_a_reboot(self) -> None:
+        """The clock moves on its own; only the uptime says anything."""
+
+        identity = ARDeviceIdentity()
+        identity.update_device_time(datetime(2026, 1, 1, tzinfo=UTC))
+
+        identity.update_device_time(datetime(2027, 1, 1, tzinfo=UTC))
+
+        assert identity.rebooted is False
+
+
 class TestUptime:
     """Tests for the live uptime, which is what detects a reboot."""
 

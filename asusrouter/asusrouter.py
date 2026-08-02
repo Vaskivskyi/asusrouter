@@ -8,7 +8,7 @@ from __future__ import annotations
 import asyncio
 from collections import defaultdict
 from collections.abc import Awaitable, Callable, Iterable
-from datetime import timedelta
+from datetime import datetime, timedelta
 from functools import partial
 import logging
 from pathlib import Path
@@ -456,6 +456,13 @@ class AsusRouter:
         # `bool` is an `int`; only a real count says anything here
         if isinstance(uptime, int) and not isinstance(uptime, bool):
             self.description.update_uptime(uptime)
+
+        device_time = value.get(ARClockField.DEVICE_TIME)
+        if (
+            isinstance(device_time, datetime)
+            and device_time.tzinfo is not None
+        ):
+            self.description.update_device_time(device_time)
 
     def _translate_multidata_batch(
         self,

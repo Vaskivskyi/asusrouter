@@ -100,6 +100,10 @@ component_management:
       name: modules/led
       paths:
         - asusrouter/modules/led/**
+    - component_id: mod_log
+      name: modules/log
+      paths:
+        - asusrouter/modules/log/**
     - component_id: mod_network
       name: modules/network
       paths:
