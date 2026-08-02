@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import concurrent.futures
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta, timezone
+import logging
 import random
 from typing import Any
 from unittest.mock import patch
@@ -20,6 +21,7 @@ from asusrouter.config import (
     ARConfigKey as ARConfKey,
     ARConfigKeyBase,
     safe_bool_config,
+    safe_boottime_config,
     safe_datetime_config,
     safe_int_config,
 )
@@ -63,6 +65,37 @@ def test_safe_datetime_config(value: Any, expected: Any) -> None:
     """A datetime passes through; strings parse; others become None."""
 
     assert safe_datetime_config(value) == expected
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        (datetime(2026, 1, 1, tzinfo=UTC), datetime(2026, 1, 1, tzinfo=UTC)),
+        (
+            "Fri, 31 Jul 2026 10:24:04 +0200",
+            datetime(
+                2026, 7, 31, 10, 24, 4, tzinfo=timezone(timedelta(hours=2))
+            ),
+        ),
+        (None, None),
+    ],
+    ids=["aware", "aware_str", "none"],
+)
+def test_safe_boottime_config_keeps_aware(value: Any, expected: Any) -> None:
+    """A boot time stating its offset is kept as given."""
+
+    assert safe_boottime_config(value) == expected
+
+
+def test_safe_boottime_config_drops_naive(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """A seed with no offset cannot anchor an aware boot time."""
+
+    with caplog.at_level(logging.WARNING):
+        assert safe_boottime_config(datetime(2026, 1, 1)) is None
+
+    assert "no timezone" in caplog.text
 
 
 def test_boottime_default_none() -> None:

@@ -16,14 +16,24 @@ from asusrouter.modules.aimesh import (
     source as aimesh_source,
     translate_state,
 )
+from asusrouter.modules.device.identity import ARDeviceIdentity
 from asusrouter.modules.endpoint import AREndpoint, get_endpoint_reader
 from asusrouter.modules.source import ARDataSource
+from asusrouter.modules.support.flag import ARSupportType
 from asusrouter.tools.readers import read_js_variables
 
 _RAW = (
     'get_cfg_clientlist = [[{"mac":"AA:00:00:00:00:00","online":"1",'
     '"level":"0","re_path":"0","ap2g":"AA:00:00:00:00:10"}]][0];\n'
 )
+
+
+def _identity(*, aimesh: bool = True) -> ARDeviceIdentity:
+    """Build an identity with the AiMesh support flag set."""
+
+    identity = ARDeviceIdentity()
+    identity._support[ARSupportType.AIMESH] = aimesh
+    return identity
 
 
 class TestARAiMeshSource:
@@ -60,7 +70,9 @@ class TestGetState:
 
         callback = AsyncMock(return_value={"get_cfg_clientlist": [[]]})
 
-        result = await fetch_state(callback, ARAiMeshSourceUniversal)
+        result = await fetch_state(
+            callback, ARAiMeshSourceUniversal, identity=_identity()
+        )
 
         callback.assert_awaited_once_with(endpoint=AREndpoint.FETCH_ONBOARDING)
         assert result == {"get_cfg_clientlist": [[]]}
@@ -70,7 +82,32 @@ class TestGetState:
 
         callback = AsyncMock(return_value="not-a-dict")
 
+        assert (
+            await fetch_state(
+                callback, ARAiMeshSourceUniversal, identity=_identity()
+            )
+            == {}
+        )
+
+    async def test_unsupported_skips_fetch(self) -> None:
+        """Without AiMesh support nothing is fetched."""
+
+        callback = AsyncMock()
+
+        result = await fetch_state(
+            callback, ARAiMeshSourceUniversal, identity=_identity(aimesh=False)
+        )
+
+        assert result == {}
+        callback.assert_not_awaited()
+
+    async def test_no_identity_skips_fetch(self) -> None:
+        """Without an identity nothing is fetched."""
+
+        callback = AsyncMock()
+
         assert await fetch_state(callback, ARAiMeshSourceUniversal) == {}
+        callback.assert_not_awaited()
 
 
 class TestTranslateState:

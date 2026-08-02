@@ -28,12 +28,10 @@ def _enc(text: str) -> str:
     return text.replace("<", "&#60").replace(">", "&#62")
 
 
-def _identity(*, sdn_rules: Any = None, wifi: dict | None = None) -> Any:
+def _identity(*, sdn: bool | None = None, wifi: dict | None = None) -> Any:
     """Build a stub identity with a support map and wifi map."""
 
-    support = (
-        {} if sdn_rules is None else {ARSupportType.SDN_MAX_RULES: sdn_rules}
-    )
+    support = {} if sdn is None else {ARSupportType.SDN: sdn}
     return SimpleNamespace(support=support, wifi=wifi or {})
 
 
@@ -41,13 +39,13 @@ class TestSdnSupported:
     """Tests for _sdn_supported."""
 
     @pytest.mark.parametrize(
-        ("sdn_rules", "expected"),
-        [(19, True), ("9", True), (0, False), (None, False)],
+        ("sdn", "expected"),
+        [(True, True), (False, False), (None, False)],
     )
-    def test_flag(self, sdn_rules: Any, expected: bool) -> None:
-        """A positive MaxRule_SDN means SDN is supported."""
+    def test_flag(self, sdn: bool | None, expected: bool) -> None:
+        """The mtlancfg SDN flag drives SDN support."""
 
-        assert _sdn_supported(_identity(sdn_rules=sdn_rules)) is expected
+        assert _sdn_supported(_identity(sdn=sdn)) is expected
 
     def test_no_identity(self) -> None:
         """No identity means no SDN."""
@@ -65,7 +63,7 @@ class TestGetState:
         await fetch_state(
             callback,
             ARNetworkSourceUniversal,
-            identity=_identity(sdn_rules=19),
+            identity=_identity(sdn=True),
         )
 
         assert "nvram_get(sdn_rl)" in callback.call_args.kwargs["request"]

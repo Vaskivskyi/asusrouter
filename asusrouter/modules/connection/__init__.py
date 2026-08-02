@@ -12,5 +12,6 @@ class ARConnection(FromStrMixin, StrEnum):
 
     UNKNOWN = "unknown"
 
+    HTTP = "http"
     HTTPS = "https"
     SSH = "ssh"

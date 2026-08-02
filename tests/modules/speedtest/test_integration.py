@@ -68,10 +68,15 @@ async def test_fetch_source_by_server_with_refresh(
     monkeypatch.setattr(
         router, "async_fetch", AsyncMock(side_effect=fake_fetch)
     )
+    monkeypatch.setattr(router, "_async_ensure_connected", AsyncMock())
 
     with (
         patch("asusrouter.modules.action.asyncio.sleep", AsyncMock()),
         patch("asusrouter.tools.poll.asyncio.sleep", AsyncMock()),
+        patch(
+            "asusrouter.modules.speedtest.source.support_available",
+            return_value=True,
+        ),
     ):
         result = await router.async_fetch_data(
             source,

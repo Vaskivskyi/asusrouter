@@ -137,6 +137,26 @@ class TestGetState:
             ARNvramType.DNS_PING_STATUS, force=True
         )
 
+    async def test_empty_status_stops_at_once(self) -> None:
+        """An empty status (absent nvram key) bails without polling."""
+
+        callback = AsyncMock()
+        fetch_data_callback = _status_callback("")
+        with patch(
+            "asusrouter.tools.poll.asyncio.sleep", AsyncMock()
+        ) as poll_sleep:
+            result = await fetch_state(
+                callback,
+                ARPingSourceUniversal,
+                fetch_data_callback=fetch_data_callback,
+            )
+
+        assert result == {}
+        callback.assert_not_awaited()
+        # Read once, then stop - no retry loop, no blocking sleeps
+        fetch_data_callback.assert_awaited_once()
+        poll_sleep.assert_not_awaited()
+
     async def test_status_non_dict(self) -> None:
         """A non-dict status reply counts as not finished."""
 

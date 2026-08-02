@@ -52,14 +52,14 @@ component_management:
       name: modules/aura
       paths:
         - asusrouter/modules/aura/**
-    - component_id: mod_boottime
-      name: modules/boottime
-      paths:
-        - asusrouter/modules/boottime/**
     - component_id: mod_clients
       name: modules/clients
       paths:
         - asusrouter/modules/clients/**
+    - component_id: mod_clock
+      name: modules/clock
+      paths:
+        - asusrouter/modules/clock/**
     - component_id: mod_common
       name: modules/common
       paths:
@@ -100,6 +100,10 @@ component_management:
       name: modules/led
       paths:
         - asusrouter/modules/led/**
+    - component_id: mod_log
+      name: modules/log
+      paths:
+        - asusrouter/modules/log/**
     - component_id: mod_network
       name: modules/network
       paths:

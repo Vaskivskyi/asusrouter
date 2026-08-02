@@ -9,10 +9,12 @@ import pytest
 
 from asusrouter.const import DEFAULT_IDENTITY_BRAND
 from asusrouter.modules.aimesh.topology import ARAiMeshTopology
+from asusrouter.modules.common.device import AROperationMode
 from asusrouter.modules.device.identity import (
     ARDeviceIdentity,
     _translate_firmware,
     _translate_identity_base,
+    _translate_operation_mode,
     _translate_wifi,
 )
 from asusrouter.modules.firmware import ARFirmware
@@ -23,7 +25,8 @@ from asusrouter.modules.nvram import (
 )
 from asusrouter.modules.support import ARSupportSourceUniversal
 from asusrouter.modules.support.flag import ARSupportType
-from asusrouter.modules.wifi import ARWiFiBand
+from asusrouter.modules.wifi import ARWiFiBand, ARWiFiCapability
+from asusrouter.tools.identifiers import Username
 
 
 class TestTranslateFirmware:
@@ -79,12 +82,20 @@ class TestTranslateWifi:
         [
             (
                 {ARNvramType.WIRELESS_BANDS: "2g1&#605g1"},
-                {ARSupportType.WIFI_UNITS: (0, 1)},
+                {
+                    ARSupportType.WIFI_CAPABILITIES: {
+                        ARWiFiCapability.UNITS: (0, 1)
+                    }
+                },
                 {ARWiFiBand.BAND_2G1: 0, ARWiFiBand.BAND_5G1: 1},
             ),
             (
                 {ARNvramType.WIRELESS_BANDS: "2g1&#605g1&#605g2"},
-                {ARSupportType.WIFI_UNITS: (0, 1, 2)},
+                {
+                    ARSupportType.WIFI_CAPABILITIES: {
+                        ARWiFiCapability.UNITS: (0, 1, 2)
+                    }
+                },
                 {
                     ARWiFiBand.BAND_2G1: 0,
                     ARWiFiBand.BAND_5G1: 1,
@@ -94,7 +105,11 @@ class TestTranslateWifi:
             # Invalid band string raises ValueError in ARWiFiBand → skipped
             (
                 {ARNvramType.WIRELESS_BANDS: "2g1&#60invalid_band&#605g1"},
-                {ARSupportType.WIFI_UNITS: (0, 1, 2)},
+                {
+                    ARSupportType.WIFI_CAPABILITIES: {
+                        ARWiFiCapability.UNITS: (0, 1, 2)
+                    }
+                },
                 {ARWiFiBand.BAND_2G1: 0, ARWiFiBand.BAND_5G1: 2},
             ),
             # No WIFI_UNITS → zip stops immediately
@@ -106,26 +121,42 @@ class TestTranslateWifi:
             # Empty band string
             (
                 {ARNvramType.WIRELESS_BANDS: ""},
-                {ARSupportType.WIFI_UNITS: (0, 1)},
+                {
+                    ARSupportType.WIFI_CAPABILITIES: {
+                        ARWiFiCapability.UNITS: (0, 1)
+                    }
+                },
                 {},
             ),
             # Missing WIRELESS_BANDS key
             (
                 {},
-                {ARSupportType.WIFI_UNITS: (0, 1)},
+                {
+                    ARSupportType.WIFI_CAPABILITIES: {
+                        ARWiFiCapability.UNITS: (0, 1)
+                    }
+                },
                 {},
             ),
             # Fewer ids than bands → zip stops early
             (
                 {ARNvramType.WIRELESS_BANDS: "2g1&#605g1&#605g2"},
-                {ARSupportType.WIFI_UNITS: (0,)},
+                {
+                    ARSupportType.WIFI_CAPABILITIES: {
+                        ARWiFiCapability.UNITS: (0,)
+                    }
+                },
                 {ARWiFiBand.BAND_2G1: 0},
             ),
             # ARWiFiBand.UNKNOWN is a valid member ("unknown")
             # but must be skipped
             (
                 {ARNvramType.WIRELESS_BANDS: "2g1&#60unknown&#605g1"},
-                {ARSupportType.WIFI_UNITS: (0, 1, 2)},
+                {
+                    ARSupportType.WIFI_CAPABILITIES: {
+                        ARWiFiCapability.UNITS: (0, 1, 2)
+                    }
+                },
                 {ARWiFiBand.BAND_2G1: 0, ARWiFiBand.BAND_5G1: 2},
             ),
         ],
@@ -177,7 +208,10 @@ class TestTranslateWifi:
             ARNvramType.WIRELESS_BANDS: "2g1",
             **self._nband(**{"0": "1"}),
         }
-        assert _translate_wifi(data, {ARSupportType.WIFI_UNITS: (0,)}) == {
+        assert _translate_wifi(
+            data,
+            {ARSupportType.WIFI_CAPABILITIES: {ARWiFiCapability.UNITS: (0,)}},
+        ) == {
             ARWiFiBand.BAND_2G1: 0,
         }
 
@@ -216,6 +250,30 @@ class TestTranslateIdentityBase:
                 },
                 "AA:BB:CC:11:22:33",
                 "RT-AX56U",
+                None,
+                None,
+            ),
+            # Blank label MAC falls back to the LAN hardware address
+            (
+                {
+                    ARNvramType.MAC: "",
+                    ARNvramType.MAC_LAN: "AA:BB:CC:11:22:33",
+                    ARNvramType.MODEL: "RT-AC66U",
+                },
+                "AA:BB:CC:11:22:33",
+                "RT-AC66U",
+                None,
+                None,
+            ),
+            # Blank label and LAN MAC fall back to the WAN hardware address
+            (
+                {
+                    ARNvramType.MAC: "",
+                    ARNvramType.MAC_LAN: "",
+                    ARNvramType.MAC_WAN: "AA:BB:CC:11:22:44",
+                },
+                "AA:BB:CC:11:22:44",
+                None,
                 None,
                 None,
             ),
@@ -332,7 +390,9 @@ class TestARDeviceIdentityBuild:
     def test_build_full_data(self) -> None:
         """Build populates all fields from a complete data dict."""
 
-        support_data = {ARSupportType.WIFI_UNITS: (0, 1)}
+        support_data = {
+            ARSupportType.WIFI_CAPABILITIES: {ARWiFiCapability.UNITS: (0, 1)}
+        }
         data: dict[Any, Any] = {
             ARSupportSourceUniversal: support_data,
             ARNvramType.FW_MAJOR: "3.0.0.4",
@@ -428,43 +488,205 @@ class TestBoottime:
 
         assert identity.boottime == boottime
 
-    def test_first_boottime_is_not_a_reboot(self) -> None:
-        """Setting boot time from None does not flag a reboot."""
-
-        identity = ARDeviceIdentity()
-
-        identity.update_boottime(datetime(2026, 1, 1, tzinfo=UTC))
-
-        assert identity.rebooted is False
-
-    def test_unchanged_boottime_is_not_a_reboot(self) -> None:
-        """Re-setting the same boot time does not flag a reboot."""
-
-        identity = ARDeviceIdentity()
-        boottime = datetime(2026, 1, 1, tzinfo=UTC)
-        identity.update_boottime(boottime)
-
-        identity.update_boottime(boottime)
-
-        assert identity.rebooted is False
-
-    def test_moved_boottime_flags_reboot(self) -> None:
-        """A changed boot time flags a reboot; clearing resets it."""
+    def test_moved_boottime_is_not_a_reboot(self) -> None:
+        """The device's clock steps, so a moved boot time proves nothing."""
 
         identity = ARDeviceIdentity()
         identity.update_boottime(datetime(2026, 1, 1, tzinfo=UTC))
 
         identity.update_boottime(datetime(2026, 1, 2, tzinfo=UTC))
-        assert identity.rebooted is True
 
-        identity.clear_rebooted()
         assert identity.rebooted is False
 
     def test_mark_reboot_flags_reboot(self) -> None:
-        """mark_reboot flags a reboot without a boot time move."""
+        """mark_reboot flags a reboot without reading the uptime."""
 
         identity = ARDeviceIdentity()
 
         identity.mark_reboot()
 
         assert identity.rebooted is True
+
+
+class TestDeviceTime:
+    """Tests for the device's own clock on the identity."""
+
+    def test_default_is_none(self) -> None:
+        """A fresh identity carries no device time."""
+
+        assert ARDeviceIdentity().device_time is None
+
+    def test_update_sets_device_time(self) -> None:
+        """update_device_time stores the value."""
+
+        identity = ARDeviceIdentity()
+        device_time = datetime(2026, 7, 31, 10, 24, 4, tzinfo=UTC)
+
+        identity.update_device_time(device_time)
+
+        assert identity.device_time == device_time
+
+    def test_update_does_not_flag_a_reboot(self) -> None:
+        """The clock moves on its own; only the uptime says anything."""
+
+        identity = ARDeviceIdentity()
+        identity.update_device_time(datetime(2026, 1, 1, tzinfo=UTC))
+
+        identity.update_device_time(datetime(2027, 1, 1, tzinfo=UTC))
+
+        assert identity.rebooted is False
+
+
+class TestUptime:
+    """Tests for the live uptime, which is what detects a reboot."""
+
+    def test_default_is_none(self) -> None:
+        """A fresh identity carries no uptime."""
+
+        assert ARDeviceIdentity().uptime is None
+
+    def test_update_sets_uptime(self) -> None:
+        """update_uptime stores the value."""
+
+        identity = ARDeviceIdentity()
+
+        identity.update_uptime(2131043)
+
+        assert identity.uptime == 2131043
+
+    @pytest.mark.parametrize(
+        ("first", "second"),
+        [(None, 100), (100, 100), (100, 200), (100, None)],
+        ids=["first_read", "unchanged", "counting_up", "gone"],
+    )
+    def test_not_a_reboot(self, first: int | None, second: int | None) -> None:
+        """Only a count that falls back says the device restarted."""
+
+        identity = ARDeviceIdentity()
+        identity.update_uptime(first)
+
+        identity.update_uptime(second)
+
+        assert identity.rebooted is False
+
+    def test_falling_uptime_flags_reboot(self) -> None:
+        """A count that drops is a boot in between; clearing resets it."""
+
+        identity = ARDeviceIdentity()
+        identity.update_uptime(2131043)
+
+        identity.update_uptime(12)
+        assert identity.rebooted is True
+
+        identity.clear_rebooted()
+        assert identity.rebooted is False
+
+
+class TestTranslateOperationMode:
+    """Tests for _translate_operation_mode."""
+
+    @pytest.mark.parametrize(
+        ("data", "expected"),
+        [
+            # No data -> unknown
+            ({}, AROperationMode.UNKNOWN),
+            # Plain sw_mode values
+            ({ARNvramType.SW_MODE: 1}, AROperationMode.ROUTER),
+            ({ARNvramType.SW_MODE: 2}, AROperationMode.REPEATER),
+            ({ARNvramType.SW_MODE: 3}, AROperationMode.ACCESS_POINT),
+            ({ARNvramType.SW_MODE: 4}, AROperationMode.MEDIA_BRIDGE),
+            ({ARNvramType.SW_MODE: 99}, AROperationMode.UNKNOWN),
+            # Proxy-STA repurposes the hardware
+            (
+                {ARNvramType.SW_MODE: 2, ARNvramType.WLC_PROXY_STA: 1},
+                AROperationMode.MEDIA_BRIDGE,
+            ),
+            (
+                {ARNvramType.SW_MODE: 3, ARNvramType.WLC_PROXY_STA: 1},
+                AROperationMode.MEDIA_BRIDGE,
+            ),
+            (
+                {ARNvramType.SW_MODE: 3, ARNvramType.WLC_PROXY_STA: 3},
+                AROperationMode.MEDIA_BRIDGE,
+            ),
+            (
+                {ARNvramType.SW_MODE: 3, ARNvramType.WLC_PROXY_STA: 2},
+                AROperationMode.REPEATER,
+            ),
+            # psta=3 only applies to an AP base, not a repeater base
+            (
+                {ARNvramType.SW_MODE: 2, ARNvramType.WLC_PROXY_STA: 3},
+                AROperationMode.REPEATER,
+            ),
+            # String values from the device are handled
+            (
+                {ARNvramType.SW_MODE: "3", ARNvramType.WLC_PROXY_STA: "2"},
+                AROperationMode.REPEATER,
+            ),
+            # An AiMesh node runs as a repeater but re_mode overrides it
+            (
+                {
+                    ARNvramType.SW_MODE: 2,
+                    ARNvramType.RE_MODE: 1,
+                },
+                AROperationMode.AIMESH_NODE,
+            ),
+            (
+                {
+                    ARNvramType.SW_MODE: 3,
+                    ARNvramType.WLC_PROXY_STA: 2,
+                    ARNvramType.RE_MODE: 1,
+                },
+                AROperationMode.AIMESH_NODE,
+            ),
+            # re_mode 0 does not override
+            (
+                {ARNvramType.SW_MODE: 1, ARNvramType.RE_MODE: 0},
+                AROperationMode.ROUTER,
+            ),
+        ],
+    )
+    def test_translate(
+        self, data: dict[Any, Any], expected: AROperationMode
+    ) -> None:
+        """The raw sw_mode and wlc_psta resolve to the active mode."""
+
+        assert _translate_operation_mode(data) == expected
+
+    def test_default_is_unknown(self) -> None:
+        """A fresh identity reports an unknown operation mode."""
+
+        assert ARDeviceIdentity().operation_mode is AROperationMode.UNKNOWN
+
+    def test_build_sets_operation_mode(self) -> None:
+        """build() resolves the operation mode onto the identity."""
+
+        identity = ARDeviceIdentity.build({ARNvramType.SW_MODE: 3})
+
+        assert identity.operation_mode is AROperationMode.ACCESS_POINT
+
+
+class TestUsername:
+    """The login name injected into the identity after it is built."""
+
+    def test_absent_by_default(self) -> None:
+        """An identity built from device data knows no login name."""
+
+        assert ARDeviceIdentity().username is None
+
+    def test_updated(self) -> None:
+        """The name is injected the way the boot time is."""
+
+        identity = ARDeviceIdentity()
+        identity.update_username(Username("fakeadmin"))
+
+        assert identity.username == "fakeadmin"
+
+    def test_cleared(self) -> None:
+        """It can be taken away again."""
+
+        identity = ARDeviceIdentity()
+        identity.update_username(Username("fakeadmin"))
+        identity.update_username(None)
+
+        assert identity.username is None

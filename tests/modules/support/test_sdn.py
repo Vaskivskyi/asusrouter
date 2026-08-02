@@ -2,36 +2,63 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
 from typing import Any
 
 import pytest
 
+from asusrouter.modules.network import ARSDNCapability
 from asusrouter.modules.support.flag import ARSupportValue
 from asusrouter.modules.support.sdn import (
-    translate_sdn_awv,
-    translate_sdn_mainfh,
-    translate_sdn_max_rules,
-    translate_sdn_mwl,
-    translate_sdn_priority,
+    translate_sdn,
+    translate_sdn_capabilities,
 )
 
 
 @pytest.mark.parametrize(
-    ("translator", "token"),
+    ("data", "expected"),
     [
-        (translate_sdn_awv, ARSupportValue.SDN_AWV.value),
-        (translate_sdn_mainfh, ARSupportValue.SDN_MAINFH.value),
-        (translate_sdn_max_rules, ARSupportValue.SDN_MAX_RULES.value),
-        (translate_sdn_mwl, ARSupportValue.SDN_MWL.value),
-        (translate_sdn_priority, ARSupportValue.SDN_PRIORITY.value),
+        ({ARSupportValue.SDN.value: 6}, True),
+        ({ARSupportValue.SDN.value: "0"}, False),
+        ({}, False),
     ],
 )
-def test_translate_sdn_int(
-    translator: Callable[[dict[str, Any]], int], token: str
-) -> None:
-    """Each SDN flag is read as an integer from its token, 0 when absent."""
+def test_translate_sdn(data: Any, expected: bool) -> None:
+    """Test translate_sdn reads the mtlancfg flag."""
 
-    assert translator({token: "19"}) == 19
-    assert translator({token: 6}) == 6
-    assert translator({}) == 0
+    assert translate_sdn(data) is expected
+
+
+@pytest.mark.parametrize(
+    ("data", "expected"),
+    [
+        ({}, {}),
+        (
+            {ARSupportValue.SDN_MAX_RULES.value: "19"},
+            {ARSDNCapability.MAX_RULES: 19},
+        ),
+        # A zero-valued flag is dropped
+        ({ARSupportValue.SDN_MWL.value: "0"}, {}),
+        (
+            {
+                ARSupportValue.SDN_AWV.value: 1,
+                ARSupportValue.SDN_MAINFH.value: 1,
+                ARSupportValue.SDN_MAX_RULES.value: 19,
+                ARSupportValue.SDN_MWL.value: 6,
+                ARSupportValue.SDN_PRIORITY.value: 1,
+            },
+            {
+                ARSDNCapability.AWV: 1,
+                ARSDNCapability.MAIN_FRONTHAUL: 1,
+                ARSDNCapability.MAX_RULES: 19,
+                ARSDNCapability.MWL: 6,
+                ARSDNCapability.PRIORITY: 1,
+            },
+        ),
+    ],
+)
+def test_translate_sdn_capabilities(
+    data: Any, expected: dict[ARSDNCapability, int]
+) -> None:
+    """Test translate_sdn_capabilities maps the SDN integer flags."""
+
+    assert translate_sdn_capabilities(data) == expected

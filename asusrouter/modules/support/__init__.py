@@ -18,12 +18,10 @@ from asusrouter.modules.support.ai import (
 from asusrouter.modules.support.aimesh import (
     translate_aimesh,
     translate_aimesh_capabilities,
-    translate_aimesh_generation,
 )
 from asusrouter.modules.support.aura import (
     translate_aura,
-    translate_aura_night_mode,
-    translate_aura_zone,
+    translate_aura_capabilities,
 )
 from asusrouter.modules.support.connection import translate_connection
 from asusrouter.modules.support.credentials import (
@@ -32,7 +30,12 @@ from asusrouter.modules.support.credentials import (
     translate_http_username_max_length,
     translate_secure_default,
 )
+from asusrouter.modules.support.device import translate_device_mode
 from asusrouter.modules.support.dsl import translate_dsl
+from asusrouter.modules.support.firmware import (
+    translate_firmware,
+    translate_firmware_capabilities,
+)
 from asusrouter.modules.support.flag import ARSupportType
 from asusrouter.modules.support.ftp import (
     translate_ftp,
@@ -45,36 +48,33 @@ from asusrouter.modules.support.helpers import (
 )
 from asusrouter.modules.support.lan import translate_lan_capabilities
 from asusrouter.modules.support.parental_control import (
-    translate_parental_control_max_entries,
-    translate_parental_control_max_rules,
-    translate_parental_control_sched_version,
+    translate_parental_control,
+    translate_parental_control_capabilities,
 )
 from asusrouter.modules.support.platform import translate_platform
 from asusrouter.modules.support.sdn import (
-    translate_sdn_awv,
-    translate_sdn_mainfh,
-    translate_sdn_max_rules,
-    translate_sdn_mwl,
-    translate_sdn_priority,
+    translate_sdn,
+    translate_sdn_capabilities,
 )
 from asusrouter.modules.support.speedtest import (
     translate_speedtest,
     translate_speedtest_capabilities,
 )
 from asusrouter.modules.support.usb import (
-    translate_usb_generation,
-    translate_usb_ports,
-    translate_usb_wan,
+    translate_usb,
+    translate_usb_capabilities,
+)
+from asusrouter.modules.support.vpn import (
+    translate_vpn,
+    translate_vpn_capabilities,
 )
 from asusrouter.modules.support.wan import (
     translate_wan,
     translate_wan_capabilities,
-    translate_wan_limit,
 )
 from asusrouter.modules.support.wifi import (
-    translate_wifi_generation,
-    translate_wifi_multiband,
-    translate_wifi_units,
+    translate_wifi,
+    translate_wifi_capabilities,
 )
 from asusrouter.registry import ARCallableRegistry as ARCallReg
 from asusrouter.tools.types import ARCallableType, ARCallbackType
@@ -93,45 +93,37 @@ _TRANSLATION_TABLE: dict[ARSupportType, ARCallableType] = {
     ARSupportType.AI_CAPABILITIES: translate_ai_capabilities,
     ARSupportType.AIMESH: translate_aimesh,
     ARSupportType.AIMESH_CAPABILITIES: translate_aimesh_capabilities,
-    ARSupportType.AIMESH_GENERATION: translate_aimesh_generation,
     ARSupportType.AURA: translate_aura,
-    ARSupportType.AURA_NIGHT_MODE: translate_aura_night_mode,
-    ARSupportType.AURA_ZONE: translate_aura_zone,
+    ARSupportType.AURA_CAPABILITIES: translate_aura_capabilities,
     ARSupportType.CHPASS: translate_chpass,
     ARSupportType.CONNECTIONS: translate_connection,
+    ARSupportType.DEVICE_MODE: translate_device_mode,
     ARSupportType.DSL: translate_dsl,
+    ARSupportType.FIRMWARE: translate_firmware,
+    ARSupportType.FIRMWARE_CAPABILITIES: translate_firmware_capabilities,
     ARSupportType.FTP: translate_ftp,
     ARSupportType.FTP_CAPABILITIES: translate_ftp_capabilities,
     ARSupportType.HTTP_PASSWORD_MAX_LENGTH: translate_http_password_max_length,
     ARSupportType.HTTP_USERNAME_MAX_LENGTH: translate_http_username_max_length,
     ARSupportType.LAN_CAPABILITIES: translate_lan_capabilities,
-    ARSupportType.PARENTAL_CONTROL_MAX_ENTRIES: (
-        translate_parental_control_max_entries
-    ),
-    ARSupportType.PARENTAL_CONTROL_MAX_RULES: (
-        translate_parental_control_max_rules
-    ),
-    ARSupportType.PARENTAL_CONTROL_SCHED_VERSION: (
-        translate_parental_control_sched_version
+    ARSupportType.PARENTAL_CONTROL: translate_parental_control,
+    ARSupportType.PARENTAL_CONTROL_CAPABILITIES: (
+        translate_parental_control_capabilities
     ),
     ARSupportType.PLATFORM: translate_platform,
-    ARSupportType.SDN_AWV: translate_sdn_awv,
-    ARSupportType.SDN_MAINFH: translate_sdn_mainfh,
-    ARSupportType.SDN_MAX_RULES: translate_sdn_max_rules,
-    ARSupportType.SDN_MWL: translate_sdn_mwl,
-    ARSupportType.SDN_PRIORITY: translate_sdn_priority,
+    ARSupportType.SDN: translate_sdn,
+    ARSupportType.SDN_CAPABILITIES: translate_sdn_capabilities,
     ARSupportType.SECURE_DEFAULT: translate_secure_default,
     ARSupportType.SPEEDTEST: translate_speedtest,
     ARSupportType.SPEEDTEST_CAPABILITIES: translate_speedtest_capabilities,
-    ARSupportType.USB_GENERATION: translate_usb_generation,
-    ARSupportType.USB_PORTS: translate_usb_ports,
-    ARSupportType.USB_WAN: translate_usb_wan,
+    ARSupportType.USB: translate_usb,
+    ARSupportType.USB_CAPABILITIES: translate_usb_capabilities,
+    ARSupportType.VPN: translate_vpn,
+    ARSupportType.VPN_CAPABILITIES: translate_vpn_capabilities,
     ARSupportType.WAN: translate_wan,
     ARSupportType.WAN_CAPABILITIES: translate_wan_capabilities,
-    ARSupportType.WAN_LIMIT: translate_wan_limit,
-    ARSupportType.WIFI_GENERATION: translate_wifi_generation,
-    ARSupportType.WIFI_MULTIBAND: translate_wifi_multiband,
-    ARSupportType.WIFI_UNITS: translate_wifi_units,
+    ARSupportType.WIFI: translate_wifi,
+    ARSupportType.WIFI_CAPABILITIES: translate_wifi_capabilities,
 }
 
 

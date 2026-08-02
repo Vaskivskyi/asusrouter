@@ -199,11 +199,24 @@ class TestARFirmwareFromNvram:
                     "firmware_type": ARFirmwareType.STOCK,
                 },
             ),
-            # Old firmware: build in dotted buildno, empty extendno
+            # Old firmware: build in dotted buildno, extendno is the revision
             (
                 "3.0.0.4",
                 "380.70",
                 "0",
+                {
+                    "major": (3, 0, 0, 4),
+                    "minor": 380,
+                    "build": 70,
+                    "revision": 0,
+                    "rog": False,
+                },
+            ),
+            # Old firmware with an empty extendno keeps no revision
+            (
+                "3.0.0.4",
+                "380.70",
+                "",
                 {
                     "major": (3, 0, 0, 4),
                     "minor": 380,

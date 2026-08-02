@@ -8,6 +8,18 @@ from asusrouter.const import UNKNOWN_MEMBER, UNKNOWN_MEMBER_STR
 from asusrouter.tools.enum import FromIntMixin, FromStrMixin
 
 
+class ARFirmwareCapability(FromStrMixin, StrEnum):
+    """Firmware capabilities advertised. Acts as a database."""
+
+    UNKNOWN = UNKNOWN_MEMBER_STR
+
+    AUTO_UPGRADE = "auto_upgrade"
+    BETA = "beta"  # beta FW upgrade
+    LIVE_UPDATE = "live_update"  # online FW fetch
+    MANUAL_UPLOAD = "manual_upload"
+    REVERT = "revert"  # rollback to the previous FW
+
+
 class ARFirmwareType(FromStrMixin, StrEnum):
     """Firmware types."""
 

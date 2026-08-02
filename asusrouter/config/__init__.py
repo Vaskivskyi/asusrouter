@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from datetime import datetime
 from enum import StrEnum
+import logging
 import threading
 from typing import Any
 
@@ -14,6 +15,8 @@ from asusrouter.tools.converters.raw import (
     raw_to_int,
 )
 from asusrouter.tools.security import ARSecurityLevel
+
+_LOGGER = logging.getLogger(__name__)
 
 # Sentinel for distinguishing "missing" from a stored None value.
 _MISSING = object()
@@ -29,8 +32,14 @@ class ARConfigKey(ARConfigKeyBase):
     # Optimistic temperature
     OPTIMISTIC_TEMPERATURE = "optimistic_temperature"
     NOTIFIED_OPTIMISTIC_TEMPERATURE = "notified_optimistic_temperature"
-    # Seed boot time; when set it anchors stabilization instead of fetching
+    # Seed boot time; when set it anchors the first stabilization
     BOOTTIME = "boottime"
+    # Data dump sensitive-data warning shown once per session
+    NOTIFIED_DUMP = "notified_dump"
+    # Probe report redaction warning shown once per session
+    NOTIFIED_PROBE = "notified_probe"
+    # How many log entries are kept across reads
+    LOG_HISTORY_LIMIT = "log_history_limit"
     # Security level applied to logged data
     SECURITY_LEVEL_LOG = "security_level_log"
     # Security level applied to data exposed to consumers
@@ -40,6 +49,7 @@ class ARConfigKey(ARConfigKeyBase):
 CONFIG_DEFAULT_BOOL: bool = False
 CONFIG_DEFAULT_INT: int = 0
 CONFIG_DEFAULT_ALREADY_NOTIFIED: bool = False
+CONFIG_DEFAULT_LOG_HISTORY: int = 50000
 
 
 def safe_bool_config(value: Any) -> bool:
@@ -74,6 +84,21 @@ def safe_datetime_config(value: Any) -> datetime | None:
     return None
 
 
+def safe_boottime_config(value: Any) -> datetime | None:
+    """Convert a value to an aware boot time, else None."""
+
+    config_value = safe_datetime_config(value)
+
+    if config_value is not None and config_value.tzinfo is None:
+        _LOGGER.warning(
+            "Ignoring the seeded boot time: it carries no timezone, "
+            "and the device reports its own with one"
+        )
+        return None
+
+    return config_value
+
+
 CONFIG_DEFAULT: dict[ARConfigKey, Any] = {
     # If set, the temperature will be automatically adjusted
     # to fit the expected range
@@ -81,9 +106,12 @@ CONFIG_DEFAULT: dict[ARConfigKey, Any] = {
     ARConfigKey.NOTIFIED_OPTIMISTIC_TEMPERATURE: (
         CONFIG_DEFAULT_ALREADY_NOTIFIED
     ),
-    # If set, this boot time is used as the stabilization anchor instead
-    # of fetching it on connect
+    # If set, this boot time anchors the first stabilization on connect
     ARConfigKey.BOOTTIME: None,
+    ARConfigKey.NOTIFIED_DUMP: CONFIG_DEFAULT_ALREADY_NOTIFIED,
+    ARConfigKey.NOTIFIED_PROBE: CONFIG_DEFAULT_ALREADY_NOTIFIED,
+    # Log entries kept across reads; 0 keeps everything
+    ARConfigKey.LOG_HISTORY_LIMIT: CONFIG_DEFAULT_LOG_HISTORY,
     # Logs sanitize sensitive data by default
     ARConfigKey.SECURITY_LEVEL_LOG: ARSecurityLevel.SANITIZED,
     # Data exposes reasonably-sensitive values (MAC, IP) but not secrets
@@ -95,7 +123,12 @@ TYPES_DEFAULT: dict[ARConfigKey, Callable[[Any], Any]] = {
     ARConfigKey.OPTIMISTIC_TEMPERATURE: safe_bool_config,
     ARConfigKey.NOTIFIED_OPTIMISTIC_TEMPERATURE: safe_bool_config,
     # Seed boot time
-    ARConfigKey.BOOTTIME: safe_datetime_config,
+    ARConfigKey.BOOTTIME: safe_boottime_config,
+    # Data dump notification flag
+    ARConfigKey.NOTIFIED_DUMP: safe_bool_config,
+    # Probe report notification flag
+    ARConfigKey.NOTIFIED_PROBE: safe_bool_config,
+    ARConfigKey.LOG_HISTORY_LIMIT: safe_int_config,
     # Security levels
     ARConfigKey.SECURITY_LEVEL_LOG: ARSecurityLevel.from_value,
     ARConfigKey.SECURITY_LEVEL_DATA: ARSecurityLevel.from_value,

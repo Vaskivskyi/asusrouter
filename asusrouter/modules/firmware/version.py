@@ -101,10 +101,13 @@ class ARFirmware:
         build, revision, rog = translate_build(
             str(fw_build) if fw_build is not None else None
         )
-        # Older firmware carries the build in a dotted `buildno` and leaves
-        # `extendno` empty - prefer it when present
+        # Older firmware packs the build into a dotted `buildno` (380.70),
+        # leaving `extendno` as the revision (e.g. `0`) - keep it
         if minor_build is not None:
-            build, revision = minor_build, None
+            build, revision = (
+                minor_build,
+                revision if revision is not None else build,
+            )
         return cls(
             major=major, minor=minor, build=build, revision=revision, rog=rog
         )

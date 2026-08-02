@@ -44,7 +44,7 @@ jobs:
             });
 
       - name: Label by changed files
-        uses: actions/labeler@v6
+        uses: actions/labeler@v7
         with:
           repo-token: ${{ steps.bot-token.outputs.token }}
           sync-labels: true

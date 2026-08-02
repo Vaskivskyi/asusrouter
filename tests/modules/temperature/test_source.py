@@ -257,7 +257,7 @@ class TestTranslateState:
 
 @pytest.mark.skip(
     reason="Pending V2 test_data architecture: build an end-to-end test "
-    "from rt_ax88u_merlin_388/temperature_001.content"
+    "from _v1/rt_ax88u_merlin_388/temperature_001.content"
 )
 def test_real_device_data_pending_migration() -> None:
     """Placeholder for migrating the real-device temperature fixture.

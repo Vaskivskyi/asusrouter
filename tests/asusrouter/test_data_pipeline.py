@@ -15,7 +15,7 @@ from asusrouter.const import AR_CALL_RUN_ACTION
 from asusrouter.error import AsusRouterError
 from asusrouter.modules.action import ARAction
 from asusrouter.modules.aimesh.topology import ARAiMeshTopology
-from asusrouter.modules.boottime import ARBoottime
+from asusrouter.modules.clock import ARBoottime, ARClockField, ARClockSource
 from asusrouter.modules.device import ARDeviceSourceUniversal
 from asusrouter.modules.device.identity import ARDeviceIdentity
 from asusrouter.modules.endpoint import AREndpoint
@@ -168,7 +168,7 @@ class TestCommitState:
         source: ARDataSource,
         make_state: MakeStateFactory,
     ) -> None:
-        """Committing an ARBoottime updates the identity boot time."""
+        """A clock dict's tagged boot time updates the identity."""
 
         identity = ARDeviceIdentity()
         id_state = make_state(ARDeviceSourceUniversal)
@@ -176,9 +176,117 @@ class TestCommitState:
         router._data_states[ARDeviceSourceUniversal] = id_state
 
         boottime = ARBoottime(2026, 1, 1, tzinfo=UTC)
-        router._commit_data_state(make_state(source), boottime)
+        router._commit_data_state(
+            make_state(ARClockSource()), {ARClockField.BOOTTIME: boottime}
+        )
 
         assert identity.boottime == boottime
+
+    def test_committing_uptime_detects_a_reboot(
+        self,
+        router: AsusRouter,
+        make_state: MakeStateFactory,
+    ) -> None:
+        """A clock dict whose uptime fell back flags a reboot."""
+
+        identity = ARDeviceIdentity()
+        id_state = make_state(ARDeviceSourceUniversal)
+        cast(Any, id_state)._content = identity
+        router._data_states[ARDeviceSourceUniversal] = id_state
+
+        router._commit_data_state(
+            make_state(ARClockSource()), {ARClockField.UPTIME: 2131043}
+        )
+        assert identity.rebooted is False
+
+        router._commit_data_state(
+            make_state(ARClockSource()), {ARClockField.UPTIME: 12}
+        )
+
+        assert identity.uptime == 12
+        assert identity.rebooted is True
+
+    def test_committing_device_time_syncs_identity(
+        self,
+        router: AsusRouter,
+        make_state: MakeStateFactory,
+    ) -> None:
+        """The device's own clock reaches the identity for the log."""
+
+        identity = ARDeviceIdentity()
+        id_state = make_state(ARDeviceSourceUniversal)
+        cast(Any, id_state)._content = identity
+        router._data_states[ARDeviceSourceUniversal] = id_state
+
+        device_time = datetime(2026, 7, 31, 10, 24, 4, tzinfo=UTC)
+        router._commit_data_state(
+            make_state(ARClockSource()),
+            {ARClockField.DEVICE_TIME: device_time},
+        )
+
+        assert identity.device_time == device_time
+
+    def test_naive_device_time_is_ignored(
+        self,
+        router: AsusRouter,
+        make_state: MakeStateFactory,
+    ) -> None:
+        """A clock stating no offset places nothing on a timeline."""
+
+        identity = ARDeviceIdentity()
+        id_state = make_state(ARDeviceSourceUniversal)
+        cast(Any, id_state)._content = identity
+        router._data_states[ARDeviceSourceUniversal] = id_state
+
+        router._commit_data_state(
+            make_state(ARClockSource()),
+            {ARClockField.DEVICE_TIME: datetime(2026, 7, 31, 10, 24, 4)},
+        )
+
+        assert identity.device_time is None
+
+    def test_clock_keys_from_another_source_are_ignored(
+        self,
+        router: AsusRouter,
+        source: ARDataSource,
+        make_state: MakeStateFactory,
+    ) -> None:
+        """Only the clock feeds the clock; a lookalike dict does not."""
+
+        identity = ARDeviceIdentity()
+        id_state = make_state(ARDeviceSourceUniversal)
+        cast(Any, id_state)._content = identity
+        router._data_states[ARDeviceSourceUniversal] = id_state
+
+        router._commit_data_state(
+            make_state(source),
+            {
+                "uptime": 2131043,
+                "boottime": ARBoottime(2026, 1, 1, tzinfo=UTC),
+            },
+        )
+
+        assert identity.uptime is None
+        assert identity.boottime is None
+
+    def test_committing_untagged_boottime_is_ignored(
+        self,
+        router: AsusRouter,
+        make_state: MakeStateFactory,
+    ) -> None:
+        """A plain datetime under the key is not the tagged boot time."""
+
+        identity = ARDeviceIdentity()
+        id_state = make_state(ARDeviceSourceUniversal)
+        cast(Any, id_state)._content = identity
+        router._data_states[ARDeviceSourceUniversal] = id_state
+
+        router._commit_data_state(
+            make_state(ARClockSource()),
+            {ARClockField.BOOTTIME: datetime(2026, 1, 1, tzinfo=UTC)},
+        )
+
+        assert identity.boottime is None
 
     def test_committing_plain_datetime_ignores_boottime(
         self,
@@ -494,7 +602,10 @@ class TestAsyncRefreshDataState:
             extra_kw="x",
         )
         if translator:
-            translator.assert_called_once_with({"a": 1}, identity=ANY)
+            # The last result is offered so a translator can continue it
+            translator.assert_called_once_with(
+                {"a": 1}, identity=ANY, previous=None
+            )
         assert_state_updated(state, expected_value)
 
 
@@ -547,8 +658,61 @@ class TestAsyncGetDataState:
         assert result == {source: sentinel}
 
 
+class TestEnsureConnected:
+    """Tests for AsusRouter._async_ensure_connected."""
+
+    @pytest.mark.asyncio
+    async def test_connects_when_not_connected(
+        self, router: AsusRouter, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Connects on the first request of a fresh, unconnected router."""
+
+        connect = AsyncMock(return_value=True)
+        monkeypatch.setattr(router, "async_connect", connect)
+
+        await router._async_ensure_connected()
+
+        connect.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_skips_when_connected(
+        self, router: AsusRouter, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Does not reconnect when already connected."""
+
+        connect = AsyncMock()
+        monkeypatch.setattr(router, "async_connect", connect)
+        monkeypatch.setattr(router._connection, "_connected", True)
+
+        await router._async_ensure_connected()
+
+        connect.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_skips_during_reboot(
+        self, router: AsusRouter, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Leaves reconnection to the reboot recovery while it is in flight."""
+
+        connect = AsyncMock()
+        monkeypatch.setattr(router, "async_connect", connect)
+        monkeypatch.setattr(router, "_reboot_recovery", object())
+
+        await router._async_ensure_connected()
+
+        connect.assert_not_awaited()
+
+
 class TestAsyncFetchData:
     """Tests for AsusRouter.async_fetch_data."""
+
+    @pytest.fixture(autouse=True)
+    def _skip_ensure_connected(
+        self, router: AsusRouter, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Assume an already-connected router for these unit tests."""
+
+        monkeypatch.setattr(router, "_async_ensure_connected", AsyncMock())
 
     @pytest.mark.asyncio
     async def test_returns_none_when_no_data_state(
@@ -692,6 +856,14 @@ class TestAsyncFetchData:
 
 class TestAsyncRunAction:
     """Tests for AsusRouter.async_run_action."""
+
+    @pytest.fixture(autouse=True)
+    def _skip_ensure_connected(
+        self, router: AsusRouter, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Assume an already-connected router for these unit tests."""
+
+        monkeypatch.setattr(router, "_async_ensure_connected", AsyncMock())
 
     @pytest.mark.asyncio
     async def test_no_caller_returns_none(

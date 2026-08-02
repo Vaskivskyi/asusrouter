@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from asusrouter.modules.endpoint import AREndpoint
 from asusrouter.modules.endpoint.hooks import ARHook, hook_request, hook_value
@@ -14,8 +14,13 @@ from asusrouter.modules.speedtest.models import (
     history_from_list,
     result_server_id,
 )
+from asusrouter.modules.support.flag import ARSupportType
+from asusrouter.modules.support.helpers import support_available
 from asusrouter.registry import ARCallableRegistry as ARCallReg
 from asusrouter.tools.types import ARCallbackType
+
+if TYPE_CHECKING:
+    from asusrouter.modules.device.identity import ARDeviceIdentity
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -53,9 +58,16 @@ async def _async_fetch_history(callback: ARCallbackType) -> Any:
 async def fetch_state(
     callback: ARCallbackType,
     source: ARSpeedTestHistorySource,
+    *,
+    identity: ARDeviceIdentity | None = None,
     **kwargs: Any,
 ) -> Any:
     """Fetch the raw speedtest history."""
+
+    if identity is None or not support_available(
+        identity.support, ARSupportType.SPEEDTEST
+    ):
+        return {}
 
     history = await _async_fetch_history(callback)
     return history if history is not None else {}

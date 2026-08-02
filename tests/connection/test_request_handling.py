@@ -484,7 +484,7 @@ class TestMakeRequest:
         conn.config.set(ARCCKey.PORT, self._PORT)
         conn.config.set(ARCCKey.USE_SSL, False)
         conn._header = self._DEFAULT_HEADERS
-        conn._dumpback = None
+        conn._response_callback = None
         mock_session = MagicMock()
         mock_session.closed = False
         conn._session = mock_session
@@ -666,35 +666,35 @@ class TestMakeRequest:
         assert result[2] == "recovered"
         mock_response.text.assert_called_with(errors="ignore")
 
-    async def test_dumpback_called_on_response(
+    async def test_response_callback_called_on_response(
         self,
         connection_factory: ConnectionFactory,
     ) -> None:
-        """Calls dumpback with full response details when _dumpback is set."""
+        """Calls response callback with full details when it is set."""
 
         conn = connection_factory()
         mock_session = self._setup_conn(conn)
-        dumpback = AsyncMock()
-        conn._dumpback = dumpback
+        response_callback = AsyncMock()
+        conn._response_callback = response_callback
         mock_session.request = MagicMock(
             return_value=self._make_response_cm(200, {"h": "v"}, "body")
         )
 
         await conn._make_request(AREndpoint.LOGIN, payload="p")
 
-        dumpback.assert_awaited_once_with(
+        response_callback.assert_awaited_once_with(
             AREndpoint.LOGIN, "p", 200, {"h": "v"}, "body"
         )
 
-    async def test_no_dumpback_when_not_set(
+    async def test_no_response_callback_when_not_set(
         self,
         connection_factory: ConnectionFactory,
     ) -> None:
-        """Skips dumpback call when _dumpback is None."""
+        """Skips response callback when it is None."""
 
         conn = connection_factory()
         mock_session = self._setup_conn(conn)
-        conn._dumpback = None
+        conn._response_callback = None
         mock_session.request = MagicMock(
             return_value=self._make_response_cm(200, {}, "ok")
         )

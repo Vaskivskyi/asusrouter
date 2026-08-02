@@ -15,6 +15,7 @@ from asusrouter.modules.support.helpers import (
     make_list_translator,
     support_available,
     support_available_in,
+    support_capability,
     support_value,
 )
 
@@ -210,6 +211,19 @@ def test_support_available(
             ARConnection.HTTPS,
             False,
         ),
+        # dict capabilities → membership by key
+        (
+            {ARSupportType.CONNECTIONS: {ARConnection.HTTPS: True}},
+            ARSupportType.CONNECTIONS,
+            ARConnection.HTTPS,
+            True,
+        ),
+        (
+            {ARSupportType.CONNECTIONS: {ARConnection.HTTPS: True}},
+            ARSupportType.CONNECTIONS,
+            ARConnection.SSH,
+            False,
+        ),
     ],
 )
 def test_support_available_in(
@@ -228,8 +242,8 @@ def test_support_available_in(
     [
         # bool value
         ({ARSupportType.AI: True}, ARSupportType.AI, True),
-        # int value
-        ({ARSupportType.USB_PORTS: 2}, ARSupportType.USB_PORTS, 2),
+        # int value (support_value returns whatever is stored)
+        ({ARSupportType.SPEEDTEST: 2}, ARSupportType.SPEEDTEST, 2),
         # list value
         (
             {ARSupportType.CONNECTIONS: [ARConnection.HTTPS]},
@@ -246,3 +260,42 @@ def test_support_value(
     """Test support_value returns the stored value or None."""
 
     assert support_value(support, key) == expected
+
+
+@pytest.mark.parametrize(
+    ("support", "key", "capability", "expected"),
+    [
+        # capability present in the dict
+        (
+            {ARSupportType.CONNECTIONS: {ARConnection.HTTPS: 5}},
+            ARSupportType.CONNECTIONS,
+            ARConnection.HTTPS,
+            5,
+        ),
+        # capability missing from the dict → None
+        (
+            {ARSupportType.CONNECTIONS: {}},
+            ARSupportType.CONNECTIONS,
+            ARConnection.HTTPS,
+            None,
+        ),
+        # non-dict value → None
+        (
+            {ARSupportType.AI: True},
+            ARSupportType.AI,
+            ARConnection.HTTPS,
+            None,
+        ),
+        # key absent → None
+        ({}, ARSupportType.AI, ARConnection.HTTPS, None),
+    ],
+)
+def test_support_capability(
+    support: dict[ARSupportType, Any],
+    key: ARSupportType,
+    capability: Any,
+    expected: Any,
+) -> None:
+    """Test support_capability reads a value from the capabilities dict."""
+
+    assert support_capability(support, key, capability) == expected

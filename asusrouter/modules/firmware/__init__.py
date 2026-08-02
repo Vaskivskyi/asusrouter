@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from asusrouter.modules.firmware.enums import (
     AR_FW_MERLIN_LIKE,
+    ARFirmwareCapability,
     ARFirmwareType,
     ARFirmwareWebError,
     ARFirmwareWebFetch,
@@ -26,6 +27,7 @@ __all__ = [
     "AR_FW_388",
     "AR_FW_MERLIN_LIKE",
     "ARFirmware",
+    "ARFirmwareCapability",
     "ARFirmwareSignature",
     "ARFirmwareSource",
     "ARFirmwareSourceUniversal",

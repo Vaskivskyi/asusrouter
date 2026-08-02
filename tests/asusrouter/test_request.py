@@ -48,6 +48,22 @@ class TestAsyncFetch:
         assert result is None
         assert _ENDPOINT in router._unavailable_endpoints
 
+    async def test_redirect_page_returns_none_and_marks_unavailable(
+        self, router: AsusRouter, conn: Mock
+    ) -> None:
+        """A 200 HTML redirect bounce is treated as an absent endpoint."""
+
+        page = (
+            '<HTML><HEAD><meta http-equiv="refresh" '
+            'content="0; url=cloud_sync.asp?flag="></HEAD></HTML>'
+        )
+        conn.async_query = AsyncMock(return_value=(200, {}, page))
+
+        result = await router.async_fetch(_ENDPOINT)
+
+        assert result is None
+        assert _ENDPOINT in router._unavailable_endpoints
+
     async def test_skips_known_unavailable_endpoint(
         self, router: AsusRouter, conn: Mock
     ) -> None:

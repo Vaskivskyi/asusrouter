@@ -13,6 +13,7 @@ class ARAiMeshCapability(FromStrMixin, StrEnum):
 
     UNKNOWN = UNKNOWN_MEMBER_STR
 
+    GENERATION = "generation"
     NEW_ONBOARDING = "new_onboarding"
     NODE = "node"
     ROUTER = "router"

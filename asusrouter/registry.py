@@ -7,6 +7,7 @@ from typing import Any
 
 from asusrouter.const import (
     AR_CALL_FETCH_STATE,
+    AR_CALL_PROBE_STATE,
     AR_CALL_RUN_ACTION,
     AR_CALL_TRANSLATE_ACTION,
     AR_CALL_TRANSLATE_STATE,
@@ -49,6 +50,7 @@ class ARCallableRegistryBase:
         *,
         fetch_state: ARCallableType | None = None,
         translate_state: ARCallableType | None = None,
+        probe_state: ARCallableType | None = None,
         multi: bool = False,
     ) -> None:
         """Register a module's standard callables for `source_cls`."""
@@ -61,6 +63,8 @@ class ARCallableRegistryBase:
             )
             if func is not None
         }
+        if probe_state is not None:
+            callables[AR_CALL_PROBE_STATE] = probe_state
         self.register(source_cls, **callables)
 
     def register_action(
@@ -148,6 +152,12 @@ class ARCallableRegistryBase:
             if isinstance(value, tuple):
                 return bool(value[1])
             return self._flags.get(value, False)
+
+    def classes_with(self, name: str) -> list[type]:
+        """Return all registered classes that have a callable under `name`."""
+
+        with self._lock:
+            return [cls for cls, entry in self._map.items() if name in entry]
 
     def get_all_for(self, source: Any) -> dict[str, ARCallableEntry]:
         """Return all resolved callables for `source` by name (MRO merged).

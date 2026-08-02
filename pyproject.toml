@@ -45,7 +45,7 @@ dev = [
     "mypy==2.3.0",
     "pydantic==2.13.4",
     "ruff==0.15.22",
-    "prek==0.4.10",
+    "prek==0.4.11",
 ]
 test = [
     "pytest==9.1.1",
@@ -129,6 +129,7 @@ split-on-trailing-comma = false
     "S104",    # Possible binding to all interfaces
     "S105",    # Possible hardcoded password assigned to: "{}"
     "S106",    # Possible hardcoded password assigned to argument: "{}"
+    "S301",    # `pickle` round-trips test our own values, not foreign data
     "S311",    # Standard pseudo-random generators are not suitable for cryptographic purposes
 ]
 

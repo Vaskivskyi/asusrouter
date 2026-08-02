@@ -10,7 +10,7 @@ import pytest
 
 from asusrouter.asusrouter import AsusRouter
 from asusrouter.modules.aimesh import ARAiMeshSourceUniversal
-from asusrouter.modules.boottime import ARBoottimeSourceUniversal
+from asusrouter.modules.clock import ARClockSourceUniversal
 from asusrouter.modules.device import ARDeviceSourceUniversal
 from asusrouter.modules.device.identity import ARDeviceIdentity
 from asusrouter.modules.endpoint import AREndpoint
@@ -141,7 +141,7 @@ async def test_async_connect_fetches_boottime_when_not_seeded(
 
     await router.async_connect()
 
-    assert (ARBoottimeSourceUniversal,) in [
+    assert (ARClockSourceUniversal,) in [
         call.args for call in fetch.await_args_list
     ]
 
@@ -152,7 +152,7 @@ async def test_async_connect_seeds_boottime_from_config(
     monkeypatch: pytest.MonkeyPatch,
     make_state: MakeStateFactory,
 ) -> None:
-    """A seeded boot time is assigned and the fetch is skipped."""
+    """A seeded boot time anchors, but the clock is still read."""
 
     boottime = datetime(2026, 1, 1, tzinfo=UTC)
     identity = ARDeviceIdentity()
@@ -170,7 +170,7 @@ async def test_async_connect_seeds_boottime_from_config(
     await router.async_connect()
 
     assert identity.boottime == boottime
-    assert (ARBoottimeSourceUniversal,) not in [
+    assert (ARClockSourceUniversal,) in [
         call.args for call in fetch.await_args_list
     ]
 

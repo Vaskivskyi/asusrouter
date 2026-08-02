@@ -151,7 +151,7 @@ class Connection:  # pylint: disable=too-many-instance-attributes
         use_ssl: bool = False,
         session: aiohttp.ClientSession | None = None,
         timeout: int | None = DEFAULT_TIMEOUT,
-        dumpback: Callable[..., Awaitable[None]] | None = None,
+        response_callback: Callable[..., Awaitable[None]] | None = None,
         config: dict[ARCCKey, Any] | None = None,
     ):
         """Initialize connection."""
@@ -212,7 +212,7 @@ class Connection:  # pylint: disable=too-many-instance-attributes
             max_concurrent
         )
 
-        self._dumpback = dumpback
+        self._response_callback = response_callback
 
         self._manage_session: bool = False
         self._session: aiohttp.ClientSession | None = session
@@ -796,8 +796,8 @@ class Connection:  # pylint: disable=too-many-instance-attributes
                 _LOGGER.debug("Cannot decode response. Will ignore errors")
                 resp_content = await response.text(errors="ignore")
 
-            if self._dumpback is not None:
-                await self._dumpback(
+            if self._response_callback is not None:
+                await self._response_callback(
                     endpoint, payload, resp_status, resp_headers, resp_content
                 )
 

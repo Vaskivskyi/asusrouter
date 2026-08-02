@@ -20,6 +20,12 @@ pytest/
 local_test*.py
 local/
 
+# Default data dump output
+dumps/
+
+# Default device probe output
+probes/
+
 # VS Code
 .vscode/launch.json
 .vscode/settings.json
