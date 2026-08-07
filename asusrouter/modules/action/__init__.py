@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 from enum import StrEnum
 import logging
-from typing import Any
+from typing import Any, ClassVar
 
 from asusrouter.const import UNKNOWN_MEMBER_STR
 from asusrouter.tools.enum import FromStrMixin
@@ -37,6 +37,8 @@ class ARAction:
     actions keep the empty default, subclasses with defining parameters
     override `_key` only.
     """
+
+    serialized: ClassVar[bool] = False
 
     def __init__(self) -> None:
         """Initialize the action."""
