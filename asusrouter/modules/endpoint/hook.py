@@ -389,7 +389,7 @@ def process_port_forwarding(data: dict[str, Any]) -> dict[str, Any]:
                     ip_address=part[2],
                     port=safe_return(part[3]),
                     protocol=part[4],
-                    ip_external=safe_return(part[5]),
+                    ip_external=safe_return(part[5] if part[5:] else None),
                     port_external=part[1],
                 )
             )

@@ -4,13 +4,38 @@ from unittest.mock import AsyncMock
 
 import pytest
 
+from asusrouter.modules.endpoint.hook import process_port_forwarding
 from asusrouter.modules.port_forwarding import (
+    KEY_PORT_FORWARDING_LIST,
     KEY_PORT_FORWARDING_STATE,
     AsusPortForwarding,
+    PortForwardingRule,
     set_state,
 )
 
 async_callback = AsyncMock()
+
+
+def test_rule_without_external_ip() -> None:
+    """A legacy five-field rule has no external IP restriction."""
+    result = process_port_forwarding(
+        {
+            KEY_PORT_FORWARDING_STATE: "1",
+            KEY_PORT_FORWARDING_LIST: (
+                "&#60Web&#6280&#62192.0.2.10&#628080&#62TCP"
+            ),
+        }
+    )
+
+    [rule] = result["rules"]
+    assert rule == PortForwardingRule(
+        name="Web",
+        ip_address="192.0.2.10",
+        port="8080",
+        protocol="TCP",
+        ip_external=None,
+        port_external="80",
+    )
 
 
 @pytest.mark.asyncio
