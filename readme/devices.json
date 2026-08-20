@@ -155,7 +155,12 @@
       "name": "GT-BE19000",
       "slug": "GT-BE19000",
       "wifi": "be",
-      "status": "expected",
+      "status": "confirmed",
+      "firmware": {
+        "stock": [
+          "102_39244"
+        ]
+      },  
       "amazon": "https://amzn.to/3yGFU7U"
     },
     {
@@ -606,7 +611,7 @@
       "name": "RT-BE58U",
       "slug": "RT-BE58U",
       "wifi": "be",
-      "status": "expected",
+      "status": "confirmed",
       "amazon": "https://amzn.to/4bHsdo4"
     },
     {
@@ -667,7 +672,8 @@
           "388.21224",
           "388.22525",
           "388.23285",
-          "388.24121"
+          "388.24121",
+          "388.24358"
         ],
         "merlin": [
           "388.4_0"
@@ -769,7 +775,7 @@
       "name": "ZenWiFi BT10",
       "slug": "ZenWiFiBT10",
       "wifi": "be",
-      "status": "expected",
+      "status": "confirmed",
       "amazon": "https://amzn.to/48F5wiB"
     },
     {
