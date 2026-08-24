@@ -625,7 +625,12 @@
       "name": "RT-BE92U",
       "slug": "RT-BE92U",
       "wifi": "be",
-      "status": "expected",
+      "status": "confirmed",
+      "firmware": {
+        "stock": [
+          "102_40311"
+        ]
+      },
       "amazon": "https://amzn.to/4c1E8gg"
     },
     {
