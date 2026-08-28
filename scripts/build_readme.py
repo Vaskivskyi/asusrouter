@@ -11,8 +11,9 @@ from typing import Any
 
 ROOT = Path(__file__).parent.parent
 README_DIR = ROOT / "readme"
+SHARED_DIR = README_DIR / "shared"
 TEMPLATE = README_DIR / "README.template.md"
-DEVICES = README_DIR / "devices.json"
+DEVICES = SHARED_DIR / "devices.json"
 OUTPUT = ROOT / "README.md"
 
 BANNER = (

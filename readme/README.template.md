@@ -8,6 +8,10 @@
 
 <!-- include: sections/supported-devices.md -->
 
+<!-- include: shared/merlin-warning.md -->
+
 <!-- devices -->
 
 <!-- include: sections/support.md -->
+
+<!-- include: shared/amazon-footnote.md -->

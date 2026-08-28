@@ -135,6 +135,23 @@ You can run test suites using the pre-configured tasks. All the needed requireme
 
 ---
 
+## README
+
+`README.md` is generated - never edit it directly. Edit the sources in `readme/` and run:
+
+```sh
+uv run python scripts/build_readme.py
+```
+
+The pre-commit hook does this for you; CI fails if the result is out of date.
+
+- `readme/sections/` - prose owned by this repository.
+- `readme/shared/` - the device database (`devices.json`) and the snippets shared with
+  [ha-asusrouter](https://github.com/Vaskivskyi/ha-asusrouter). Once on `dev`, a bot mirrors
+  this folder and `scripts/build_readme.py` there, so **new supported devices are added here only**.
+
+---
+
 ## Pull Requests
 
 - Ensure all pre-commit hooks pass before pushing.
