@@ -15,5 +15,3 @@ Testing the library with different devices would help a lot in the development p
 This library is a free-time project. If you like it, you can support me by buying a coffee.
 
 <a href="https://www.buymeacoffee.com/vaskivskyi" target="_blank"><img src="https://asusrouter.vaskivskyi.com/BuyMeACoffee.png" alt="Buy Me A Coffee" height="60"></a>
-
-[^amazon]: As an Amazon Associate I earn from qualifying purchases. Not like I ever got anything yet (:
