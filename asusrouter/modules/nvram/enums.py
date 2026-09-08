@@ -149,6 +149,10 @@ class ARNvramType(ARDataType):
     PORT_FORWARDING_LIST = "vts_rulelist"
     PORT_FORWARDING_LIST_SECONDARY = "vts1_rulelist"  # dual-WAN load-balance
 
+    # Static DHCP reservations
+    STATIC_DHCP_LIST = "dhcp_staticlist"
+    STATIC_DHCP_STATE = "dhcp_static_x"
+
     # Samba
     SAMBA_MODE = "st_samba_mode"
     SAMBA_STATE = "enable_samba"
