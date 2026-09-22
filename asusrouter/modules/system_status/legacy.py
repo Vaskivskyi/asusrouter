@@ -112,9 +112,12 @@ def translate_cpu(
 def parse_ram(raw: dict[str, Any]) -> dict[ARMetricType, float]:
     """Parse memory data, converting sizes from KiB to bytes."""
 
-    free = raw_to_int(raw.get("mem_free"))
+    # Prefer `simple_*` values (RAM actually used, without buffers and
+    # cache), as shown in the device Web-GUI. Fall back to `mem_*` on
+    # firmwares that do not report `simple_*`.
+    free = raw_to_int(raw.get("simple_free") or raw.get("mem_free"))
     total = raw_to_int(raw.get("mem_total"))
-    used = raw_to_int(raw.get("mem_used"))
+    used = raw_to_int(raw.get("simple_used") or raw.get("mem_used"))
 
     ram: dict[ARMetricType, float] = {}
     if free is not None:
