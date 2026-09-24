@@ -150,6 +150,7 @@ class AsusRouter:
         self._cache_threshold = timedelta(seconds=DEFAULT_CACHE_TIME)
 
         self._data_states: dict[ARDataSource | ARDataType, ARDataState] = {}
+        self._action_locks: dict[type[ARAction], asyncio.Lock] = {}
 
         # Endpoints that returned 404
         self._unavailable_endpoints: set[AREndpoint] = set()
@@ -934,6 +935,15 @@ class AsusRouter:
         """Run an action or push data to the device."""
 
         _LOGGER.debug("Triggered method async_run_action: %s", action)
+
+        if action.serialized:
+            lock = self._action_locks.setdefault(type(action), asyncio.Lock())
+            async with lock:
+                return await self._async_run_action(action, **kwargs)
+        return await self._async_run_action(action, **kwargs)
+
+    async def _async_run_action(self, action: ARAction, **kwargs: Any) -> Any:
+        """Run one action after any requested serialization."""
 
         run_caller = ARCallReg.get_callable(action, AR_CALL_RUN_ACTION)
         if run_caller is None:

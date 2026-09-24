@@ -991,6 +991,38 @@ class TestAsyncRunAction:
         if router._reboot_recovery is not None:
             await router._reboot_recovery
 
+    @pytest.mark.asyncio
+    async def test_serialized_actions_do_not_overlap(
+        self, router: AsusRouter, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Opt-in actions run one at a time for each router instance."""
+
+        class SerializedAction(ARAction):
+            serialized = True
+
+        active = 0
+        maximum = 0
+
+        async def run(*_args: Any, **_kwargs: Any) -> bool:
+            nonlocal active, maximum
+            active += 1
+            maximum = max(maximum, active)
+            await asyncio.sleep(0.01)
+            active -= 1
+            return True
+
+        def get_callable(action: Any, name: str) -> Any:
+            return run if name == AR_CALL_RUN_ACTION else None
+
+        monkeypatch.setattr(ARCallReg, "get_callable", get_callable)
+
+        await asyncio.gather(
+            router.async_run_action(SerializedAction()),
+            router.async_run_action(SerializedAction()),
+        )
+
+        assert maximum == 1
+
 
 class TestRebootRecovery:
     """Tests for the reboot recovery gate."""
