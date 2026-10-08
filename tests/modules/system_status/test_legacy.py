@@ -189,6 +189,24 @@ class TestParseRam:
 
         assert ram == {M.USED: 600 * _KIB}
 
+    def test_prefers_simple_values(self) -> None:
+        """`simple_*` values (excluding buffers/cache) are preferred."""
+
+        raw = {
+            "mem_free": "100",
+            "mem_total": "1000",
+            "mem_used": "900",
+            "simple_free": "400",
+            "simple_used": "600",
+        }
+
+        ram = legacy.parse_ram(raw)
+
+        assert ram[M.FREE] == 400 * _KIB
+        assert ram[M.TOTAL] == 1000 * _KIB
+        assert ram[M.USED] == 600 * _KIB
+        assert ram[M.USAGE] == 60.0
+
     @pytest.mark.parametrize(
         "raw",
         [{}, {"mem_total": "oops"}],
