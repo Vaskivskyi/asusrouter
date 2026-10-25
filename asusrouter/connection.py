@@ -191,6 +191,9 @@ class Connection:  # pylint: disable=too-many-instance-attributes
         self._connect_task: asyncio.Task[bool] | None = None
         # Lock to guard creation of the connect task
         self._connect_task_lock: asyncio.Lock = asyncio.Lock()
+        # Set once the device refused the credentials, blocks new logins
+        # until they are changed: every retry feeds the device lockout
+        self._credentials_refused: bool = False
 
         self._hostname: str = hostname
         self._username: str = username
@@ -447,6 +450,12 @@ class Connection:  # pylint: disable=too-many-instance-attributes
             if self._connected:
                 _LOGGER.debug("Already connected to %s", self._log_hostname)
                 return True
+            if self._credentials_refused:
+                raise AsusRouterAccessError(
+                    "Credentials were refused before, change them to log in",
+                    ARAccessError.CREDENTIALS,
+                    {},
+                )
             _LOGGER.debug("Initializing connection to %s", self._log_hostname)
 
         payload, headers = self._auth_payload, self._auth_headers
@@ -468,6 +477,16 @@ class Connection:  # pylint: disable=too-many-instance-attributes
                 self._log_hostname,
                 ex,
             )
+            if (
+                isinstance(ex, AsusRouterAccessError)
+                and _access_error(ex) is ARAccessError.CREDENTIALS
+            ):
+                self._credentials_refused = True
+                self._log_error(
+                    "Device %s refused the credentials. No new login is "
+                    "attempted until they are changed",
+                    self._log_hostname,
+                )
             raise
         except Exception as ex:  # pylint: disable=broad-except
             _LOGGER.debug(
@@ -582,6 +601,9 @@ class Connection:  # pylint: disable=too-many-instance-attributes
             for attempt in range(_CREDENTIALS_RECONNECT_MAX_ATTEMPTS):
                 if attempt:
                     await asyncio.sleep(_CREDENTIALS_RECONNECT_INTERVAL)
+                # A refusal here is a reloading httpd, not a verdict on the
+                # new credentials
+                self._credentials_refused = False
                 try:
                     if await self.async_connect(block_error=True):
                         return True
@@ -601,6 +623,8 @@ class Connection:  # pylint: disable=too-many-instance-attributes
                 except AsusRouterError:
                     pass
 
+            # Keep a manual reconnect possible
+            self._credentials_refused = False
             _LOGGER.error(
                 "Login on %s was changed, but the new session could not be "
                 "established in %s attempts. The new credentials are stored; "
