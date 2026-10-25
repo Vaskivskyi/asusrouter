@@ -167,6 +167,35 @@ class TestTranslateCpu:
         assert aggregate == 0.0
 
 
+class TestReadFreeUsed:
+    """Tests for _read_free_used."""
+
+    @pytest.mark.parametrize(
+        ("raw", "expected"),
+        [
+            (
+                {
+                    "mem_free": "1",
+                    "mem_used": "2",
+                    "simple_free": "3",
+                    "simple_used": "4",
+                },
+                (3, 4),
+            ),
+            ({"mem_free": "1", "mem_used": "2", "simple_free": "3"}, (1, 2)),
+            ({"mem_used": "2"}, (None, 2)),
+            ({}, (None, None)),
+        ],
+        ids=["simple", "simple_partial", "mem_partial", "empty"],
+    )
+    def test_pair(
+        self, raw: dict[str, str], expected: tuple[int | None, int | None]
+    ) -> None:
+        """The first complete pair wins, else the last partial one."""
+
+        assert legacy._read_free_used(raw) == expected
+
+
 class TestParseRam:
     """Tests for parse_ram."""
 
