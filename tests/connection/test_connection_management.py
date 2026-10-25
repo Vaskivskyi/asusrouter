@@ -619,6 +619,64 @@ class TestLogin:
             "cookie": "asus_token=tok123",
         }
 
+    async def test_refused_credentials_block_next_login(
+        self,
+        connection_factory: ConnectionFactory,
+        send_request: AsyncPatch,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        """Refused credentials are never sent to the device again."""
+
+        conn = connection_factory()
+        mock_send = send_request(conn)
+        mock_send.side_effect = AsusRouterAccessError(
+            "Access error", ARAccessError.CREDENTIALS, {}
+        )
+
+        with caplog.at_level(logging.ERROR):
+            with pytest.raises(AsusRouterAccessError):
+                await conn._login()
+            with pytest.raises(AsusRouterAccessError) as raised:
+                await conn._login()
+
+        assert conn._credentials_refused is True
+        # Every retry would feed the device lockout
+        mock_send.assert_awaited_once()
+        assert ARAccessError.CREDENTIALS in raised.value.args
+        assert "refused the credentials" in caplog.text
+
+    @pytest.mark.parametrize(
+        "error",
+        [
+            # The device lifts this lock on its own
+            AsusRouterAccessError(
+                "Access error", ARAccessError.TRY_AGAIN, {"timeout": 60}
+            ),
+            AsusRouterAccessError("Access error", ARAccessError.CAPTCHA, {}),
+            AsusRouterAccessError("Access error"),
+            AsusRouterError("generic"),
+        ],
+        ids=["try_again", "captcha", "no_code", "asusrouter_error"],
+    )
+    async def test_other_errors_allow_next_login(
+        self,
+        error: Exception,
+        connection_factory: ConnectionFactory,
+        send_request: AsyncPatch,
+    ) -> None:
+        """Only refused credentials block the next login."""
+
+        conn = connection_factory()
+        mock_send = send_request(conn)
+        mock_send.side_effect = error
+
+        for _ in range(2):
+            with pytest.raises(type(error)):
+                await conn._login()
+
+        assert conn._credentials_refused is False
+        assert mock_send.await_count == 2
+
     async def test_race_does_not_overwrite_token(
         self,
         connection_factory: ConnectionFactory,
@@ -980,6 +1038,37 @@ class TestAsyncSetCredentials:
         assert mock_connect.await_count == 1
         # The user has to know the session is dead and may need to step in
         assert "refused the new session" in caplog.text
+
+    async def test_refused_credentials_unblocked(
+        self,
+        connection_factory: ConnectionFactory,
+        async_connect: AsyncPatch,
+        reset_auth: SyncPatch,
+    ) -> None:
+        """Every attempt and a later manual reconnect may log in again."""
+
+        conn = connection_factory()
+        conn._credentials_refused = True
+        blocked: list[bool] = []
+
+        async def refuse(*_: Any, **__: Any) -> bool:
+            blocked.append(conn._credentials_refused)
+            conn._credentials_refused = True
+            raise AsusRouterAccessError(
+                "Access error", ARAccessError.CREDENTIALS, {}
+            )
+
+        async_connect(conn).side_effect = refuse
+        reset_auth(conn)
+
+        with patch(
+            "asusrouter.connection.asyncio.sleep", new_callable=AsyncMock
+        ):
+            result = await conn.async_set_credentials("newuser", "newpass")
+
+        assert result is False
+        assert blocked == [False, False, False]
+        assert conn._credentials_refused is False
 
     async def test_attempts_are_capped_but_credentials_kept(
         self,
