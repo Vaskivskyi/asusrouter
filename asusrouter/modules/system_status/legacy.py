@@ -23,6 +23,14 @@ _KIB_TO_BYTES = DataUnitConverter.converter_factory(
     UnitOfData.KIBIBYTE, UnitOfData.BYTE
 )
 
+# Raw memory (free, used) keys in preference order: Web-GUI shows
+# simple_* (excludes buffers/cache), older FW lacks it
+_RAM_FREE_USED: tuple[tuple[str, str], ...] = (
+    ("simple_free", "simple_used"),
+    ("mem_free", "mem_used"),
+)
+_RAM_TOTAL = "mem_total"
+
 # Cumulative cpu tick counters per core: {core_index: (total, used)}
 CpuCounters = dict[int, tuple[int, int]]
 
@@ -109,24 +117,35 @@ def translate_cpu(
     return aggregate, cores
 
 
+def _read_free_used(raw: dict[str, Any]) -> tuple[int | None, int | None]:
+    """Read the first complete (free, used) pair, else the last partial."""
+
+    free = used = None
+    for free_key, used_key in _RAM_FREE_USED:
+        free = raw_to_int(raw.get(free_key))
+        used = raw_to_int(raw.get(used_key))
+        if free is not None and used is not None:
+            break
+
+    return free, used
+
+
 def parse_ram(raw: dict[str, Any]) -> dict[ARMetricType, float]:
     """Parse memory data, converting sizes from KiB to bytes."""
 
-    # Web-GUI shows simple_* (excludes buffers/cache); older FW lacks it
-    free = raw_to_int(raw.get("simple_free"))
-    used = raw_to_int(raw.get("simple_used"))
-    if free is None or used is None:
-        free = raw_to_int(raw.get("mem_free"))
-        used = raw_to_int(raw.get("mem_used"))
-    total = raw_to_int(raw.get("mem_total"))
+    free, used = _read_free_used(raw)
+    total = raw_to_int(raw.get(_RAM_TOTAL))
 
-    ram: dict[ARMetricType, float] = {}
-    if free is not None:
-        ram[ARMetricType.FREE] = int(_KIB_TO_BYTES(free))
-    if total is not None:
-        ram[ARMetricType.TOTAL] = int(_KIB_TO_BYTES(total))
-    if used is not None:
-        ram[ARMetricType.USED] = int(_KIB_TO_BYTES(used))
+    sizes = (
+        (ARMetricType.FREE, free),
+        (ARMetricType.TOTAL, total),
+        (ARMetricType.USED, used),
+    )
+    ram: dict[ARMetricType, float] = {
+        metric: int(_KIB_TO_BYTES(value))
+        for metric, value in sizes
+        if value is not None
+    }
     if used is not None and total is not None:
         ram[ARMetricType.USAGE] = _safe_usage(used, total)
 
