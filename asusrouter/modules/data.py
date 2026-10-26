@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import asyncio
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from enum import Enum
 from typing import Any
@@ -60,7 +60,7 @@ class AsusDataState:
     data: Any | None = None
     timestamp: datetime = datetime.now(UTC)
     active: bool = False
-    inactive_event: asyncio.Event = asyncio.Event()
+    inactive_event: asyncio.Event = field(default_factory=asyncio.Event)
 
     def start(self) -> None:
         """Set to active."""
