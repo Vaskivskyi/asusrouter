@@ -814,6 +814,17 @@ class AsusRouter:
         # Check if we have a state object for this data
         self._check_state(datatype)
 
+        # Aliases share the request (and the
+        # active flag / cache) of their target datatype
+        alias_target = ASUSDATA_MAP.get(datatype)
+        if isinstance(alias_target, AsusData):
+            while isinstance(
+                next_target := ASUSDATA_MAP.get(alias_target), AsusData
+            ):
+                alias_target = next_target
+            await self.async_get_data(alias_target, force=force, **kwargs)
+            return self._return_state(datatype, **kwargs)
+
         # If state object is active, wait for it to finish and return the data
         if self._state[datatype].active:
             try:
@@ -856,6 +867,7 @@ class AsusRouter:
         # Check if we have a data finder
         if not data_finder:
             _LOGGER.debug("No data finder for %s", datatype)
+            self._state[datatype].stop()
             return {}
 
         # The data we are looking for
@@ -926,6 +938,7 @@ class AsusRouter:
                     self._state[key] = AsusDataState()
                 self._state[key].update(transformed_value)
         except (AsusRouterConnectionError, AsusRouterDataError):
+            self._state[datatype].stop()
             return self._return_state(datatype, **kwargs)
 
         # Check flags
