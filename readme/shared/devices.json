@@ -199,8 +199,25 @@
       "name": "GT6",
       "slug": "GT6",
       "wifi": "ax",
-      "status": "expected",
+      "status": "confirmed",
+      "firmware": {
+        "stock": [
+          "388_25133"
+        ]
+      },
       "amazon": "https://amzn.to/3GmPCfR"
+    },
+    {
+      "name": "Lyra Mini",
+      "slug": "LyraMini",
+      "wifi": "ac",
+      "status": "confirmed",
+      "firmware": {
+        "stock": [
+          "386_41615"
+        ]
+      },
+      "amazon": "https://link.amazon/B06rhWxwo"
     },
     {
       "name": "RP-AX56",
@@ -208,6 +225,30 @@
       "wifi": "ax",
       "status": "confirmed",
       "amazon": "https://amzn.to/3MpZSY8"
+    },
+    {
+      "name": "RT-AC1200",
+      "slug": "RT-AC1200",
+      "wifi": "ac",
+      "status": "confirmed",
+      "firmware": {
+        "stock": [
+          "380_10931"
+        ]
+      },
+      "amazon": "https://link.amazon/B0diIA2a1"
+    },
+    {
+      "name": "RT-AC1200G+",
+      "slug": "RT-AC1200G+",
+      "wifi": "ac",
+      "status": "confirmed",
+      "firmware": {
+        "stock": [
+          "382_52272"
+        ]
+      },
+      "amazon": "https://link.amazon/B0aXKrwgL"
     },
     {
       "name": "RT-AC51U",
@@ -371,6 +412,18 @@
       "amazon": "https://amzn.to/3i6dWL0"
     },
     {
+      "name": "RT-AX3000",
+      "slug": "RT-AX3000",
+      "wifi": "ax",
+      "status": "confirmed",
+      "firmware": {
+        "merlin": [
+          "388.9"
+        ]
+      },
+      "amazon": "https://link.amazon/B08zIwJsu"
+    },
+    {
       "name": "RT-AX3000P",
       "slug": "RT-AX3000P",
       "wifi": "ax",
@@ -402,6 +455,18 @@
       "wifi": "ax",
       "status": "expected",
       "amazon": "https://amzn.to/4aCdvyu"
+    },
+    {
+      "name": "RT-AX54HP",
+      "slug": "RT-AX54HP",
+      "wifi": "ax",
+      "status": "confirmed",
+      "firmware": {
+        "stock": [
+          "386_69195"
+        ]
+      },
+      "amazon": "https://link.amazon/B0anLgL4f"
     },
     {
       "name": "RT-AX55",
@@ -815,7 +880,12 @@
       "name": "ZenWiFi BQ16",
       "slug": "ZenWiFiBQ16",
       "wifi": "be",
-      "status": "expected",
+      "status": "confirmed",
+      "firmware": {
+        "stock": [
+          "102_39265"
+        ]
+      },
       "amazon": "https://amzn.to/4bgVvdo"
     },
     {
