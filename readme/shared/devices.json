@@ -108,7 +108,8 @@
       "status": "confirmed",
       "firmware": {
         "stock": [
-          "388_24198"
+          "388_24198",
+          "102_34735"
         ],
         "merlin": [
           "388.7_0_rog"
@@ -120,7 +121,7 @@
       "name": "GT-AX6000",
       "slug": "GT-AX6000",
       "wifi": "ax",
-      "status": "expected",
+      "status": "confirmed",
       "firmware": {
         "merlin": [
           "388.7_beta1"
@@ -162,6 +163,18 @@
         ]
       },
       "amazon": "https://amzn.to/3yGFU7U"
+    },
+    {
+      "name": "GT-BE19000AI",
+      "slug": "GT-BE19000AI",
+      "wifi": "be",
+      "status": "confirmed",
+      "firmware": {
+        "stock": [
+          "102_40456"
+        ]
+      },
+      "amazon": "https://link.amazon/B06bdKVg1"
     },
     {
       "name": "GT-BE98",
@@ -551,7 +564,8 @@
         "stock": [
           "386_45934",
           "386_48631",
-          "388_24198"
+          "388_24198",
+          "388_24346"
         ],
         "merlin": [
           "386.5_2",
@@ -615,10 +629,28 @@
       "amazon": "https://amzn.to/4bHsdo4"
     },
     {
+      "name": "RT-BE58U V2",
+      "slug": "RT-BE58UV2",
+      "wifi": "be",
+      "status": "confirmed",
+      "firmware": {
+        "stock": [
+          "102_39407"
+        ]
+      },
+      "amazon": "https://link.amazon/B0iIHkyOP"
+    },
+    {
       "name": "RT-BE88U",
       "slug": "RT-BE88U",
       "wifi": "be",
-      "status": "expected",
+      "status": "confirmed",
+      "firmware": {
+        "stock": [
+          "102_39256",
+          "102_39396"
+        ]
+      },
       "amazon": "https://amzn.to/3TAGCKY"
     },
     {
@@ -709,11 +741,23 @@
       "name": "TUF-BE6500",
       "slug": "TUF-BE6500",
       "wifi": "be",
-      "status": "expected",
+      "status": "confirmed",
+      "firmware": {
+        "stock": [
+          "102_57247"
+        ]
+      },
       "amazon": "https://amzn.to/3X3Xltv"
     },
     {
-      "name": "ZenWiFi AC Mini(CD6)",
+      "name": "TUF-BE9400",
+      "slug": "TUF-BE9400",
+      "wifi": "be",
+      "status": "confirmed",
+      "amazon": "https://link.amazon/B0aKXmffe"
+    },
+    {
+      "name": "ZenWiFi AC Mini (CD6)",
       "slug": "ZenWiFiACMini(CD6)",
       "wifi": "ac",
       "status": "confirmed",
