@@ -716,7 +716,12 @@
       "name": "ZenWiFi AC Mini(CD6)",
       "slug": "ZenWiFiACMini(CD6)",
       "wifi": "ac",
-      "status": "expected",
+      "status": "confirmed",
+      "firmware": {
+        "stock": [
+          "386.49693"
+        ]
+      },
       "amazon": "https://amzn.to/3RU7vrL"
     },
     {
@@ -773,7 +778,12 @@
       "name": "ZenWiFi BQ16 Pro",
       "slug": "ZenWiFiBQ16Pro",
       "wifi": "be",
-      "status": "expected",
+      "status": "confirmed",
+      "firmware": {
+        "stock": [
+          "102_37026"
+        ]
+      },
       "amazon": "https://amzn.to/3MNcw48"
     },
     {
@@ -830,7 +840,12 @@
       "name": "ZenWiFi XD4 Plus",
       "slug": "ZenWiFiXD4Plus",
       "wifi": "ax",
-      "status": "expected",
+      "status": "confirmed",
+      "firmware": {
+        "stock": [
+          "386.69276"
+        ]
+      },
       "amazon": "https://amzn.to/3XtYOWp"
     },
     {
