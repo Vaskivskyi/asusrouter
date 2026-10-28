@@ -5,6 +5,8 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
 
+from asusrouter.modules.aimesh.source import ARAiMeshSourceUniversal
+from asusrouter.modules.aimesh.topology import ARAiMeshTopology
 from asusrouter.modules.led.enums import ARLedField
 from asusrouter.modules.nvram import ARNvramType, async_fetch_values
 from asusrouter.modules.source import ARDataSource
@@ -32,9 +34,35 @@ async def fetch_state(
     identity: ARDeviceIdentity | None = None,
     **kwargs: Any,
 ) -> dict[Any, Any]:
-    """Fetch the LED state through the NVRAM module."""
+    """Fetch the LED state through the NVRAM module and AiMesh."""
 
-    return await async_fetch_values(fetch_data_callback, LED_REQUEST)
+    values = await async_fetch_values(fetch_data_callback, LED_REQUEST)
+
+    # The AiMesh page switches the LED in the mesh config only, leaving
+    # nvram on the previous state
+    led = await _async_get_aimesh_led(fetch_data_callback, identity)
+    if led is not None:
+        values = {**values, ARNvramType.LED: led}
+
+    return values
+
+
+async def _async_get_aimesh_led(
+    fetch_data_callback: ARCallbackType | None,
+    identity: ARDeviceIdentity | None,
+) -> bool | None:
+    """Get the LED state of the device from its AiMesh config."""
+
+    if fetch_data_callback is None or identity is None:
+        return None
+    fetched = await fetch_data_callback(ARAiMeshSourceUniversal)
+    if not isinstance(fetched, dict):
+        return None
+    topology = fetched.get(ARAiMeshSourceUniversal)
+    if not isinstance(topology, ARAiMeshTopology):
+        return None
+    node = topology.get(identity.mac)
+    return None if node is None else node.led
 
 
 # Translation map: nvram key -> field, converter

@@ -26,7 +26,7 @@ if TYPE_CHECKING:
 _LOGGER = logging.getLogger(__name__)
 
 # start_ctrl_led restarts the LED daemon; nvram led_val reads blank for a
-# moment, so poll it until it settles back to a real on/off value
+# moment, so poll until the new state reads back
 _POLL_INTERVAL = 0.5
 _POLL_ATTEMPTS = 6
 
@@ -43,8 +43,10 @@ class ARLedAction(ARAction):
         return (self.state,)
 
 
-async def _async_wait_settled(fetch_data_callback: ARCallbackType) -> bool:
-    """Poll the LED state until it settles to a real on/off value."""
+async def _async_wait_settled(
+    fetch_data_callback: ARCallbackType, state: bool
+) -> bool:
+    """Poll the LED state until it reports the given state."""
 
     async def probe(**kwargs: Any) -> Any:
         return await fetch_data_callback(ARLedSourceUniversal)
@@ -53,9 +55,7 @@ async def _async_wait_settled(fetch_data_callback: ARCallbackType) -> bool:
         if not isinstance(result, dict):
             return False
         data = result.get(ARLedSourceUniversal)
-        return (
-            isinstance(data, dict) and data.get(ARLedField.STATE) is not None
-        )
+        return isinstance(data, dict) and data.get(ARLedField.STATE) is state
 
     settled = await async_poll_until(
         probe, ready, interval=_POLL_INTERVAL, attempts=_POLL_ATTEMPTS
@@ -87,7 +87,7 @@ async def run_action(
 
     # Wait until state is settled
     if fetch_data_callback is not None:
-        if not await _async_wait_settled(fetch_data_callback):
+        if not await _async_wait_settled(fetch_data_callback, action.state):
             _LOGGER.debug("LED state did not settle after the switch")
     elif expire_callback is not None:
         # Without a data callback, drop the stale cache for the next read

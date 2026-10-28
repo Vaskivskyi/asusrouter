@@ -93,6 +93,18 @@ class TestRunAction:
         get_data.assert_awaited_with(ARLedSourceUniversal)
         expire.assert_not_awaited()
 
+    async def test_settle_waits_for_new_state(self) -> None:
+        """The previous state still read back is not yet settled."""
+
+        callback = _poster()
+        get_data = _data(False, True)
+        result = await run_action(
+            callback, ARLedAction(state=True), fetch_data_callback=get_data
+        )
+
+        assert result.success is True
+        assert get_data.await_count == 2
+
     async def test_settle_ignores_non_dict_poll(self) -> None:
         """A non-dict poll result is treated as not-yet-settled."""
 
