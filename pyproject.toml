@@ -43,9 +43,9 @@ include = ["asusrouter*"]
 [dependency-groups]
 dev = [
     "mypy==2.4.1",
+    "prek==0.5.10",
     "pydantic==2.14.3",
     "ruff==0.17.4",
-    "prek==0.5.10",
 ]
 test = [
     "pytest==9.2.0",
@@ -53,14 +53,41 @@ test = [
     "pytest-cov==7.1.0",
 ]
 
-[tool.pytest.ini_options]
+[tool.coverage.run]
+source = ["asusrouter"]
+
+[tool.mypy]
+python_version = "3.11"
+plugins = ["pydantic.mypy"]
+follow_imports = "normal"
+exclude = "tests"
+local_partial_types = true
+strict = true
+extra_checks = false
+no_implicit_optional = true
+warn_incomplete_stub = true
+warn_unreachable = true
+enable_error_code = [
+    "ignore-without-code",
+    "redundant-self",
+    "truthy-iterable",
+]
+disable_error_code = [
+    "annotation-unchecked",
+    "import-not-found",
+    "import-untyped",
+]
+
+[tool.pytest]
 testpaths = ["tests"]
+strict = true
+filterwarnings = ["error"]
 asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
 
 [tool.ruff]
 line-length = 79
 src = ["asusrouter"]
-target-version = "py311"
 
 [tool.ruff.format]
 exclude = ["*.md"]  # don't format code within markdown files

@@ -52,9 +52,11 @@ class TestARSecurityLevel:
     @pytest.mark.parametrize(
         ("value", "expected"),
         [
-            (ARSecurityLevel.DEFAULT, ARSecurityLevel.DEFAULT),
+            pytest.param(
+                ARSecurityLevel.DEFAULT, ARSecurityLevel.DEFAULT, id="member-1"
+            ),
             (1, ARSecurityLevel.DEFAULT),
-            ("1", ARSecurityLevel.DEFAULT),
+            pytest.param("1", ARSecurityLevel.DEFAULT, id="str_1-1"),
             ("5.0", ARSecurityLevel.SANITIZED),
             (7, ARSecurityLevel.REASONABLE),
             (861, ARSecurityLevel.UNKNOWN),

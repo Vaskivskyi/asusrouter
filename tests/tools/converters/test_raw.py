@@ -80,7 +80,7 @@ def test_str_to_bool_type() -> None:
         ("enable", True),
         ("enabled", True),
         ("yes", True),
-        ("1", True),
+        pytest.param("1", True, id="str_1-True"),
         ("on", True),
         # false strings
         ("false", False),
@@ -88,7 +88,7 @@ def test_str_to_bool_type() -> None:
         ("disable", False),
         ("disabled", False),
         ("no", False),
-        ("0", False),
+        pytest.param("0", False, id="str_0-False"),
         ("off", False),
         # case-insensitive + whitespace
         ("  TRUE  ", True),
@@ -113,7 +113,7 @@ def test_raw_to_bool(value: Any, expected: bool | None) -> None:
         ("", None),
         ("  ", None),
         ("abc", None),
-        ("inf", None),
+        pytest.param("inf", None, id="str_inf-None"),
         ("1e400", None),
         # bool/int passthrough (bool is subclass of int)
         (True, 1),
@@ -128,8 +128,8 @@ def test_raw_to_bool(value: Any, expected: bool | None) -> None:
         (float("-inf"), None),
         (float("nan"), None),
         # decimal strings
-        ("42", 42),
-        ("-5", -5),
+        pytest.param("42", 42, id="str_42-42"),
+        pytest.param("-5", -5, id="str_-5--5"),
         # float-string fallback
         ("3.14", 3),
         # whitespace + BOM cleaned
@@ -175,9 +175,9 @@ def test_raw_to_int_base(base: int, value: str, expected: int) -> None:
         (3.14, 3.14),
         (-5, -5.0),
         # float strings
-        ("3.14", 3.14),
+        pytest.param("3.14", 3.14, id="str_3.14-3.14"),
         ("-5.5", -5.5),
-        ("42", 42.0),
+        pytest.param("42", 42.0, id="str_42-42.0"),
         # whitespace + BOM cleaned
         ("  3.14  ", 3.14),
         (_BOM + "3.14", 3.14),

@@ -9,7 +9,7 @@
   },
   "python.analysis.typeCheckingMode": "basic",
   "mypy-type-checker.args": [
-    "--config-file=${workspaceFolder}/mypy.ini"
+    "--config-file=${workspaceFolder}/pyproject.toml"
   ],
   "mypy-type-checker.interpreter": [
     "${workspaceFolder}/.venv/Scripts/python.exe", // Windows path

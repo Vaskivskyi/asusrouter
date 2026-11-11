@@ -155,6 +155,7 @@ class TestTranslateState:
     @pytest.mark.parametrize(
         ("raw", "expected"),
         [("1", True), ("0", False), (1, True), (0, False)],
+        ids=["str_on", "str_off", "int_on", "int_off"],
     )
     def test_state(self, raw: Any, expected: bool) -> None:
         """The led_val maps to a boolean state."""
