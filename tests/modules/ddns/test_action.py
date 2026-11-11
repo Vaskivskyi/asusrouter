@@ -209,6 +209,7 @@ class TestSet:
     @pytest.mark.parametrize(
         "get_data",
         [None, AsyncMock(return_value=None), _data(None)],
+        ids=["no_callback", "no_data", "no_source_data"],
     )
     async def test_hostname_current_unknown(self, get_data: Any) -> None:
         """Without the current config the replace status is left alone."""

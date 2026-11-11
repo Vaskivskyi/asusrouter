@@ -100,7 +100,11 @@ class TestAction:
 
         assert ARSpeedTestAction().server_id is None
 
-    @pytest.mark.parametrize("value", [0, -5, "0", "abc", ""])
+    @pytest.mark.parametrize(
+        "value",
+        [0, -5, "0", "abc", ""],
+        ids=["zero", "negative", "str_zero", "non_numeric", "empty"],
+    )
     def test_non_positive_falls_back_to_auto(self, value: int | str) -> None:
         """Zero, negative, or non-numeric ids fall back to the auto server."""
 
