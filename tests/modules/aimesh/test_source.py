@@ -124,7 +124,7 @@ class TestTranslateState:
         assert topo.root() is not None
 
     def test_status_and_onboarding(self) -> None:
-        """Onboarding status and the raw onboarding list are wired in."""
+        """Onboarding status is wired in, the onboarding list is not kept."""
 
         raw = _RAW + (
             'get_onboardingstatus = [{"cfg_ready":"1",'
@@ -137,7 +137,7 @@ class TestTranslateState:
         assert topo.status.ready is True
         assert topo.status.re_maxnum == 16
         assert topo.status.rssi == -20
-        assert topo.onboarding == {}
+        assert not hasattr(topo, "onboarding")
 
     @pytest.mark.parametrize(
         "data",

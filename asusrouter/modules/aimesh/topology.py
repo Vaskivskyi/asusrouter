@@ -250,6 +250,23 @@ def _remaining_capability(raw: dict[str, Any]) -> dict[str, Any] | None:
     return remaining or None
 
 
+# === Config passthrough ===
+
+# Decoded config sections, dropped from the raw config
+_CONSUMED_CONFIG: frozenset[str] = frozenset({"prefer_ap"})
+
+
+def _remaining_config(config: dict[str, Any]) -> dict[str, Any] | None:
+    """Return the raw config without the sections we already decoded."""
+
+    remaining = {
+        key: value
+        for key, value in config.items()
+        if key not in _CONSUMED_CONFIG
+    }
+    return remaining or None
+
+
 # === Backhaul ===
 
 # pap field suffix -> (band, ap fields to match a parent on, sta field)
@@ -536,7 +553,7 @@ def _translate_node(
         moca_status=_raw_dict(raw.get("moca_status")),
         mlo_status=_raw_dict(raw.get("mlo_status")),
         capability=_remaining_capability(raw),
-        config=config or None,
+        config=_remaining_config(config),
     )
 
 
@@ -592,7 +609,6 @@ class ARAiMeshTopology:
     status: ARAiMeshOnboardingStatus = field(
         default_factory=ARAiMeshOnboardingStatus
     )
-    onboarding: dict[str, Any] | None = None
 
     def get(self, mac: Any) -> ARAiMeshNode | None:
         """Get a node by MAC."""
@@ -661,7 +677,6 @@ class ARAiMeshTopology:
 def translate_topology(
     nodes: Any,
     status: ARAiMeshOnboardingStatus | None = None,
-    onboarding: dict[str, Any] | None = None,
 ) -> ARAiMeshTopology:
     """Build a topology from the `get_cfg_clientlist` node list."""
 
@@ -679,5 +694,4 @@ def translate_topology(
     return ARAiMeshTopology(
         nodes=result,
         status=status or ARAiMeshOnboardingStatus(),
-        onboarding=onboarding,
     )

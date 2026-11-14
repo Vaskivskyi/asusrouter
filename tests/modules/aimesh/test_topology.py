@@ -133,7 +133,10 @@ def _wl_raw() -> dict[str, Any]:
             "wireless": {"wl0_radio": "1", "wl1_radio": "1", "wl2_radio": "0"},
             "link_aggregation": {"lacp_enabled": "0"},
             "ctrl_led": {"led_val": "0"},
-            "prefer_ap": {"amas_wlc_target_bssid": f"<{_ROOT}"},
+            "prefer_ap": {
+                "amas_wlc_target_bssid": f"<{_ROOT}",
+                "amas_wlc0_target_bssid": f"<{_ROOT}",
+            },
         },
     }
 
@@ -297,22 +300,20 @@ class TestOnboardingStatus:
         assert status.ready is False
         assert status.re_maxnum is None
 
-    def test_topology_carries_status_and_onboarding(self) -> None:
-        """translate_topology attaches status and raw onboarding."""
+    def test_topology_carries_status(self) -> None:
+        """translate_topology attaches the onboarding status."""
 
         status = translate_onboarding_status({"cfg_ready": "1"})
-        topo = translate_topology([], status=status, onboarding={"a": 1})
+        topo = translate_topology([], status=status)
 
         assert topo.status.ready is True
-        assert topo.onboarding == {"a": 1}
 
     def test_topology_defaults(self) -> None:
-        """Without args the status is default and onboarding is None."""
+        """Without args the status is default."""
 
         topo = translate_topology([])
 
         assert topo.status.ready is False
-        assert topo.onboarding is None
 
     @pytest.mark.parametrize(
         "data", [None, "x", 5, {}], ids=["none", "str", "int", "dict"]
@@ -645,6 +646,26 @@ class TestEnrichedFields:
         assert node.capability == {"9": "1"}
         assert "27" not in node.capability
         assert "28" not in node.capability
+
+    def test_consumed_config_stripped(self) -> None:
+        """The decoded preferred parent section drops from the raw config."""
+
+        node = translate_topology([_root_raw(), _wl_raw()]).get(_WL)
+
+        assert node.config is not None
+        assert "prefer_ap" not in node.config
+        assert "ctrl_led" in node.config
+
+    def test_config_all_consumed_is_none(self) -> None:
+        """Config with only decoded sections becomes None."""
+
+        raw = _wl_raw()
+        raw["config"] = {"prefer_ap": {"amas_wlc_target_bssid": f"<{_ROOT}"}}
+
+        node = translate_topology([_root_raw(), raw]).get(_WL)
+
+        assert node.preferred_parent == MacAddress(_ROOT)
+        assert node.config is None
 
     def test_capability_all_consumed_is_none(self) -> None:
         """Capability with only decoded keys becomes None."""
