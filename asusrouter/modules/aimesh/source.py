@@ -60,13 +60,11 @@ def translate_state(
     if not isinstance(data, dict) or not data:
         return ARAiMeshTopology()
 
-    onboarding = read_js_section(data, "get_onboardinglist")
     return translate_topology(
         read_js_section(data, "get_cfg_clientlist"),
         status=translate_onboarding_status(
             read_js_section(data, "get_onboardingstatus")
         ),
-        onboarding=onboarding if isinstance(onboarding, dict) else None,
     )
 
 
